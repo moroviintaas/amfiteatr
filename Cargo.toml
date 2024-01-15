@@ -1,0 +1,12 @@
+[workspace]
+resolver = "2"
+members = [
+    "amfiteatr_core",
+    "amfiteatr_net_ext",
+    "amfiteatr_proc_macro",
+    "amfiteatr_rl",
+    "amfiteatr_examples",
+    "amfiteatr_classic",
+    #"rl_custom_payoff"
+    #"amfiteatr_world"
+]

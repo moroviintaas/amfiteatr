@@ -1,0 +1,18 @@
+[submodule "amfiteatr_classic"]
+	path = amfiteatr_classic
+	url = git@github.com:moroviintaas/amfiteatr_classic.git
+[submodule "amfiteatr_core"]
+	path = amfiteatr_core
+	url = git@github.com:moroviintaas/amfiteatr_core.git
+[submodule "amfiteatr_rl"]
+	path = amfiteatr_rl
+	url = git@github.com:moroviintaas/amfiteatr_rl.git
+[submodule "amfiteatr_examples"]
+	path = amfiteatr_examples
+	url = git@github.com:moroviintaas/amfiteatr_examples.git
+[submodule "amfiteatr_proc_macro"]
+	path = amfiteatr_proc_macro
+	url = git@github.com:moroviintaas/amfiteatr_proc_macro.git
+[submodule "amfiteatr_net_ext"]
+	path = amfiteatr_net_ext
+	url = git@github.com:moroviintaas/amfiteatr_net_ext.git
