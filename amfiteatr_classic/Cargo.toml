@@ -1,0 +1,23 @@
+[package]
+name = "amfiteatr_classic"
+version = "0.2.1"
+edition = "2021"
+repository = "https://github.com/moroviintaas/amfiteatr"
+license-file = "LICENSE"
+keywords = ["game", "theory", "model", "player"]
+categories = ["games", "simulation", "concurrency", "development-tools"]
+description = "Implementation of some classic game theory problems to research on"
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+
+rand = "0.8.5"
+
+enum-map = {version = "2.7.3", features = ["serde"]}
+log = "0.4.20"
+serde = {version = "1.0.196", features = ["rc", "derive"]}
+thiserror = "1.0.56"
+speedy = {version = "0.8.7"}
+
+amfiteatr_core = {version = "0.2.0" }
+amfiteatr_rl = {version = "0.2.0" }

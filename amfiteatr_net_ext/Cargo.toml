@@ -1,0 +1,16 @@
+[package]
+name = "amfiteatr_net_ext"
+version = "0.2.1"
+edition = "2021"
+repository = "https://github.com/moroviintaas/amfiteatr"
+license-file = "LICENSE"
+keywords = ["game", "theory", "model", "player"]
+categories = ["games", "simulation",  "development-tools"]
+description = "Proof of concept extension to provide basic TCP communication"
+
+
+[dependencies]
+log = "0.4.20"
+speedy = "0.8.6"
+amfiteatr_core = {version = "0.2.1", features = ["speedy"]}
+thiserror = "1.0.56"

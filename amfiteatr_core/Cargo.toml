@@ -1,0 +1,30 @@
+[package]
+name = "amfiteatr_core"
+version = "0.2.1"
+edition = "2021"
+repository = "https://github.com/moroviintaas/amfiteatr"
+license-file = "LICENSE"
+keywords = ["game", "theory", "model", "player"]
+categories = ["games", "simulation", "concurrency", "development-tools"]
+description = "A framework to model and simulate game theory problems with many agents"
+[lib]
+
+
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+
+thiserror = "1.0.56"
+speedy = {version = "0.8.7", optional = true}
+log = "0.4.20"
+rand = "0.8.5"
+serde = {version = "1.0.196", features = ["derive"],  optional = true}
+ron = {version = "0.8.1", optional = true}
+
+
+[features]
+
+speedy = ["dep:speedy"]
+serde = ["dep:serde"]
+demo = []
