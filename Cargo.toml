@@ -7,6 +7,12 @@ members = [
     "amfiteatr_rl",
     "amfiteatr_examples",
     "amfiteatr_classic",
-    #"rl_custom_payoff"
-    #"amfiteatr_world"
 ]
+
+[patch.crates-io]
+amfiteatr_core = {path = "amfiteatr_core"}
+amfiteatr_rl = {path = "amfiteatr_rl"}
+amfiteatr_net_ext = {path = "amfiteatr_net_ext"}
+amfiteatr_proc_macro = {path = "amfiteatr_proc_macro"}
+amfiteatr_classic = {path = "amfiteatr_classic"}
+amfiteatr_examples = {path = "amfiteatr_examples"}
