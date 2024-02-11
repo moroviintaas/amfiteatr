@@ -2,12 +2,12 @@ use std::error::Error;
 use std::fmt::Debug;
 use crate::domain::DomainParameters;
 
-pub trait InternalGameError<Spec: DomainParameters>: Error + Clone + PartialEq + Debug + Send{
+pub trait InternalGameError<Spec: DomainParameters>: Error + Clone + Debug + Send{
 
 }
 
 
-impl<T: Error + Clone + PartialEq + Debug + Send, DP:DomainParameters> InternalGameError<DP> for T{
+impl<T: Error + Clone + Debug + Send, DP:DomainParameters> InternalGameError<DP> for T{
 
 }
 /*
