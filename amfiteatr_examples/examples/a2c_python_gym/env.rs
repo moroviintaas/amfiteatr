@@ -14,9 +14,11 @@ pub const SINGLE_PLAYER_ID: u64 = 1;
 pub struct PythonGymnasiumCartPoleState {
     internal: PyObject,
     action_space: i64,
-    observation_space: Vec<i64>,
+    observation_space: Vec<f32>,
     terminated: bool,
     truncated: bool,
+    latest_observation: Vec<f32>,
+    player_reward: f32,
 }
 
 #[derive(Debug, Clone)]
@@ -54,7 +56,7 @@ impl<'a> From<PyDowncastError<'a>> for GymnasiumError{
 impl DomainParameters for CartPoleDomain{
     type ActionType = i64;
     type GameErrorType = GymnasiumError;
-    type UpdateType = Vec<i64>;
+    type UpdateType = Vec<f32>;
     type AgentId = u64;
     type UniversalReward = f32;
 }
@@ -81,33 +83,62 @@ impl PythonGymnasiumCartPoleState {
             let observation_space = env_obj.getattr("observation_space")?;
             let observation_space = observation_space.getattr("shape")?.extract()?;
             let internal_obj: PyObject = env_obj.to_object(py);
+            let step0 = internal_obj.call_method0(py, "reset")?;
+            let step0_t = step0.downcast::<PyTuple>(py)?;
+            //let step0 = PyTuple::from
+            let obs = step0_t.get_item(0)?;
+            let v = obs.extract()?;
+
             Ok(PythonGymnasiumCartPoleState {
-                internal: env_obj.into(),
+                internal: internal_obj,
                 action_space, observation_space,
                 truncated: false, terminated: false,
+                latest_observation: v,
+                player_reward: 0.0
             })
 
         })
 
 
     }
-    fn __forward(&mut self, action: <CartPoleDomain as DomainParameters>::ActionType)
-        -> PyResult<Vec<i64>>{
+
+
+    pub fn __forward(&mut self, action: <CartPoleDomain as DomainParameters>::ActionType)
+        -> PyResult<Vec<f32>>{
 
         Python::with_gil(|py|{
-            let r = self.internal.call1(py, (action, ))?;
+            let result = self.internal.call_method1(py, "step", (action, ))?;
 
 
-            let r_tuple: &PyTuple = r.downcast(py)?;
+            let result_tuple: &PyTuple = result.downcast(py)?;
 
-            todo!()
+            let observation = result_tuple.get_item(0)?;
+            let reward = result_tuple.get_item(1)?;
+            let truncated = result_tuple.get_item(2)?;
+            let terminated = result_tuple.get_item(3)?;
+            let info = result_tuple.get_item(4)?;
+
+            self.terminated = terminated.extract()?;
+            self.truncated = truncated.extract()?;
+            let v = observation.extract()?;
+            let r: f32 = reward.extract()?;
+            self.player_reward += r;
+
+            Ok(v)
+
         })
     }
 }
 
 
+impl PythonGymnasiumCartPoleState{
+    pub fn latest_observation(&self) -> &Vec<f32>{
+        &self.latest_observation
+    }
+}
+
 impl EnvironmentStateSequential<CartPoleDomain> for PythonGymnasiumCartPoleState{
-    type Updates = [(<CartPoleDomain as DomainParameters>::AgentId, Vec<i64> );1];
+    type Updates = [(<CartPoleDomain as DomainParameters>::AgentId, Vec<f32> );1];
 
     fn current_player(&self) -> Option<<CartPoleDomain as DomainParameters>::AgentId> {
         if self.terminated || self.truncated{
@@ -122,16 +153,10 @@ impl EnvironmentStateSequential<CartPoleDomain> for PythonGymnasiumCartPoleState
     }
 
     fn forward(&mut self, _agent: <CartPoleDomain as DomainParameters>::AgentId, action: i64) -> Result<Self::Updates, <CartPoleDomain as DomainParameters>::GameErrorType> {
-        /*Python::with_gil(|py|{
-            let r = self.internal.call1(py, (action, ))?;
 
-            let r_tuple: PyTuple = r.try_into()?;
-
-            todo!()
-        })
-
-         */
-        todo!()
+        self.__forward(action)
+            .map(|observation| [(SINGLE_PLAYER_ID, observation);1])
+            .map_err(|e| e.into())
     }
 }
 
