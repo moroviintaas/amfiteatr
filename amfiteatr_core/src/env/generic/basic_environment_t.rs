@@ -7,6 +7,7 @@ use crate::{
 };
 use crate::domain::Renew;
 use crate::env::generic::BasicEnvironment;
+use crate::error::AmfiError;
 
 
 /// This is generic implementation of environment using single endpoint construction
@@ -98,10 +99,29 @@ impl <
     CP: BroadcastingEnvironmentAdapter<DP>,
     Seed
 > ReseedEnvironment<DP, Seed> for TracingBasicEnvironment<DP, S, CP>
-where <Self as StatefulEnvironment<DP>>::State: Renew<Seed>{
-    fn reseed(&mut self, seed: Seed) {
-        self.base_environment.reseed(seed);
+where <Self as StatefulEnvironment<DP>>::State: Renew<DP, Seed>{
+    fn reseed(&mut self, seed: Seed) -> Result<(), AmfiError<DP>>{
+
         self.history.clear();
+        self.base_environment.reseed(seed)
+    }
+}
+impl <
+    DP: DomainParameters,
+    S: EnvironmentStateSequential<DP> + Clone + RenewWithSideEffect<DP, Seed>,
+    CP: BroadcastingEnvironmentAdapter<DP>,
+    Seed,
+    AgentSeed
+> DirtyReseedEnvironment<DP, Seed> for TracingBasicEnvironment<DP, S, CP>
+    where <Self as StatefulEnvironment<DP>>::State: RenewWithSideEffect<DP, Seed>,
+          <<Self as StatefulEnvironment<DP>>::State as RenewWithSideEffect<DP, Seed>>::SideEffect:
+          IntoIterator<Item=(DP::AgentId, AgentSeed)>{
+    //type Observation = <<Self as StatefulEnvironment<DP>>::State as RenewWithSideEffect<DP, Seed>>::SideEffect;
+    type Observation = AgentSeed;
+    type InitialObservations = HashMap<DP::AgentId, Self::Observation>;
+
+    fn dirty_reseed(&mut self, seed: Seed) -> Result<Self::InitialObservations, AmfiError<DP>>{
+        self.base_environment.dirty_reseed(seed)
     }
 }
 

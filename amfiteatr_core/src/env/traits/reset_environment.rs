@@ -1,5 +1,7 @@
+use std::ops::Index;
 use crate::env::StatefulEnvironment;
 use crate::domain::DomainParameters;
+use crate::error::AmfiError;
 
 
 /// Environment with ability to be reset wit new state.
@@ -29,5 +31,24 @@ pub trait ReseedEnvironment<DP: DomainParameters, Seed>: StatefulEnvironment<DP>
 {
     /// This method must do reinitialize environment i.e. set new game state.
     /// New game state should be derived from seed.
-    fn reseed(&mut self, seed: Seed);
+    fn reseed(&mut self, seed: Seed) -> Result<(), AmfiError<DP>>;
+
+}
+
+/// Environment to be reset using some seed. During reseeding environment produces
+/// initial observations for agents.
+/// These observations should compatible with [`ReseedAgent`](crate::agent:ReseedAgent), then
+/// it can be used to reinitialize agents.
+/// > For example when environment shuffles and distributes card, agents can observe their initial cards
+/// and this information can be used to initialize their information set. Or when constructing similar environment
+/// to [`Gymnasium`](https://gymnasium.farama.org/), while reseeding environment player observes the same data type
+/// as when he makes _step_.
+pub trait DirtyReseedEnvironment<DP: DomainParameters, Seed>: StatefulEnvironment<DP>{
+    /// Observation type for one player (probably corresponding to `ReseedAgent's` [Seed](crate::agent:ReseedAgent)
+    /// parameter
+    type Observation;
+    /// Aggregator for initial observations (e.g. [`HashMap<AgentId, Self::Observation`](std::collections::HashMap))
+    type InitialObservations: IntoIterator<Item=(DP::AgentId, Self::Observation)>;
+
+    fn dirty_reseed(&mut self, seed: Seed) -> Result<Self::InitialObservations, AmfiError<DP>>;
 }

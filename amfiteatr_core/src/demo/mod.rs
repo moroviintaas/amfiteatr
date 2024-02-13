@@ -50,7 +50,7 @@ use crate::domain::{Action, DomainParameters, Renew};
 use crate::env::{EnvironmentStateSequential, EnvironmentStateUniScore};
 use rand::distributions::Distribution;
 use crate::agent::{InformationSet, EvaluatedInformationSet};
-
+use crate::error::AmfiError;
 
 
 #[derive(Clone, Debug)]
@@ -175,9 +175,10 @@ impl DemoInfoSet{
     }
 }
 
-impl Renew<()> for DemoInfoSet{
-    fn renew_from(&mut self, _base: ()) {
-        self.rewards.clear()
+impl Renew<DemoDomain, ()> for DemoInfoSet{
+    fn renew_from(&mut self, _base: ()) -> Result<(), AmfiError<DemoDomain>> {
+        self.rewards.clear();
+        Ok(())
     }
 }
 

@@ -8,6 +8,7 @@ use log::{debug, trace};
 use std::fmt::{Display, Formatter};
 use std::marker::PhantomData;
 use serde::Serialize;
+use amfiteatr_core::error::AmfiError;
 use crate::domain::{AgentNum, ClassicAction, ClassicGameDomain, ClassicGameError, ClassicGameUpdate, EncounterReport, IntReward, UsizeAgentId};
 use crate::domain::ClassicGameError::ActionAfterGameOver;
 use crate::{AsymmetricRewardTableInt, Side};
@@ -302,8 +303,8 @@ impl<ID: UsizeAgentId> EnvironmentStateUniScore<ClassicGameDomain<ID>> for Pairi
     }
 }
 
-impl<ID: UsizeAgentId> Renew<()> for PairingState<ID>{
-    fn renew_from(&mut self, _base: ()) {
+impl<ID: UsizeAgentId> Renew<ClassicGameDomain<ID>, ()> for PairingState<ID>{
+    fn renew_from(&mut self, _base: ())  -> Result<(), AmfiError<ClassicGameDomain<ID>>> {
         debug!("Renewing state");
         //self.score_cache.iter_mut().for_each(|a|*a=0);
         for i in 0..self.score_cache.len(){
@@ -314,6 +315,7 @@ impl<ID: UsizeAgentId> Renew<()> for PairingState<ID>{
         let mut rng = thread_rng();
         self.indexes.shuffle(&mut rng);
         self.actual_pairings = Self::create_pairings(&self.indexes[..]).unwrap();
-        debug!("After renewing state, with pairings of length = {}", self.actual_pairings.len())
+        debug!("After renewing state, with pairings of length = {}", self.actual_pairings.len());
+        Ok(())
     }
 }

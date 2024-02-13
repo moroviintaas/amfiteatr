@@ -6,7 +6,8 @@ use crate::{
     comm::{EnvironmentAdapter, BroadcastingEnvironmentAdapter}
 };
 use crate::env::ListPlayers;
-use crate::domain::Renew;
+use crate::domain::{Renew, RenewWithSideEffect};
+use crate::error::AmfiError;
 
 
 /// This is generic implementation of environment using single endpoint construction
@@ -79,9 +80,30 @@ impl <
     CP: BroadcastingEnvironmentAdapter<DP>,
     Seed
 > ReseedEnvironment<DP, Seed> for BasicEnvironment<DP, S, CP>
-where <Self as StatefulEnvironment<DP>>::State: Renew<Seed>{
-    fn reseed(&mut self, seed: Seed) {
-        self.game_state.renew_from(seed);
+where <Self as StatefulEnvironment<DP>>::State: Renew<DP, Seed>{
+    fn reseed(&mut self, seed: Seed) -> Result<(), AmfiError<DP>>{
+        self.game_state.renew_from(seed)
+    }
+}
+
+impl <
+    DP: DomainParameters,
+    S: EnvironmentStateSequential<DP> + Clone + RenewWithSideEffect<DP, Seed>,
+    CP: BroadcastingEnvironmentAdapter<DP>,
+    Seed,
+    AgentSeed
+> DirtyReseedEnvironment<DP, Seed> for BasicEnvironment<DP, S, CP>
+where <Self as StatefulEnvironment<DP>>::State: RenewWithSideEffect<DP, Seed>,
+ <<Self as StatefulEnvironment<DP>>::State as RenewWithSideEffect<DP, Seed>>::SideEffect:
+       IntoIterator<Item=(DP::AgentId, AgentSeed)>{
+    //type Observation = <<Self as StatefulEnvironment<DP>>::State as RenewWithSideEffect<DP, Seed>>::SideEffect;
+    type Observation = AgentSeed;
+    type InitialObservations = HashMap<DP::AgentId, Self::Observation>;
+
+    fn dirty_reseed(&mut self, seed: Seed) -> Result<Self::InitialObservations, AmfiError<DP>>{
+        self.game_state.renew_with_side_effect_from(seed)
+            .map(|agent_observation_iter|
+                agent_observation_iter.into_iter().collect())
     }
 }
 

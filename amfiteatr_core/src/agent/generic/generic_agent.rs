@@ -3,7 +3,7 @@ use crate::agent::*;
 use crate::agent::info_set::{InformationSet, EvaluatedInformationSet};
 use crate::agent::policy::Policy;
 use crate::comm::BidirectionalEndpoint;
-use crate::error::CommunicationError;
+use crate::error::{AmfiError, CommunicationError};
 use crate::domain::{AgentMessage, EnvironmentMessage, DomainParameters, Reward, Renew};
 
 /// Generic agent implementing common traits needed by agent.
@@ -195,14 +195,15 @@ impl<
         InwardType=EnvironmentMessage<DP>,
         Error=CommunicationError<DP>>,
     Seed> ReseedAgent<DP, Seed> for AgentGen<DP, P, Comm>
-where <P as Policy<DP>>::InfoSetType: Renew<Seed>
+where <P as Policy<DP>>::InfoSetType: Renew<DP, Seed>
     + EvaluatedInformationSet<DP>,
-<Self as StatefulAgent<DP>>::InfoSetType: Renew<Seed>{
-    fn reseed(&mut self, seed: Seed) {
+<Self as StatefulAgent<DP>>::InfoSetType: Renew<DP, Seed>{
+    fn reseed(&mut self, seed: Seed) -> Result<(), AmfiError<DP>> {
 
-        self.information_set.renew_from(seed);
+
         self.constructed_universal_reward = DP::UniversalReward::neutral();
         self.committed_universal_score = DP::UniversalReward::neutral();
+        self.information_set.renew_from(seed)
     }
 }
 
@@ -328,7 +329,7 @@ impl<
     Seed>
 EpisodeMemoryAgent<DP, Seed> for AgentGen<DP, P, Comm>
 where <P as Policy<DP>>::InfoSetType: EvaluatedInformationSet<DP>,
-      <Self as StatefulAgent<DP>>::InfoSetType: Renew<Seed>{
+      <Self as StatefulAgent<DP>>::InfoSetType: Renew<DP, Seed>{
     fn store_episode(&mut self) {
     }
 

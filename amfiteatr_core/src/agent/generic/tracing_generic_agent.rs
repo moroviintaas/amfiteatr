@@ -3,7 +3,7 @@ use std::marker::PhantomData;
 use crate::agent::*;
 use crate::agent::info_set::EvaluatedInformationSet;
 use crate::comm::BidirectionalEndpoint;
-use crate::error::CommunicationError;
+use crate::error::{AmfiError, CommunicationError};
 use crate::domain::{AgentMessage, DomainParameters, EnvironmentMessage, Renew, Reward};
 
 
@@ -203,14 +203,15 @@ impl<
         InwardType=EnvironmentMessage<DP>,
         Error=CommunicationError<DP>>,
     Seed> ReseedAgent<DP, Seed> for TracingAgentGen<DP, P, Comm>
-where <P as Policy<DP>>::InfoSetType: Renew<Seed>
+where <P as Policy<DP>>::InfoSetType: Renew<DP, Seed>
     + EvaluatedInformationSet<DP>,
-<Self as StatefulAgent<DP>>::InfoSetType: Renew<Seed>{
-    fn reseed(&mut self, seed: Seed) {
-        self.information_set.renew_from(seed);
+<Self as StatefulAgent<DP>>::InfoSetType: Renew<DP, Seed>{
+    fn reseed(&mut self, seed: Seed) -> Result<(), AmfiError<DP>>{
+
         self.game_trajectory.clear();
         self.constructed_universal_reward = DP::UniversalReward::neutral();
         self.committed_universal_score = DP::UniversalReward::neutral();
+        self.information_set.renew_from(seed)
 
     }
 }
@@ -408,7 +409,7 @@ impl<
     Seed>
 EpisodeMemoryAgent<DP, Seed> for TracingAgentGen<DP, P, Comm>
 where <P as Policy<DP>>::InfoSetType: EvaluatedInformationSet<DP>,
-      <Self as StatefulAgent<DP>>::InfoSetType: Renew<Seed>{
+      <Self as StatefulAgent<DP>>::InfoSetType: Renew<DP, Seed>{
     fn store_episode(&mut self) {
         let mut new_trajectory = Trajectory::new();
         std::mem::swap(&mut new_trajectory, &mut self.game_trajectory);

@@ -1,8 +1,9 @@
 use crate::agent::{StatefulAgent};
 use crate::domain::DomainParameters;
+use crate::error::AmfiError;
 
 /// Trait for agent that can reset their attributes to some default values
-/// while setting new info set. Typically to be used in situations
+/// while setting new info set. Typically, to be used in situations
 /// when game is to be relaunched from beginning (optionally with new start point)
 pub trait ReinitAgent<DP: DomainParameters>: StatefulAgent<DP>{
 
@@ -25,6 +26,6 @@ pub trait ReinitAgent<DP: DomainParameters>: StatefulAgent<DP>{
 pub trait ReseedAgent<DP: DomainParameters, Seed>: StatefulAgent<DP>
 //where <Self as StatefulAgent<DP>>::InfoSetType: ConstructedInfoSet<DP, Seed>{
 {
-    fn reseed(&mut self, seed: Seed);
+    fn reseed(&mut self, seed: Seed) -> Result<(), AmfiError<DP>>;
 }
 

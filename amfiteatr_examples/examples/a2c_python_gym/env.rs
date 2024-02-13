@@ -3,9 +3,9 @@ use std::fmt::{Debug, Display, Formatter};
 use pyo3::prelude::*;
 use pyo3::PyDowncastError;
 use pyo3::types::PyTuple;
-use amfiteatr_core::domain::DomainParameters;
+use amfiteatr_core::domain::{DomainParameters, RenewWithSideEffect};
 use amfiteatr_core::env::EnvironmentStateSequential;
-
+use amfiteatr_core::error::AmfiError;
 
 
 pub const SINGLE_PLAYER_ID: u64 = 1;
@@ -128,6 +128,19 @@ impl PythonGymnasiumCartPoleState {
 
         })
     }
+
+    pub fn __reset(&mut self) -> PyResult<<CartPoleDomain as DomainParameters>::UpdateType>{
+        Python::with_gil(|py|{
+            let result = self.internal.call_method0(py, "reset")?;
+            let result_tuple: &PyTuple = result.downcast(py)?;
+            let observation = result_tuple.get_item(0)?;
+            self.truncated = false;
+            self.terminated = false;
+            self.player_reward = 0.0;
+            let v = observation.extract()?;
+            Ok(v)
+        })
+    }
 }
 
 
@@ -160,3 +173,12 @@ impl EnvironmentStateSequential<CartPoleDomain> for PythonGymnasiumCartPoleState
     }
 }
 
+impl RenewWithSideEffect<CartPoleDomain, ()> for PythonGymnasiumCartPoleState{
+    type SideEffect = [(<CartPoleDomain as DomainParameters>::AgentId, <CartPoleDomain as DomainParameters>::UpdateType);1];
+
+    fn renew_with_side_effect_from(&mut self, _base: ()) -> Result<Self::SideEffect, AmfiError<CartPoleDomain>> {
+        self.__reset()
+            .map(|observation| [(SINGLE_PLAYER_ID, observation);1])
+            .map_err(|e| AmfiError::Game(e.into()))
+    }
+}
