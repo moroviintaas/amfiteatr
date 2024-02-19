@@ -68,9 +68,9 @@ where <P as Policy<DP>>::InfoSetType: EvaluatedInformationSet<DP>
     /// ```
     /// use amfiteatr_core::agent::{AgentGen, RandomPolicy};
     /// use amfiteatr_core::comm::StdEnvironmentEndpoint;
-    /// use amfiteatr_core::demo::{DemoAgentID, DemoInfoSet, DemoPolicySelectFirst};
+    /// use amfiteatr_core::demo::{DEMO_AGENT_RED, DemoAgentID, DemoInfoSet, DemoPolicySelectFirst};
     /// let (_, comm) = StdEnvironmentEndpoint::new_pair();
-    /// let agent = AgentGen::new(DemoInfoSet::new(DemoAgentID::Red, 10), comm, RandomPolicy::new());
+    /// let agent = AgentGen::new(DemoInfoSet::new(DEMO_AGENT_RED, 10), comm, RandomPolicy::new());
     /// let agent_2 = agent.transform_replace_policy(DemoPolicySelectFirst{});
     /// ```
     pub fn transform_replace_policy<P2: Policy<DP, InfoSetType=P::InfoSetType>>(self, new_policy: P2) -> AgentGen<DP, P2, Comm>
@@ -91,9 +91,9 @@ where <P as Policy<DP>>::InfoSetType: EvaluatedInformationSet<DP>
     /// ```
     /// use amfiteatr_core::agent::{AgentGen, RandomPolicy};
     /// use amfiteatr_core::comm::StdEnvironmentEndpoint;
-    /// use amfiteatr_core::demo::{DemoAgentID, DemoInfoSet, DemoPolicySelectFirst};
+    /// use amfiteatr_core::demo::{DEMO_AGENT_RED, DemoAgentID, DemoInfoSet, DemoPolicySelectFirst};
     /// let (_, comm) = StdEnvironmentEndpoint::new_pair();
-    /// let agent = AgentGen::new(DemoInfoSet::new(DemoAgentID::Red, 10), comm, RandomPolicy::new());
+    /// let agent = AgentGen::new(DemoInfoSet::new(DEMO_AGENT_RED, 10), comm, RandomPolicy::new());
     /// let (agent_2, old_policy) = agent.transform_replace_policy_ret(DemoPolicySelectFirst{});
     /// ```
     pub fn transform_replace_policy_ret<P2: Policy<DP, InfoSetType=P::InfoSetType>>(self, new_policy: P2) -> (AgentGen<DP, P2, Comm>, P)

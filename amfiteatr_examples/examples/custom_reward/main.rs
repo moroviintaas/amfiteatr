@@ -62,7 +62,7 @@ pub fn run_game(
 
     thread::scope(|s|{
         s.spawn(||{
-            env.reseed(());
+            env.reseed(()).unwrap();
             env.run_with_scores().unwrap();
         });
         s.spawn(||{

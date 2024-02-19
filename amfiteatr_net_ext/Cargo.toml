@@ -8,9 +8,14 @@ keywords = ["game", "theory", "model", "player"]
 categories = ["games", "simulation",  "development-tools"]
 description = "Proof of concept extension to provide basic TCP communication"
 
+[[bench]]
+name = "tcp_speedy"
+harness = false
+
 
 [dependencies]
 log = "0.4.20"
 speedy = "0.8.6"
-amfiteatr_core = {version = "0.2.1", features = ["speedy"]}
+amfiteatr_core = {version = "0.2.1", features = ["speedy", "demo"]}
 thiserror = "1.0.56"
+criterion = "0.5.1"

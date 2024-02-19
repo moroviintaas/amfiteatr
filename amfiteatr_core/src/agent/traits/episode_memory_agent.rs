@@ -25,7 +25,7 @@ pub trait EpisodeMemoryAutoAgent<DP: DomainParameters, Seed>: EpisodeMemoryAgent
     /// to prepare new state. Secondly it runs normal episode and finally stores episode in
     /// episode archive using [`store_episode`](ReseedAgent) method.
     fn run_episode(&mut self, seed: Seed) -> Result<(), AmfiError<DP>> {
-        self.reseed(seed);
+        self.reseed(seed)?;
         self.run()?;
         self.store_episode();
         Ok(())
@@ -46,7 +46,7 @@ pub trait MultiEpisodeAutoAgentRewarded<DP: DomainParameters, Seed>: EpisodeMemo
     /// to prepare new state. Secondly it runs normal episode with reward collection and finally stores episode in
     /// episode archive using [`store_episode`](ReseedAgent) method.
     fn run_episode_rewarded(&mut self, seed: Seed) -> Result<(), AmfiError<DP>> {
-        self.reseed(seed);
+        self.reseed(seed)?;
         self.run_rewarded()?;
         self.store_episode();
         Ok(())

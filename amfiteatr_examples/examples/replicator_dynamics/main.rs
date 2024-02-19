@@ -272,7 +272,7 @@ impl Model{
 
         thread::scope(|s|{
             s.spawn(||{
-                self.environment.reseed(());
+                self.environment.reseed(()).unwrap();
                 self.environment.run_with_scores().unwrap();
             });
             for a in  &self.dove_agents{

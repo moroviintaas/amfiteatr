@@ -1,4 +1,3 @@
-use std::ops::Index;
 use crate::env::StatefulEnvironment;
 use crate::domain::DomainParameters;
 use crate::error::AmfiError;

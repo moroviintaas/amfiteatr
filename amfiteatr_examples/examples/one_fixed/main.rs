@@ -73,18 +73,18 @@ pub fn run_game(
 
     thread::scope(|s|{
         s.spawn(||{
-            env.reseed(());
+            env.reseed(()).unwrap();
             env.run_with_scores().unwrap();
         });
         s.spawn(||{
-            agent0.reseed(());
+            agent0.reseed(()).unwrap();
             agent0.run_episode_rewarded(()).unwrap()
         });
         s.spawn(||{
             //let mut g = agent1.lock().unwrap();
             //g.run_episode_rewarded(()).unwrap()
 
-            agent1.reseed(());
+            agent1.reseed(()).unwrap();
             agent1.run_episode_rewarded(()).unwrap()
         });
     });

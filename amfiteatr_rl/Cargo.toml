@@ -9,6 +9,8 @@ categories =  ["games", "simulation",  "development-tools", "science"]
 description = "Extensions providing reinforcement learning implementations for `amfiteatr`"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
+
+
 [dependencies]
 
 tch = "0.15.0"
@@ -17,3 +19,6 @@ thiserror = "1.0.56"
 rand = "0.8.5"
 
 amfiteatr_core = {version = "0.2.1", features = ["demo"]}
+
+
+
