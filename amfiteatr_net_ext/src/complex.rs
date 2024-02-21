@@ -4,11 +4,11 @@ use speedy::{Writable, Readable, LittleEndian};
 use amfiteatr_core::comm::{BidirectionalEndpoint, StdEndpoint};
 use std::{fmt::Debug, sync::mpsc::{RecvError, SendError, TryRecvError}};
 
-use crate::tcp::{TcpCommBounded, TcpCommError};
+use crate::tcp::{BoundedTcpEndpoint, TcpCommError};
 
 pub enum ComplexComm<OT, IT, E: std::error::Error, const  SIZE: usize>{
     StdSync(StdEndpoint<OT, IT, E>),
-    Tcp(TcpCommBounded<OT, IT, E, SIZE>)
+    Tcp(BoundedTcpEndpoint<OT, IT, E, SIZE>)
 
 }
 

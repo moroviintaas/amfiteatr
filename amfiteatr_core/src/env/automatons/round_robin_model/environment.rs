@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use log::{debug, error, info, warn};
+use log::{debug, error, info, trace, warn};
 use crate::env::{BroadcastingEndpointEnvironment, CommunicatingEndpointEnvironment, EnvironmentStateSequential, EnvironmentWithAgents, ScoreEnvironment, StatefulEnvironment};
 use crate::error::{CommunicationError, AmfiError};
 use crate::error::ProtocolError::PlayerExited;
@@ -138,7 +138,7 @@ where Env: CommunicatingEndpointEnvironment<DP, CommunicationError=Communication
                             return Err(e);
                         }
                         AgentMessage::Quit => {
-                            error!("Player {} exited game.", player);
+                            error!("Player {} exited game (via Quit signal).", player);
                             self.notify_error(AmfiError::Protocol(PlayerExited(player.clone())))?;
                             return Err(AmfiError::Protocol(PlayerExited(player)))
                         }
@@ -151,7 +151,7 @@ where Env: CommunicatingEndpointEnvironment<DP, CommunicationError=Communication
                             //debug!("Empty channel");
                         },
                         err => {
-                            error!("Failed trying to receive from {}", player);
+                            error!("Failed trying to receive from {} with {err}", player);
                             self.send_to_all(EnvironmentMessage::ErrorNotify(err.clone().into()))?;
                             return Err(AmfiError::Communication(err));
                         }
@@ -185,7 +185,9 @@ where Env: CommunicatingEndpointEnvironment<DP, CommunicationError=Communication
         self.send_to(&first_player, EnvironmentMessage::YourMove).map_err(|e|e.specify_id(first_player))?;
         loop{
             for player in self.players(){
+                //trace!("Listening to messages from {}", player);
                 match self.nonblocking_receive_from(&player){
+
                     Ok(Some(agent_message)) => match agent_message{
                         AgentMessage::TakeAction(action) => {
                             info!("Player {} performs action: {:#}", &player, &action);
@@ -240,7 +242,7 @@ where Env: CommunicatingEndpointEnvironment<DP, CommunicationError=Communication
                             return Err(e);
                         }
                         AgentMessage::Quit => {
-                            error!("Player {} exited game.", player);
+                            error!("Player {} exited game (via Quit signal).", player);
                             self.notify_error(AmfiError::Protocol(PlayerExited(player.clone())))?;
                             return Err(AmfiError::Protocol(PlayerExited(player)))
                         }
@@ -253,7 +255,7 @@ where Env: CommunicatingEndpointEnvironment<DP, CommunicationError=Communication
                             //debug!("Empty channel");
                         },
                         err => {
-                            error!("Failed trying to receive from {}", player);
+                            error!("Failed trying to receive from {} with {err}", player);
                             self.send_to_all(EnvironmentMessage::ErrorNotify(err.clone().into()))?;
                             return Err(AmfiError::Communication(err));
                         }
@@ -344,7 +346,7 @@ where Env: CommunicatingEndpointEnvironment<DP, CommunicationError=Communication
                             return Err(e);
                         }
                         AgentMessage::Quit => {
-                            error!("Player {} exited game.", player);
+                            error!("Player {} exited game (via Quit signal).", player);
                             self.notify_error(AmfiError::Protocol(PlayerExited(player.clone())))?;
                             return Err(AmfiError::Protocol(PlayerExited(player)))
                         }
@@ -357,7 +359,7 @@ where Env: CommunicatingEndpointEnvironment<DP, CommunicationError=Communication
                             //debug!("Empty channel");
                         },
                         err => {
-                            error!("Failed trying to receive from {}", player);
+                            error!("Failed trying to receive from {} with {err}", player);
                             self.send_to_all(EnvironmentMessage::ErrorNotify(err.clone().into()))?;
                             return Err(AmfiError::Communication(err));
                         }

@@ -1,7 +1,10 @@
-use crate::env::{PythonGymnasiumCartPoleState, SINGLE_PLAYER_ID};
+pub mod env;
+pub mod common;
+pub mod agent;
 use amfiteatr_core::env::EnvironmentStateSequential;
+use crate::common::SINGLE_PLAYER_ID;
+use crate::env::PythonGymnasiumCartPoleState;
 
-mod env;
 
 fn main() {
     println!("Hello");

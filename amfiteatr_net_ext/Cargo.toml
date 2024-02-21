@@ -19,3 +19,4 @@ speedy = "0.8.6"
 amfiteatr_core = {version = "0.2.1", features = ["speedy", "demo"]}
 thiserror = "1.0.56"
 criterion = "0.5.1"
+zeroize = "1.7.0"

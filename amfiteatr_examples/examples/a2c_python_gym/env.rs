@@ -6,9 +6,9 @@ use pyo3::types::PyTuple;
 use amfiteatr_core::domain::{DomainParameters, RenewWithSideEffect};
 use amfiteatr_core::env::EnvironmentStateSequential;
 use amfiteatr_core::error::AmfiError;
+use crate::common::{CartPoleDomain, CartPoleObservation, CartPoleError, SINGLE_PLAYER_ID};
 
 
-pub const SINGLE_PLAYER_ID: u64 = 1;
 #[derive(Debug, Clone)]
 #[pyclass]
 pub struct PythonGymnasiumCartPoleState {
@@ -21,45 +21,7 @@ pub struct PythonGymnasiumCartPoleState {
     player_reward: f32,
 }
 
-#[derive(Debug, Clone)]
-pub struct CartPoleDomain{}
 
-
-#[derive(thiserror::Error, Debug, Clone)]
-pub enum GymnasiumError{
-    #[error("Internal Game error from gymnasium: {description:}")]
-    Bail{
-        description: String
-    }
-
-}
-/*
-impl<T: Display> From<T> for GymnasiumError{
-    fn from(value: T) -> Self {
-        Self::Bail {description: format!("{}", value)}
-    }
-}
-
- */
-
-impl From<PyErr> for GymnasiumError{
-    fn from(value: PyErr) -> Self {
-        Self::Bail {description: format!("{}", value)}
-    }
-}
-impl<'a> From<PyDowncastError<'a>> for GymnasiumError{
-    fn from(value: PyDowncastError<'a>) -> Self {
-        Self::Bail {description: format!("Python downcast error {}", value)}
-    }
-}
-
-impl DomainParameters for CartPoleDomain{
-    type ActionType = i64;
-    type GameErrorType = GymnasiumError;
-    type UpdateType = Vec<f32>;
-    type AgentId = u64;
-    type UniversalReward = f32;
-}
 
 #[pymethods]
 impl PythonGymnasiumCartPoleState {
@@ -129,7 +91,7 @@ impl PythonGymnasiumCartPoleState {
         })
     }
 
-    pub fn __reset(&mut self) -> PyResult<<CartPoleDomain as DomainParameters>::UpdateType>{
+    pub fn __reset(&mut self) -> PyResult<Vec<f32>>{
         Python::with_gil(|py|{
             let result = self.internal.call_method0(py, "reset")?;
             let result_tuple: &PyTuple = result.downcast(py)?;
@@ -151,7 +113,7 @@ impl PythonGymnasiumCartPoleState{
 }
 
 impl EnvironmentStateSequential<CartPoleDomain> for PythonGymnasiumCartPoleState{
-    type Updates = [(<CartPoleDomain as DomainParameters>::AgentId, Vec<f32> );1];
+    type Updates = [(<CartPoleDomain as DomainParameters>::AgentId, <CartPoleDomain as DomainParameters>::UpdateType );1];
 
     fn current_player(&self) -> Option<<CartPoleDomain as DomainParameters>::AgentId> {
         if self.terminated || self.truncated{
@@ -167,9 +129,29 @@ impl EnvironmentStateSequential<CartPoleDomain> for PythonGymnasiumCartPoleState
 
     fn forward(&mut self, _agent: <CartPoleDomain as DomainParameters>::AgentId, action: i64) -> Result<Self::Updates, <CartPoleDomain as DomainParameters>::GameErrorType> {
 
-        self.__forward(action)
-            .map(|observation| [(SINGLE_PLAYER_ID, observation);1])
-            .map_err(|e| e.into())
+
+        match self.__forward(action){
+            Err(e) => Err(e.into()),
+            Ok(observation_vec) => {
+                if observation_vec.len() >= 4{
+                    let observation = CartPoleObservation::new(
+                        observation_vec[0],
+                    observation_vec[1],
+                    observation_vec[2],
+                    observation_vec[3]);
+                    Ok([(SINGLE_PLAYER_ID, observation)])
+                } else {
+                    Err(CartPoleError::InterpretingPythonData {
+                        description: format!("Expected observation containing 4 f32 values, observed {}", observation_vec.len())
+                    })
+                }
+            }
+        }
+
+
+
+
+
     }
 }
 
@@ -177,8 +159,22 @@ impl RenewWithSideEffect<CartPoleDomain, ()> for PythonGymnasiumCartPoleState{
     type SideEffect = [(<CartPoleDomain as DomainParameters>::AgentId, <CartPoleDomain as DomainParameters>::UpdateType);1];
 
     fn renew_with_side_effect_from(&mut self, _base: ()) -> Result<Self::SideEffect, AmfiError<CartPoleDomain>> {
-        self.__reset()
-            .map(|observation| [(SINGLE_PLAYER_ID, observation);1])
-            .map_err(|e| AmfiError::Game(e.into()))
+        match self.__reset(){
+            Err(e) => Err(AmfiError::Game(e.into())),
+            Ok(observation_vec) => {
+                if observation_vec.len() >= 4{
+                    let observation = CartPoleObservation::new(
+                        observation_vec[0],
+                        observation_vec[1],
+                        observation_vec[2],
+                        observation_vec[3]);
+                    Ok([(SINGLE_PLAYER_ID, observation)])
+                } else {
+                    Err(AmfiError::Game(CartPoleError::InterpretingPythonData {
+                        description: format!("Expected observation containing 4 f32 values, observed {}", observation_vec.len())
+                    }))
+                }
+            }
+        }
     }
 }

@@ -42,14 +42,16 @@
 //! assert!(agent_blue.current_universal_score() > agent_red.current_universal_score());
 //! ```
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::fmt::{Debug, Display, Formatter};
+use log::{debug, trace};
 use rand::{thread_rng};
 use rand::distributions::Uniform;
 use crate::agent::{AgentIdentifier, Policy, PresentPossibleActions};
 use crate::domain::{Action, DomainParameters, Renew};
 use crate::env::{EnvironmentStateSequential, EnvironmentStateUniScore};
 use rand::distributions::Distribution;
+use speedy::{Readable, Writable};
 use crate::agent::{InformationSet, EvaluatedInformationSet};
 use crate::error::AmfiError;
 
@@ -57,6 +59,7 @@ pub const DEMO_AGENT_BLUE: DemoAgentID = 0;
 pub const DEMO_AGENT_RED: DemoAgentID = 1;
 
 #[derive(Clone, Debug)]
+#[cfg_attr(feature = "speedy", derive(Writable, Readable))]
 pub struct DemoAction(pub u8);
 impl Display for DemoAction{
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
@@ -86,10 +89,11 @@ impl Display for DemoAgentID{
 impl AgentIdentifier for DemoAgentID{}
 
 #[derive(Clone, Debug, PartialEq, Eq, thiserror::Error)]
+#[cfg_attr(feature = "speedy", derive(Writable, Readable))]
 pub struct DemoError(String);
 impl Display for DemoError{
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "DemoError {}", self.0)
+        write!(f, "DemoError: {}", self.0)
     }
 }
 
@@ -124,8 +128,8 @@ impl DemoState{
         Self{ceilings, max_rounds, rewards: HashMap::new(), player_indexes: Vec::new(), turn_of: None }
     }
     */
-    pub fn new_with_players<Comm>(ceilings: Vec<f32>, max_rounds: usize, comms: &HashMap<DemoAgentID, Comm>) -> Self{
-        let player_ids: Vec<DemoAgentID> = comms.keys().map(|id| id.clone()).collect();
+    pub fn new_with_players(ceilings: Vec<f32>, max_rounds: usize, comms: &HashSet<DemoAgentID>) -> Self{
+        let player_ids: Vec<DemoAgentID> = comms.iter().map(|id| id.clone()).collect();
         let turn_of  = if max_rounds > 0{
             Some(0)
         } else {
@@ -202,7 +206,7 @@ impl EnvironmentStateSequential<DemoDomain> for DemoState{
             if next_player_index >= self.player_ids.len(){
                 next_player_index = 0;
             }
-            if self.rewards[&next_player_index].len() >= self.max_rounds{
+            if self.rewards[&self.player_ids[next_player_index]].len() >= self.max_rounds{
                 self.turn_of = None
             } else {
                 self.turn_of = Some(next_player_index)
@@ -265,8 +269,15 @@ impl InformationSet<DemoDomain> for DemoInfoSet{
     }
 
     fn update(&mut self, update: (DemoAgentID, DemoAction, f32)) -> Result<(), DemoError> {
-        self.rewards.push(update.2);
+
+        if self.player_id == update.0{
+            self.rewards.push(update.2);
+
+        } else {
+            trace!("Update of other player's action")
+        }
         Ok(())
+
     }
 }
 
