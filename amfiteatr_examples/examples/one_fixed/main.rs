@@ -13,7 +13,7 @@ use plotters::style::colors;
 use amfiteatr_core::agent::*;
 use amfiteatr_core::comm::EnvironmentMpscPort;
 use amfiteatr_core::env::{AutoEnvironmentWithScores, ReseedEnvironment, ScoreEnvironment, TracingBasicEnvironment, TracingEnvironment};
-use amfiteatr_core::error::AmfiError;
+use amfiteatr_core::error::AmfiteatrError;
 use amfiteatr_classic::agent::{FibonacciForgiveStrategy, LocalHistoryInfoSet, LocalHistoryInfoSetNumbered, LocalHistoryConversionToTensor, SwitchAfterTwo};
 use amfiteatr_classic::domain::{AgentNum, ClassicGameDomain, ClassicGameDomainNumbered};
 use amfiteatr_classic::domain::ClassicAction::{Down, Up};
@@ -69,7 +69,7 @@ pub fn run_game(
     //agent1: &mut (impl MultiEpisodeAgent<Domain, ()> + AutomaticAgentRewarded<Domain> + Send + ReseedAgent<Domain, ()>)
     agent1: &mut Box<dyn ModelAgent<Domain, (), LocalHistoryInfoSetNumbered>>
     )
-    -> Result<(), AmfiError<Domain>>{
+    -> Result<(), AmfiteatrError<Domain>>{
 
     thread::scope(|s|{
         s.spawn(||{
@@ -112,7 +112,7 @@ type D = ClassicGameDomainNumbered;
 //type IS = OwnHistoryInfoSet<AgentNum>;
 
 
-fn main() -> Result<(), AmfiError<ClassicGameDomain<AgentNum>>>{
+fn main() -> Result<(), AmfiteatrError<ClassicGameDomain<AgentNum>>>{
 
     let args = EducatorOptions::parse();
     setup_logger(&args).unwrap();

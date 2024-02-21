@@ -5,7 +5,7 @@ use pyo3::PyDowncastError;
 use pyo3::types::PyTuple;
 use amfiteatr_core::domain::{DomainParameters, RenewWithSideEffect};
 use amfiteatr_core::env::EnvironmentStateSequential;
-use amfiteatr_core::error::AmfiError;
+use amfiteatr_core::error::AmfiteatrError;
 use crate::common::{CartPoleDomain, CartPoleObservation, CartPoleError, SINGLE_PLAYER_ID};
 
 
@@ -158,9 +158,9 @@ impl EnvironmentStateSequential<CartPoleDomain> for PythonGymnasiumCartPoleState
 impl RenewWithSideEffect<CartPoleDomain, ()> for PythonGymnasiumCartPoleState{
     type SideEffect = [(<CartPoleDomain as DomainParameters>::AgentId, <CartPoleDomain as DomainParameters>::UpdateType);1];
 
-    fn renew_with_side_effect_from(&mut self, _base: ()) -> Result<Self::SideEffect, AmfiError<CartPoleDomain>> {
+    fn renew_with_side_effect_from(&mut self, _base: ()) -> Result<Self::SideEffect, AmfiteatrError<CartPoleDomain>> {
         match self.__reset(){
-            Err(e) => Err(AmfiError::Game(e.into())),
+            Err(e) => Err(AmfiteatrError::Game(e.into())),
             Ok(observation_vec) => {
                 if observation_vec.len() >= 4{
                     let observation = CartPoleObservation::new(
@@ -170,7 +170,7 @@ impl RenewWithSideEffect<CartPoleDomain, ()> for PythonGymnasiumCartPoleState{
                         observation_vec[3]);
                     Ok([(SINGLE_PLAYER_ID, observation)])
                 } else {
-                    Err(AmfiError::Game(CartPoleError::InterpretingPythonData {
+                    Err(AmfiteatrError::Game(CartPoleError::InterpretingPythonData {
                         description: format!("Expected observation containing 4 f32 values, observed {}", observation_vec.len())
                     }))
                 }

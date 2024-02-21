@@ -1,6 +1,6 @@
 //! # Minimal example
 //! ```
-//! use std::collections::HashMap;
+//! use std::collections::{HashMap, HashSet};
 //! use std::thread;
 //! use amfiteatr_core::agent::{AgentGen, TracingAgentGen,  AutomaticAgentRewarded, RewardedAgent, RandomPolicy};
 //! use amfiteatr_core::comm::StdEnvironmentEndpoint;
@@ -16,7 +16,8 @@
 //! let mut env_comms = HashMap::new();
 //! env_comms.insert(DEMO_AGENT_BLUE, comm_env_blue);
 //! env_comms.insert(DEMO_AGENT_RED, comm_env_red);
-//! let state = DemoState::new_with_players(bandits, 100, &env_comms);
+//! let player_set = env_comms.keys().map(|id| *id).collect();
+//! let state = DemoState::new_with_players(bandits, 100, &player_set);
 //! let mut environment = TracingHashMapEnvironment::new(state, env_comms);
 //! let blue_info_set = DemoInfoSet::new(DEMO_AGENT_BLUE, number_of_bandits);
 //! let red_info_set = DemoInfoSet::new(DEMO_AGENT_RED, number_of_bandits);
@@ -53,7 +54,7 @@ use crate::env::{EnvironmentStateSequential, EnvironmentStateUniScore};
 use rand::distributions::Distribution;
 use speedy::{Readable, Writable};
 use crate::agent::{InformationSet, EvaluatedInformationSet};
-use crate::error::AmfiError;
+use crate::error::AmfiteatrError;
 
 pub const DEMO_AGENT_BLUE: DemoAgentID = 0;
 pub const DEMO_AGENT_RED: DemoAgentID = 1;
@@ -252,7 +253,7 @@ impl DemoInfoSet{
 }
 
 impl Renew<DemoDomain, ()> for DemoInfoSet{
-    fn renew_from(&mut self, _base: ()) -> Result<(), AmfiError<DemoDomain>> {
+    fn renew_from(&mut self, _base: ()) -> Result<(), AmfiteatrError<DemoDomain>> {
         self.rewards.clear();
         Ok(())
     }

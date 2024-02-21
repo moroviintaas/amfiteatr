@@ -1,7 +1,7 @@
 use std::sync::mpsc::{RecvError, SendError, TryRecvError, TrySendError};
 use thiserror::Error;
 
-use crate::error::AmfiError;
+use crate::error::AmfiteatrError;
 use crate::domain::DomainParameters;
 
 #[derive(Debug, Clone, PartialEq, Eq, Error)]
@@ -86,7 +86,7 @@ impl<Spec: DomainParameters, T> From<TrySendError<T>> for CommunicationError<Spe
     }
 }
 
-impl <Spec: DomainParameters> From<CommunicationError<Spec>> for AmfiError<Spec>{
+impl <Spec: DomainParameters> From<CommunicationError<Spec>> for AmfiteatrError<Spec>{
     fn from(value: CommunicationError<Spec>) -> Self {
         Self::Communication(value)
     }

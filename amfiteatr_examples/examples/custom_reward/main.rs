@@ -12,7 +12,7 @@ use plotters::style::colors;
 use amfiteatr_core::agent::*;
 use amfiteatr_core::comm::EnvironmentMpscPort;
 use amfiteatr_core::env::{AutoEnvironmentWithScores, ReseedEnvironment, ScoreEnvironment, TracingBasicEnvironment, TracingEnvironment};
-use amfiteatr_core::error::AmfiError;
+use amfiteatr_core::error::AmfiteatrError;
 use amfiteatr_classic::agent::{LocalHistoryInfoSet, LocalHistoryConversionToTensor, AgentAssessmentClassic};
 use amfiteatr_classic::domain::{AgentNum, ClassicGameDomain, ClassicGameDomainNumbered};
 use amfiteatr_classic::domain::ClassicAction::Down;
@@ -58,7 +58,7 @@ pub fn run_game(
     env: &mut (impl AutoEnvironmentWithScores<Domain> + Send + ReseedEnvironment<Domain, ()>),
     agent0: &mut (impl EpisodeMemoryAgent<Domain, ()> + AutomaticAgentRewarded<Domain> + Send + ReseedAgent<Domain, ()>),
     agent1: &mut (impl EpisodeMemoryAgent<Domain, ()> + AutomaticAgentRewarded<Domain> + Send + ReseedAgent<Domain, ()>))
-    -> Result<(), AmfiError<Domain>>{
+    -> Result<(), AmfiteatrError<Domain>>{
 
     thread::scope(|s|{
         s.spawn(||{
@@ -79,7 +79,7 @@ pub fn run_game(
 type D = ClassicGameDomainNumbered;
 
 
-fn main() -> Result<(), AmfiError<ClassicGameDomain<AgentNum>>>{
+fn main() -> Result<(), AmfiteatrError<ClassicGameDomain<AgentNum>>>{
 
     let args = EducatorOptions::parse();
     setup_logger(&args).unwrap();

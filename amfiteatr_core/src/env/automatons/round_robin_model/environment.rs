@@ -1,34 +1,34 @@
 use std::collections::HashMap;
 use log::{debug, error, info, trace, warn};
 use crate::env::{BroadcastingEndpointEnvironment, CommunicatingEndpointEnvironment, EnvironmentStateSequential, EnvironmentWithAgents, ScoreEnvironment, StatefulEnvironment};
-use crate::error::{CommunicationError, AmfiError};
+use crate::error::{CommunicationError, AmfiteatrError};
 use crate::error::ProtocolError::PlayerExited;
 use crate::domain::{AgentMessage, EnvironmentMessage, DomainParameters, Reward};
 use crate::domain::EnvironmentMessage::ErrorNotify;
-use crate::error::AmfiError::GameA;
+use crate::error::AmfiteatrError::GameA;
 
 
 /// Interface for environment using round robin strategy for listening to agents' messages.
 pub trait RoundRobinEnvironment<DP: DomainParameters>{
-    fn run_round_robin(&mut self) -> Result<(), AmfiError<DP>>;
+    fn run_round_robin(&mut self) -> Result<(), AmfiteatrError<DP>>;
 }
 /// Similar interface to [`RoundRobinEnvironment`], but it must ensure agents receive rewards.
 pub trait RoundRobinUniversalEnvironment<DP: DomainParameters> : RoundRobinEnvironment<DP>{
-    fn run_round_robin_with_rewards(&mut self) -> Result<(), AmfiError<DP>>;
+    fn run_round_robin_with_rewards(&mut self) -> Result<(), AmfiteatrError<DP>>;
 }
 /// Similar interface to [`RoundRobinEnvironment`] and [`RoundRobinUniversalEnvironment`],
 /// in addition to rewards based on current game state, penalties for illegal actions are sent.
 /// This is __experimental__ interface.
 pub trait RoundRobinPenalisingUniversalEnvironment<DP: DomainParameters>: RoundRobinUniversalEnvironment<DP>{
-    fn run_round_robin_with_rewards_penalise(&mut self, penalty: DP::UniversalReward) -> Result<(), AmfiError<DP>>;
+    fn run_round_robin_with_rewards_penalise(&mut self, penalty: DP::UniversalReward) -> Result<(), AmfiteatrError<DP>>;
 }
 
 
 
 pub(crate) trait EnvironmentRRInternal<DP: DomainParameters>{
-    fn notify_error(&mut self, error: AmfiError<DP>) -> Result<(), CommunicationError<DP>>;
+    fn notify_error(&mut self, error: AmfiteatrError<DP>) -> Result<(), CommunicationError<DP>>;
     fn send_message(&mut self, agent: &DP::AgentId, message: EnvironmentMessage<DP>) -> Result<(), CommunicationError<DP>>;
-    fn process_action_and_inform(&mut self, player: DP::AgentId, action: &DP::ActionType) -> Result<(), AmfiError<DP>>;
+    fn process_action_and_inform(&mut self, player: DP::AgentId, action: &DP::ActionType) -> Result<(), AmfiteatrError<DP>>;
 
     //fn broadcast_message(&mut self ,message: EnvMessage<Spec>) -> Result<(), CommError>;
 }
@@ -41,7 +41,7 @@ where Env: CommunicatingEndpointEnvironment<DP, CommunicationError=Communication
 
 DP: DomainParameters
 {
-    fn notify_error(&mut self, error: AmfiError<DP>) -> Result<(), CommunicationError<DP>> {
+    fn notify_error(&mut self, error: AmfiteatrError<DP>) -> Result<(), CommunicationError<DP>> {
         self.send_to_all(ErrorNotify(error))
     }
 
@@ -54,7 +54,7 @@ DP: DomainParameters
             })
     }
 
-    fn process_action_and_inform(&mut self, player: DP::AgentId, action: &DP::ActionType) -> Result<(), AmfiError<DP>> {
+    fn process_action_and_inform(&mut self, player: DP::AgentId, action: &DP::ActionType) -> Result<(), AmfiteatrError<DP>> {
         match self.process_action(&player, action){
             Ok(iter) => {
                 //let mut n=0;
@@ -66,7 +66,7 @@ DP: DomainParameters
                 }
                 Ok(())
             }
-            Err(e) => {Err(AmfiError::Game(e))}
+            Err(e) => {Err(AmfiteatrError::Game(e))}
         }
     }
 
@@ -79,7 +79,7 @@ where Env: CommunicatingEndpointEnvironment<DP, CommunicationError=Communication
  + StatefulEnvironment<DP> + 'a
  + EnvironmentWithAgents<DP>
  + BroadcastingEndpointEnvironment<DP>, DP: DomainParameters {
-    fn run_round_robin(&mut self) -> Result<(), AmfiError<DP>> {
+    fn run_round_robin(&mut self) -> Result<(), AmfiteatrError<DP>> {
         let first_player = match self.current_player(){
             None => {
                 warn!("No first player, stopping environment.");
@@ -139,8 +139,8 @@ where Env: CommunicatingEndpointEnvironment<DP, CommunicationError=Communication
                         }
                         AgentMessage::Quit => {
                             error!("Player {} exited game (via Quit signal).", player);
-                            self.notify_error(AmfiError::Protocol(PlayerExited(player.clone())))?;
-                            return Err(AmfiError::Protocol(PlayerExited(player)))
+                            self.notify_error(AmfiteatrError::Protocol(PlayerExited(player.clone())))?;
+                            return Err(AmfiteatrError::Protocol(PlayerExited(player)))
                         }
                     },
                     Ok(None) => {},
@@ -153,7 +153,7 @@ where Env: CommunicatingEndpointEnvironment<DP, CommunicationError=Communication
                         err => {
                             error!("Failed trying to receive from {} with {err}", player);
                             self.send_to_all(EnvironmentMessage::ErrorNotify(err.clone().into()))?;
-                            return Err(AmfiError::Communication(err));
+                            return Err(AmfiteatrError::Communication(err));
                         }
 
 
@@ -169,7 +169,7 @@ where Env: CommunicatingEndpointEnvironment<DP, CommunicationError=Communication
  + ScoreEnvironment<DP> + 'a
  + EnvironmentWithAgents<DP>
  + BroadcastingEndpointEnvironment<DP>, DP: DomainParameters {
-    fn run_round_robin_with_rewards(&mut self) -> Result<(), AmfiError<DP>> {
+    fn run_round_robin_with_rewards(&mut self) -> Result<(), AmfiteatrError<DP>> {
         let mut actual_universal_scores: HashMap<DP::AgentId, DP::UniversalReward> = self.players().into_iter()
             .map(|id|{
                 (id, DP::UniversalReward::neutral())
@@ -243,8 +243,8 @@ where Env: CommunicatingEndpointEnvironment<DP, CommunicationError=Communication
                         }
                         AgentMessage::Quit => {
                             error!("Player {} exited game (via Quit signal).", player);
-                            self.notify_error(AmfiError::Protocol(PlayerExited(player.clone())))?;
-                            return Err(AmfiError::Protocol(PlayerExited(player)))
+                            self.notify_error(AmfiteatrError::Protocol(PlayerExited(player.clone())))?;
+                            return Err(AmfiteatrError::Protocol(PlayerExited(player)))
                         }
                     },
                     Ok(None) => {},
@@ -257,7 +257,7 @@ where Env: CommunicatingEndpointEnvironment<DP, CommunicationError=Communication
                         err => {
                             error!("Failed trying to receive from {} with {err}", player);
                             self.send_to_all(EnvironmentMessage::ErrorNotify(err.clone().into()))?;
-                            return Err(AmfiError::Communication(err));
+                            return Err(AmfiteatrError::Communication(err));
                         }
 
 
@@ -273,7 +273,7 @@ where Env: CommunicatingEndpointEnvironment<DP, CommunicationError=Communication
  + ScoreEnvironment<DP> + 'a
  + EnvironmentWithAgents<DP>
  + BroadcastingEndpointEnvironment<DP>, DP: DomainParameters{
-    fn run_round_robin_with_rewards_penalise(&mut self, penalty: DP::UniversalReward) -> Result<(), AmfiError<DP>> {
+    fn run_round_robin_with_rewards_penalise(&mut self, penalty: DP::UniversalReward) -> Result<(), AmfiteatrError<DP>> {
         let mut actual_universal_scores: HashMap<DP::AgentId, DP::UniversalReward> = self.players().into_iter()
             .map(|id|{
                 (id, DP::UniversalReward::neutral())
@@ -347,8 +347,8 @@ where Env: CommunicatingEndpointEnvironment<DP, CommunicationError=Communication
                         }
                         AgentMessage::Quit => {
                             error!("Player {} exited game (via Quit signal).", player);
-                            self.notify_error(AmfiError::Protocol(PlayerExited(player.clone())))?;
-                            return Err(AmfiError::Protocol(PlayerExited(player)))
+                            self.notify_error(AmfiteatrError::Protocol(PlayerExited(player.clone())))?;
+                            return Err(AmfiteatrError::Protocol(PlayerExited(player)))
                         }
                     },
                     Ok(None) => {},
@@ -361,7 +361,7 @@ where Env: CommunicatingEndpointEnvironment<DP, CommunicationError=Communication
                         err => {
                             error!("Failed trying to receive from {} with {err}", player);
                             self.send_to_all(EnvironmentMessage::ErrorNotify(err.clone().into()))?;
-                            return Err(AmfiError::Communication(err));
+                            return Err(AmfiteatrError::Communication(err));
                         }
 
 

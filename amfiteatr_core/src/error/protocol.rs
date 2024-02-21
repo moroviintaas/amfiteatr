@@ -1,5 +1,5 @@
 use thiserror::Error;
-use crate::error::AmfiError;
+use crate::error::AmfiteatrError;
 use crate::domain::DomainParameters;
 
 #[derive(Debug, Clone, PartialEq, Eq, Error)]
@@ -19,7 +19,7 @@ pub enum ProtocolError<DP: DomainParameters>{
     PlayerExited(DP::AgentId)
 }
 
-impl<DP: DomainParameters> From<ProtocolError<DP>> for AmfiError<DP>{
+impl<DP: DomainParameters> From<ProtocolError<DP>> for AmfiteatrError<DP>{
     fn from(value: ProtocolError<DP>) -> Self {
         Self::Protocol(value)
     }

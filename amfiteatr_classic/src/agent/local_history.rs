@@ -4,7 +4,7 @@ use serde::Serialize;
 use amfiteatr_rl::tch::Tensor;
 use amfiteatr_core::agent::{InformationSet, PresentPossibleActions, EvaluatedInformationSet};
 use amfiteatr_core::domain::{Renew};
-use amfiteatr_core::error::AmfiError;
+use amfiteatr_core::error::AmfiteatrError;
 use amfiteatr_rl::error::TensorRepresentationError;
 use amfiteatr_rl::tensor_data::{ConvertToTensor, ConversionToTensor};
 use crate::agent::{ActionPairMapper, AgentAssessmentClassic};
@@ -212,7 +212,7 @@ impl<ID: UsizeAgentId> PresentPossibleActions<ClassicGameDomain<ID>> for LocalHi
 }
 
 impl<ID: UsizeAgentId> Renew<ClassicGameDomain<ID>, ()> for LocalHistoryInfoSet<ID>{
-    fn renew_from(&mut self, _base: ()) -> Result<(), AmfiError<ClassicGameDomain<ID>>> {
+    fn renew_from(&mut self, _base: ()) -> Result<(), AmfiteatrError<ClassicGameDomain<ID>>> {
         self.previous_encounters.clear();
         self.cache_table_payoff = 0;
         self.count_actions = ActionPairMapper::zero();

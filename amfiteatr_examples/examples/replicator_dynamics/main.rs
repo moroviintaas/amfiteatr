@@ -22,7 +22,7 @@ use amfiteatr_classic::policy::{ClassicMixedStrategy, ClassicPureStrategy};
 use amfiteatr_core::agent::RewardedAgent;
 use amfiteatr_core::agent::TracingAgent;
 use amfiteatr_core::domain::DomainParameters;
-use amfiteatr_core::error::AmfiError;
+use amfiteatr_core::error::AmfiteatrError;
 use amfiteatr_classic::domain::{
     AgentNum,
     ClassicAction,
@@ -268,7 +268,7 @@ impl Model{
         self.learning_defects.clear();
     }
 
-    pub fn run_episode(&mut self) -> Result<(), AmfiError<D>>{
+    pub fn run_episode(&mut self) -> Result<(), AmfiteatrError<D>>{
 
         thread::scope(|s|{
             s.spawn(||{
@@ -318,7 +318,7 @@ impl Model{
         Ok(())
     }
 
-    pub fn update_policies(&mut self) -> Result<(), AmfiError<D>>{
+    pub fn update_policies(&mut self) -> Result<(), AmfiteatrError<D>>{
         for a in &self.learning_agents{
             let mut agent = a.lock().unwrap();
             let trajectories = agent.take_episodes();
@@ -329,7 +329,7 @@ impl Model{
 }
 
 
-fn main() -> Result<(), AmfiError<D>>{
+fn main() -> Result<(), AmfiteatrError<D>>{
     debug!("Starting");
 
     let args = ReplicatorOptions::parse();

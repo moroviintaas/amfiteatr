@@ -3,7 +3,7 @@ use crate::agent::*;
 use crate::agent::info_set::{InformationSet, EvaluatedInformationSet};
 use crate::agent::policy::Policy;
 use crate::comm::BidirectionalEndpoint;
-use crate::error::{AmfiError, CommunicationError};
+use crate::error::{AmfiteatrError, CommunicationError};
 use crate::domain::{AgentMessage, EnvironmentMessage, DomainParameters, Reward, Renew};
 
 /// Generic agent implementing common traits needed by agent.
@@ -198,7 +198,7 @@ impl<
 where <P as Policy<DP>>::InfoSetType: Renew<DP, Seed>
     + EvaluatedInformationSet<DP>,
 <Self as StatefulAgent<DP>>::InfoSetType: Renew<DP, Seed>{
-    fn reseed(&mut self, seed: Seed) -> Result<(), AmfiError<DP>> {
+    fn reseed(&mut self, seed: Seed) -> Result<(), AmfiteatrError<DP>> {
 
 
         self.constructed_universal_reward = DP::UniversalReward::neutral();

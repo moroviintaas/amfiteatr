@@ -1,4 +1,4 @@
-//! # amfi
+//! # amfiteatr
 //!
 //! __Licence:__ MIT
 //!

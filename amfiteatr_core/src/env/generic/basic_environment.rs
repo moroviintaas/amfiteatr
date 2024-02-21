@@ -7,7 +7,7 @@ use crate::{
 };
 use crate::env::ListPlayers;
 use crate::domain::{Renew, RenewWithSideEffect};
-use crate::error::AmfiError;
+use crate::error::AmfiteatrError;
 
 
 /// This is generic implementation of environment using single endpoint construction
@@ -81,7 +81,7 @@ impl <
     Seed
 > ReseedEnvironment<DP, Seed> for BasicEnvironment<DP, S, CP>
 where <Self as StatefulEnvironment<DP>>::State: Renew<DP, Seed>{
-    fn reseed(&mut self, seed: Seed) -> Result<(), AmfiError<DP>>{
+    fn reseed(&mut self, seed: Seed) -> Result<(), AmfiteatrError<DP>>{
         self.game_state.renew_from(seed)
     }
 }
@@ -100,7 +100,7 @@ where <Self as StatefulEnvironment<DP>>::State: RenewWithSideEffect<DP, Seed>,
     type Observation = AgentSeed;
     type InitialObservations = HashMap<DP::AgentId, Self::Observation>;
 
-    fn dirty_reseed(&mut self, seed: Seed) -> Result<Self::InitialObservations, AmfiError<DP>>{
+    fn dirty_reseed(&mut self, seed: Seed) -> Result<Self::InitialObservations, AmfiteatrError<DP>>{
         self.game_state.renew_with_side_effect_from(seed)
             .map(|agent_observation_iter|
                 agent_observation_iter.into_iter().collect())

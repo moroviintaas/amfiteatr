@@ -3,7 +3,7 @@ use std::marker::PhantomData;
 use crate::agent::*;
 use crate::agent::info_set::EvaluatedInformationSet;
 use crate::comm::BidirectionalEndpoint;
-use crate::error::{AmfiError, CommunicationError};
+use crate::error::{AmfiteatrError, CommunicationError};
 use crate::domain::{AgentMessage, DomainParameters, EnvironmentMessage, Renew, Reward};
 
 
@@ -206,7 +206,7 @@ impl<
 where <P as Policy<DP>>::InfoSetType: Renew<DP, Seed>
     + EvaluatedInformationSet<DP>,
 <Self as StatefulAgent<DP>>::InfoSetType: Renew<DP, Seed>{
-    fn reseed(&mut self, seed: Seed) -> Result<(), AmfiError<DP>>{
+    fn reseed(&mut self, seed: Seed) -> Result<(), AmfiteatrError<DP>>{
 
         self.game_trajectory.clear();
         self.constructed_universal_reward = DP::UniversalReward::neutral();

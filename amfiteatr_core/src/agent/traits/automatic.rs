@@ -9,9 +9,9 @@ use crate::agent::{
     EvaluatedInformationSet,
     PresentPossibleActions,
     IdAgent};
-use crate::error::{CommunicationError, AmfiError};
+use crate::error::{CommunicationError, AmfiteatrError};
 use crate::error::ProtocolError::{NoPossibleAction, ReceivedKill};
-use crate::error::AmfiError::Protocol;
+use crate::error::AmfiteatrError::Protocol;
 use crate::domain::{AgentMessage, EnvironmentMessage, DomainParameters};
 use log::{info, debug, error, warn, trace};
 
@@ -28,7 +28,7 @@ pub trait AutomaticAgent<DP: DomainParameters>: IdAgent<DP>{
     /// > __Note__ It is not specified how agent should react when encountering error.
     /// > One conception is to inform environment about error, which then should broadcast
     /// > error message to every agent and end game.
-    fn run(&mut self) -> Result<(), AmfiError<DP>>;
+    fn run(&mut self) -> Result<(), AmfiteatrError<DP>>;
 }
 
 /// Trait for agents that perform their interactions with environment automatically,
@@ -38,7 +38,7 @@ pub trait AutomaticAgent<DP: DomainParameters>: IdAgent<DP>{
 pub trait AutomaticAgentRewarded<DP: DomainParameters>: AutomaticAgent<DP> + RewardedAgent<DP>{
     /// Runs agent beginning in it's current state (information set)
     /// and returns when game is finished.
-    fn run_rewarded(&mut self) -> Result<(), AmfiError<DP>>;
+    fn run_rewarded(&mut self) -> Result<(), AmfiteatrError<DP>>;
 }
 
 /*
@@ -80,7 +80,7 @@ where A: StatefulAgent<DP> + ActingAgent<DP>
       DP: DomainParameters,
       <A as StatefulAgent<DP>>::InfoSetType: EvaluatedInformationSet<DP> + PresentPossibleActions<DP>
 {
-    fn run(&mut self) -> Result<(), AmfiError<DP>> {
+    fn run(&mut self) -> Result<(), AmfiteatrError<DP>> {
         info!("Agent {} starts", self.id());
         //let mut current_score = Spec::UniversalReward::default();
         loop{
@@ -137,8 +137,8 @@ where A: StatefulAgent<DP> + ActingAgent<DP>
                             }
                             Err(err) => {
                                 error!("Agent {:?} error on updating state: {}", self.id(), &err);
-                                self.send(AgentMessage::NotifyError(AmfiError::GameA(err.clone(), self.id().clone())))?;
-                                return Err(AmfiError::GameA(err.clone(), self.id().clone()));
+                                self.send(AgentMessage::NotifyError(AmfiteatrError::GameA(err.clone(), self.id().clone())))?;
+                                return Err(AmfiteatrError::GameA(err.clone(), self.id().clone()));
                             }
                         }
                     }
@@ -166,7 +166,7 @@ where Agnt: StatefulAgent<DP> + ActingAgent<DP>
       DP: DomainParameters,
     <Agnt as StatefulAgent<DP>>::InfoSetType: EvaluatedInformationSet<DP>
     + PresentPossibleActions<DP>{
-    fn run_rewarded(&mut self) -> Result<(), AmfiError<DP>>
+    fn run_rewarded(&mut self) -> Result<(), AmfiteatrError<DP>>
     {
         info!("Agent {} starts", self.id());
         //let mut current_score = Spec::UniversalReward::default();
@@ -221,8 +221,8 @@ where Agnt: StatefulAgent<DP> + ActingAgent<DP>
                             }
                             Err(err) => {
                                 error!("Agent {:?} error on updating state: {}", self.id(), &err);
-                                self.send(AgentMessage::NotifyError(AmfiError::Game(err.clone())))?;
-                                return Err(AmfiError::Game(err));
+                                self.send(AgentMessage::NotifyError(AmfiteatrError::Game(err.clone())))?;
+                                return Err(AmfiteatrError::Game(err));
                             }
                         }
                     }

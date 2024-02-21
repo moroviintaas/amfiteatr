@@ -1,5 +1,5 @@
 use crate::agent::AgentActionPair;
-use crate::error::AmfiError;
+use crate::error::AmfiteatrError;
 use crate::domain::v1::domain_parameters::DomainParameters;
 
 /// Message sent by environment to agent
@@ -14,6 +14,6 @@ pub enum EnvironmentMessage<DP: DomainParameters>{
     UpdateState(DP::UpdateType),
     ActionNotify(AgentActionPair<DP::AgentId, DP::ActionType>),
     RewardFragment(DP::UniversalReward),
-    ErrorNotify(AmfiError<DP>),
+    ErrorNotify(AmfiteatrError<DP>),
 
 }

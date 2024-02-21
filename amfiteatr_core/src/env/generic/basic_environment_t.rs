@@ -7,7 +7,7 @@ use crate::{
 };
 use crate::domain::Renew;
 use crate::env::generic::BasicEnvironment;
-use crate::error::AmfiError;
+use crate::error::AmfiteatrError;
 
 
 /// This is generic implementation of environment using single endpoint construction
@@ -100,7 +100,7 @@ impl <
     Seed
 > ReseedEnvironment<DP, Seed> for TracingBasicEnvironment<DP, S, CP>
 where <Self as StatefulEnvironment<DP>>::State: Renew<DP, Seed>{
-    fn reseed(&mut self, seed: Seed) -> Result<(), AmfiError<DP>>{
+    fn reseed(&mut self, seed: Seed) -> Result<(), AmfiteatrError<DP>>{
 
         self.history.clear();
         self.base_environment.reseed(seed)
@@ -120,7 +120,7 @@ impl <
     type Observation = AgentSeed;
     type InitialObservations = HashMap<DP::AgentId, Self::Observation>;
 
-    fn dirty_reseed(&mut self, seed: Seed) -> Result<Self::InitialObservations, AmfiError<DP>>{
+    fn dirty_reseed(&mut self, seed: Seed) -> Result<Self::InitialObservations, AmfiteatrError<DP>>{
         self.base_environment.dirty_reseed(seed)
     }
 }

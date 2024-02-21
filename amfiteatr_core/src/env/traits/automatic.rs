@@ -1,11 +1,11 @@
 use std::collections::HashMap;
 use log::{warn, info, error};
 
-use crate::{error::{AmfiError, CommunicationError}, domain::{DomainParameters, EnvironmentMessage, AgentMessage}, env::EnvironmentStateSequential};
+use crate::{error::{AmfiteatrError, CommunicationError}, domain::{DomainParameters, EnvironmentMessage, AgentMessage}, env::EnvironmentStateSequential};
 use crate::env::ListPlayers;
 use crate::domain::Reward;
 use crate::env::ScoreEnvironment;
-use crate::error::AmfiError::GameA;
+use crate::error::AmfiteatrError::GameA;
 
 use super::{StatefulEnvironment, CommunicatingAdapterEnvironment, BroadConnectedEnvironment};
 use crate::error::ProtocolError::PlayerExited;
@@ -15,7 +15,7 @@ pub trait AutoEnvironment<DP: DomainParameters>{
     /// This method is meant to automatically run game and communicate with agents
     /// until is the game is finished.
     /// This method is not required to send agents messages with their scores.
-    fn run(&mut self) -> Result<(), AmfiError<DP>>;
+    fn run(&mut self) -> Result<(), AmfiteatrError<DP>>;
 }
 
 /// Trait for environment automatically running a game with informing agents about their
@@ -23,7 +23,7 @@ pub trait AutoEnvironment<DP: DomainParameters>{
 pub trait AutoEnvironmentWithScores<DP: DomainParameters>{
     /// Method analogous to [`AutoEnvironment::run`](AutoEnvironment::run),
     /// but it should implement sending rewards to agents.
-    fn run_with_scores(&mut self) -> Result<(), AmfiError<DP>>;
+    fn run_with_scores(&mut self) -> Result<(), AmfiteatrError<DP>>;
     //fn run_with_scores_and_penalties<P: Fn(&DP::AgentId) -> DP::UniversalReward>(&mut self, penalty: P) -> Result<(), AmfiError<DP>>;
 }
 /// Trait for environment automatically running a game with informing agents about their
@@ -31,14 +31,14 @@ pub trait AutoEnvironmentWithScores<DP: DomainParameters>{
 /// perform illegal (wrong) actions.
 pub trait AutoEnvironmentWithScoresAndPenalties<DP: DomainParameters>: StatefulEnvironment<DP>{
     fn run_with_scores_and_penalties<P: Fn(&<Self as StatefulEnvironment<DP>>::State, &DP::AgentId)
-        -> DP::UniversalReward>(&mut self, penalty: P) -> Result<(), AmfiError<DP>>;
+        -> DP::UniversalReward>(&mut self, penalty: P) -> Result<(), AmfiteatrError<DP>>;
 }
 
 
 pub(crate) trait AutoEnvInternals<DP: DomainParameters>{
-    fn notify_error(&mut self, error: AmfiError<DP>) -> Result<(), CommunicationError<DP>>;
+    fn notify_error(&mut self, error: AmfiteatrError<DP>) -> Result<(), CommunicationError<DP>>;
     fn send_message(&mut self, agent: &DP::AgentId, message: EnvironmentMessage<DP>) -> Result<(), CommunicationError<DP>>;
-    fn process_action_and_inform(&mut self, player: DP::AgentId, action: &DP::ActionType) -> Result<(), AmfiError<DP>>;
+    fn process_action_and_inform(&mut self, player: DP::AgentId, action: &DP::ActionType) -> Result<(), AmfiteatrError<DP>>;
 }
 
 impl <
@@ -47,7 +47,7 @@ impl <
         + CommunicatingAdapterEnvironment<DP>
         + BroadConnectedEnvironment<DP>
 > AutoEnvInternals<DP> for E{
-    fn notify_error(&mut self, error: AmfiError<DP>) -> Result<(), CommunicationError<DP>> {
+    fn notify_error(&mut self, error: AmfiteatrError<DP>) -> Result<(), CommunicationError<DP>> {
         self.send_all(EnvironmentMessage::ErrorNotify(error))
     }
 
@@ -60,7 +60,7 @@ impl <
             })
     }
 
-    fn process_action_and_inform(&mut self, player: <DP as DomainParameters>::AgentId, action: &<DP as DomainParameters>::ActionType) -> Result<(), AmfiError<DP>> {
+    fn process_action_and_inform(&mut self, player: <DP as DomainParameters>::AgentId, action: &<DP as DomainParameters>::ActionType) -> Result<(), AmfiteatrError<DP>> {
         match self.process_action(&player, action){
             Ok(iter) => {
                 for (ag, update) in iter{
@@ -68,7 +68,7 @@ impl <
                 }
                 Ok(())
             }
-            Err(e) => {Err(AmfiError::Game(e))}
+            Err(e) => {Err(AmfiteatrError::Game(e))}
         }
     }
 }
@@ -79,7 +79,7 @@ impl <
         + CommunicatingAdapterEnvironment<DP>
         + BroadConnectedEnvironment<DP>
 > AutoEnvironment<DP> for E{
-    fn run(&mut self) -> Result<(), AmfiError<DP>> {
+    fn run(&mut self) -> Result<(), AmfiteatrError<DP>> {
 
         let first_player = match self.current_player(){
             None => {
@@ -113,7 +113,7 @@ impl <
                                     error!("Action was refused or caused error in updating state: {e:}");
                                     let _ = self.send(&player, EnvironmentMessage::MoveRefused);
                                     let _ = self.send_all(EnvironmentMessage::GameFinishedWithIllegalAction(player.clone()));
-                                    return Err(AmfiError::GameA(e, player));
+                                    return Err(AmfiteatrError::GameA(e, player));
                                 }
                             }
                             if let Some(next_player) = self.current_player(){
@@ -141,8 +141,8 @@ impl <
                         }
                         AgentMessage::Quit => {
                             error!("Player {} exited game.", player);
-                            self.notify_error(AmfiError::Protocol(PlayerExited(player.clone())))?;
-                            return Err(AmfiError::Protocol(PlayerExited(player)))
+                            self.notify_error(AmfiteatrError::Protocol(PlayerExited(player.clone())))?;
+                            return Err(AmfiteatrError::Protocol(PlayerExited(player)))
                         }
                     }
                 }
@@ -155,7 +155,7 @@ impl <
                     err => {
                         error!("Failed trying to receive message");
                         self.send_all(EnvironmentMessage::ErrorNotify(err.clone().into()))?;
-                        return Err(AmfiError::Communication(err));
+                        return Err(AmfiteatrError::Communication(err));
                     }
 
 
@@ -174,7 +174,7 @@ impl <
         + BroadConnectedEnvironment<DP>
         + ListPlayers<DP>
 > AutoEnvironmentWithScores<DP> for E{
-    fn run_with_scores(&mut self) -> Result<(), AmfiError<DP>> {
+    fn run_with_scores(&mut self) -> Result<(), AmfiteatrError<DP>> {
         let mut actual_universal_scores: HashMap<DP::AgentId, DP::UniversalReward> = self.players().into_iter()
             .map(|id|{
                 (id, DP::UniversalReward::neutral())
@@ -217,7 +217,7 @@ impl <
                                     error!("Action was refused or caused error in updating state: {e:}");
                                     let _ = self.send(&player, EnvironmentMessage::MoveRefused);
                                     let _ = self.send_all(EnvironmentMessage::GameFinishedWithIllegalAction(player.clone()));
-                                    return Err(AmfiError::GameA(e, player));
+                                    return Err(AmfiteatrError::GameA(e, player));
                                 }
                             }
                             if let Some(next_player) = self.current_player(){
@@ -245,8 +245,8 @@ impl <
                         }
                         AgentMessage::Quit => {
                             error!("Player {} exited game.", player);
-                            self.notify_error(AmfiError::Protocol(PlayerExited(player.clone())))?;
-                            return Err(AmfiError::Protocol(PlayerExited(player)))
+                            self.notify_error(AmfiteatrError::Protocol(PlayerExited(player.clone())))?;
+                            return Err(AmfiteatrError::Protocol(PlayerExited(player)))
                         }
                     }
                 }
@@ -259,7 +259,7 @@ impl <
                     err => {
                         error!("Failed trying to receive message");
                         self.send_all(EnvironmentMessage::ErrorNotify(err.clone().into()))?;
-                        return Err(AmfiError::Communication(err));
+                        return Err(AmfiteatrError::Communication(err));
                     }
 
 
@@ -280,7 +280,7 @@ impl <
         + ListPlayers<DP>
 > AutoEnvironmentWithScoresAndPenalties<DP> for E{
     fn run_with_scores_and_penalties<P: Fn(&<Self as StatefulEnvironment<DP>>::State,&DP::AgentId)
-        -> DP::UniversalReward>(&mut self, penalty: P) -> Result<(), AmfiError<DP>> {
+        -> DP::UniversalReward>(&mut self, penalty: P) -> Result<(), AmfiteatrError<DP>> {
         let mut actual_universal_scores: HashMap<DP::AgentId, DP::UniversalReward> = self.players().into_iter()
             .map(|id|{
                 (id, DP::UniversalReward::neutral())
@@ -358,8 +358,8 @@ impl <
                         }
                         AgentMessage::Quit => {
                             error!("Player {} exited game.", player);
-                            self.notify_error(AmfiError::Protocol(PlayerExited(player.clone())))?;
-                            return Err(AmfiError::Protocol(PlayerExited(player)))
+                            self.notify_error(AmfiteatrError::Protocol(PlayerExited(player.clone())))?;
+                            return Err(AmfiteatrError::Protocol(PlayerExited(player)))
                         }
                     }
                 }
@@ -372,7 +372,7 @@ impl <
                     err => {
                         error!("Failed trying to receive message");
                         self.send_all(EnvironmentMessage::ErrorNotify(err.clone().into()))?;
-                        return Err(AmfiError::Communication(err));
+                        return Err(AmfiteatrError::Communication(err));
                     }
 
 

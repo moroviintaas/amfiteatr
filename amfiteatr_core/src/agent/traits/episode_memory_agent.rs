@@ -1,6 +1,6 @@
 use crate::agent::{AutomaticAgent, AutomaticAgentRewarded, ReseedAgent};
 use crate::domain::DomainParameters;
-use crate::error::AmfiError;
+use crate::error::AmfiteatrError;
 
 
 /// Trait representing agent that plays in several episodes and can store information
@@ -24,7 +24,7 @@ pub trait EpisodeMemoryAutoAgent<DP: DomainParameters, Seed>: EpisodeMemoryAgent
     /// This method runs single episode, firstly uses agents [`reseed()`](ReseedAgent)
     /// to prepare new state. Secondly it runs normal episode and finally stores episode in
     /// episode archive using [`store_episode`](ReseedAgent) method.
-    fn run_episode(&mut self, seed: Seed) -> Result<(), AmfiError<DP>> {
+    fn run_episode(&mut self, seed: Seed) -> Result<(), AmfiteatrError<DP>> {
         self.reseed(seed)?;
         self.run()?;
         self.store_episode();
@@ -45,7 +45,7 @@ pub trait MultiEpisodeAutoAgentRewarded<DP: DomainParameters, Seed>: EpisodeMemo
     /// This method runs single episode, firstly uses agents [`reseed()`](ReseedAgent)
     /// to prepare new state. Secondly it runs normal episode with reward collection and finally stores episode in
     /// episode archive using [`store_episode`](ReseedAgent) method.
-    fn run_episode_rewarded(&mut self, seed: Seed) -> Result<(), AmfiError<DP>> {
+    fn run_episode_rewarded(&mut self, seed: Seed) -> Result<(), AmfiteatrError<DP>> {
         self.reseed(seed)?;
         self.run_rewarded()?;
         self.store_episode();

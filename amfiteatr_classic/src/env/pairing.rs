@@ -8,7 +8,7 @@ use log::{debug, trace};
 use std::fmt::{Display, Formatter};
 use std::marker::PhantomData;
 use serde::Serialize;
-use amfiteatr_core::error::AmfiError;
+use amfiteatr_core::error::AmfiteatrError;
 use crate::domain::{AgentNum, ClassicAction, ClassicGameDomain, ClassicGameError, ClassicGameUpdate, EncounterReport, IntReward, UsizeAgentId};
 use crate::domain::ClassicGameError::ActionAfterGameOver;
 use crate::{AsymmetricRewardTableInt, Side};
@@ -304,7 +304,7 @@ impl<ID: UsizeAgentId> EnvironmentStateUniScore<ClassicGameDomain<ID>> for Pairi
 }
 
 impl<ID: UsizeAgentId> Renew<ClassicGameDomain<ID>, ()> for PairingState<ID>{
-    fn renew_from(&mut self, _base: ())  -> Result<(), AmfiError<ClassicGameDomain<ID>>> {
+    fn renew_from(&mut self, _base: ())  -> Result<(), AmfiteatrError<ClassicGameDomain<ID>>> {
         debug!("Renewing state");
         //self.score_cache.iter_mut().for_each(|a|*a=0);
         for i in 0..self.score_cache.len(){

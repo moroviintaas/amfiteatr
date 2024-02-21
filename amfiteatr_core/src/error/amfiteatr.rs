@@ -4,7 +4,7 @@ use crate::domain::{DomainParameters};
 
 #[derive(Debug, Clone, Error)]
 #[cfg_attr(feature = "speedy", derive(speedy::Writable, speedy::Readable))]
-pub enum AmfiError<DP: DomainParameters>{
+pub enum AmfiteatrError<DP: DomainParameters>{
     #[error("Game error: {0}")]
     Game(DP::GameErrorType),
     #[error("Agent {1} caused game error: {0}")]

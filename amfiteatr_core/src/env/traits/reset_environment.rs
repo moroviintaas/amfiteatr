@@ -1,6 +1,6 @@
 use crate::env::StatefulEnvironment;
 use crate::domain::DomainParameters;
-use crate::error::AmfiError;
+use crate::error::AmfiteatrError;
 
 
 /// Environment with ability to be reset wit new state.
@@ -30,7 +30,7 @@ pub trait ReseedEnvironment<DP: DomainParameters, Seed>: StatefulEnvironment<DP>
 {
     /// This method must do reinitialize environment i.e. set new game state.
     /// New game state should be derived from seed.
-    fn reseed(&mut self, seed: Seed) -> Result<(), AmfiError<DP>>;
+    fn reseed(&mut self, seed: Seed) -> Result<(), AmfiteatrError<DP>>;
 
 }
 
@@ -49,5 +49,5 @@ pub trait DirtyReseedEnvironment<DP: DomainParameters, Seed>: StatefulEnvironmen
     /// Aggregator for initial observations (e.g. [`HashMap<AgentId, Self::Observation`](std::collections::HashMap))
     type InitialObservations: IntoIterator<Item=(DP::AgentId, Self::Observation)>;
 
-    fn dirty_reseed(&mut self, seed: Seed) -> Result<Self::InitialObservations, AmfiError<DP>>;
+    fn dirty_reseed(&mut self, seed: Seed) -> Result<Self::InitialObservations, AmfiteatrError<DP>>;
 }

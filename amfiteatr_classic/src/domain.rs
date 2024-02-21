@@ -3,7 +3,7 @@ use std::fmt::{Display, Formatter};
 use std::marker::PhantomData;
 use std::sync::Arc;
 use amfiteatr_core::agent::{AgentIdentifier};
-use amfiteatr_core::error::{AmfiError, ConvertError};
+use amfiteatr_core::error::{AmfiteatrError, ConvertError};
 use amfiteatr_core::domain::{Action, DomainParameters, Reward};
 use enum_map::Enum;
 use serde::{Deserialize, Serialize};
@@ -205,9 +205,9 @@ impl Into<AmfiError<PrisonerDomain>> for PrisonerError {
 }
 
  */
-impl<ID: UsizeAgentId> From<ClassicGameError<ID>> for AmfiError<ClassicGameDomain<ID>>{
+impl<ID: UsizeAgentId> From<ClassicGameError<ID>> for AmfiteatrError<ClassicGameDomain<ID>>{
     fn from(value: ClassicGameError<ID>) -> Self {
-        AmfiError::Game(value)
+        AmfiteatrError::Game(value)
     }
 }
 
