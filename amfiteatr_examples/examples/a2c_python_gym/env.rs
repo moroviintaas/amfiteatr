@@ -4,9 +4,9 @@ use pyo3::prelude::*;
 use pyo3::PyDowncastError;
 use pyo3::types::PyTuple;
 use amfiteatr_core::domain::{DomainParameters, RenewWithSideEffect};
-use amfiteatr_core::env::EnvironmentStateSequential;
+use amfiteatr_core::env::{EnvironmentStateSequential, ScoreEnvironment};
 use amfiteatr_core::error::AmfiteatrError;
-use crate::common::{CartPoleDomain, CartPoleObservation, CartPoleError, SINGLE_PLAYER_ID};
+use crate::common::{CartPoleDomain, CartPoleObservation, CartPoleError, SINGLE_PLAYER_ID, CartPoleAction};
 
 
 #[derive(Debug, Clone)]
@@ -65,7 +65,7 @@ impl PythonGymnasiumCartPoleState {
     }
 
 
-    pub fn __forward(&mut self, action: <CartPoleDomain as DomainParameters>::ActionType)
+    pub fn __forward(&mut self, action: i64)
         -> PyResult<Vec<f32>>{
 
         Python::with_gil(|py|{
@@ -127,10 +127,10 @@ impl EnvironmentStateSequential<CartPoleDomain> for PythonGymnasiumCartPoleState
         self.terminated || self.truncated
     }
 
-    fn forward(&mut self, _agent: <CartPoleDomain as DomainParameters>::AgentId, action: i64) -> Result<Self::Updates, <CartPoleDomain as DomainParameters>::GameErrorType> {
+    fn forward(&mut self, _agent: <CartPoleDomain as DomainParameters>::AgentId, action: CartPoleAction) -> Result<Self::Updates, <CartPoleDomain as DomainParameters>::GameErrorType> {
 
 
-        match self.__forward(action){
+        match self.__forward(action.into()){
             Err(e) => Err(e.into()),
             Ok(observation_vec) => {
                 if observation_vec.len() >= 4{
@@ -178,3 +178,4 @@ impl RenewWithSideEffect<CartPoleDomain, ()> for PythonGymnasiumCartPoleState{
         }
     }
 }
+

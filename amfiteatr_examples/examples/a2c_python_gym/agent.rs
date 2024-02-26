@@ -1,9 +1,13 @@
 use pyo3::{pymethods, PyResult};
-use amfiteatr_core::agent::InformationSet;
-use amfiteatr_core::domain::DomainParameters;
+use amfiteatr_core::agent::{EvaluatedInformationSet, InformationSet};
+use amfiteatr_core::domain::{DomainParameters, NoneReward, Renew};
+use amfiteatr_core::error::AmfiteatrError;
+use amfiteatr_rl::error::TensorRepresentationError;
+use amfiteatr_rl::tch::Tensor;
+use amfiteatr_rl::tensor_data::{ConversionToTensor, ConvertToTensor};
 use crate::common::{CartPoleDomain, CartPoleObservation, SINGLE_PLAYER_ID};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct PythonGymnasiumCartPoleInformationSet{
     latest_observation: CartPoleObservation
 
@@ -26,11 +30,8 @@ impl InformationSet<CartPoleDomain> for PythonGymnasiumCartPoleInformationSet{
         &SINGLE_PLAYER_ID
     }
 
-    fn is_action_valid(&self, action: &<CartPoleDomain as DomainParameters>::ActionType) -> bool {
-        match action{
-            0 | 1 => true,
-            _ => false
-        }
+    fn is_action_valid(&self, _action: &<CartPoleDomain as DomainParameters>::ActionType) -> bool {
+        true
     }
 
     fn update(&mut self, update: <CartPoleDomain as DomainParameters>::UpdateType)
@@ -39,5 +40,55 @@ impl InformationSet<CartPoleDomain> for PythonGymnasiumCartPoleInformationSet{
         self.latest_observation = update;
         Ok(())
 
+    }
+}
+
+
+
+impl Renew<CartPoleDomain, CartPoleObservation> for PythonGymnasiumCartPoleInformationSet{
+    fn renew_from(&mut self, base: CartPoleObservation) -> Result<(), AmfiteatrError<CartPoleDomain>> {
+        self.latest_observation = base;
+        Ok(())
+    }
+}
+
+#[derive(Default, Debug, Copy, Clone)]
+pub struct CartPoleInformationSetConversion{}
+pub const CART_POLE_TENSOR_REPR: CartPoleInformationSetConversion = CartPoleInformationSetConversion{};
+
+
+
+impl ConversionToTensor for CartPoleInformationSetConversion{
+    fn desired_shape(&self) -> &[i64] {
+        &[4]
+    }
+}
+
+impl ConvertToTensor<CartPoleInformationSetConversion> for PythonGymnasiumCartPoleInformationSet{
+    fn try_to_tensor(&self, _way: &CartPoleInformationSetConversion) -> Result<Tensor, TensorRepresentationError> {
+        let v = vec![
+            self.latest_observation.position,
+            self.latest_observation.velocity,
+            self.latest_observation.angle,
+            self.latest_observation.angular_velocity];
+
+        Tensor::f_from_slice(&v)
+            .map_err(|e| TensorRepresentationError::Torch {
+                error: e,
+                context: "Failed to convert observation to tensor".to_string()
+            })
+
+    }
+}
+
+impl EvaluatedInformationSet<CartPoleDomain> for PythonGymnasiumCartPoleInformationSet{
+    type RewardType = NoneReward;
+
+    fn current_subjective_score(&self) -> Self::RewardType {
+        NoneReward{}
+    }
+
+    fn penalty_for_illegal(&self) -> Self::RewardType {
+        NoneReward{}
     }
 }
