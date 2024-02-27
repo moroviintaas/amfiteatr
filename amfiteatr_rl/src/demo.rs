@@ -2,7 +2,7 @@ use tch::Tensor;
 use amfiteatr_core::demo::{DemoAction, DemoInfoSet};
 use amfiteatr_core::error::ConvertError;
 use crate::error::TensorRepresentationError;
-use crate::tensor_data::{ActionTensor, ConvertToTensor, ConversionToTensor};
+use crate::tensor_data::{ActionTensor, CtxTryIntoTensor, ConversionToTensor};
 
 /// Demonstration conversion to tensor meant for [`DemoInfoSet`].
 /// This is made only to demonstrate syntax for examples making sense please refer to
@@ -18,7 +18,7 @@ impl ConversionToTensor for DemoConversionToTensor {
     }
 }
 
-impl ConvertToTensor<DemoConversionToTensor> for DemoInfoSet{
+impl CtxTryIntoTensor<DemoConversionToTensor> for DemoInfoSet{
     fn try_to_tensor(&self, _way: &DemoConversionToTensor) -> Result<Tensor, TensorRepresentationError> {
         Ok(Tensor::from_slice(&[1.0]))
     }

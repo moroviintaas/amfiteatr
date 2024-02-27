@@ -1,5 +1,7 @@
 use std::fmt::{Display, Formatter, write};
 use pyo3::{PyDowncastError, PyErr};
+use amfiteatr_classic::domain::ClassicAction::Down;
+use amfiteatr_classic::domain::Defect;
 use amfiteatr_core::domain::{Action, DomainParameters};
 use amfiteatr_core::error::ConvertError;
 use amfiteatr_rl::tch::{TchError, Tensor};
@@ -79,6 +81,24 @@ impl  From<CartPoleAction> for i64{
         match value{
             CartPoleAction::Left => 0,
             CartPoleAction::Right => 1
+        }
+    }
+}
+
+impl TryFrom<&Tensor> for CartPoleAction{
+    type Error = ConvertError;
+
+    fn try_from(tensor: &Tensor) -> Result<Self, Self::Error> {
+        let v: Vec<i64> = match Vec::try_from(tensor){
+            Ok(v) => v,
+            Err(_) =>{
+                return Err(ConvertError::ActionDeserialize(format!("{}", tensor)))
+            }
+        };
+        match v[0]{
+            0 => Ok(CartPoleAction::Left),
+            1 => Ok(CartPoleAction::Right),
+            _ => Err(ConvertError::ActionDeserialize(format!("{}", tensor)))
         }
     }
 }

@@ -6,19 +6,19 @@ use tch::nn::{Optimizer, VarStore};
 use tch::{Kind, kind, Tensor};
 use amfiteatr_core::agent::{AgentTraceStep, Trajectory, InformationSet, Policy, EvaluatedInformationSet};
 use amfiteatr_core::domain::DomainParameters;
-use crate::error::AmfiRLError;
+use amfiteatr_core::error::ConvertError;
+use crate::error::{AmfiRLError, TensorRepresentationError};
 use crate::policy::LearningNetworkPolicy;
-use crate::tensor_data::{ActionTensor, ConvertToTensor, ConversionToTensor};
+use crate::tensor_data::{ActionTensor, CtxTryIntoTensor, ConversionToTensor, TryIntoTensor, TryFromTensor};
 use crate::torch_net::{A2CNet, TensorA2C};
 use crate::policy::TrainConfig;
 
 /// Generic implementation of Advantage Actor Critic policy
 pub struct ActorCriticPolicy<
     DP: DomainParameters,
-    InfoSet: InformationSet<DP> + Debug + ConvertToTensor<InfoSetWay>,
-    //StateConverter: ConvStateToTensor<InfoSet>,
-    InfoSetWay: ConversionToTensor
-    //ActInterpreter: TensorInterpreter<Option<DP::ActionType>>
+    InfoSet: InformationSet<DP> + Debug + CtxTryIntoTensor<InfoSetConversionContext>,
+    InfoSetConversionContext: ConversionToTensor,
+   // ActionConversionContext: ConversionFromTensor,
 > {
     network: A2CNet,
     #[allow(dead_code)]
@@ -26,7 +26,8 @@ pub struct ActorCriticPolicy<
     _dp: PhantomData<DP>,
     _is: PhantomData<InfoSet>,
     //state_converter: StateConverter,
-    convert_way: InfoSetWay,
+    info_set_conversion_context: InfoSetConversionContext,
+    //action_conversion_context: ActionConversionContext,
     training_config: TrainConfig,
     //action_interpreter: ActInterpreter
 
@@ -34,18 +35,16 @@ pub struct ActorCriticPolicy<
 
 impl<
     DP: DomainParameters,
-    InfoSet: EvaluatedInformationSet<DP>  + Debug + ConvertToTensor<InfoSetWay>,
-    InfoSetWay: ConversionToTensor,
-    //InfoSet: ScoringInformationSet<DP> + Debug,
-    //StateConverter: ConvStateToTensor<InfoSet>>
+    InfoSet: EvaluatedInformationSet<DP>  + Debug + CtxTryIntoTensor<InfoSetConversionContext>,
+    InfoSetConversionContext: ConversionToTensor,
+    //ActionConversionContext: ConversionFromTensor,
     >
 ActorCriticPolicy<
     DP,
     InfoSet,
-    InfoSetWay,
-    //StateConverter>
-    >
-where <DP as DomainParameters>::ActionType: ActionTensor{
+    InfoSetConversionContext,
+    //ActionConversionContext
+    > {
     /// ```
     /// use tch::{Device, nn, Tensor};
     /// use tch::nn::{Adam, VarStore};
@@ -75,7 +74,8 @@ where <DP as DomainParameters>::ActionType: ActionTensor{
     /// ```
     pub fn new(network: A2CNet,
                optimizer: Optimizer,
-               convert_way: InfoSetWay,
+               info_set_conversion_context: InfoSetConversionContext,
+               //action_conversion_context: ActionConversionContext,
                training_config: TrainConfig
                //state_converter: StateConverter,
                /*action_interpreter: ActInterpreter*/
@@ -83,7 +83,9 @@ where <DP as DomainParameters>::ActionType: ActionTensor{
         Self{
             network, optimizer,
             //state_converter,
-            convert_way,
+            info_set_conversion_context,
+            //action_conversion_context,
+
             training_config,
             //action_interpreter,
             _dp: Default::default(), _is: Default::default()
@@ -100,17 +102,17 @@ where <DP as DomainParameters>::ActionType: ActionTensor{
 impl<DP: DomainParameters,
     //InfoSet: InformationSet<DP> + Debug,
     //TB: ConvStateToTensor<InfoSet>,
-    InfoSet: InformationSet<DP> + Debug + ConvertToTensor<InfoSetWay>,
-    InfoSetWay: ConversionToTensor,
-    /*ActInterpreter: TensorInterpreter<Option<DP::ActionType>>*/
+    InfoSet: InformationSet<DP> + Debug + CtxTryIntoTensor<InfoSetConversionContext>,
+    InfoSetConversionContext: ConversionToTensor,
+    //ActionConversionContext: ConversionFromTensor,
 > Policy<DP> for ActorCriticPolicy<
     DP,
     InfoSet,
     //TB,
-    InfoSetWay,
-    /*ActInterpreter*/
+    InfoSetConversionContext,
+    //ActionConversionContext,
 >
-where <DP as DomainParameters>::ActionType: ActionTensor{
+where <DP as DomainParameters>::ActionType: TryFromTensor{
     type InfoSetType = InfoSet;
 
     fn select_action(&self, state: &Self::InfoSetType) -> Option<DP::ActionType> {
@@ -118,7 +120,7 @@ where <DP as DomainParameters>::ActionType: ActionTensor{
         //    .unwrap_or_else(|_| panic!("Failed converting state to Tensor: {:?}", state));
         //let state_tensor = self.state_converter.make_tensor(state);
         trace!("Selecting action");
-        let state_tensor = state.to_tensor(&self.convert_way);
+        let state_tensor = state.to_tensor(&self.info_set_conversion_context);
         let out = tch::no_grad(|| (self.network.net())(&state_tensor));
         let actor = out.actor;
         //somewhen it may be changed with temperature
@@ -135,12 +137,12 @@ where <DP as DomainParameters>::ActionType: ActionTensor{
 
 impl<
     DP: DomainParameters,
-    InfoSet: EvaluatedInformationSet<DP>  + Debug + ConvertToTensor<InfoSetWay>,
+    InfoSet: EvaluatedInformationSet<DP>  + Debug + CtxTryIntoTensor<InfoSetWay>,
     InfoSetWay: ConversionToTensor,
     //InfoSet: ScoringInformationSet<DP> + Debug,
     //StateConverter: ConvStateToTensor<InfoSet>>
     > LearningNetworkPolicy<DP> for ActorCriticPolicy<DP, InfoSet, InfoSetWay>
-where <DP as DomainParameters>::ActionType: ActionTensor,
+    where <DP as DomainParameters>::ActionType: TryFromTensor + TryIntoTensor,
 //<InfoSet as ScoringInformationSet<DP>>::RewardType: FloatTensorReward
 {
     type Network = A2CNet;
@@ -199,7 +201,7 @@ where <DP as DomainParameters>::ActionType: ActionTensor,
         for t in trajectories{
 
             if let Some(trace_step) = t.list().get(0){
-                debug!("Training nerual-network for agent {} (from first trace entry).", trace_step.step_info_set().agent_id());
+                debug!("Training neural-network for agent {} (from first trace entry).", trace_step.step_info_set().agent_id());
             }
 
 
@@ -210,12 +212,12 @@ where <DP as DomainParameters>::ActionType: ActionTensor,
 
             let mut state_tensor_vec_t: Vec<Tensor> = t.list().iter().map(|step|{
                 //self.state_converter.make_tensor(step.step_state())
-                step.step_info_set().to_tensor(&self.convert_way)
+                step.step_info_set().to_tensor(&self.info_set_conversion_context)
             }).collect();
 
             let mut action_tensor_vec_t: Vec<Tensor> = t.list().iter().map(|step|{
-                step.taken_action().to_tensor().to_kind(kind::Kind::Int64)
-            }).collect();
+                step.taken_action().try_to_tensor().map(|t| t.to_kind(kind::Kind::Int64))
+            }).collect::<Result<Vec<Tensor>, TensorRepresentationError>>()?;
 
             //let final_score_t: Tensor =  t.list().last().unwrap().subjective_score_after().to_tensor();
             let final_score_t: Tensor =   reward_f(t.list().last().unwrap());

@@ -7,8 +7,9 @@ use amfiteatr_core::error::{AmfiteatrError, ConvertError};
 use amfiteatr_core::domain::{Action, DomainParameters, Reward};
 use enum_map::Enum;
 use serde::{Deserialize, Serialize};
+use amfiteatr_rl::error::TensorRepresentationError;
 use amfiteatr_rl::tch::Tensor;
-use amfiteatr_rl::tensor_data::ActionTensor;
+use amfiteatr_rl::tensor_data::{ActionTensor, TryFromTensor, TryIntoTensor};
 use crate::domain::TwoPlayersStdName::{Alice, Bob};
 use crate::env::PairingVec;
 use crate::{AsymmetricRewardTable, Side};
@@ -135,6 +136,43 @@ impl Display for ClassicAction {
 
 impl Action for ClassicAction {}
 //--------------------------------------
+
+impl TryIntoTensor for ClassicAction{
+    fn try_to_tensor(&self) -> Result<Tensor, TensorRepresentationError> {
+        match self{
+            Up => Ok(Tensor::from_slice(&[0.0f32;1])),
+            Down => Ok(Tensor::from_slice(&[1.0f32;1]))
+        }
+    }
+}
+
+impl TryFrom<&Tensor> for ClassicAction{
+    type Error = ConvertError;
+
+    /// ```
+    /// use amfiteatr_classic::domain::ClassicAction;
+    /// use amfiteatr_classic::domain::ClassicAction::Down;
+    /// use amfiteatr_rl::tch::Tensor;
+    /// let t = Tensor::from_slice(&[1i64;1]);
+    /// let action = ClassicAction::try_from(&t).unwrap();
+    /// assert_eq!(action, Down);
+    /// ```
+    fn try_from(tensor: &Tensor) -> Result<Self, Self::Error> where Self: Sized {
+
+
+        let v: Vec<i64> = match Vec::try_from(tensor){
+            Ok(v) => v,
+            Err(_) =>{
+                return Err(ConvertError::ActionDeserialize(format!("{}", tensor)))
+            }
+        };
+        match v[0]{
+            0 => Ok(Defect),
+            1 => Ok(Down),
+            _ => Err(ConvertError::ActionDeserialize(format!("{}", tensor)))
+        }
+    }
+}
 impl ActionTensor for ClassicAction {
     fn to_tensor(&self) -> Tensor {
         match self{
@@ -144,28 +182,20 @@ impl ActionTensor for ClassicAction {
     }
 
 
-    /// ```
-    /// use amfiteatr_classic::domain::ClassicAction;
-    /// use amfiteatr_classic::domain::ClassicAction::Down;
-    /// use amfiteatr_rl::tch::Tensor;
-    /// use amfiteatr_rl::tensor_data::ActionTensor;
-    /// let t = Tensor::from_slice(&[1i64;1]);
-    /// let action = ClassicAction::try_from_tensor(&t).unwrap();
-    /// assert_eq!(action, Down);
-    /// ```
-    fn try_from_tensor(t: &Tensor) -> Result<Self, ConvertError> {
+
+    fn try_from_tensor(tensor: &Tensor) -> Result<Self, ConvertError> {
 
 
-        let v: Vec<i64> = match Vec::try_from(t){
+        let v: Vec<i64> = match Vec::try_from(tensor){
             Ok(v) => v,
             Err(_) =>{
-                return Err(ConvertError::ActionDeserialize(format!("{}", t)))
+                return Err(ConvertError::ActionDeserialize(format!("{}", tensor)))
             }
         };
         match v[0]{
             0 => Ok(Defect),
             1 => Ok(Down),
-            _ => Err(ConvertError::ActionDeserialize(format!("{}", t)))
+            _ => Err(ConvertError::ActionDeserialize(format!("{}", tensor)))
         }
     }
 }

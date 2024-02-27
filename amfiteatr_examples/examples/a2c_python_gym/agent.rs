@@ -4,14 +4,12 @@ use amfiteatr_core::domain::{DomainParameters, NoneReward, Renew};
 use amfiteatr_core::error::AmfiteatrError;
 use amfiteatr_rl::error::TensorRepresentationError;
 use amfiteatr_rl::tch::Tensor;
-use amfiteatr_rl::tensor_data::{ConversionToTensor, ConvertToTensor};
+use amfiteatr_rl::tensor_data::{ConversionToTensor, CtxTryIntoTensor};
 use crate::common::{CartPoleDomain, CartPoleObservation, SINGLE_PLAYER_ID};
 
 #[derive(Debug, Clone, Default)]
 pub struct PythonGymnasiumCartPoleInformationSet{
     latest_observation: CartPoleObservation
-
-
 }
 
 impl PythonGymnasiumCartPoleInformationSet{
@@ -21,7 +19,6 @@ impl PythonGymnasiumCartPoleInformationSet{
         Self{
             latest_observation: initial_observation
         }
-
     }
 }
 
@@ -39,7 +36,6 @@ impl InformationSet<CartPoleDomain> for PythonGymnasiumCartPoleInformationSet{
 
         self.latest_observation = update;
         Ok(())
-
     }
 }
 
@@ -64,7 +60,7 @@ impl ConversionToTensor for CartPoleInformationSetConversion{
     }
 }
 
-impl ConvertToTensor<CartPoleInformationSetConversion> for PythonGymnasiumCartPoleInformationSet{
+impl CtxTryIntoTensor<CartPoleInformationSetConversion> for PythonGymnasiumCartPoleInformationSet{
     fn try_to_tensor(&self, _way: &CartPoleInformationSetConversion) -> Result<Tensor, TensorRepresentationError> {
         let v = vec![
             self.latest_observation.position,

@@ -6,7 +6,7 @@ use amfiteatr_core::agent::{InformationSet, PresentPossibleActions, EvaluatedInf
 use amfiteatr_core::domain::{Renew};
 use amfiteatr_core::error::AmfiteatrError;
 use amfiteatr_rl::error::TensorRepresentationError;
-use amfiteatr_rl::tensor_data::{ConvertToTensor, ConversionToTensor};
+use amfiteatr_rl::tensor_data::{CtxTryIntoTensor, ConversionToTensor};
 use crate::agent::{ActionPairMapper, AgentAssessmentClassic};
 use crate::AsymmetricRewardTableInt;
 use crate::domain::{AgentNum, AsUsize, ClassicAction, ClassicGameDomain, ClassicGameError, ClassicGameUpdate, EncounterReport, UsizeAgentId};
@@ -175,7 +175,7 @@ impl ConversionToTensor for LocalHistoryConversionToTensor {
 /// Alias for info set for agents identified by `u32`.
 pub type LocalHistoryInfoSetNumbered = LocalHistoryInfoSet<AgentNum>;
 
-impl<ID: UsizeAgentId> ConvertToTensor<LocalHistoryConversionToTensor> for LocalHistoryInfoSet<ID>{
+impl<ID: UsizeAgentId> CtxTryIntoTensor<LocalHistoryConversionToTensor> for LocalHistoryInfoSet<ID>{
     fn try_to_tensor(&self, way: &LocalHistoryConversionToTensor) -> Result<Tensor, TensorRepresentationError> {
         let max_number_of_actions = way.shape()[1];
         if self.previous_encounters.len() > max_number_of_actions as usize{

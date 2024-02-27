@@ -17,6 +17,11 @@ pub enum TensorRepresentationError{
         error: TchError,
         context: String
     },
+    #[error("Conversion of value to tensor is not supported ({comment:})")]
+    ConversionToTensor{
+        comment: String,
+
+    }
 
 }
 

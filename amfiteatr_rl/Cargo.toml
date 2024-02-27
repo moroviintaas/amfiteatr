@@ -17,6 +17,7 @@ tch = "0.15.0"
 log = "0.4.20"
 thiserror = "1.0.56"
 rand = "0.8.5"
+generic-array = "1.0.0"
 
 amfiteatr_core = {version = "0.2.1", features = ["demo"]}
 

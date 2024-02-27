@@ -1,13 +1,14 @@
 use std::error::Error;
 use std::fmt::{Debug};
-use tch::{Tensor};
+use generic_array::{ArrayLength, GenericArray};
+use tch::{Shape, Tensor};
 use amfiteatr_core::domain::{Action, Reward};
 use amfiteatr_core::error::{ConvertError};
 use crate::error::TensorRepresentationError;
 
 
 /// Extension for [`ConversionToTensor`] to actually produce tensor. However implementing this trait
-/// is optional, because generic implementations require [`ConvertToTensor`] on type converted,
+/// is optional, because generic implementations require [`CtxTryIntoTensor`] on type converted,
 /// and it is probably what you need to implement.
 /// However it may be sometimes convenient to implement this trait for converter and then use it on
 /// converted types.
@@ -20,8 +21,8 @@ pub trait SimpleConvertToTensor<T>: Send + ConversionToTensor{
 
 
 /// Trait representing structs (maybe 0-sized) that tell what is desired shape of tensor produced
-/// by conversion to tensor when using [`ConvertToTensor`].
-pub trait ConversionToTensor: Send + Default{
+/// by conversion to tensor when using [`CtxTryIntoTensor`].
+pub trait ConversionToTensor: Send{
     /// Returns shape (slice of i64 numbers) of shape that must be produced for network
     fn desired_shape(&self) -> &[i64];
 
@@ -41,7 +42,7 @@ pub trait ConversionToTensor: Send + Default{
 /// _"enemy has king of hearts with probability of 40%"_.
 /// In this case you can implement one [`InformationSet`](amfiteatr_core::agent::InformationSet) and two ways
 /// of converting it.
-pub trait ConvertToTensor<W: ConversionToTensor> : Debug{
+pub trait CtxTryIntoTensor<W: ConversionToTensor> : Debug{
     fn try_to_tensor(&self, way: &W) -> Result<Tensor, TensorRepresentationError>;
 
     fn to_tensor(&self, way: &W) -> Tensor{
@@ -70,39 +71,56 @@ pub trait ConvertToTensor<W: ConversionToTensor> : Debug{
     }
 }
 
-impl<W: ConversionToTensor, T: ConvertToTensor<W>> ConvertToTensor<W> for Box<T>{
+pub trait TryIntoTensor: Debug{
+    fn try_to_tensor(&self) -> Result<Tensor, TensorRepresentationError>;
+}
+
+impl<W: ConversionToTensor, T: CtxTryIntoTensor<W>> CtxTryIntoTensor<W> for Box<T>{
     fn try_to_tensor(&self, way: &W) -> Result<Tensor, TensorRepresentationError> {
         self.as_ref().try_to_tensor(way)
     }
 }
 
 /// Trait representing structs (maybe 0-sized) that tell what is expected size of tensor to be
-/// used to create data struct using [`TryConvertFromTensor`].
+/// used to create data struct using [`CtxTryFromTensor`].
 pub trait ConversionFromTensor: Send{
-    fn expected_input_shape() -> &'static[i64];
+    fn expected_input_shape(&self) -> &[i64];
 }
 
 /// Implemented by structs that can be converted from tensors.
 /// Certain data type can have different tensor representation, then it is needed to specify
-/// what particular representation is used (done by using correct [`ConversionFromTensor`].
-pub trait TryConvertFromTensor<W: ConversionFromTensor>{
+/// what particular contextual representation is used (done by using correct [`ConversionFromTensor`]).
+pub trait CtxTryFromTensor<W: ConversionFromTensor>{
     type ConvertError: Error;
     fn try_from_tensor(tensor: &Tensor, way: &W) -> Result<Self, Self::ConvertError> where Self: Sized;
 }
 
-/*
-pub trait ConvertToTensorD<W: ConversionToTensor>: ConvertToTensor<W> + Display + Debug{}
-impl<W: ConversionToTensor, T: ConvertToTensor<W> + Display + Debug> ConvertToTensorD<W> for T{}
-*/
+
+/// Implemented by structs that can be converted from tensors.).
+pub trait TryFromTensor: for<'a> TryFrom<&'a Tensor, Error=ConvertError> + Sized{
+    fn try_from_tensor(tensor: &Tensor) -> Result<Self, ConvertError> where Self: Sized{
+        Self::try_from(tensor)
+    }
+}
+
+impl<T: for<'a> TryFrom<&'a Tensor, Error=ConvertError> + Sized> TryFromTensor for T{
+
+}
+
+
+
+
 
 /// Trait dedicated for actions that can be written as tensor and read from tensors (usually it
 /// will be some index in action space. Actual implementations expects that actions are represented
 /// as Tensor with type [`Float`](tch::Kind::Float).
+#[deprecated(since = "0.3.0", note = "Implement rather [`TryFromTensor`]")]
 pub trait ActionTensor: Action{
 
     fn to_tensor(&self) -> Tensor;
     fn try_from_tensor(t: &Tensor) -> Result<Self, ConvertError>;
 }
+
 
 /// Trait dedicated to rewards (payoffs) that can be represented as tensor of floats
 pub trait FloatTensorReward: Reward{
@@ -135,6 +153,20 @@ macro_rules! impl_reward_std_f {
 
     }
 }
+
+
+
+impl<N: ArrayLength> ConversionToTensor for GenericArray<i64, N>{
+    fn desired_shape(&self) -> &[i64] {
+        &self[..]
+    }
+}
+impl<N: ArrayLength> ConversionFromTensor for GenericArray<i64, N>{
+    fn expected_input_shape(&self) -> &[i64] {
+        &self[..]
+    }
+}
+
 
 impl_reward_std_f![f32, f64];
 
