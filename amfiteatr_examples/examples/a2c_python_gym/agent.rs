@@ -2,12 +2,15 @@ use pyo3::{pymethods, PyResult};
 use amfiteatr_core::agent::{EvaluatedInformationSet, InformationSet};
 use amfiteatr_core::domain::{DomainParameters, NoneReward, Renew};
 use amfiteatr_core::error::AmfiteatrError;
+use amfiteatr_proc_macro::no_assessment_info_set;
 use amfiteatr_rl::error::TensorRepresentationError;
 use amfiteatr_rl::tch::Tensor;
 use amfiteatr_rl::tensor_data::{ConversionToTensor, CtxTryIntoTensor};
 use crate::common::{CartPoleDomain, CartPoleObservation, SINGLE_PLAYER_ID};
 
+
 #[derive(Debug, Clone, Default)]
+#[no_assessment_info_set(CartPoleDomain)]
 pub struct PythonGymnasiumCartPoleInformationSet{
     latest_observation: CartPoleObservation
 }
@@ -76,7 +79,7 @@ impl CtxTryIntoTensor<CartPoleInformationSetConversion> for PythonGymnasiumCartP
 
     }
 }
-
+/*
 impl EvaluatedInformationSet<CartPoleDomain> for PythonGymnasiumCartPoleInformationSet{
     type RewardType = NoneReward;
 
@@ -88,3 +91,5 @@ impl EvaluatedInformationSet<CartPoleDomain> for PythonGymnasiumCartPoleInformat
         NoneReward{}
     }
 }
+
+ */

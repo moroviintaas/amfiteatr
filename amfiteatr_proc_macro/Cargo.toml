@@ -11,5 +11,5 @@ proc-macro = true
 
 syn = {version = "2.0.48", features = ["full", "fold"]}
 quote = "1.0.35"
-proc-macro2 = "1.0.76"
+proc-macro2 = { version =  "1.0.76", features = ["proc-macro"]}
 enum-map-derive = "0.17.0"
