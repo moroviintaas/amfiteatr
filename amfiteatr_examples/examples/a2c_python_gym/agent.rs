@@ -1,12 +1,12 @@
 use pyo3::{pymethods, PyResult};
-use amfiteatr_core::agent::{EvaluatedInformationSet, InformationSet};
+use amfiteatr_core::agent::{EvaluatedInformationSet, InformationSet, PresentPossibleActions};
 use amfiteatr_core::domain::{DomainParameters, NoneReward, Renew};
 use amfiteatr_core::error::AmfiteatrError;
 use amfiteatr_proc_macro::no_assessment_info_set;
 use amfiteatr_rl::error::TensorRepresentationError;
 use amfiteatr_rl::tch::Tensor;
 use amfiteatr_rl::tensor_data::{ConversionToTensor, CtxTryIntoTensor};
-use crate::common::{CartPoleDomain, CartPoleObservation, SINGLE_PLAYER_ID};
+use crate::common::{CartPoleAction, CartPoleDomain, CartPoleObservation, SINGLE_PLAYER_ID};
 
 
 #[derive(Debug, Clone, Default)]
@@ -93,3 +93,12 @@ impl EvaluatedInformationSet<CartPoleDomain> for PythonGymnasiumCartPoleInformat
 }
 
  */
+
+
+impl PresentPossibleActions<CartPoleDomain> for PythonGymnasiumCartPoleInformationSet{
+    type ActionIteratorType = [CartPoleAction;2];
+
+    fn available_actions(&self) -> Self::ActionIteratorType {
+        [CartPoleAction::Left, CartPoleAction::Right]
+    }
+}

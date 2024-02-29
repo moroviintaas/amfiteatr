@@ -4,7 +4,7 @@ use pyo3::prelude::*;
 use pyo3::PyDowncastError;
 use pyo3::types::PyTuple;
 use amfiteatr_core::domain::{DomainParameters, RenewWithSideEffect};
-use amfiteatr_core::env::{EnvironmentStateSequential, ScoreEnvironment};
+use amfiteatr_core::env::{EnvironmentStateSequential, EnvironmentStateUniScore, ScoreEnvironment};
 use amfiteatr_core::error::AmfiteatrError;
 use crate::common::{CartPoleDomain, CartPoleObservation, CartPoleError, SINGLE_PLAYER_ID, CartPoleAction};
 
@@ -179,3 +179,8 @@ impl RenewWithSideEffect<CartPoleDomain, ()> for PythonGymnasiumCartPoleState{
     }
 }
 
+impl EnvironmentStateUniScore<CartPoleDomain> for PythonGymnasiumCartPoleState{
+    fn state_score_of_player(&self, _agent: &<CartPoleDomain as DomainParameters>::AgentId) -> <CartPoleDomain as DomainParameters>::UniversalReward {
+        self.player_reward
+    }
+}

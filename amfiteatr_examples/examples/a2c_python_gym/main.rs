@@ -2,17 +2,49 @@ pub mod env;
 pub mod common;
 pub mod agent;
 
-use amfiteatr_core::agent::TracingAgentGen;
+use std::thread;
+use amfiteatr_core::agent::{PolicyAgent, TracingAgentGen};
 use amfiteatr_core::comm::EnvironmentMpscPort;
-use amfiteatr_core::env::{BasicEnvironment, EnvironmentStateSequential};
-use amfiteatr_rl::policy::{ActorCriticPolicy, TrainConfig};
+use amfiteatr_core::env::{AutoEnvironment, AutoEnvironmentWithScores, BasicEnvironment, DirtyReseedEnvironment, EnvironmentStateSequential};
+use amfiteatr_core::error::AmfiteatrError;
+use amfiteatr_rl::agent::RlModelAgent;
+use amfiteatr_rl::error::AmfiRLError;
+use amfiteatr_rl::policy::{ActorCriticPolicy, LearningNetworkPolicy, TrainConfig};
 use amfiteatr_rl::tch::{Device, nn, Tensor};
 use amfiteatr_rl::tch::nn::{Adam, VarStore};
 use amfiteatr_rl::torch_net::{A2CNet, NeuralNetTemplate, TensorA2C};
 use crate::agent::{CART_POLE_TENSOR_REPR, PythonGymnasiumCartPoleInformationSet};
-use crate::common::SINGLE_PLAYER_ID;
+use crate::common::{CartPoleDomain, CartPoleObservation, SINGLE_PLAYER_ID};
 use crate::env::PythonGymnasiumCartPoleState;
 
+fn test<R: RlModelAgent<CartPoleDomain, CartPoleObservation, PythonGymnasiumCartPoleInformationSet>>(
+    env: &mut BasicEnvironment<CartPoleDomain, PythonGymnasiumCartPoleState, EnvironmentMpscPort<CartPoleDomain>>,
+    agent: &mut R,
+    number_of_tests: usize)
+-> Result<f32, AmfiRLError<CartPoleDomain>>
+where <R as PolicyAgent<CartPoleDomain>>::Policy: LearningNetworkPolicy<CartPoleDomain>{
+
+    let mut result_sum = 0.0f64;
+    for _ in 0..number_of_tests{
+        let mut observation = env.dirty_reseed(())?;
+        let observation = observation.remove(&SINGLE_PLAYER_ID)
+            .ok_or(AmfiRLError::Amfi(AmfiteatrError::Custom(String::from("No observation for only player in resetting game"))))?;
+
+        thread::scope(|s|{
+            s.spawn(||{
+                env.run_with_scores()
+            });
+            s.spawn(||{
+                agent.run_episode_rewarded(observation).unwrap()
+            });
+        });
+        result_sum += agent.current_universal_score() as f64;
+    }
+
+    Ok((result_sum / (number_of_tests as f64)) as f32)
+
+
+}
 
 fn main() {
     println!("Hello");
@@ -47,6 +79,11 @@ fn main() {
                                         TrainConfig {gamma: 0.99});
 
     let mut agent = TracingAgentGen::new(agent_state, agent_comm, policy);
+
+    test(&mut environment, &mut agent, 100).unwrap();
+    for epoch in 0..100{
+
+    }
 
 
 

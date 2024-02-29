@@ -4,8 +4,9 @@ use amfiteatr_classic::domain::ClassicAction::Down;
 use amfiteatr_classic::domain::Defect;
 use amfiteatr_core::domain::{Action, DomainParameters};
 use amfiteatr_core::error::ConvertError;
+use amfiteatr_rl::error::TensorRepresentationError;
 use amfiteatr_rl::tch::{TchError, Tensor};
-use amfiteatr_rl::tensor_data::ActionTensor;
+use amfiteatr_rl::tensor_data::{ActionTensor, TryIntoTensor};
 
 pub const SINGLE_PLAYER_ID: u64 = 1;
 
@@ -114,25 +115,18 @@ impl Display for CartPoleAction {
     }
 }
 
-impl ActionTensor for CartPoleAction{
-    fn to_tensor(&self) -> Tensor {
-        match self{
-            CartPoleAction::Left => Tensor::from_slice(&[0.0f32]),
-            CartPoleAction::Right => Tensor::from_slice(&[1.0f32]),
-        }
-    }
 
-    fn try_from_tensor(t: &Tensor) -> Result<Self, ConvertError> {
-        let v = Vec::<i64>::try_from(t)
-            .map_err(|e| ConvertError::ActionDeserialize(format!("{}", t)))?;
-        match v.get(0){
-            Some(0) => Ok(CartPoleAction::Left),
-            Some(1) => Ok(CartPoleAction::Right),
-            Some(n) => Err(ConvertError::ActionDeserialize(format!("Expected action number 0 or 1, got {}",n))) ,
-            None => Err(ConvertError::ActionDeserialize("Trying to convert tensor of size 0".to_string()))
+
+impl TryIntoTensor for CartPoleAction {
+    fn try_to_tensor(&self) -> Result<Tensor, TensorRepresentationError> {
+        match self {
+            CartPoleAction::Left => Ok(Tensor::from_slice(&[0.0f32])),
+            CartPoleAction::Right => Ok(Tensor::from_slice(&[1.0f32])),
         }
     }
 }
+
+
 
 impl DomainParameters for CartPoleDomain{
     type ActionType = CartPoleAction;

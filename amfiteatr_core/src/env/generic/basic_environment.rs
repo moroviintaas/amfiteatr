@@ -60,8 +60,8 @@ impl<
 impl <
     DP: DomainParameters,
     S: EnvironmentStateSequential<DP>,
-    CP: EnvironmentAdapter<DP>
-> StatefulEnvironment<DP> for BasicEnvironment<DP, S, CP>{
+    OneComm: EnvironmentAdapter<DP>
+> StatefulEnvironment<DP> for BasicEnvironment<DP, S, OneComm>{
     type State = S;
 
     fn state(&self) -> &Self::State {
