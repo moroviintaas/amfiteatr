@@ -45,7 +45,7 @@
 
 use std::collections::{HashMap, HashSet};
 use std::fmt::{Debug, Display, Formatter};
-use log::{debug, trace};
+use log::{trace};
 use rand::{thread_rng};
 use rand::distributions::Uniform;
 use crate::agent::{AgentIdentifier, Policy, PresentPossibleActions};

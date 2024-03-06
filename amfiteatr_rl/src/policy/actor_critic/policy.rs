@@ -6,7 +6,7 @@ use tch::nn::{Optimizer, VarStore};
 use tch::{Kind, kind, Tensor};
 use amfiteatr_core::agent::{AgentTraceStep, Trajectory, InformationSet, Policy, EvaluatedInformationSet};
 use amfiteatr_core::domain::DomainParameters;
-use amfiteatr_core::error::ConvertError;
+
 use crate::error::{AmfiRLError, TensorRepresentationError};
 use crate::policy::LearningNetworkPolicy;
 use crate::tensor_data::{ActionTensor, CtxTryIntoTensor, ConversionToTensor, TryIntoTensor, TryFromTensor};

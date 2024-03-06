@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 use criterion::{BenchmarkId, Criterion, criterion_group, criterion_main};
-use log::debug;
+
 use amfiteatr_core::agent::{AgentGen, AutomaticAgentRewarded, RandomPolicy};
 use amfiteatr_core::comm::{EnvironmentMpscPort, StdEnvironmentEndpoint};
 use amfiteatr_core::demo::{DemoDomain, DemoInfoSet, DemoState};
@@ -42,7 +42,7 @@ pub fn bench_demo_game_tcp_speedy_hashmap(c: &mut Criterion){
                     let env = HashMapEnvironment::new(state, env_comms);
                     (env, agents)
                 },
-            |mut routine_input|{
+            |routine_input|{
                     let mut env = routine_input.0;
                     let agents = routine_input.1;
 
@@ -104,7 +104,7 @@ pub fn bench_demo_game_mpsc_hashmap(c: &mut Criterion){
                          let env = HashMapEnvironment::new(state, env_comms);
                          (env, agents)
                      },
-                     |mut routine_input|{
+                     |routine_input|{
                          let mut env = routine_input.0;
                          let agents = routine_input.1;
 
@@ -166,7 +166,7 @@ pub fn bench_demo_game_single_mpsc(c: &mut Criterion){
                          let env = BasicEnvironment::new(state, env_adapter);
                          (env, agents)
                      },
-                     |mut routine_input|{
+                     |routine_input|{
                          let mut env = routine_input.0;
                          let agents = routine_input.1;
 

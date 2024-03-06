@@ -7,7 +7,7 @@ mod policy_agent;
 mod reset_agent;
 mod self_evaluating_agent;
 mod id_agent;
-mod episode_memory_agent;
+mod multi_episode_agent;
 mod model;
 
 pub use communicating_agent::*;
@@ -20,5 +20,5 @@ pub use policy_agent::*;
 pub use self_evaluating_agent::*;
 pub use id_agent::*;
 //pub use list_players::*;
-pub use episode_memory_agent::*;
+pub use multi_episode_agent::*;
 pub use model::*;

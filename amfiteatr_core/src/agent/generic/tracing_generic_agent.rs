@@ -315,8 +315,8 @@ impl<
         Error=CommunicationError<DP>>,
     Seed>
 MultiEpisodeAutoAgent<DP, Seed> for TracingAgentGen<DP, P, Comm>
-where Self: ReseedAgent<DP, Seed>,
-      <P as Policy<DP>>::InfoSetType: EvaluatedInformationSet<DP>
+where Self: ReseedAgent<DP, Seed> + AutomaticAgent<DP>,
+      <P as Policy<DP>>::InfoSetType: EvaluatedInformationSet<DP> + Clone,
 {
     fn store_episode(&mut self) {
         let mut new_trajectory = Trajectory::new();
@@ -331,6 +331,7 @@ where Self: ReseedAgent<DP, Seed>,
 }
 
 
+
 impl<
     DP: DomainParameters,
     P: Policy<DP>,
@@ -340,8 +341,9 @@ impl<
         Error=CommunicationError<DP>>,
     Seed>
 MultiEpisodeTracingAgent<DP, <P as Policy<DP>>::InfoSetType, Seed> for TracingAgentGen<DP, P, Comm>
-    where <P as Policy<DP>>::InfoSetType: EvaluatedInformationSet<DP>,
-    Self: ReseedAgent<DP, Seed>{
+    where <P as Policy<DP>>::InfoSetType: EvaluatedInformationSet<DP> + Clone,
+    Self: ReseedAgent<DP, Seed> + SelfEvaluatingAgent<DP> + AutomaticAgent<DP>,
+          <Self as StatefulAgent<DP>>::InfoSetType: EvaluatedInformationSet<DP>{
 
     fn take_episodes(&mut self) -> Vec<Trajectory<DP, <P as Policy<DP>>::InfoSetType>> {
         let mut episodes = Vec::with_capacity(self.episodes.len());

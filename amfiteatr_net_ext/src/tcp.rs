@@ -4,11 +4,11 @@ use std::io::{Read, Write};
 use std::marker::PhantomData;
 use std::sync::mpsc;
 use std::thread;
-use log::{debug, error, trace};
+use log::{error};
 use speedy::{LittleEndian, Readable, Writable};
 use amfiteatr_core::error::CommunicationError;
 use thiserror::Error;
-use zeroize::Zeroize;
+
 use amfiteatr_core::comm::BidirectionalEndpoint;
 use amfiteatr_core::domain::{AgentMessage, DomainParameters, EnvironmentMessage};
 

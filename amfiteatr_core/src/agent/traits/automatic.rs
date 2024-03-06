@@ -1,14 +1,5 @@
 
-use crate::agent::{
-    CommunicatingAgent,
-    ActingAgent,
-    StatefulAgent,
-    PolicyAgent,
-    RewardedAgent,
-    SelfEvaluatingAgent,
-    EvaluatedInformationSet,
-    PresentPossibleActions,
-    IdAgent};
+use crate::agent::{CommunicatingAgent, ActingAgent, StatefulAgent, PolicyAgent, RewardedAgent, SelfEvaluatingAgent, EvaluatedInformationSet, PresentPossibleActions, IdAgent, InformationSet};
 use crate::error::{CommunicationError, AmfiteatrError};
 use crate::error::ProtocolError::{NoPossibleAction, ReceivedKill};
 use crate::error::AmfiteatrError::Protocol;
@@ -78,7 +69,7 @@ where A: StatefulAgent<DP> + ActingAgent<DP>
     + PolicyAgent<DP>
     + SelfEvaluatingAgent<DP>,
       DP: DomainParameters,
-      <A as StatefulAgent<DP>>::InfoSetType: EvaluatedInformationSet<DP> + PresentPossibleActions<DP>
+      <A as StatefulAgent<DP>>::InfoSetType: EvaluatedInformationSet<DP>
 {
     fn run(&mut self) -> Result<(), AmfiteatrError<DP>> {
         info!("Agent {} starts", self.id());
@@ -91,8 +82,8 @@ where A: StatefulAgent<DP> + ActingAgent<DP>
                         //current_score = Default::default();
 
                         //debug!("Agent's {:?} possible actions: {:?}", self.id(), Vec::from_iter(self.state().available_actions().into_iter()));
-                        trace!("Agent's {} possible actions: {}]", self.id(), self.info_set().available_actions().into_iter()
-                            .fold(String::from("["), |a, b| a + &format!("{b:#}") + ", ").trim_end());
+                        //trace!("Agent's {} possible actions: {}]", self.id(), self.info_set().available_actions().into_iter()
+                        //    .fold(String::from("["), |a, b| a + &format!("{b:#}") + ", ").trim_end());
                         //match self.policy_select_action(){
                         match self.take_action(){
                             None => {
@@ -165,7 +156,7 @@ where Agnt: StatefulAgent<DP> + ActingAgent<DP>
     + SelfEvaluatingAgent<DP>,
       DP: DomainParameters,
     <Agnt as StatefulAgent<DP>>::InfoSetType: EvaluatedInformationSet<DP>
-    + PresentPossibleActions<DP>{
+{
     fn run_rewarded(&mut self) -> Result<(), AmfiteatrError<DP>>
     {
         info!("Agent {} starts", self.id());
@@ -175,8 +166,8 @@ where Agnt: StatefulAgent<DP> + ActingAgent<DP>
                 Ok(message) => match message{
                     EnvironmentMessage::YourMove => {
                         debug!("Agent {} received 'YourMove' signal.", self.id());
-                        debug!("Agent's {:?} possible actions: {}]", self.id(), self.info_set().available_actions().into_iter()
-                            .fold(String::from("["), |a, b| a + &format!("{b:#}") + ", ").trim_end());
+                        //debug!("Agent's {:?} possible actions: {}]", self.id(), self.info_set().available_actions().into_iter()
+                        //    .fold(String::from("["), |a, b| a + &format!("{b:#}") + ", ").trim_end());
                         match self.take_action(){
                             None => {
                                 error!("Agent {} has no possible action", self.id());

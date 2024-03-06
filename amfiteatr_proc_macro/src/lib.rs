@@ -1,6 +1,6 @@
 use quote::quote;
-use proc_macro2::TokenStream;
-use syn::{DeriveInput, ItemStruct, parse_macro_input};
+
+use syn::{ItemStruct, parse_macro_input};
 
 #[proc_macro_attribute]
 pub fn no_assessment_info_set(attr: proc_macro::TokenStream, item: proc_macro::TokenStream) -> proc_macro::TokenStream{

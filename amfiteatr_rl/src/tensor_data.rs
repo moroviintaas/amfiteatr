@@ -1,7 +1,7 @@
 use std::error::Error;
 use std::fmt::{Debug};
 use generic_array::{ArrayLength, GenericArray};
-use tch::{Shape, Tensor};
+use tch::{Tensor};
 use amfiteatr_core::domain::{Action, Reward};
 use amfiteatr_core::error::{ConvertError};
 use crate::error::TensorRepresentationError;

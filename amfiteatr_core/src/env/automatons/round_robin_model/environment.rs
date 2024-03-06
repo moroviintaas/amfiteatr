@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use log::{debug, error, info, trace, warn};
+use log::{debug, error, info, warn};
 use crate::env::{BroadcastingEndpointEnvironment, CommunicatingEndpointEnvironment, EnvironmentStateSequential, EnvironmentWithAgents, ScoreEnvironment, StatefulEnvironment};
 use crate::error::{CommunicationError, AmfiteatrError};
 use crate::error::ProtocolError::PlayerExited;

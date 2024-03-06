@@ -9,7 +9,7 @@ use enum_map::Enum;
 use serde::{Deserialize, Serialize};
 use amfiteatr_rl::error::TensorRepresentationError;
 use amfiteatr_rl::tch::Tensor;
-use amfiteatr_rl::tensor_data::{ActionTensor, TryFromTensor, TryIntoTensor};
+use amfiteatr_rl::tensor_data::{ActionTensor, TryIntoTensor};
 use crate::domain::TwoPlayersStdName::{Alice, Bob};
 use crate::env::PairingVec;
 use crate::{AsymmetricRewardTable, Side};

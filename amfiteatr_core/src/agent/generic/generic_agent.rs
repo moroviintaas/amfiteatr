@@ -207,6 +207,9 @@ where <P as Policy<DP>>::InfoSetType: Renew<DP, Seed>
     }
 }
 
+
+
+
 impl<
     DP: DomainParameters,
     P: Policy<DP>,
@@ -216,8 +219,8 @@ impl<
         Error=CommunicationError<DP>>,
     Seed>
 MultiEpisodeAutoAgent<DP, Seed> for AgentGen<DP, P, Comm>
-    where Self: ReseedAgent<DP, Seed>,
-          <P as Policy<DP>>::InfoSetType: EvaluatedInformationSet<DP>
+    where Self: ReseedAgent<DP, Seed> + AutomaticAgent<DP>,
+          <P as Policy<DP>>::InfoSetType: EvaluatedInformationSet<DP>,
 {
     fn store_episode(&mut self) {
 
