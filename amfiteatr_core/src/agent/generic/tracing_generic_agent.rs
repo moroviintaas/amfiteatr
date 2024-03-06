@@ -304,15 +304,45 @@ where <P as Policy<DP>>::InfoSetType: EvaluatedInformationSet<DP> ,
 }
 
 
+
+
 impl<
     DP: DomainParameters,
     P: Policy<DP>,
     Comm: BidirectionalEndpoint<
         OutwardType=AgentMessage<DP>,
         InwardType=EnvironmentMessage<DP>,
-        Error=CommunicationError<DP>>>
-MultiEpisodeTracingAgent<DP, <P as Policy<DP>>::InfoSetType> for TracingAgentGen<DP, P, Comm>
-    where <P as Policy<DP>>::InfoSetType: EvaluatedInformationSet<DP>{
+        Error=CommunicationError<DP>>,
+    Seed>
+MultiEpisodeAutoAgent<DP, Seed> for TracingAgentGen<DP, P, Comm>
+where Self: ReseedAgent<DP, Seed>,
+      <P as Policy<DP>>::InfoSetType: EvaluatedInformationSet<DP>
+{
+    fn store_episode(&mut self) {
+        let mut new_trajectory = Trajectory::new();
+        std::mem::swap(&mut new_trajectory, &mut self.game_trajectory);
+        self.episodes.push(new_trajectory);
+
+    }
+
+    fn clear_episodes(&mut self) {
+        self.episodes.clear();
+    }
+}
+
+
+impl<
+    DP: DomainParameters,
+    P: Policy<DP>,
+    Comm: BidirectionalEndpoint<
+        OutwardType=AgentMessage<DP>,
+        InwardType=EnvironmentMessage<DP>,
+        Error=CommunicationError<DP>>,
+    Seed>
+MultiEpisodeTracingAgent<DP, <P as Policy<DP>>::InfoSetType, Seed> for TracingAgentGen<DP, P, Comm>
+    where <P as Policy<DP>>::InfoSetType: EvaluatedInformationSet<DP>,
+    Self: ReseedAgent<DP, Seed>{
+
     fn take_episodes(&mut self) -> Vec<Trajectory<DP, <P as Policy<DP>>::InfoSetType>> {
         let mut episodes = Vec::with_capacity(self.episodes.len());
         std::mem::swap(&mut episodes, &mut self.episodes);
@@ -411,23 +441,3 @@ where <Self as StatefulAgent<DP>>::InfoSetType: EvaluatedInformationSet<DP>,
     }
 }
 
-impl<
-    DP: DomainParameters,
-    P: Policy<DP>,
-    Comm: BidirectionalEndpoint<
-        OutwardType=AgentMessage<DP>,
-        InwardType=EnvironmentMessage<DP>,
-        Error=CommunicationError<DP>>, >
-EpisodeMemoryAgent for TracingAgentGen<DP, P, Comm>
-where <P as Policy<DP>>::InfoSetType: EvaluatedInformationSet<DP>, {
-    fn store_episode(&mut self) {
-        let mut new_trajectory = Trajectory::new();
-        std::mem::swap(&mut new_trajectory, &mut self.game_trajectory);
-        self.episodes.push(new_trajectory);
-
-    }
-
-    fn clear_episodes(&mut self) {
-        self.episodes.clear();
-    }
-}

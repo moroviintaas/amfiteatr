@@ -24,10 +24,9 @@ pub trait ModelAgent<DP: DomainParameters, Seed, IS: EvaluatedInformationSet<DP>
 
     AutomaticAgentRewarded<DP> +
     SelfEvaluatingAgent<DP, Assessment= <IS as EvaluatedInformationSet<DP>>::RewardType>
-    + MultiEpisodeAutoAgentRewarded<DP, Seed>
-    //+ PolicyAgent<DP>
+    + ReseedAgent<DP, Seed>
+    + MultiEpisodeAutoAgent<DP, Seed>
     + StatefulAgent<DP, InfoSetType=IS>
-    + TracingAgent<DP, IS>
     + Send
 {}
 
@@ -37,10 +36,9 @@ impl<
     IS: EvaluatedInformationSet<DP>,
     T: AutomaticAgentRewarded<DP>
         + SelfEvaluatingAgent<DP, Assessment= <IS as EvaluatedInformationSet<DP>>::RewardType>
-        + MultiEpisodeAutoAgentRewarded<DP, Seed>
-        //+ PolicyAgent<DP>
+        + ReseedAgent<DP, Seed>
+        + MultiEpisodeAutoAgent<DP, Seed>
         + StatefulAgent<DP, InfoSetType=IS>
-        + TracingAgent<DP, IS>
         + Send
 
 > ModelAgent<DP, Seed, IS> for T {}

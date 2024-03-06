@@ -1,6 +1,7 @@
 
-use crate::agent::{EpisodeMemoryAgent, EvaluatedInformationSet, Trajectory};
+use crate::agent::{AutomaticAgent, AutomaticAgentRewarded, EvaluatedInformationSet, MultiEpisodeAutoAgent, ReseedAgent, Trajectory};
 use crate::domain::DomainParameters;
+use crate::error::AmfiteatrError;
 
 
 /// Agent that collects game trajectory, which contains recorded information sets
@@ -23,11 +24,12 @@ pub trait TracingAgent<DP: DomainParameters, S: EvaluatedInformationSet<DP>>{
 
 /// Trait for moving out trajectories of many games from agent. _Warning:_ It is probable that this trait will be
 /// somehow merged with [`EpisodeMemoryAgent`]
-pub trait MultiEpisodeTracingAgent<DP: DomainParameters, S: EvaluatedInformationSet<DP>>:
-    TracingAgent<DP, S> + EpisodeMemoryAgent{
+pub trait MultiEpisodeTracingAgent<DP: DomainParameters, S: EvaluatedInformationSet<DP>, Seed>:
+    TracingAgent<DP, S> + MultiEpisodeAutoAgent<DP, Seed>{
 
-    /// Takes all stored trajectories leaving empty list in place.
+
     fn take_episodes(&mut self) -> Vec<Trajectory<DP, S>>;
+
 
 }
 

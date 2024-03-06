@@ -213,6 +213,26 @@ impl<
     Comm: BidirectionalEndpoint<
         OutwardType=AgentMessage<DP>,
         InwardType=EnvironmentMessage<DP>,
+        Error=CommunicationError<DP>>,
+    Seed>
+MultiEpisodeAutoAgent<DP, Seed> for AgentGen<DP, P, Comm>
+    where Self: ReseedAgent<DP, Seed>,
+          <P as Policy<DP>>::InfoSetType: EvaluatedInformationSet<DP>
+{
+    fn store_episode(&mut self) {
+
+    }
+
+    fn clear_episodes(&mut self) {
+    }
+}
+
+impl<
+    DP: DomainParameters,
+    P: Policy<DP>,
+    Comm: BidirectionalEndpoint<
+        OutwardType=AgentMessage<DP>,
+        InwardType=EnvironmentMessage<DP>,
         Error=CommunicationError<DP>>>
 ActingAgent<DP> for AgentGen<DP, P, Comm>
 where <P as Policy<DP>>::InfoSetType: EvaluatedInformationSet<DP>{
@@ -316,22 +336,6 @@ where <Self as StatefulAgent<DP>>::InfoSetType: EvaluatedInformationSet<DP>,
 
     fn penalty_for_illegal_action(&self) -> Self::Assessment {
         self.info_set().penalty_for_illegal()
-    }
-}
-
-impl<
-    DP: DomainParameters,
-    P: Policy<DP>,
-    Comm: BidirectionalEndpoint<
-        OutwardType=AgentMessage<DP>,
-        InwardType=EnvironmentMessage<DP>,
-        Error=CommunicationError<DP>>>
-EpisodeMemoryAgent for AgentGen<DP, P, Comm>
-where <P as Policy<DP>>::InfoSetType: EvaluatedInformationSet<DP>, {
-    fn store_episode(&mut self) {
-    }
-
-    fn clear_episodes(&mut self) {
     }
 }
 
