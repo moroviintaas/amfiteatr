@@ -325,11 +325,9 @@ impl<
     Comm: BidirectionalEndpoint<
         OutwardType=AgentMessage<DP>,
         InwardType=EnvironmentMessage<DP>,
-        Error=CommunicationError<DP>>,
-    Seed>
-EpisodeMemoryAgent<DP, Seed> for AgentGen<DP, P, Comm>
-where <P as Policy<DP>>::InfoSetType: EvaluatedInformationSet<DP>,
-      <Self as StatefulAgent<DP>>::InfoSetType: Renew<DP, Seed>{
+        Error=CommunicationError<DP>>>
+EpisodeMemoryAgent for AgentGen<DP, P, Comm>
+where <P as Policy<DP>>::InfoSetType: EvaluatedInformationSet<DP>, {
     fn store_episode(&mut self) {
     }
 

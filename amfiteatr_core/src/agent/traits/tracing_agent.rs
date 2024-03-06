@@ -1,5 +1,5 @@
 
-use crate::agent::{EvaluatedInformationSet, Trajectory};
+use crate::agent::{EpisodeMemoryAgent, EvaluatedInformationSet, Trajectory};
 use crate::domain::DomainParameters;
 
 
@@ -16,18 +16,18 @@ pub trait TracingAgent<DP: DomainParameters, S: EvaluatedInformationSet<DP>>{
     /// Adds new record to stored trajectory, information set before taking action, and
     /// rewards in which resulted performed action.
     fn commit_trace(&mut self);
-    /*
-    /// Add explicit part of subjective reward.
-    /// One part of reward is calculated based from information set.
-    /// This is meant for adding explicit modification to this value.
-    /// > It could be used in some reinforcement learning scenarios when selected action is filtered
-    /// before sent to environment. One may want to force agent to change action if it is illegal.
-    /// Doing so before sending action to environment takes away experience gained by performing illegal action.
-    /// If filter blocks action and asks for another before sending to environment agent can record on
-    /// trace explicit penalty and thus store information that action is bad while avoiding causing error in game.
-    fn explicit_add_subjective_reward(&mut self, explicit: S::RewardType);
 
-     */
-    //fn mark_last_action_illegal(&mut self);
 
 }
+
+
+/// Trait for moving out trajectories of many games from agent. _Warning:_ It is probable that this trait will be
+/// somehow merged with [`EpisodeMemoryAgent`]
+pub trait MultiEpisodeTracingAgent<DP: DomainParameters, S: EvaluatedInformationSet<DP>>:
+    TracingAgent<DP, S> + EpisodeMemoryAgent{
+
+    /// Takes all stored trajectories leaving empty list in place.
+    fn take_episodes(&mut self) -> Vec<Trajectory<DP, S>>;
+
+}
+

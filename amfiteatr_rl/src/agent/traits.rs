@@ -51,7 +51,7 @@ pub trait RlModelAgent<DP: DomainParameters, Seed, IS: EvaluatedInformationSet<D
     + SelfEvaluatingAgent<DP,  Assessment= <IS as EvaluatedInformationSet<DP>>::RewardType>
     + MultiEpisodeAutoAgentRewarded<DP, Seed>
     + PolicyAgent<DP> + StatefulAgent<DP, InfoSetType=IS>
-    + TracingAgent<DP, IS>
+    + MultiEpisodeTracingAgent<DP, IS>
     + Send
 
 where <Self as PolicyAgent<DP>>::Policy: LearningNetworkPolicy<DP>,
@@ -68,7 +68,7 @@ impl<
         + SelfEvaluatingAgent<DP,  Assessment= <IS as EvaluatedInformationSet<DP>>::RewardType>
         + MultiEpisodeAutoAgentRewarded<DP, Seed>
         + PolicyAgent<DP> + StatefulAgent<DP, InfoSetType=IS>
-        + TracingAgent<DP, IS>
+        + MultiEpisodeTracingAgent<DP, IS>
         + Send
 
 > RlModelAgent<DP, Seed, IS> for T

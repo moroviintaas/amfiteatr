@@ -65,7 +65,7 @@ type Domain = ClassicGameDomain<AgentNum>;
 
 pub fn run_game(
     env: &mut (impl AutoEnvironmentWithScores<Domain> + Send + ReseedEnvironment<Domain, ()>),
-    agent0: &mut (impl EpisodeMemoryAgent<Domain, ()> + AutomaticAgentRewarded<Domain> + Send + ReseedAgent<Domain, ()>),
+    agent0: &mut (impl EpisodeMemoryAgent + AutomaticAgentRewarded<Domain> + Send + ReseedAgent<Domain, ()>),
     //agent1: &mut (impl MultiEpisodeAgent<Domain, ()> + AutomaticAgentRewarded<Domain> + Send + ReseedAgent<Domain, ()>)
     agent1: &mut Box<dyn ModelAgent<Domain, (), LocalHistoryInfoSetNumbered>>
     )

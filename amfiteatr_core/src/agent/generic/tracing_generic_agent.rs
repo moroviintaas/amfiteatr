@@ -140,11 +140,7 @@ where <P as Policy<DP>>::InfoSetType: EvaluatedInformationSet<DP>{
         &mut self.comm
     }
 
-    pub fn take_episodes(&mut self) -> Vec<Trajectory<DP, P::InfoSetType>>{
-        let mut episodes = Vec::with_capacity(self.episodes.len());
-        std::mem::swap(&mut episodes, &mut self.episodes);
-        episodes
-    }
+
     pub fn episodes(&self) -> &Vec<Trajectory<DP, P::InfoSetType>>{
         &self.episodes
     }
@@ -307,6 +303,22 @@ where <P as Policy<DP>>::InfoSetType: EvaluatedInformationSet<DP> ,
      */
 }
 
+
+impl<
+    DP: DomainParameters,
+    P: Policy<DP>,
+    Comm: BidirectionalEndpoint<
+        OutwardType=AgentMessage<DP>,
+        InwardType=EnvironmentMessage<DP>,
+        Error=CommunicationError<DP>>>
+MultiEpisodeTracingAgent<DP, <P as Policy<DP>>::InfoSetType> for TracingAgentGen<DP, P, Comm>
+    where <P as Policy<DP>>::InfoSetType: EvaluatedInformationSet<DP>{
+    fn take_episodes(&mut self) -> Vec<Trajectory<DP, <P as Policy<DP>>::InfoSetType>> {
+        let mut episodes = Vec::with_capacity(self.episodes.len());
+        std::mem::swap(&mut episodes, &mut self.episodes);
+        episodes
+    }
+}
 impl<
     DP: DomainParameters,
     P: Policy<DP>,
@@ -405,11 +417,9 @@ impl<
     Comm: BidirectionalEndpoint<
         OutwardType=AgentMessage<DP>,
         InwardType=EnvironmentMessage<DP>,
-        Error=CommunicationError<DP>>,
-    Seed>
-EpisodeMemoryAgent<DP, Seed> for TracingAgentGen<DP, P, Comm>
-where <P as Policy<DP>>::InfoSetType: EvaluatedInformationSet<DP>,
-      <Self as StatefulAgent<DP>>::InfoSetType: Renew<DP, Seed>{
+        Error=CommunicationError<DP>>, >
+EpisodeMemoryAgent for TracingAgentGen<DP, P, Comm>
+where <P as Policy<DP>>::InfoSetType: EvaluatedInformationSet<DP>, {
     fn store_episode(&mut self) {
         let mut new_trajectory = Trajectory::new();
         std::mem::swap(&mut new_trajectory, &mut self.game_trajectory);

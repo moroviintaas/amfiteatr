@@ -46,8 +46,36 @@ where <R as PolicyAgent<CartPoleDomain>>::Policy: LearningNetworkPolicy<CartPole
 
 }
 
+fn train_epoch<R: RlModelAgent<CartPoleDomain, CartPoleObservation, PythonGymnasiumCartPoleInformationSet>>(
+    env: &mut BasicEnvironment<CartPoleDomain, PythonGymnasiumCartPoleState, EnvironmentMpscPort<CartPoleDomain>>,
+    agent: &mut R,
+    number_of_games: usize)
+-> Result<(), AmfiRLError<CartPoleDomain>>
+where <R as PolicyAgent<CartPoleDomain>>::Policy: LearningNetworkPolicy<CartPoleDomain>{
+
+    agent.clear_episodes();
+    for _ in 0..number_of_games{
+        let mut observation = env.dirty_reseed(())?;
+        let observation = observation.remove(&SINGLE_PLAYER_ID)
+            .ok_or(AmfiRLError::Amfi(AmfiteatrError::Custom(String::from("No observation for only player in resetting game"))))?;
+
+        thread::scope(|s|{
+            s.spawn(||{
+                env.run_with_scores()
+            });
+            s.spawn(||{
+                agent.run_episode_rewarded(observation).unwrap()
+            });
+        });
+    }
+    let trajectories = agent.take_episodes();
+
+    agent.policy_mut().train_on_trajectories_env_reward(&trajectories)?;
+
+    Ok(())
+}
+
 fn main() {
-    println!("Hello");
     let device = Device::Cpu;
     let var_store = VarStore::new(device);
     let  env_state = PythonGymnasiumCartPoleState::new().unwrap();
@@ -80,12 +108,12 @@ fn main() {
 
     let mut agent = TracingAgentGen::new(agent_state, agent_comm, policy);
 
-    test(&mut environment, &mut agent, 100).unwrap();
+    let avg = test(&mut environment, &mut agent, 100).unwrap();
+    println!("Average result before learning: {}.", avg);
     for epoch in 0..100{
-
+        train_epoch(&mut environment, &mut agent, 10).unwrap();
+        let avg = test(&mut environment, &mut agent, 100).unwrap();
+        println!("Average result after epoch {}: {}.", epoch+1, avg);
     }
 
-
-
-    println!("world")
 }
