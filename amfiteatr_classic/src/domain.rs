@@ -9,7 +9,7 @@ use enum_map::Enum;
 use serde::{Deserialize, Serialize};
 use amfiteatr_rl::error::TensorRepresentationError;
 use amfiteatr_rl::tch::Tensor;
-use amfiteatr_rl::tensor_data::{ActionTensor, TryIntoTensor};
+use amfiteatr_rl::tensor_data::{TryIntoTensor};
 use crate::domain::TwoPlayersStdName::{Alice, Bob};
 use crate::env::PairingVec;
 use crate::{AsymmetricRewardTable, Side};
@@ -173,6 +173,7 @@ impl TryFrom<&Tensor> for ClassicAction{
         }
     }
 }
+/*
 impl ActionTensor for ClassicAction {
     fn to_tensor(&self) -> Tensor {
         match self{
@@ -199,6 +200,8 @@ impl ActionTensor for ClassicAction {
         }
     }
 }
+
+ */
 
 /// Enumeration of errors that could happen in this classic game model (so far).
 #[derive(thiserror::Error, Debug, PartialEq, Clone)]

@@ -1,5 +1,13 @@
 
-use crate::agent::{CommunicatingAgent, ActingAgent, StatefulAgent, PolicyAgent, RewardedAgent, SelfEvaluatingAgent, EvaluatedInformationSet, PresentPossibleActions, IdAgent, InformationSet};
+use crate::agent::{
+    CommunicatingAgent,
+    ActingAgent,
+    StatefulAgent,
+    PolicyAgent,
+    RewardedAgent,
+    SelfEvaluatingAgent,
+    EvaluatedInformationSet,
+    IdAgent,};
 use crate::error::{CommunicationError, AmfiteatrError};
 use crate::error::ProtocolError::{NoPossibleAction, ReceivedKill};
 use crate::error::AmfiteatrError::Protocol;

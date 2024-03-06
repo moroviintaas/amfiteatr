@@ -9,7 +9,7 @@ use amfiteatr_core::domain::DomainParameters;
 
 use crate::error::{AmfiRLError, TensorRepresentationError};
 use crate::policy::LearningNetworkPolicy;
-use crate::tensor_data::{ActionTensor, CtxTryIntoTensor, ConversionToTensor, TryIntoTensor, TryFromTensor};
+use crate::tensor_data::{CtxTryIntoTensor, ConversionToTensor, TryIntoTensor, TryFromTensor};
 use crate::torch_net::{A2CNet, TensorA2C};
 use crate::policy::TrainConfig;
 
