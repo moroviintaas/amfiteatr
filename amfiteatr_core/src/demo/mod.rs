@@ -52,7 +52,6 @@ use crate::agent::{AgentIdentifier, Policy, PresentPossibleActions};
 use crate::domain::{Action, DomainParameters, Renew};
 use crate::env::{EnvironmentStateSequential, EnvironmentStateUniScore};
 use rand::distributions::Distribution;
-use speedy::{Readable, Writable};
 use crate::agent::{InformationSet, EvaluatedInformationSet};
 use crate::error::AmfiteatrError;
 
@@ -60,7 +59,7 @@ pub const DEMO_AGENT_BLUE: DemoAgentID = 0;
 pub const DEMO_AGENT_RED: DemoAgentID = 1;
 
 #[derive(Clone, Debug)]
-#[cfg_attr(feature = "speedy", derive(Writable, Readable))]
+#[cfg_attr(feature = "speedy", derive(speedy::Writable, speedy::Readable))]
 pub struct DemoAction(pub u8);
 impl Display for DemoAction{
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
@@ -90,7 +89,7 @@ impl Display for DemoAgentID{
 impl AgentIdentifier for DemoAgentID{}
 
 #[derive(Clone, Debug, PartialEq, Eq, thiserror::Error)]
-#[cfg_attr(feature = "speedy", derive(Writable, Readable))]
+#[cfg_attr(feature = "speedy", derive(speedy::Writable, speedy::Readable))]
 pub struct DemoError(String);
 impl Display for DemoError{
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
