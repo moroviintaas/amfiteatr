@@ -1,24 +1,25 @@
-use std::collections::HashMap;
-use std::fmt::{Debug, Display, Formatter};
+
+use std::fmt::{Debug};
 use pyo3::prelude::*;
-use pyo3::PyDowncastError;
-use pyo3::types::PyTuple;
 use amfiteatr_core::domain::{DomainParameters, RenewWithSideEffect};
-use amfiteatr_core::env::{EnvironmentStateSequential, EnvironmentStateUniScore, ScoreEnvironment};
+use amfiteatr_core::env::{EnvironmentStateSequential, EnvironmentStateUniScore};
 use amfiteatr_core::error::AmfiteatrError;
 use crate::common::{CartPoleDomain, CartPoleObservation, CartPoleError, SINGLE_PLAYER_ID, CartPoleAction};
+
 
 
 #[derive(Debug, Clone)]
 #[pyclass]
 pub struct PythonGymnasiumCartPoleState {
     internal: PyObject,
-    action_space: i64,
-    observation_space: Vec<f32>,
+    #[allow(unused_variables)]
+    _action_space: i64,
     terminated: bool,
     truncated: bool,
     latest_observation: Vec<f32>,
     player_reward: f32,
+    #[allow(unused_variables)]
+    _observation_space: Vec<i64>,
 }
 
 
@@ -46,14 +47,15 @@ impl PythonGymnasiumCartPoleState {
             let observation_space = observation_space.getattr("shape")?.extract()?;
             let internal_obj: PyObject = env_obj.to_object(py);
             let step0 = internal_obj.call_method0(py, "reset")?;
-            let step0_t = step0.downcast::<PyTuple>(py)?;
+            let step0_t = step0.downcast::<pyo3::types::PyTuple>(py)?;
             //let step0 = PyTuple::from
             let obs = step0_t.get_item(0)?;
             let v = obs.extract()?;
 
             Ok(PythonGymnasiumCartPoleState {
                 internal: internal_obj,
-                action_space, observation_space,
+                _action_space: action_space,
+                _observation_space: observation_space,
                 truncated: false, terminated: false,
                 latest_observation: v,
                 player_reward: 0.0
@@ -72,13 +74,13 @@ impl PythonGymnasiumCartPoleState {
             let result = self.internal.call_method1(py, "step", (action, ))?;
 
 
-            let result_tuple: &PyTuple = result.downcast(py)?;
+            let result_tuple: &pyo3::types::PyTuple = result.downcast(py)?;
 
             let observation = result_tuple.get_item(0)?;
             let reward = result_tuple.get_item(1)?;
             let truncated = result_tuple.get_item(2)?;
             let terminated = result_tuple.get_item(3)?;
-            let info = result_tuple.get_item(4)?;
+            let _info = result_tuple.get_item(4)?;
 
             self.terminated = terminated.extract()?;
             self.truncated = truncated.extract()?;
@@ -94,7 +96,7 @@ impl PythonGymnasiumCartPoleState {
     pub fn __reset(&mut self) -> PyResult<Vec<f32>>{
         Python::with_gil(|py|{
             let result = self.internal.call_method0(py, "reset")?;
-            let result_tuple: &PyTuple = result.downcast(py)?;
+            let result_tuple: &pyo3::types::PyTuple = result.downcast(py)?;
             let observation = result_tuple.get_item(0)?;
             self.truncated = false;
             self.terminated = false;

@@ -5,7 +5,7 @@ pub mod agent;
 use std::thread;
 use amfiteatr_core::agent::{PolicyAgent, TracingAgentGen};
 use amfiteatr_core::comm::EnvironmentMpscPort;
-use amfiteatr_core::env::{AutoEnvironment, AutoEnvironmentWithScores, BasicEnvironment, DirtyReseedEnvironment, EnvironmentStateSequential};
+use amfiteatr_core::env::{ AutoEnvironmentWithScores, BasicEnvironment, DirtyReseedEnvironment};
 use amfiteatr_core::error::AmfiteatrError;
 use amfiteatr_rl::agent::RlModelAgent;
 use amfiteatr_rl::error::AmfiRLError;

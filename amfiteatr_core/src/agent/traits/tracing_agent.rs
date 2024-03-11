@@ -22,8 +22,7 @@ pub trait TracingAgent<DP: DomainParameters, S: EvaluatedInformationSet<DP>>{
 }
 
 
-/// Trait for moving out trajectories of many games from agent. _Warning:_ It is probable that this trait will be
-/// somehow merged with [`EpisodeMemoryAgent`]
+/// Trait for moving out trajectories of many games from agent.
 pub trait MultiEpisodeTracingAgent<DP: DomainParameters, S: EvaluatedInformationSet<DP>, Seed>:
     TracingAgent<DP, S> + MultiEpisodeAutoAgentRewarded<DP, Seed>{
 

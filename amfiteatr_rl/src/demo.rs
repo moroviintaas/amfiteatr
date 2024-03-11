@@ -23,16 +23,3 @@ impl CtxTryIntoTensor<DemoConversionToTensor> for DemoInfoSet{
     }
 }
 
-/*
-impl ActionTensor for DemoAction{
-    fn to_tensor(&self) -> Tensor {
-        Tensor::from_slice(&[self.0 as f32])
-    }
-
-    fn try_from_tensor(t: &Tensor) -> Result<Self, ConvertError> {
-        let v: Vec<f32> = Vec::try_from(t).unwrap();
-        Ok(DemoAction{0: v[0] as u8})
-    }
-}
-
- */

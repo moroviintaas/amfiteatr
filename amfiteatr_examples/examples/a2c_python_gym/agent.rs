@@ -1,6 +1,5 @@
-use pyo3::{pymethods, PyResult};
-use amfiteatr_core::agent::{EvaluatedInformationSet, InformationSet, PresentPossibleActions};
-use amfiteatr_core::domain::{DomainParameters, NoneReward, Renew};
+use amfiteatr_core::agent::{InformationSet, PresentPossibleActions};
+use amfiteatr_core::domain::{DomainParameters, Renew};
 use amfiteatr_core::error::AmfiteatrError;
 use amfiteatr_proc_macro::no_assessment_info_set;
 use amfiteatr_rl::error::TensorRepresentationError;

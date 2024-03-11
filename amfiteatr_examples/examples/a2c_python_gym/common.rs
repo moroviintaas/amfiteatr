@@ -1,26 +1,16 @@
-use std::fmt::{Display, Formatter, write};
+use std::fmt::{Display, Formatter};
 use pyo3::{PyDowncastError, PyErr};
-use amfiteatr_classic::domain::ClassicAction::Down;
-use amfiteatr_classic::domain::Defect;
 use amfiteatr_core::domain::{Action, DomainParameters};
 use amfiteatr_core::error::ConvertError;
 use amfiteatr_rl::error::TensorRepresentationError;
-use amfiteatr_rl::tch::{TchError, Tensor};
-use amfiteatr_rl::tensor_data::{ActionTensor, TryIntoTensor};
+use amfiteatr_rl::tch::{Tensor};
+use amfiteatr_rl::tensor_data::{TryIntoTensor};
 
 pub const SINGLE_PLAYER_ID: u64 = 1;
 
 #[derive(Debug, Clone)]
 pub struct CartPoleDomain{}
 
-/*
-#[derive(Debug, Clone)]
-pub enum CartPoleAction{
-    Left,
-    Right
-}
-
- */
 
 
 #[derive(thiserror::Error, Debug, Clone)]
@@ -51,14 +41,6 @@ impl CartPoleObservation{
         }
     }
 }
-/*
-impl<T: Display> From<T> for GymnasiumError{
-    fn from(value: T) -> Self {
-        Self::Bail {description: format!("{}", value)}
-    }
-}
-
- */
 
 impl From<PyErr> for CartPoleError {
     fn from(value: PyErr) -> Self {
