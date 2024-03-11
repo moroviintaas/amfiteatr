@@ -1,7 +1,12 @@
 [package]
 name = "amfiteatr_proc_macro"
-version = "0.1.0"
+version = "0.3.0"
 edition = "2021"
+repository = "https://github.com/moroviintaas/amfiteatr"
+license-file = "LICENSE"
+keywords = ["game", "theory", "model", "player"]
+categories = ["games", "simulation", "concurrency", "development-tools"]
+description = "Procedural macro crate for amfiteatr_* crates"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 [lib]
@@ -9,7 +14,7 @@ proc-macro = true
 
 [dependencies]
 
-syn = {version = "2.0.48", features = ["full", "fold"]}
+syn = {version = "2.0.52", features = ["full", "fold"]}
 quote = "1.0.35"
-proc-macro2 = { version =  "1.0.76", features = ["proc-macro"]}
+proc-macro2 = { version =  "1.0.78", features = ["proc-macro"]}
 enum-map-derive = "0.17.0"

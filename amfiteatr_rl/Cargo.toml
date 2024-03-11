@@ -1,6 +1,6 @@
 [package]
 name = "amfiteatr_rl"
-version = "0.2.1"
+version = "0.3.0"
 edition = "2021"
 repository = "https://github.com/moroviintaas/amfiteatr"
 license-file = "LICENSE"
@@ -14,12 +14,12 @@ description = "Extensions providing reinforcement learning implementations for `
 [dependencies]
 
 tch = "0.15.0"
-log = "0.4.20"
-thiserror = "1.0.56"
+log = "0.4.21"
+thiserror = "1.0.57"
 rand = "0.8.5"
 generic-array = "1.0.0"
 
-amfiteatr_core = {version = "0.2.1", features = ["demo"]}
+amfiteatr_core = {version = "0.3.0", path = "../amfiteatr_core", features = ["demo"]}
 
 
 

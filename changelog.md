@@ -9,7 +9,7 @@ ___
 + Added trait `MultiEpisodeAutoAgent` replacing `EpisodeMemoryAgent`, `MultiEpisodeAutoAgent` and `MultiEpisodeAutoAgentRewarded` 
 
 Deprecated:  
-- `trait` `ActionTensor`
+- trait `ActionTensor` (suggested use of `CtxTryFromTensor` and `CtxTryIntoTensor`)
 
 
 ___

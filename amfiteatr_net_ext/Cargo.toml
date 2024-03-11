@@ -1,6 +1,6 @@
 [package]
 name = "amfiteatr_net_ext"
-version = "0.2.1"
+version = "0.3.0"
 edition = "2021"
 repository = "https://github.com/moroviintaas/amfiteatr"
 license-file = "LICENSE"
@@ -14,9 +14,9 @@ harness = false
 
 
 [dependencies]
-log = "0.4.20"
-speedy = "0.8.6"
-amfiteatr_core = {version = "0.2.1", features = ["speedy", "demo"]}
-thiserror = "1.0.56"
+log = "0.4.21"
+speedy = "0.8.7"
+amfiteatr_core = {version = "0.3.0", path = "../amfiteatr_core", features = ["speedy", "demo"]}
+thiserror = "1.0.57"
 criterion = "0.5.1"
 zeroize = "1.7.0"
