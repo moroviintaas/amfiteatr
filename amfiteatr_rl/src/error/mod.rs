@@ -22,6 +22,8 @@ pub enum AmfiRLError<DP: DomainParameters>{
     /// Error with tensor representation
     #[error("Tensor representation: {0}")]
     TensorRepresentation(TensorRepresentationError),
+    #[error("Input/Output Error")]
+    IO(String)
 
 
 }
