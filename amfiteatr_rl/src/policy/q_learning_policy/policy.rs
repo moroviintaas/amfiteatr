@@ -89,6 +89,11 @@ impl QSelector{
     }*/
 
 }
+
+pub struct QLearningPolicyMeta{
+    optimizer: Optimizer,
+
+}
 /// Generic implementation of Advantage Q-function policy
 pub struct QLearningPolicy<
     DP: DomainParameters,

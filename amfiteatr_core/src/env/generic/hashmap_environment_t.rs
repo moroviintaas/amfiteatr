@@ -1,21 +1,9 @@
 use std::collections::HashMap;
-use crate::comm::EnvironmentEndpoint;
-use crate::env::{
-    BroadcastingEndpointEnvironment,
-    CommunicatingEndpointEnvironment,
-    EnvironmentStateSequential,
-    EnvironmentStateUniScore,
-    EnvironmentWithAgents,
-    EnvironmentTraceStep,
-    ScoreEnvironment,
-    StatefulEnvironment,
-    ReinitEnvironment,
-    EnvironmentTrajectory,
-    TracingEnvironment
-};
+use crate::comm::{BroadcastingEnvironmentAdapter, EnvironmentEndpoint};
+use crate::env::{BroadcastingEndpointEnvironment, CommunicatingEndpointEnvironment, EnvironmentStateSequential, EnvironmentStateUniScore, EnvironmentWithAgents, EnvironmentTraceStep, ScoreEnvironment, StatefulEnvironment, ReinitEnvironment, EnvironmentTrajectory, TracingEnvironment, ReseedEnvironment, TracingBasicEnvironment, DirtyReseedEnvironment};
 use crate::env::generic::{HashMapEnvironment};
-use crate::error::CommunicationError;
-use crate::domain::{AgentMessage, DomainParameters, EnvironmentMessage};
+use crate::error::{AmfiteatrError, CommunicationError};
+use crate::domain::{AgentMessage, DomainParameters, EnvironmentMessage, Renew, RenewWithSideEffect};
 
 /// Implementation of environment using [`HashMap`](std::collections::HashMap) to store
 /// individual [`BidirectionalEndpoint`](crate::comm::BidirectionalEndpoint)'s to communicate with
@@ -79,22 +67,7 @@ StatefulEnvironment<DP> for TracingHashMapEnvironment<DP, S,C>{
         -> Result<<Self::State as EnvironmentStateSequential<DP>>::Updates, DP::GameErrorType> {
 
         let state_clone = self.state().clone();
-        /*
-        match self.action_processor.process_action(
-            &mut self.game_state, agent, action){
-            Ok(updates) => {
-                self.history.push(
-                    HistoryEntry::new(state_clone, *agent, action.clone(), true));
-                Ok(updates.into_iter())
-            }
-            Err(err) => {
-                self.history.push(
-                    HistoryEntry::new(state_clone, *agent, action.clone(), false));
-                Err(err)
-            }
-        }
 
-         */
         match self.base_environment.process_action(agent, action){
             Ok(updates) => {
                 if self.base_environment.state().is_finished(){
@@ -221,4 +194,34 @@ ReinitEnvironment<DP> for TracingHashMapEnvironment<DP, S, C>{
 }
 
 
+impl <
+    DP: DomainParameters,
+    S: EnvironmentStateSequential<DP> + Clone,
+    CP: EnvironmentEndpoint<DP>,
+    Seed
+> ReseedEnvironment<DP, Seed> for TracingHashMapEnvironment<DP, S, CP>
+    where <Self as StatefulEnvironment<DP>>::State: Renew<DP, Seed>{
+    fn reseed(&mut self, seed: Seed) -> Result<(), AmfiteatrError<DP>>{
 
+        self.history.clear();
+        self.base_environment.reseed(seed)
+    }
+}
+impl <
+    DP: DomainParameters,
+    S: EnvironmentStateSequential<DP> + Clone + RenewWithSideEffect<DP, Seed>,
+    CP: EnvironmentEndpoint<DP>,
+    Seed,
+    AgentSeed
+> DirtyReseedEnvironment<DP, Seed> for TracingHashMapEnvironment<DP, S, CP>
+    where <Self as StatefulEnvironment<DP>>::State: RenewWithSideEffect<DP, Seed>,
+          <<Self as StatefulEnvironment<DP>>::State as RenewWithSideEffect<DP, Seed>>::SideEffect:
+          IntoIterator<Item=(DP::AgentId, AgentSeed)>{
+    //type Observation = <<Self as StatefulEnvironment<DP>>::State as RenewWithSideEffect<DP, Seed>>::SideEffect;
+    type Observation = AgentSeed;
+    type InitialObservations = HashMap<DP::AgentId, Self::Observation>;
+
+    fn dirty_reseed(&mut self, seed: Seed) -> Result<Self::InitialObservations, AmfiteatrError<DP>>{
+        self.base_environment.dirty_reseed(seed)
+    }
+}

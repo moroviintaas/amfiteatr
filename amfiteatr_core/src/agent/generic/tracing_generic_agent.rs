@@ -145,6 +145,12 @@ where <P as Policy<DP>>::InfoSetType: EvaluatedInformationSet<DP>{
         &self.episodes
     }
 
+    pub fn take_episodes(&mut self) -> Vec<Trajectory<DP, P::InfoSetType>>{
+        let mut v = Vec::with_capacity(self.episodes.len());
+        std::mem::swap(&mut v, &mut self.episodes);
+        v
+    }
+
 }
 
 

@@ -26,7 +26,7 @@ pub trait ReinitEnvironment<DP: DomainParameters>: StatefulEnvironment<DP>{
 /// information sets are derived as partial information from this sample.
 /// __Note__ that this only make sense when agents are trusted as with the seed
 /// they can receive complete information about the game.
-pub trait ReseedEnvironment<DP: DomainParameters, Seed>: StatefulEnvironment<DP>
+pub trait ReseedEnvironment<DP: DomainParameters, Seed>
 {
     /// This method must do reinitialize environment i.e. set new game state.
     /// New game state should be derived from seed.
@@ -42,7 +42,7 @@ pub trait ReseedEnvironment<DP: DomainParameters, Seed>: StatefulEnvironment<DP>
 /// and this information can be used to initialize their information set. Or when constructing similar environment
 /// to [`Gymnasium`](https://gymnasium.farama.org/), while reseeding environment player observes the same data type
 /// as when he makes _step_.
-pub trait DirtyReseedEnvironment<DP: DomainParameters, Seed>: StatefulEnvironment<DP>{
+pub trait DirtyReseedEnvironment<DP: DomainParameters, Seed>{
     /// Observation type for one player (probably corresponding to `ReseedAgent's` [Seed](crate::agent:ReseedAgent)
     /// parameter
     type Observation;

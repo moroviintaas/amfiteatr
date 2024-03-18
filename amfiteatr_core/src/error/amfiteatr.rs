@@ -21,7 +21,12 @@ pub enum AmfiteatrError<DP: DomainParameters>{
     #[error("World maintenance error: {0}")]
     World(WorldError<DP>),
     #[error("Custom: {0}")]
-    Custom(String)
+    Custom(String),
+    #[error("Lock error on {object:} with {description:}")]
+    Lock{
+        description: String,
+        object: String
+    }
     //#[error("External: {0}")]
     //External(String)
 }

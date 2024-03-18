@@ -1,6 +1,10 @@
 use amfiteatr_core::agent::*;
-use amfiteatr_core::domain::DomainParameters;
+use amfiteatr_core::comm::BidirectionalEndpoint;
+use amfiteatr_core::domain::{AgentMessage, DomainParameters, EnvironmentMessage, Renew};
+use amfiteatr_core::error::{AmfiteatrError, CommunicationError};
+use crate::error::AmfiRLError;
 use crate::policy::LearningNetworkPolicy;
+use crate::tensor_data::FloatTensorReward;
 
 
 /// Trait representing agent that run automatically (with reward collection) (it does not
@@ -74,5 +78,47 @@ impl<
 > RlModelAgent<DP, Seed, IS> for T
 where <Self as PolicyAgent<DP>>::Policy: LearningNetworkPolicy<DP>,{
 
+}
+
+
+pub trait RlSimpleTestAgent<DP: DomainParameters, Seed>:
+AutomaticAgentRewarded<DP> + ReseedAgent<DP, Seed> + Send{
+
+}
+
+pub trait RlSimpleLearningAgent<DP: DomainParameters, Seed>:
+AutomaticAgentRewarded<DP> + ReseedAgent<DP, Seed> + Send
+{
+    fn simple_apply_experience(&mut self) -> Result<(), AmfiRLError<DP>>;
+    fn clear_experience(&mut self) -> Result<(), AmfiteatrError<DP>>;
+
+
+}
+
+
+
+
+impl<
+    DP: DomainParameters,
+    Seed,
+    P: LearningNetworkPolicy<DP>,
+    Comm: BidirectionalEndpoint<
+        OutwardType=AgentMessage<DP>,
+        InwardType=EnvironmentMessage<DP>,
+        Error=CommunicationError<DP>> + Send> RlSimpleLearningAgent<DP, Seed> for TracingAgentGen<DP, P, Comm, >
+    where <P as Policy<DP>>::InfoSetType: EvaluatedInformationSet<DP> + Renew<DP, Seed>,
+          <DP as DomainParameters>::UniversalReward: FloatTensorReward,
+    Self: AutomaticAgentRewarded<DP> + MultiEpisodeAutoAgentRewarded<DP, Seed>
+    {
+    fn simple_apply_experience(&mut self) -> Result<(), AmfiRLError<DP>> {
+        let episodes = self.take_episodes();
+
+        self.policy_mut().train_on_trajectories_env_reward(&episodes)
+    }
+
+    fn clear_experience(&mut self) -> Result<(), AmfiteatrError<DP>> {
+        self.clear_episodes();
+        Ok(())
+    }
 }
 

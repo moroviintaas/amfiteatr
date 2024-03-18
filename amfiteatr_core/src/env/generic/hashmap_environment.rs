@@ -1,10 +1,11 @@
 use std::collections::{HashMap};
 
 use log::debug;
-use crate::env::{BroadcastingEndpointEnvironment, CommunicatingEndpointEnvironment, EnvironmentBuilderTrait, EnvironmentStateSequential, EnvironmentStateUniScore, EnvironmentWithAgents, ReinitEnvironment, ScoreEnvironment, StatefulEnvironment};
+use crate::env::{BasicEnvironment, BroadcastingEndpointEnvironment, CommunicatingEndpointEnvironment, DirtyReseedEnvironment, EnvironmentBuilderTrait, EnvironmentStateSequential, EnvironmentStateUniScore, EnvironmentWithAgents, ReinitEnvironment, ReseedEnvironment, ScoreEnvironment, StatefulEnvironment};
 use crate::{comm::EnvironmentEndpoint};
-use crate::error::{CommunicationError, WorldError};
-use crate::domain::{AgentMessage, DomainParameters, EnvironmentMessage, Reward};
+use crate::comm::BroadcastingEnvironmentAdapter;
+use crate::error::{AmfiteatrError, CommunicationError, WorldError};
+use crate::domain::{AgentMessage, DomainParameters, EnvironmentMessage, Renew, RenewWithSideEffect, Reward};
 
 
 
@@ -46,6 +47,13 @@ HashMapEnvironment<DP, S, C>{
 
     pub fn replace_state(&mut self, state: S){
         self.game_state = state
+    }
+
+    pub fn comms(&self) -> &HashMap<DP::AgentId, C> {
+        &self.comm_endpoints
+    }
+    pub fn comms_mut(&mut self) -> &mut HashMap<DP::AgentId, C> {
+        &mut self.comm_endpoints
     }
 }
 
@@ -249,5 +257,37 @@ ReinitEnvironment<DP> for HashMapEnvironment<DP, S, C>{
         for vals in self.penalties.values_mut(){
             *vals = DP::UniversalReward::neutral();
         }
+    }
+}
+impl <
+    DP: DomainParameters,
+    S: EnvironmentStateSequential<DP> + Clone,
+    CP: EnvironmentEndpoint<DP>,
+    Seed
+> ReseedEnvironment<DP, Seed> for HashMapEnvironment<DP, S, CP>
+    where <Self as StatefulEnvironment<DP>>::State: Renew<DP, Seed>{
+    fn reseed(&mut self, seed: Seed) -> Result<(), AmfiteatrError<DP>>{
+        self.game_state.renew_from(seed)
+    }
+}
+
+impl <
+    DP: DomainParameters,
+    S: EnvironmentStateSequential<DP> + Clone + RenewWithSideEffect<DP, Seed>,
+    CP: EnvironmentEndpoint<DP>,
+    Seed,
+    AgentSeed
+> DirtyReseedEnvironment<DP, Seed> for HashMapEnvironment<DP, S, CP>
+    where <Self as StatefulEnvironment<DP>>::State: RenewWithSideEffect<DP, Seed>,
+          <<Self as StatefulEnvironment<DP>>::State as RenewWithSideEffect<DP, Seed>>::SideEffect:
+          IntoIterator<Item=(DP::AgentId, AgentSeed)>{
+    //type Observation = <<Self as StatefulEnvironment<DP>>::State as RenewWithSideEffect<DP, Seed>>::SideEffect;
+    type Observation = AgentSeed;
+    type InitialObservations = HashMap<DP::AgentId, Self::Observation>;
+
+    fn dirty_reseed(&mut self, seed: Seed) -> Result<Self::InitialObservations, AmfiteatrError<DP>>{
+        self.game_state.renew_with_side_effect_from(seed)
+            .map(|agent_observation_iter|
+                agent_observation_iter.into_iter().collect())
     }
 }
