@@ -30,6 +30,13 @@ where <Self as Policy<DP>>::InfoSetType: EvaluatedInformationSet<DP>
     /// Switch exploring on and off
     fn switch_explore(&mut self, enabled: bool);
 
+    /*
+    /// If supported enable or disable exploration (with disabled exploration policy is expected to always select
+    /// action that seems the best).
+    fn enable_exploration(&mut self, enable: bool);
+
+
+     */
     /// Returns reference to current config of policy
     fn config(&self) -> &Self::TrainConfig;
     /// This is generic training function. Generic type `R` must produce reward tensor that

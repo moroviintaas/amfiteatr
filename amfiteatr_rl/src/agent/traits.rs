@@ -87,11 +87,12 @@ AutomaticAgentRewarded<DP> + ReseedAgent<DP, Seed> + Send{
 }
 
 pub trait RlSimpleLearningAgent<DP: DomainParameters, Seed>:
-AutomaticAgentRewarded<DP> + ReseedAgent<DP, Seed> + Send
+AutomaticAgentRewarded<DP> + ReseedAgent<DP, Seed> + Send + MultiEpisodeAutoAgentRewarded<DP, Seed>
 {
     fn simple_apply_experience(&mut self) -> Result<(), AmfiRLError<DP>>;
-    fn clear_experience(&mut self) -> Result<(), AmfiteatrError<DP>>;
+    //fn clear_experience(&mut self) -> Result<(), AmfiteatrError<DP>>;
 
+    fn set_exploration(&mut self, explore: bool);
 
 }
 
@@ -116,9 +117,19 @@ impl<
         self.policy_mut().train_on_trajectories_env_reward(&episodes)
     }
 
+    fn set_exploration(&mut self, explore: bool) {
+        self.policy_mut().switch_explore(explore)
+    }
+
+
+
+
+        /*
     fn clear_experience(&mut self) -> Result<(), AmfiteatrError<DP>> {
         self.clear_episodes();
         Ok(())
     }
+
+         */
 }
 

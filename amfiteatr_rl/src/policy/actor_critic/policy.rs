@@ -29,6 +29,7 @@ pub struct ActorCriticPolicy<
     info_set_conversion_context: InfoSetConversionContext,
     //action_conversion_context: ActionConversionContext,
     training_config: TrainConfig,
+    exploration: bool
     //action_interpreter: ActInterpreter
 
 }
@@ -88,7 +89,8 @@ ActorCriticPolicy<
 
             training_config,
             //action_interpreter,
-            _dp: Default::default(), _is: Default::default()
+            _dp: Default::default(), _is: Default::default(),
+            exploration: true
             }
     }
 
@@ -125,11 +127,18 @@ where <DP as DomainParameters>::ActionType: TryFromTensor{
         let actor = out.actor;
         //somewhen it may be changed with temperature
         let probs = actor.softmax(-1, Float);
-        let atensor = probs.multinomial(1, true);
-        trace!("After selecting action, before converting from tensor to action form");
-        //self.action_interpreter.interpret_tensor(&atensor)
-        Some(DP::ActionType::try_from_tensor(&atensor)
-            .expect("Failed converting tensor to action"))
+        if self.exploration{
+            let atensor = probs.multinomial(1, true);
+            trace!("After selecting action, before converting from tensor to action form");
+            //self.action_interpreter.interpret_tensor(&atensor)
+            Some(DP::ActionType::try_from_tensor(&atensor)
+                .expect("Failed converting tensor to action"))
+        } else {
+            todo!()
+            //let atensor = probs.argmax(None, false);
+            //Some(DP::ActionType::try_from_tensor(&atensor))
+        }
+
 
     }
 }
@@ -170,9 +179,16 @@ impl<
     /// For now A2C always explore and switching it off is pointless, in future it will probably
     /// select maximal probability without sampling distribution
     fn switch_explore(&mut self, _enabled: bool) {
+        self.exploration = _enabled
 
     }
 
+    /*
+    fn enable_exploration(&mut self, enable: bool) {
+        self.exploration = enable
+    }
+
+     */
 
 
     fn config(&self) -> &Self::TrainConfig {

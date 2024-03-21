@@ -180,6 +180,7 @@ where <<InfoSet as PresentPossibleActions<DP>>::ActionIteratorType as IntoIterat
     }
 
 
+
     fn config(&self) -> &Self::TrainConfig {
         &self.training_config
     }
