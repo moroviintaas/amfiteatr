@@ -1,3 +1,4 @@
+use tch::nn::VarStore;
 use amfiteatr_core::agent::*;
 use amfiteatr_core::comm::BidirectionalEndpoint;
 use amfiteatr_core::domain::{AgentMessage, DomainParameters, EnvironmentMessage, Renew};
@@ -94,6 +95,8 @@ AutomaticAgentRewarded<DP> + ReseedAgent<DP, Seed> + Send + MultiEpisodeAutoAgen
 
     fn set_exploration(&mut self, explore: bool);
 
+    fn get_var_store(&self) -> &VarStore;
+
 }
 
 
@@ -120,11 +123,13 @@ impl<
     fn set_exploration(&mut self, explore: bool) {
         self.policy_mut().switch_explore(explore)
     }
+    fn get_var_store(&self) -> &VarStore{
+        self.policy().var_store()
+    }
 
 
 
-
-        /*
+    /*
     fn clear_experience(&mut self) -> Result<(), AmfiteatrError<DP>> {
         self.clear_episodes();
         Ok(())
