@@ -6,7 +6,7 @@ use tch::{Kind, kind, Tensor};
 use amfiteatr_core::agent::{AgentTraceStep, Trajectory, InformationSet, Policy, EvaluatedInformationSet};
 use amfiteatr_core::domain::DomainParameters;
 
-use crate::error::{AmfiRLError, TensorRepresentationError};
+use crate::error::{AmfiteatrRlError, TensorRepresentationError};
 use crate::policy::LearningNetworkPolicy;
 use crate::tensor_data::{CtxTryIntoTensor, ConversionToTensor, TryIntoTensor, TryFromTensor};
 use crate::torch_net::{A2CNet, TensorA2C};
@@ -201,7 +201,7 @@ impl<
         &mut self,
         trajectories: &[Trajectory<DP, InfoSet>],
         reward_f: R,
-        ) -> Result<(), AmfiRLError<DP>>{
+        ) -> Result<(), AmfiteatrRlError<DP>>{
 
 
         let device = self.network.device();
@@ -269,6 +269,11 @@ impl<
             action_tensor_vec.append(&mut action_tensor_vec_t);
             reward_tensor_vec.append(&mut discounted_payoff_tensor_vec);
 
+        }
+        if state_tensor_vec.is_empty(){
+            #[cfg(feature = "log_warn")]
+            log::warn!("There were trajectories registered but no steps in any");
+            return Err(AmfiteatrRlError::NoTrainingData);
         }
         let states_batch = Tensor::stack(&state_tensor_vec[..], 0).to_device(device);
         let results_batch = Tensor::stack(&reward_tensor_vec[..], 0).to_device(device);

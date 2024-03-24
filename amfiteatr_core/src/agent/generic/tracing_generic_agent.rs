@@ -301,12 +301,6 @@ where <P as Policy<DP>>::InfoSetType: EvaluatedInformationSet<DP> ,
         }
     }
 
-    /*
-    fn explicit_add_subjective_reward(&mut self, explicit: <<P as Policy<DP>>::InfoSetType as ScoringInformationSet<DP>>::RewardType) {
-        self.explicit_subjective_reward_component += &explicit
-    }
-
-     */
 }
 
 

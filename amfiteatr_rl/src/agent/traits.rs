@@ -3,7 +3,7 @@ use amfiteatr_core::agent::*;
 use amfiteatr_core::comm::BidirectionalEndpoint;
 use amfiteatr_core::domain::{AgentMessage, DomainParameters, EnvironmentMessage, Renew};
 use amfiteatr_core::error::{AmfiteatrError, CommunicationError};
-use crate::error::AmfiRLError;
+use crate::error::AmfiteatrRlError;
 use crate::policy::LearningNetworkPolicy;
 use crate::tensor_data::FloatTensorReward;
 
@@ -90,7 +90,7 @@ AutomaticAgentRewarded<DP> + ReseedAgent<DP, Seed> + Send{
 pub trait RlSimpleLearningAgent<DP: DomainParameters, Seed>:
 AutomaticAgentRewarded<DP> + ReseedAgent<DP, Seed> + Send + MultiEpisodeAutoAgentRewarded<DP, Seed>
 {
-    fn simple_apply_experience(&mut self) -> Result<(), AmfiRLError<DP>>;
+    fn simple_apply_experience(&mut self) -> Result<(), AmfiteatrRlError<DP>>;
     //fn clear_experience(&mut self) -> Result<(), AmfiteatrError<DP>>;
 
     fn set_exploration(&mut self, explore: bool);
@@ -114,7 +114,7 @@ impl<
           <DP as DomainParameters>::UniversalReward: FloatTensorReward,
     Self: AutomaticAgentRewarded<DP> + MultiEpisodeAutoAgentRewarded<DP, Seed>
     {
-    fn simple_apply_experience(&mut self) -> Result<(), AmfiRLError<DP>> {
+    fn simple_apply_experience(&mut self) -> Result<(), AmfiteatrRlError<DP>> {
         let episodes = self.take_episodes();
 
         self.policy_mut().train_on_trajectories_env_reward(&episodes)

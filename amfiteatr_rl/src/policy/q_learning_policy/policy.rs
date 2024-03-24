@@ -9,10 +9,11 @@ use amfiteatr_core::agent::{AgentTraceStep, Trajectory, InformationSet, Policy, 
 use amfiteatr_core::domain::DomainParameters;
 
 
-use crate::error::AmfiRLError;
+use crate::error::AmfiteatrRlError;
 use crate::tensor_data::{CtxTryIntoTensor, ConversionToTensor};
 use crate::torch_net::NeuralNet1;
 use rand::thread_rng;
+use crate::error::AmfiteatrRlError::Amfi;
 use crate::policy::LearningNetworkPolicy;
 pub use crate::policy::TrainConfig;
 
@@ -189,9 +190,10 @@ where <<InfoSet as PresentPossibleActions<DP>>::ActionIteratorType as IntoIterat
         &mut self,
         trajectories: &[Trajectory<DP, <Self as Policy<DP>>::InfoSetType>],
         reward_f: R)
-        -> Result<(), AmfiRLError<DP>> {
+        -> Result<(), AmfiteatrRlError<DP>> {
 
-
+        //#[cfg(feature = "log_info")]
+        //log::info!("Starting Learning DQN policy for agent {}")
         let _device = self.network.device();
         let capacity_estimate = trajectories.iter().fold(0, |acc, x|{
            acc + x.list().len()
@@ -207,6 +209,13 @@ where <<InfoSet as PresentPossibleActions<DP>>::ActionIteratorType as IntoIterat
         let mut state_action_tensor_vec = Vec::<Tensor>::with_capacity(capacity_estimate);
         let mut reward_tensor_vec = Vec::<Tensor>::with_capacity(capacity_estimate);
         let mut discounted_rewards_tensor_vec: Vec<Tensor> = Vec::with_capacity(tmp_capacity_estimate);
+
+        if trajectories.is_empty(){
+            #[cfg(feature = "log_warn")]
+            log::warn!("Empty trajectory list");
+            return Err(AmfiteatrRlError::NoTrainingData)
+        }
+
         for t in trajectories{
 
 
@@ -256,7 +265,16 @@ where <<InfoSet as PresentPossibleActions<DP>>::ActionIteratorType as IntoIterat
             qval_tensor_vec.append(&mut qval_tensor_vec_t);
 
         }
-        let _state_action_batch = Tensor::stack(&state_action_tensor_vec[..], 0);
+        if state_action_tensor_vec.is_empty(){
+            #[cfg(feature = "log_warn")]
+            log::warn!("There were trajectories registered but no steps in any");
+            return Err(AmfiteatrRlError::NoTrainingData);
+        }
+        let _state_action_batch = Tensor::f_stack(&state_action_tensor_vec[..], 0).map_err(|e|{
+            AmfiteatrRlError::<DP>::Torch {
+                error: e, context: "Empty vector of  (state,action) tensor".into()
+            }
+        })?;
         let results_batch = Tensor::stack(&reward_tensor_vec[..], 0);
         let q_batch = Tensor::stack(&qval_tensor_vec[..], 0);
         #[cfg(feature = "log_debug")]
@@ -268,6 +286,8 @@ where <<InfoSet as PresentPossibleActions<DP>>::ActionIteratorType as IntoIterat
         //let loss = (&diff * &diff).mean(Float);
         let loss = q_batch.mse_loss(&results_batch, Reduction::Mean);
         self.optimizer.backward_step_clip(&loss, 0.5);
+        #[cfg(feature = "log_debug")]
+        log::debug!("After learning DQN policy");
         Ok(())
     }
 }

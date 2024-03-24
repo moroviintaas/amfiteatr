@@ -3,7 +3,7 @@ use tch::Tensor;
 use amfiteatr_core::agent::{AgentTraceStep, Trajectory, Policy, EvaluatedInformationSet};
 
 use amfiteatr_core::domain::DomainParameters;
-use crate::error::AmfiRLError;
+use crate::error::AmfiteatrRlError;
 use crate::tensor_data::FloatTensorReward;
 
 
@@ -46,11 +46,11 @@ where <Self as Policy<DP>>::InfoSetType: EvaluatedInformationSet<DP>
         &mut self,
         trajectories: &[Trajectory<DP, <Self as Policy<DP>>::InfoSetType>],
         reward_f: R,
-    ) -> Result<(), AmfiRLError<DP>>;
+    ) -> Result<(), AmfiteatrRlError<DP>>;
 
     /// Training implementation using environment distributed reward
     fn train_on_trajectories_env_reward(&mut self,
-                                        trajectories: &[Trajectory<DP, <Self as Policy<DP>>::InfoSetType>]) -> Result<(), AmfiRLError<DP>>
+                                        trajectories: &[Trajectory<DP, <Self as Policy<DP>>::InfoSetType>]) -> Result<(), AmfiteatrRlError<DP>>
     where <DP as DomainParameters>::UniversalReward: FloatTensorReward{
 
         self.train_on_trajectories(trajectories,  |step| step.step_universal_reward().to_tensor())
@@ -59,7 +59,7 @@ where <Self as Policy<DP>>::InfoSetType: EvaluatedInformationSet<DP>
     /// Training implementation using self assessment calculated based on information set
     fn train_on_trajectories_self_assessed(&mut self,
                                            trajectories: &[Trajectory<DP, <Self as Policy<DP>>::InfoSetType>],
-                                              ) -> Result<(), AmfiRLError<DP>>
+                                              ) -> Result<(), AmfiteatrRlError<DP>>
     where <<Self as Policy<DP>>::InfoSetType as EvaluatedInformationSet<DP>>::RewardType: FloatTensorReward{
 
         self.train_on_trajectories(trajectories,  |step| step.step_subjective_reward().to_tensor())

@@ -8,7 +8,7 @@ use amfiteatr_core::comm::EnvironmentMpscPort;
 use amfiteatr_core::env::{ AutoEnvironmentWithScores, BasicEnvironment, DirtyReseedEnvironment};
 use amfiteatr_core::error::AmfiteatrError;
 use amfiteatr_rl::agent::RlModelAgent;
-use amfiteatr_rl::error::AmfiRLError;
+use amfiteatr_rl::error::AmfiteatrRlError;
 use amfiteatr_rl::policy::{ActorCriticPolicy, LearningNetworkPolicy, TrainConfig};
 use amfiteatr_rl::tch::{Device, nn, Tensor};
 use amfiteatr_rl::tch::nn::{Adam, VarStore};
@@ -21,14 +21,14 @@ fn test<R: RlModelAgent<CartPoleDomain, CartPoleObservation, PythonGymnasiumCart
     env: &mut BasicEnvironment<CartPoleDomain, PythonGymnasiumCartPoleState, EnvironmentMpscPort<CartPoleDomain>>,
     agent: &mut R,
     number_of_tests: usize)
--> Result<f32, AmfiRLError<CartPoleDomain>>
+-> Result<f32, AmfiteatrRlError<CartPoleDomain>>
 where <R as PolicyAgent<CartPoleDomain>>::Policy: LearningNetworkPolicy<CartPoleDomain>{
 
     let mut result_sum = 0.0f64;
     for _ in 0..number_of_tests{
         let mut observation = env.dirty_reseed(())?;
         let observation = observation.remove(&SINGLE_PLAYER_ID)
-            .ok_or(AmfiRLError::Amfi(AmfiteatrError::Custom(String::from("No observation for only player in resetting game"))))?;
+            .ok_or(AmfiteatrRlError::Amfi(AmfiteatrError::Custom(String::from("No observation for only player in resetting game"))))?;
 
         thread::scope(|s|{
             s.spawn(||{
@@ -50,14 +50,14 @@ fn train_epoch<R: RlModelAgent<CartPoleDomain, CartPoleObservation, PythonGymnas
     env: &mut BasicEnvironment<CartPoleDomain, PythonGymnasiumCartPoleState, EnvironmentMpscPort<CartPoleDomain>>,
     agent: &mut R,
     number_of_games: usize)
--> Result<(), AmfiRLError<CartPoleDomain>>
+-> Result<(), AmfiteatrRlError<CartPoleDomain>>
 where <R as PolicyAgent<CartPoleDomain>>::Policy: LearningNetworkPolicy<CartPoleDomain>{
 
     agent.clear_episodes();
     for _ in 0..number_of_games{
         let mut observation = env.dirty_reseed(())?;
         let observation = observation.remove(&SINGLE_PLAYER_ID)
-            .ok_or(AmfiRLError::Amfi(AmfiteatrError::Custom(String::from("No observation for only player in resetting game"))))?;
+            .ok_or(AmfiteatrRlError::Amfi(AmfiteatrError::Custom(String::from("No observation for only player in resetting game"))))?;
 
         thread::scope(|s|{
             s.spawn(||{
