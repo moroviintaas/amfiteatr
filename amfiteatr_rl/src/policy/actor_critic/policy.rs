@@ -134,9 +134,10 @@ where <DP as DomainParameters>::ActionType: TryFromTensor{
             Some(DP::ActionType::try_from_tensor(&atensor)
                 .expect("Failed converting tensor to action"))
         } else {
-            todo!()
-            //let atensor = probs.argmax(None, false);
-            //Some(DP::ActionType::try_from_tensor(&atensor))
+            //todo!()
+            let atensor = probs.argmax(None, false).unsqueeze(-1);
+            Some(DP::ActionType::try_from_tensor(&atensor)
+                .expect("Failed converting tensor to action (no explore)"))
         }
 
 

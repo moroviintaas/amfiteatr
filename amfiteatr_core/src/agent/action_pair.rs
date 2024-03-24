@@ -7,8 +7,13 @@ use crate::domain::Action;
 /// This is just named tuple (pair in this case).
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[cfg_attr(feature = "speedy", derive(speedy::Writable, speedy::Readable))]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct AgentActionPair<Id: AgentIdentifier, A: Action>{
+    #[cfg_attr(feature = "serde", serde(bound(serialize = "A: serde::Serialize", deserialize = "A: serde::Deserialize<'de>")))]
+    //#[cfg_attr(feature = "serde", serde(bound(deserialize = "A: Deserialize")))]
     pub action: A,
+    #[cfg_attr(feature = "serde", serde(bound(serialize = "Id: serde::Serialize")))]
+    #[cfg_attr(feature = "serde", serde(bound(deserialize = "Id: serde::Deserialize<'de>")))]
     pub agent: Id
 }
 
