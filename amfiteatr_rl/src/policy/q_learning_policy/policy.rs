@@ -1,7 +1,6 @@
 use std::fmt::Debug;
 use std::marker::PhantomData;
 
-use log::{debug, trace};
 use rand::distributions::uniform::{UniformFloat, UniformSampler};
 use tch::Kind::Float;
 use tch::nn::{Optimizer, VarStore};
@@ -229,23 +228,28 @@ where <<InfoSet as PresentPossibleActions<DP>>::ActionIteratorType as IntoIterat
 
 
             let final_score_t: Tensor =  reward_f(t.list().last().unwrap());
-            debug!("Final score tensor shape: {:?}", final_score_t.size());
+            #[cfg(feature = "log_debug")]
+            log::debug!("Final score tensor shape: {:?}", final_score_t.size());
             discounted_rewards_tensor_vec.clear();
             for _ in 0..=steps_in_trajectory{
                 discounted_rewards_tensor_vec.push(Tensor::zeros(final_score_t.size(), (Kind::Float, self.network.device())));
             }
-            debug!("Discounted_rewards_tensor_vec len before inserting: {}", discounted_rewards_tensor_vec.len());
+            #[cfg(feature = "log_debug")]
+            log::debug!("Discounted_rewards_tensor_vec len before inserting: {}", discounted_rewards_tensor_vec.len());
             //let mut discounted_rewards_tensor_vec: Vec<Tensor> = vec![Tensor::zeros(DP::UniversalReward::total_size(), (Kind::Float, self.network.device())); steps_in_trajectory+1];
             //discounted_rewards_tensor_vec.last_mut().unwrap().copy_(&final_score_t);
-            trace!("Reward stream: {:?}", t.list().iter().map(|x| reward_f(x)).collect::<Vec<Tensor>>());
+            #[cfg(feature = "log_trace")]
+            log::trace!("Reward stream: {:?}", t.list().iter().map(|x| reward_f(x)).collect::<Vec<Tensor>>());
             for s in (0..discounted_rewards_tensor_vec.len()-1).rev(){
                 //println!("{}", s);
                 let r_s = reward_f(&t[s]).to_device(self.network.device()) + (&discounted_rewards_tensor_vec[s+1] * self.training_config.gamma);
                 discounted_rewards_tensor_vec[s].copy_(&r_s);
             }
             discounted_rewards_tensor_vec.pop();
-            trace!("Discounted future payoffs tensor: {:?}", discounted_rewards_tensor_vec);
-            debug!("Discounted rewards_tensor_vec after inserting");
+            #[cfg(feature = "log_trace")]
+            log::trace!("Discounted future payoffs tensor: {:?}", discounted_rewards_tensor_vec);
+            #[cfg(feature = "log_debug")]
+            log::debug!("Discounted rewards_tensor_vec after inserting");
 
             state_action_tensor_vec.append(&mut state_action_q_tensor_vec_t);
             reward_tensor_vec.append(&mut discounted_rewards_tensor_vec);
@@ -255,8 +259,10 @@ where <<InfoSet as PresentPossibleActions<DP>>::ActionIteratorType as IntoIterat
         let _state_action_batch = Tensor::stack(&state_action_tensor_vec[..], 0);
         let results_batch = Tensor::stack(&reward_tensor_vec[..], 0);
         let q_batch = Tensor::stack(&qval_tensor_vec[..], 0);
-        debug!("Result batch shape: {:?}", results_batch.size());
-        debug!("Q result batch shape: {:?}", q_batch.size());
+        #[cfg(feature = "log_debug")]
+        log::debug!("Result batch shape: {:?}", results_batch.size());
+        #[cfg(feature = "log_debug")]
+        log::debug!("Q result batch shape: {:?}", q_batch.size());
 
         //let diff = &results_batch - q_batch;
         //let loss = (&diff * &diff).mean(Float);

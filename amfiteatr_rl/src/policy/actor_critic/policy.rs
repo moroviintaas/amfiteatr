@@ -1,6 +1,5 @@
 use std::fmt::Debug;
 use std::marker::PhantomData;
-use log::{debug, trace};
 use tch::Kind::{Float};
 use tch::nn::{Optimizer, VarStore};
 use tch::{Kind, kind, Tensor};
@@ -121,7 +120,8 @@ where <DP as DomainParameters>::ActionType: TryFromTensor{
         //let state_tensor = self.state_converter.build_tensor(state)
         //    .unwrap_or_else(|_| panic!("Failed converting state to Tensor: {:?}", state));
         //let state_tensor = self.state_converter.make_tensor(state);
-        trace!("Selecting action");
+        #[cfg(feature = "log_trace")]
+        log::trace!("Selecting action");
         let state_tensor = state.to_tensor(&self.info_set_conversion_context);
         let out = tch::no_grad(|| (self.network.net())(&state_tensor));
         let actor = out.actor;
@@ -129,12 +129,12 @@ where <DP as DomainParameters>::ActionType: TryFromTensor{
         let probs = actor.softmax(-1, Float);
         if self.exploration{
             let atensor = probs.multinomial(1, true);
-            trace!("After selecting action, before converting from tensor to action form");
+            #[cfg(feature = "log_trace")]
+            log::trace!("After selecting action, before converting from tensor to action form");
             //self.action_interpreter.interpret_tensor(&atensor)
             Some(DP::ActionType::try_from_tensor(&atensor)
                 .expect("Failed converting tensor to action"))
         } else {
-            //todo!()
             let atensor = probs.argmax(None, false).unsqueeze(-1);
             Some(DP::ActionType::try_from_tensor(&atensor)
                 .expect("Failed converting tensor to action (no explore)"))
@@ -218,7 +218,8 @@ impl<
         for t in trajectories{
 
             if let Some(trace_step) = t.list().get(0){
-                debug!("Training neural-network for agent {} (from first trace entry).", trace_step.step_info_set().agent_id());
+                #[cfg(feature = "log_debug")]
+                log::debug!("Training neural-network for agent {} (from first trace entry).", trace_step.step_info_set().agent_id());
             }
 
 
@@ -243,21 +244,26 @@ impl<
             for _ in 0..=steps_in_trajectory{
                 discounted_payoff_tensor_vec.push(Tensor::zeros(final_score_t.size(), (Kind::Float, self.network.device())));
             }
-            trace!("Discounted_rewards_tensor_vec len before inserting: {}", discounted_payoff_tensor_vec.len());
+            #[cfg(feature = "log_trace")]
+            log::trace!("Discounted_rewards_tensor_vec len before inserting: {}", discounted_payoff_tensor_vec.len());
             //let mut discounted_rewards_tensor_vec: Vec<Tensor> = vec![Tensor::zeros(DP::UniversalReward::total_size(), (Kind::Float, self.network.device())); steps_in_trajectory+1];
-            trace!("Reward stream: {:?}", t.list().iter().map(|x| reward_f(x)).collect::<Vec<Tensor>>());
+            #[cfg(feature = "log_trace")]
+            log::trace!("Reward stream: {:?}", t.list().iter().map(|x| reward_f(x)).collect::<Vec<Tensor>>());
             //discounted_payoff_tensor_vec.last_mut().unwrap().copy_(&final_score_t);
             for s in (0..discounted_payoff_tensor_vec.len()-1).rev(){
                 //println!("{}", s);
                 let this_reward = reward_f(&t[s]).to_device(device);
                 let r_s = &this_reward + (&discounted_payoff_tensor_vec[s+1] * self.training_config.gamma);
                 discounted_payoff_tensor_vec[s].copy_(&r_s);
-                trace!("Calculating discounted payoffs for {} step. This step reward {}, following payoff: {}, result: {}.",
+                #[cfg(feature = "log_trace")]
+                log::trace!("Calculating discounted payoffs for {} step. This step reward {}, following payoff: {}, result: {}.",
                     s, this_reward, discounted_payoff_tensor_vec[s+1], r_s);
             }
             discounted_payoff_tensor_vec.pop();
-            trace!("Discounted future payoffs tensor: {:?}", discounted_payoff_tensor_vec);
-            trace!("Discounted rewards_tensor_vec after inserting");
+            #[cfg(feature = "log_trace")]
+            log::trace!("Discounted future payoffs tensor: {:?}", discounted_payoff_tensor_vec);
+            #[cfg(feature = "log_trace")]
+            log::trace!("Discounted rewards_tensor_vec after inserting");
 
             state_tensor_vec.append(&mut state_tensor_vec_t);
             action_tensor_vec.append(&mut action_tensor_vec_t);
@@ -267,12 +273,18 @@ impl<
         let states_batch = Tensor::stack(&state_tensor_vec[..], 0).to_device(device);
         let results_batch = Tensor::stack(&reward_tensor_vec[..], 0).to_device(device);
         let action_batch = Tensor::stack(&action_tensor_vec[..], 0).to_device(device);
-        debug!("Size of states batch: {:?}", states_batch.size());
-        debug!("Size of result batch: {:?}", results_batch.size());
-        debug!("Size of action batch: {:?}", action_batch.size());
-        trace!("State batch: {:?}", states_batch);
-        trace!("Result batch: {:?}", results_batch);
-        trace!("Action batch: {:?}", action_batch);
+        #[cfg(feature = "log_debug")]
+        log::debug!("Size of states batch: {:?}", states_batch.size());
+        #[cfg(feature = "log_debug")]
+        log::debug!("Size of result batch: {:?}", results_batch.size());
+        #[cfg(feature = "log_debug")]
+        log::debug!("Size of action batch: {:?}", action_batch.size());
+        #[cfg(feature = "log_trace")]
+        log::trace!("State batch: {:?}", states_batch);
+        #[cfg(feature = "log_trace")]
+        log::trace!("Result batch: {:?}", results_batch);
+        #[cfg(feature = "log_trace")]
+        log::trace!("Action batch: {:?}", action_batch);
         let TensorA2C{actor, critic} = (self.network.net())(&states_batch);
         let log_probs = actor.log_softmax(-1, Kind::Float);
         let probs = actor.softmax(-1, Float);
@@ -282,8 +294,10 @@ impl<
             log_probs.gather(1, &index, false)
         };
 
-        trace!("Action log probs size: {:?}", action_log_probs.size());
-        trace!("Probs size: {:?}", probs.size());
+        #[cfg(feature = "log_trace")]
+        log::trace!("Action log probs size: {:?}", action_log_probs.size());
+        #[cfg(feature = "log_trace")]
+        log::trace!("Probs size: {:?}", probs.size());
 
         let dist_entropy = (-log_probs * probs).sum_dim_intlist(-1, false, Float).mean(Float);
         let advantages = results_batch.to_device(device) - critic;

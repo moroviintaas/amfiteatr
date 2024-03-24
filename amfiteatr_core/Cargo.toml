@@ -17,7 +17,7 @@ description = "A framework to model and simulate game theory problems with many 
 
 thiserror = "1.0.56"
 speedy = {version = "0.8.7", optional = true}
-log = "0.4.21"
+log = { version = "0.4.21", optional =  true }
 rand = "0.8.5"
 serde = {version = "1.0.197", features = ["derive"],  optional = true}
 ron = {version = "0.8.1", optional = true}
@@ -28,3 +28,10 @@ ron = {version = "0.8.1", optional = true}
 speedy = ["dep:speedy"]
 serde = ["dep:serde"]
 demo = []
+
+log_error = ["dep:log"]
+log_warn = ["log_error"]
+log_info = ["log_warn"]
+log_debug = ["log_info"]
+log_trace = ["log_debug"]
+

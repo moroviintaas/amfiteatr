@@ -45,7 +45,6 @@
 
 use std::collections::{HashMap, HashSet};
 use std::fmt::{Debug, Display, Formatter};
-use log::{trace};
 use rand::{thread_rng};
 use rand::distributions::Uniform;
 use crate::agent::{AgentIdentifier, Policy, PresentPossibleActions};
@@ -274,7 +273,8 @@ impl InformationSet<DemoDomain> for DemoInfoSet{
             self.rewards.push(update.2);
 
         } else {
-            trace!("Update of other player's action")
+            #[cfg(feature = "log_trace")]
+            log::trace!("Update of other player's action")
         }
         Ok(())
 

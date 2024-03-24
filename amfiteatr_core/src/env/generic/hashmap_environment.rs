@@ -1,6 +1,5 @@
 use std::collections::{HashMap};
 
-use log::debug;
 use crate::env::{BasicEnvironment, BroadcastingEndpointEnvironment, CommunicatingEndpointEnvironment, DirtyReseedEnvironment, EnvironmentBuilderTrait, EnvironmentStateSequential, EnvironmentStateUniScore, EnvironmentWithAgents, ReinitEnvironment, ReseedEnvironment, ScoreEnvironment, StatefulEnvironment};
 use crate::{comm::EnvironmentEndpoint};
 use crate::comm::BroadcastingEnvironmentAdapter;
@@ -36,7 +35,8 @@ HashMapEnvironment<DP, S, C>{
         comm_endpoints:  HashMap<DP::AgentId, C>) -> Self{
 
         let k:Vec<DP::AgentId> = comm_endpoints.keys().cloned().collect();
-        debug!("Creating environment with:{k:?}");
+        #[cfg(feature = "log_debug")]
+        log::debug!("Creating environment with:{k:?}");
 
         let penalties: HashMap<DP::AgentId, DP::UniversalReward> = comm_endpoints.keys()
             .map(|agent| (agent.clone(), DP::UniversalReward::neutral()))

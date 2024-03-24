@@ -42,9 +42,9 @@ plotters = "0.3.5"
 serde_json = "1.0.114"
 pyo3 = { version = "0.20.2", features = ["auto-initialize"], optional = true}
 
-amfiteatr_core = {version = "0.3.0", path = "../amfiteatr_core", features = ["serde"] }
+amfiteatr_core = {version = "0.3.0", path = "../amfiteatr_core", features = ["serde", "log_trace"] }
 amfiteatr_proc_macro = {version = "0.3.0", path = "../amfiteatr_proc_macro"}
-amfiteatr_rl = {version = "0.3.0", path = "../amfiteatr_rl"}
+amfiteatr_rl = {version = "0.3.0", path = "../amfiteatr_rl", features = ["log_trace"]}
 amfiteatr_classic = { version = "0.3.0", path = "../amfiteatr_classic" }
 amfiteatr_net_ext = {version = "0.3.0", path = "../amfiteatr_net_ext" }
 

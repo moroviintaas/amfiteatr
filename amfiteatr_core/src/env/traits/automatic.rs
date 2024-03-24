@@ -1,5 +1,4 @@
 use std::collections::HashMap;
-use log::{warn, info, error};
 
 use crate::{error::{AmfiteatrError, CommunicationError}, domain::{DomainParameters, EnvironmentMessage, AgentMessage}, env::EnvironmentStateSequential};
 use crate::env::ListPlayers;
@@ -83,19 +82,22 @@ impl <
 
         let first_player = match self.current_player(){
             None => {
-                warn!("No first player, stopping environment.");
+                #[cfg(feature = "log_warn")]
+                log::warn!("No first player, stopping environment.");
                 return Ok(())
             }
             Some(n) => n
         };
-        info!("Sending YourMove signal to first agent: {:?}", &first_player);
+        #[cfg(feature = "log_info")]
+        log::info!("Sending YourMove signal to first agent: {:?}", &first_player);
         self.send(&first_player, EnvironmentMessage::YourMove).map_err(|e|e.specify_id(first_player))?;
         loop{
             match self.blocking_receive(){
                 Ok((player, message)) => {
                     match message{
                         AgentMessage::TakeAction(action) => {
-                            info!("Player {} performs action: {:#}", &player, &action);
+                            #[cfg(feature = "log_info")]
+                            log::info!("Player {} performs action: {:#}", &player, &action);
 
                             match self.process_action(&player, &action){
                                 Ok(updates) => {
@@ -110,7 +112,8 @@ impl <
 
                                 }
                                 Err(e) => {
-                                    error!("Action was refused or caused error in updating state: {e:}");
+                                    #[cfg(feature = "log_error")]
+                                    log::error!("Action was refused or caused error in updating state: {e:}");
                                     let _ = self.send(&player, EnvironmentMessage::MoveRefused);
                                     let _ = self.send_all(EnvironmentMessage::GameFinishedWithIllegalAction(player.clone()));
                                     return Err(AmfiteatrError::GameA(e, player));
@@ -126,7 +129,8 @@ impl <
                                     })?;
                             }
                             if self.state().is_finished(){
-                                info!("Game reached finished state");
+                                #[cfg(feature = "log_info")]
+                                log::info!("Game reached finished state");
                                 self.send_all(EnvironmentMessage::GameFinished)?;
                                 return Ok(());
 
@@ -135,12 +139,14 @@ impl <
 
                         },
                         AgentMessage::NotifyError(e) => {
-                            error!("Player {} informed about error: {}", player, &e);
+                            #[cfg(feature = "log_error")]
+                            log::error!("Player {} informed about error: {}", player, &e);
                             self.notify_error(e.clone())?;
                             return Err(e);
                         }
                         AgentMessage::Quit => {
-                            error!("Player {} exited game.", player);
+                            #[cfg(feature = "log_error")]
+                            log::error!("Player {} exited game.", player);
                             self.notify_error(AmfiteatrError::Protocol(PlayerExited(player.clone())))?;
                             return Err(AmfiteatrError::Protocol(PlayerExited(player)))
                         }
@@ -153,7 +159,8 @@ impl <
                         //debug!("Empty channel");
                     },
                     err => {
-                        error!("Failed trying to receive message");
+                        #[cfg(feature = "log_error")]
+                        log::error!("Failed trying to receive message");
                         self.send_all(EnvironmentMessage::ErrorNotify(err.clone().into()))?;
                         return Err(AmfiteatrError::Communication(err));
                     }
@@ -181,19 +188,22 @@ impl <
             }).collect();
         let first_player = match self.current_player(){
             None => {
-                warn!("No first player, stopping environment.");
+                #[cfg(feature = "log_warn")]
+                log::warn!("No first player, stopping environment.");
                 return Ok(())
             }
             Some(n) => n
         };
-        info!("Sending YourMove signal to first agent: {:?}", &first_player);
+        #[cfg(feature = "log_info")]
+        log::info!("Sending YourMove signal to first agent: {:?}", &first_player);
         self.send(&first_player, EnvironmentMessage::YourMove).map_err(|e|e.specify_id(first_player))?;
         loop{
             match self.blocking_receive(){
                 Ok((player, message)) => {
                     match message{
                         AgentMessage::TakeAction(action) => {
-                            info!("Player {} performs action: {:#}", &player, &action);
+                            #[cfg(feature = "log_info")]
+                            log::info!("Player {} performs action: {:#}", &player, &action);
 
                             match self.process_action(&player, &action){
                                 Ok(updates) => {
@@ -214,7 +224,8 @@ impl <
 
                                 }
                                 Err(e) => {
-                                    error!("Action was refused or caused error in updating state: {e:}");
+                                    #[cfg(feature = "log_error")]
+                                    log::error!("Action was refused or caused error in updating state: {e:}");
                                     let _ = self.send(&player, EnvironmentMessage::MoveRefused);
                                     let _ = self.send_all(EnvironmentMessage::GameFinishedWithIllegalAction(player.clone()));
                                     return Err(AmfiteatrError::GameA(e, player));
@@ -230,7 +241,8 @@ impl <
                                     })?;
                             }
                             if self.state().is_finished(){
-                                info!("Game reached finished state");
+                                #[cfg(feature = "log_info")]
+                                log::info!("Game reached finished state");
                                 self.send_all(EnvironmentMessage::GameFinished)?;
                                 return Ok(());
 
@@ -239,12 +251,14 @@ impl <
 
                         },
                         AgentMessage::NotifyError(e) => {
-                            error!("Player {} informed about error: {}", player, &e);
+                            #[cfg(feature = "log_error")]
+                            log::error!("Player {} informed about error: {}", player, &e);
                             self.notify_error(e.clone())?;
                             return Err(e);
                         }
                         AgentMessage::Quit => {
-                            error!("Player {} exited game.", player);
+                            #[cfg(feature = "log_error")]
+                            log::error!("Player {} exited game.", player);
                             self.notify_error(AmfiteatrError::Protocol(PlayerExited(player.clone())))?;
                             return Err(AmfiteatrError::Protocol(PlayerExited(player)))
                         }
@@ -257,7 +271,8 @@ impl <
                         //debug!("Empty channel");
                     },
                     err => {
-                        error!("Failed trying to receive message");
+                        #[cfg(feature = "log_error")]
+                        log::error!("Failed trying to receive message");
                         self.send_all(EnvironmentMessage::ErrorNotify(err.clone().into()))?;
                         return Err(AmfiteatrError::Communication(err));
                     }
@@ -287,19 +302,22 @@ impl <
             }).collect();
         let first_player = match self.current_player(){
             None => {
-                warn!("No first player, stopping environment.");
+                #[cfg(feature = "log_warn")]
+                log::warn!("No first player, stopping environment.");
                 return Ok(())
             }
             Some(n) => n
         };
-        info!("Sending YourMove signal to first agent: {:?}", &first_player);
+        #[cfg(feature = "log_info")]
+        log::info!("Sending YourMove signal to first agent: {:?}", &first_player);
         self.send(&first_player, EnvironmentMessage::YourMove).map_err(|e|e.specify_id(first_player))?;
         loop{
             match self.blocking_receive(){
                 Ok((player, message)) => {
                     match message{
                         AgentMessage::TakeAction(action) => {
-                            info!("Player {} performs action: {:#}", &player, &action);
+                            #[cfg(feature = "log_info")]
+                            log::info!("Player {} performs action: {:#}", &player, &action);
 
                             match self.process_action(&player, &action){
                                 Ok(updates) => {
@@ -320,7 +338,8 @@ impl <
 
                                 }
                                 Err(e) => {
-                                    error!("Player {player:} performed illegal action: {action:}");
+                                    #[cfg(feature = "log_error")]
+                                    log::error!("Player {player:} performed illegal action: {action:}");
                                     let _ = self.send(&player, EnvironmentMessage::MoveRefused);
                                     let _ = self.send(&player, EnvironmentMessage::RewardFragment(penalty(&self.state(), &player)));
                                     for (player, score) in actual_universal_scores.iter_mut(){
@@ -343,7 +362,8 @@ impl <
                                     })?;
                             }
                             if self.state().is_finished(){
-                                info!("Game reached finished state");
+                                #[cfg(feature = "log_info")]
+                                log::info!("Game reached finished state");
                                 self.send_all(EnvironmentMessage::GameFinished)?;
                                 return Ok(());
 
@@ -352,12 +372,14 @@ impl <
 
                         },
                         AgentMessage::NotifyError(e) => {
-                            error!("Player {} informed about error: {}", player, &e);
+                            #[cfg(feature = "log_error")]
+                            log::error!("Player {} informed about error: {}", player, &e);
                             self.notify_error(e.clone())?;
                             return Err(e);
                         }
                         AgentMessage::Quit => {
-                            error!("Player {} exited game.", player);
+                            #[cfg(feature = "log_error")]
+                            log::error!("Player {} exited game.", player);
                             self.notify_error(AmfiteatrError::Protocol(PlayerExited(player.clone())))?;
                             return Err(AmfiteatrError::Protocol(PlayerExited(player)))
                         }
@@ -370,7 +392,8 @@ impl <
                         //debug!("Empty channel");
                     },
                     err => {
-                        error!("Failed trying to receive message");
+                        #[cfg(feature = "log_error")]
+                        log::error!("Failed trying to receive message");
                         self.send_all(EnvironmentMessage::ErrorNotify(err.clone().into()))?;
                         return Err(AmfiteatrError::Communication(err));
                     }

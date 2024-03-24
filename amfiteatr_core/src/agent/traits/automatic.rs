@@ -12,7 +12,6 @@ use crate::error::{CommunicationError, AmfiteatrError};
 use crate::error::ProtocolError::{NoPossibleAction, ReceivedKill};
 use crate::error::AmfiteatrError::Protocol;
 use crate::domain::{AgentMessage, EnvironmentMessage, DomainParameters};
-use log::{info, debug, error, warn, trace};
 
 /// Trait for agents that perform their interactions with environment automatically,
 /// without waiting for interrupting interaction from anyone but environment.
@@ -80,13 +79,15 @@ where A: StatefulAgent<DP> + ActingAgent<DP>
       <A as StatefulAgent<DP>>::InfoSetType: EvaluatedInformationSet<DP>
 {
     fn run(&mut self) -> Result<(), AmfiteatrError<DP>> {
-        info!("Agent {} starts", self.id());
+        #[cfg(feature = "log_info")]
+        log::info!("Agent {} starts", self.id());
         //let mut current_score = Spec::UniversalReward::default();
         loop{
             match self.recv(){
                 Ok(message) => match message{
                     EnvironmentMessage::YourMove => {
-                        trace!("Agent {} received 'YourMove' signal.", self.id());
+                        #[cfg(feature = "log_trace")]
+                        log::trace!("Agent {} received 'YourMove' signal.", self.id());
                         //current_score = Default::default();
 
                         //debug!("Agent's {:?} possible actions: {:?}", self.id(), Vec::from_iter(self.state().available_actions().into_iter()));
@@ -95,12 +96,14 @@ where A: StatefulAgent<DP> + ActingAgent<DP>
                         //match self.policy_select_action(){
                         match self.take_action(){
                             None => {
-                                error!("Agent {} has no possible action", self.id());
+                                #[cfg(feature = "log_error")]
+                                log::error!("Agent {} has no possible action", self.id());
                                 self.send(AgentMessage::NotifyError(NoPossibleAction(self.id().clone()).into()))?;
                             }
 
                             Some(a) => {
-                                debug!("Agent {} selects action {:#}", self.id(), &a);
+                                #[cfg(feature = "log_debug")]
+                                log::debug!("Agent {} selects action {:#}", self.id(), &a);
                                 self.send(AgentMessage::TakeAction(a))?;
                             }
                         }
@@ -113,39 +116,47 @@ where A: StatefulAgent<DP> + ActingAgent<DP>
                              */
                     }
                     EnvironmentMessage::GameFinished => {
-                        info!("Agent {} received information that game is finished.", self.id());
+                        #[cfg(feature = "log_info")]
+                        log::info!("Agent {} received information that game is finished.", self.id());
                         self.finalize();
                         return Ok(())
 
                     }
                     EnvironmentMessage::GameFinishedWithIllegalAction(id) => {
-                        warn!("Agent {} received information that game is finished with agent {id:} performing illegal action.", self.id());
+                        #[cfg(feature = "log_warn")]
+                        log::warn!("Agent {} received information that game is finished with agent {id:} performing illegal action.", self.id());
                         self.finalize();
                         return Ok(())
 
                     }
                     EnvironmentMessage::Kill => {
-                        info!("Agent {:?} received kill signal.", self.id());
+                        #[cfg(feature = "log_info")]
+                        log::info!("Agent {:?} received kill signal.", self.id());
                         return Err(Protocol(ReceivedKill(self.id().clone())))
                     }
                     EnvironmentMessage::UpdateState(su) => {
-                        trace!("Agent {} received state update {:?}", self.id(), &su);
+                        #[cfg(feature = "log_trace")]
+                        log::trace!("Agent {} received state update {:?}", self.id(), &su);
                         match self.update(su){
                             Ok(_) => {
-                                trace!("Agent {:?}: successful state update", self.id());
+                                #[cfg(feature = "log_trace")]
+                                log::trace!("Agent {:?}: successful state update", self.id());
                             }
                             Err(err) => {
-                                error!("Agent {:?} error on updating state: {}", self.id(), &err);
+                                #[cfg(feature = "log_error")]
+                                log::error!("Agent {:?} error on updating state: {}", self.id(), &err);
                                 self.send(AgentMessage::NotifyError(AmfiteatrError::GameA(err.clone(), self.id().clone())))?;
                                 return Err(AmfiteatrError::GameA(err.clone(), self.id().clone()));
                             }
                         }
                     }
                     EnvironmentMessage::ActionNotify(a) => {
-                        trace!("Agent {} received information that agent {} took action {:#}", self.id(), a.agent(), a.action());
+                        #[cfg(feature = "log_trace")]
+                        log::trace!("Agent {} received information that agent {} took action {:#}", self.id(), a.agent(), a.action());
                     }
                     EnvironmentMessage::ErrorNotify(e) => {
-                        error!("Agent {} received error notification {}", self.id(), &e)
+                        #[cfg(feature = "log_error")]
+                        log::error!("Agent {} received error notification {}", self.id(), &e)
                     }
                     EnvironmentMessage::RewardFragment(_r) =>{
                     }
@@ -167,23 +178,27 @@ where Agnt: StatefulAgent<DP> + ActingAgent<DP>
 {
     fn run_rewarded(&mut self) -> Result<(), AmfiteatrError<DP>>
     {
-        info!("Agent {} starts", self.id());
+        #[cfg(feature = "log_info")]
+        log::info!("Agent {} starts", self.id());
         //let mut current_score = Spec::UniversalReward::default();
         loop{
             match self.recv(){
                 Ok(message) => match message{
                     EnvironmentMessage::YourMove => {
-                        debug!("Agent {} received 'YourMove' signal.", self.id());
+                        #[cfg(feature = "log_debug")]
+                        log::debug!("Agent {} received 'YourMove' signal.", self.id());
                         //debug!("Agent's {:?} possible actions: {}]", self.id(), self.info_set().available_actions().into_iter()
                         //    .fold(String::from("["), |a, b| a + &format!("{b:#}") + ", ").trim_end());
                         match self.take_action(){
                             None => {
-                                error!("Agent {} has no possible action", self.id());
+                                #[cfg(feature = "log_error")]
+                                log::error!("Agent {} has no possible action", self.id());
                                 self.send(AgentMessage::NotifyError(NoPossibleAction(self.id().clone()).into()))?;
                             }
 
                             Some(a) => {
-                                info!("Agent {} selects action {:#}", self.id(), &a);
+                                #[cfg(feature = "log_info")]
+                                log::info!("Agent {} selects action {:#}", self.id(), &a);
                                 self.send(AgentMessage::TakeAction(a))?;
                             }
                         }
@@ -197,44 +212,53 @@ where Agnt: StatefulAgent<DP> + ActingAgent<DP>
                          */
                     }
                     EnvironmentMessage::GameFinished => {
-                        info!("Agent {} received information that game is finished.", self.id());
+                        #[cfg(feature = "log_info")]
+                        log::info!("Agent {} received information that game is finished.", self.id());
                         self.finalize();
                         return Ok(())
 
                     }
                     EnvironmentMessage::GameFinishedWithIllegalAction(id)=> {
-                        warn!("Agent {} received information that game is finished with agent {id:} performing illegal action.", self.id());
+                        #[cfg(feature = "log_warn")]
+                        log::warn!("Agent {} received information that game is finished with agent {id:} performing illegal action.", self.id());
                         self.finalize();
                         return Ok(())
 
                     }
                     EnvironmentMessage::Kill => {
-                        info!("Agent {:?} received kill signal.", self.id());
+                        #[cfg(feature = "log_info")]
+                        log::info!("Agent {:?} received kill signal.", self.id());
                         return Err(Protocol(ReceivedKill(self.id().clone())))
                     }
                     EnvironmentMessage::UpdateState(su) => {
-                        debug!("Agent {} received state update {:?}", self.id(), &su);
+                        #[cfg(feature = "log_debug")]
+                        log::debug!("Agent {} received state update {:?}", self.id(), &su);
                         match self.update(su){
                             Ok(_) => {
-                                debug!("Agent {:?}: successful state update", self.id());
+                                #[cfg(feature = "log_debug")]
+                                log::debug!("Agent {:?}: successful state update", self.id());
                             }
                             Err(err) => {
-                                error!("Agent {:?} error on updating state: {}", self.id(), &err);
+                                #[cfg(feature = "log_error")]
+                                log::error!("Agent {:?} error on updating state: {}", self.id(), &err);
                                 self.send(AgentMessage::NotifyError(AmfiteatrError::Game(err.clone())))?;
                                 return Err(AmfiteatrError::Game(err));
                             }
                         }
                     }
                     EnvironmentMessage::ActionNotify(a) => {
-                        debug!("Agent {} received information that agent {} took action {:#}", self.id(), a.agent(), a.action());
+                        #[cfg(feature = "log_debug")]
+                        log::debug!("Agent {} received information that agent {} took action {:#}", self.id(), a.agent(), a.action());
                     }
                     EnvironmentMessage::ErrorNotify(e) => {
-                        error!("Agent {} received error notification {}", self.id(), &e)
+                        #[cfg(feature = "log_error")]
+                        log::error!("Agent {} received error notification {}", self.id(), &e)
                     }
                     EnvironmentMessage::RewardFragment(r) =>{
                         //current_score = current_score + r;
                         //self.set_current_universal_reward(current_score.clone());
-                        debug!("Agent {} received reward fragment: {:?}", self.id(), r);
+                        #[cfg(feature = "log_debug")]
+                        log::debug!("Agent {} received reward fragment: {:?}", self.id(), r);
                         self.current_universal_reward_add(&r);
                     }
                 }
