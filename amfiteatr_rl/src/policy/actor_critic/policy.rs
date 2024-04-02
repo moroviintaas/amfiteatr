@@ -217,9 +217,9 @@ impl<
         let mut discounted_payoff_tensor_vec: Vec<Tensor> = Vec::with_capacity(tmp_capacity_estimate);
         for t in trajectories{
 
-            if let Some(trace_step) = t.list().get(0){
+            if let Some(_trace_step) = t.list().get(0){
                 #[cfg(feature = "log_debug")]
-                log::debug!("Training neural-network for agent {} (from first trace entry).", trace_step.step_info_set().agent_id());
+                log::debug!("Training neural-network for agent {} (from first trace entry).", _trace_step.step_info_set().agent_id());
             }
 
 

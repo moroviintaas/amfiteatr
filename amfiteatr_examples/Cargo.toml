@@ -1,6 +1,6 @@
 [package]
 name = "amfiteatr_examples"
-version = "0.3.0"
+version = "0.4.0"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
@@ -29,24 +29,24 @@ required-features = ["rl-python"]
 
 rand = "0.8.5"
 log = "0.4.21"
-thiserror = "1.0.57"
+thiserror = "1.0.58"
 fern = "0.6.2"
-chrono = "0.4.35"
-clap = {version = "4.5.2", features = ["derive"]}
-anyhow = "1.0.80"
+chrono = "0.4.37"
+clap = {version = "4.5.4", features = ["derive"]}
+anyhow = "1.0.81"
 serde = {version = "1.0.197", features = ["derive", "rc"]}
 enum-map = {version = "2.7.3", features = ["serde"]}
 plotters = "0.3.5"
 #plotlib = "0.5.1"
 
-serde_json = "1.0.114"
-pyo3 = { version = "0.20.2", features = ["auto-initialize"], optional = true}
+serde_json = "1.0.115"
+pyo3 = { version = "0.21.1", features = ["auto-initialize"], optional = true}
 
-amfiteatr_core = {version = "0.3.0", path = "../amfiteatr_core", features = ["serde", "log_trace"] }
-amfiteatr_proc_macro = {version = "0.3.0", path = "../amfiteatr_proc_macro"}
-amfiteatr_rl = {version = "0.3.0", path = "../amfiteatr_rl", features = ["log_trace"]}
-amfiteatr_classic = { version = "0.3.0", path = "../amfiteatr_classic" }
-amfiteatr_net_ext = {version = "0.3.0", path = "../amfiteatr_net_ext" }
+amfiteatr_core = {version = "0.4.0", path = "../amfiteatr_core", features = ["serde", "log_trace"] }
+amfiteatr_proc_macro = {version = "0.4.0", path = "../amfiteatr_proc_macro"}
+amfiteatr_rl = {version = "0.4.0", path = "../amfiteatr_rl", features = ["log_trace"]}
+amfiteatr_classic = { version = "0.4.0", path = "../amfiteatr_classic" }
+amfiteatr_net_ext = {version = "0.4.0", path = "../amfiteatr_net_ext" }
 
 [features]
 rl-python = ["pyo3"]

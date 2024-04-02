@@ -1,8 +1,8 @@
 use std::collections::{HashMap};
 
-use crate::env::{BasicEnvironment, BroadcastingEndpointEnvironment, CommunicatingEndpointEnvironment, DirtyReseedEnvironment, EnvironmentBuilderTrait, EnvironmentStateSequential, EnvironmentStateUniScore, EnvironmentWithAgents, ReinitEnvironment, ReseedEnvironment, ScoreEnvironment, StatefulEnvironment};
+use crate::env::{BroadcastingEndpointEnvironment, CommunicatingEndpointEnvironment, DirtyReseedEnvironment, EnvironmentBuilderTrait, EnvironmentStateSequential, EnvironmentStateUniScore, EnvironmentWithAgents, ReinitEnvironment, ReseedEnvironment, ScoreEnvironment, StatefulEnvironment};
 use crate::{comm::EnvironmentEndpoint};
-use crate::comm::BroadcastingEnvironmentAdapter;
+
 use crate::error::{AmfiteatrError, CommunicationError, WorldError};
 use crate::domain::{AgentMessage, DomainParameters, EnvironmentMessage, Renew, RenewWithSideEffect, Reward};
 
@@ -34,9 +34,9 @@ HashMapEnvironment<DP, S, C>{
         game_state: S,
         comm_endpoints:  HashMap<DP::AgentId, C>) -> Self{
 
-        let k:Vec<DP::AgentId> = comm_endpoints.keys().cloned().collect();
+        //let k:Vec<DP::AgentId> = comm_endpoints.keys().cloned().collect();
         #[cfg(feature = "log_debug")]
-        log::debug!("Creating environment with:{k:?}");
+        log::debug!("Creating environment with:{}", Vec::collect(comm_endpoints.keys().cloned()));
 
         let penalties: HashMap<DP::AgentId, DP::UniversalReward> = comm_endpoints.keys()
             .map(|agent| (agent.clone(), DP::UniversalReward::neutral()))

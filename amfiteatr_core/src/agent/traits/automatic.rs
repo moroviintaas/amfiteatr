@@ -122,9 +122,9 @@ where A: StatefulAgent<DP> + ActingAgent<DP>
                         return Ok(())
 
                     }
-                    EnvironmentMessage::GameFinishedWithIllegalAction(id) => {
+                    EnvironmentMessage::GameFinishedWithIllegalAction(_id) => {
                         #[cfg(feature = "log_warn")]
-                        log::warn!("Agent {} received information that game is finished with agent {id:} performing illegal action.", self.id());
+                        log::warn!("Agent {} received information that game is finished with agent {_id:} performing illegal action.", self.id());
                         self.finalize();
                         return Ok(())
 
@@ -150,13 +150,13 @@ where A: StatefulAgent<DP> + ActingAgent<DP>
                             }
                         }
                     }
-                    EnvironmentMessage::ActionNotify(a) => {
+                    EnvironmentMessage::ActionNotify(_a) => {
                         #[cfg(feature = "log_trace")]
-                        log::trace!("Agent {} received information that agent {} took action {:#}", self.id(), a.agent(), a.action());
+                        log::trace!("Agent {} received information that agent {} took action {:#}", self.id(), _a.agent(), _a.action());
                     }
-                    EnvironmentMessage::ErrorNotify(e) => {
+                    EnvironmentMessage::ErrorNotify(_e) => {
                         #[cfg(feature = "log_error")]
-                        log::error!("Agent {} received error notification {}", self.id(), &e)
+                        log::error!("Agent {} received error notification {}", self.id(), &_e)
                     }
                     EnvironmentMessage::RewardFragment(_r) =>{
                     }
@@ -218,7 +218,7 @@ where Agnt: StatefulAgent<DP> + ActingAgent<DP>
                         return Ok(())
 
                     }
-                    EnvironmentMessage::GameFinishedWithIllegalAction(id)=> {
+                    EnvironmentMessage::GameFinishedWithIllegalAction(_id)=> {
                         #[cfg(feature = "log_warn")]
                         log::warn!("Agent {} received information that game is finished with agent {id:} performing illegal action.", self.id());
                         self.finalize();
@@ -246,13 +246,13 @@ where Agnt: StatefulAgent<DP> + ActingAgent<DP>
                             }
                         }
                     }
-                    EnvironmentMessage::ActionNotify(a) => {
+                    EnvironmentMessage::ActionNotify(_a) => {
                         #[cfg(feature = "log_debug")]
-                        log::debug!("Agent {} received information that agent {} took action {:#}", self.id(), a.agent(), a.action());
+                        log::debug!("Agent {} received information that agent {} took action {:#}", self.id(), _a.agent(), _a.action());
                     }
-                    EnvironmentMessage::ErrorNotify(e) => {
+                    EnvironmentMessage::ErrorNotify(_e) => {
                         #[cfg(feature = "log_error")]
-                        log::error!("Agent {} received error notification {}", self.id(), &e)
+                        log::error!("Agent {} received error notification {}", self.id(), &_e)
                     }
                     EnvironmentMessage::RewardFragment(r) =>{
                         //current_score = current_score + r;

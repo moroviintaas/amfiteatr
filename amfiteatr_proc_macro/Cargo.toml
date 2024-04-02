@@ -1,6 +1,6 @@
 [package]
 name = "amfiteatr_proc_macro"
-version = "0.3.0"
+version = "0.4.0"
 edition = "2021"
 repository = "https://github.com/moroviintaas/amfiteatr"
 license-file = "LICENSE"
@@ -14,7 +14,7 @@ proc-macro = true
 
 [dependencies]
 
-syn = {version = "2.0.52", features = ["full", "fold"]}
+syn = {version = "2.0.57", features = ["full", "fold"]}
 quote = "1.0.35"
-proc-macro2 = { version =  "1.0.78", features = ["proc-macro"]}
+proc-macro2 = { version =  "1.0.79", features = ["proc-macro"]}
 enum-map-derive = "0.17.0"

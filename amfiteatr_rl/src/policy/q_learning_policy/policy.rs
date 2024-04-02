@@ -13,7 +13,7 @@ use crate::error::AmfiteatrRlError;
 use crate::tensor_data::{CtxTryIntoTensor, ConversionToTensor};
 use crate::torch_net::NeuralNet1;
 use rand::thread_rng;
-use crate::error::AmfiteatrRlError::Amfi;
+
 use crate::policy::LearningNetworkPolicy;
 pub use crate::policy::TrainConfig;
 
@@ -90,10 +90,6 @@ impl QSelector{
 
 }
 
-pub struct QLearningPolicyMeta{
-    optimizer: Optimizer,
-
-}
 /// Generic implementation of Advantage Q-function policy
 pub struct QLearningPolicy<
     DP: DomainParameters,

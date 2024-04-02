@@ -1,6 +1,6 @@
 use std::collections::HashMap;
-use crate::comm::{BroadcastingEnvironmentAdapter, EnvironmentEndpoint};
-use crate::env::{BroadcastingEndpointEnvironment, CommunicatingEndpointEnvironment, EnvironmentStateSequential, EnvironmentStateUniScore, EnvironmentWithAgents, EnvironmentTraceStep, ScoreEnvironment, StatefulEnvironment, ReinitEnvironment, EnvironmentTrajectory, TracingEnvironment, ReseedEnvironment, TracingBasicEnvironment, DirtyReseedEnvironment};
+use crate::comm::{EnvironmentEndpoint};
+use crate::env::{BroadcastingEndpointEnvironment, CommunicatingEndpointEnvironment, EnvironmentStateSequential, EnvironmentStateUniScore, EnvironmentWithAgents, EnvironmentTraceStep, ScoreEnvironment, StatefulEnvironment, ReinitEnvironment, EnvironmentTrajectory, TracingEnvironment, ReseedEnvironment, DirtyReseedEnvironment};
 use crate::env::generic::{HashMapEnvironment};
 use crate::error::{AmfiteatrError, CommunicationError};
 use crate::domain::{AgentMessage, DomainParameters, EnvironmentMessage, Renew, RenewWithSideEffect};
