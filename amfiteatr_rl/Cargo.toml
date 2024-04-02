@@ -1,6 +1,6 @@
 [package]
 name = "amfiteatr_rl"
-version = "0.4.0"
+version = "0.4.1"
 edition = "2021"
 repository = "https://github.com/moroviintaas/amfiteatr"
 license-file = "LICENSE"
@@ -19,7 +19,7 @@ thiserror = "1.0.58"
 rand = "0.8.5"
 generic-array = "1.0.0"
 
-amfiteatr_core = {version = "0.4.0", path = "../amfiteatr_core", features = ["demo"]}
+amfiteatr_core = {version = "0.4.1", path = "../amfiteatr_core", features = ["demo"]}
 
 [features]
 log_error = ["dep:log"]

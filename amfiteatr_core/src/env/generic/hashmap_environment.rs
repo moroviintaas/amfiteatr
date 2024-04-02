@@ -34,9 +34,10 @@ HashMapEnvironment<DP, S, C>{
         game_state: S,
         comm_endpoints:  HashMap<DP::AgentId, C>) -> Self{
 
-        //let k:Vec<DP::AgentId> = comm_endpoints.keys().cloned().collect();
         #[cfg(feature = "log_debug")]
-        log::debug!("Creating environment with:{}", Vec::collect(comm_endpoints.keys().cloned()));
+        let k:Vec<DP::AgentId> = comm_endpoints.keys().cloned().collect();
+        #[cfg(feature = "log_debug")]
+        log::debug!("Creating environment with:{k:?}");
 
         let penalties: HashMap<DP::AgentId, DP::UniversalReward> = comm_endpoints.keys()
             .map(|agent| (agent.clone(), DP::UniversalReward::neutral()))

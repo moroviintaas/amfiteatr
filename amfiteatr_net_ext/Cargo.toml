@@ -16,7 +16,7 @@ harness = false
 [dependencies]
 log = "0.4.21"
 speedy = "0.8.7"
-amfiteatr_core = {version = "0.4.0", path = "../amfiteatr_core", features = ["speedy", "demo"]}
+amfiteatr_core = {version = "0.4.1", path = "../amfiteatr_core", features = ["speedy", "demo"]}
 thiserror = "1.0.58"
 criterion = "0.5.1"
 zeroize = "1.7.0"

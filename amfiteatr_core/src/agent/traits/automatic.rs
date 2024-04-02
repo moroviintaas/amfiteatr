@@ -220,7 +220,7 @@ where Agnt: StatefulAgent<DP> + ActingAgent<DP>
                     }
                     EnvironmentMessage::GameFinishedWithIllegalAction(_id)=> {
                         #[cfg(feature = "log_warn")]
-                        log::warn!("Agent {} received information that game is finished with agent {id:} performing illegal action.", self.id());
+                        log::warn!("Agent {} received information that game is finished with agent {_id:} performing illegal action.", self.id());
                         self.finalize();
                         return Ok(())
 
