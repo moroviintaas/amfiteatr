@@ -1,7 +1,7 @@
 use crate::domain::{DomainParameters, Reward};
 
 
-
+/*
 /// Represents agent who is able to produce subjective score based on it's
 /// _information set_. This is ability available only for  using information sets that can be evaluated to rewards.
 pub trait SelfEvaluatingAgent<DP: DomainParameters> {
@@ -19,3 +19,6 @@ pub trait SelfEvaluatingAgent<DP: DomainParameters> {
     fn penalty_for_illegal_action(&self) -> Self::Assessment;
 }
 
+
+
+ */

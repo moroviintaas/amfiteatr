@@ -3,6 +3,8 @@ use std::ops::Index;
 use crate::agent::info_set::EvaluatedInformationSet;
 use crate::agent::InformationSet;
 use crate::domain::{DomainParameters, Reward};
+use crate::error::AmfiteatrError;
+use crate::error::ProtocolError::UpdateOnFinishedAgentTrajectory;
 
 
 /// This struct contains information about _information set (game state from view of agent)_
@@ -252,17 +254,22 @@ pub struct AgentStepView<'a, DP: DomainParameters, S: InformationSet<DP>>{
     #[cfg_attr(feature = "serde", serde(bound(deserialize = "&'a DP::UniversalReward: serde::Deserialize<'de>")))]
     #[cfg_attr(feature = "serde", serde(bound(serialize = "&'a DP::UniversalReward: serde::Serialize")))]
     pub(crate) end_payoff: &'a DP::UniversalReward,
+    #[cfg_attr(feature = "serde", serde(bound(deserialize = "&'a DP::ActionType: serde::Deserialize<'de>")))]
+    #[cfg_attr(feature = "serde", serde(bound(serialize = "&'a DP::ActionType: serde::Serialize")))]
+    pub(crate) action: &'a DP::ActionType,
 
 }
 
 impl<'a, DP: DomainParameters, S: InformationSet<DP>> AgentStepView<'a, DP, S>{
     pub fn new(start_info_set: &'a S, end_info_set: &'a S,
-               start_payoff: &'a DP::UniversalReward, end_payoff: &'a DP::UniversalReward) -> Self{
+               start_payoff: &'a DP::UniversalReward, end_payoff: &'a DP::UniversalReward,
+    action: &'a DP::ActionType) -> Self{
         Self{
             start_info_set,
             start_payoff,
             end_info_set,
             end_payoff,
+            action
         }
     }
     pub fn info_set(&self) -> &S{
@@ -280,6 +287,10 @@ impl<'a, DP: DomainParameters, S: InformationSet<DP>> AgentStepView<'a, DP, S>{
     pub fn reward(&self) -> DP::UniversalReward{
         self.end_payoff.ref_sub(self.start_payoff)
     }
+    pub fn action(&self) -> &DP::ActionType{
+        self.action
+    }
+
 }
 
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
@@ -292,11 +303,24 @@ pub struct AgentTrajectory<DP: DomainParameters, S: InformationSet<DP>>{
     #[cfg_attr(feature = "serde", serde(bound(deserialize = "DP::UniversalReward: serde::Deserialize<'de>")))]
     #[cfg_attr(feature = "serde", serde(bound(serialize = "DP::UniversalReward: serde::Serialize")))]
     payoffs: Vec<DP::UniversalReward>,
+    #[cfg_attr(feature = "serde", serde(bound(deserialize = "DP::ActionType: serde::Deserialize<'de>")))]
+    #[cfg_attr(feature = "serde", serde(bound(serialize = "DP::ActionType: serde::Serialize")))]
+    actions: Vec<DP::ActionType>,
+
+    #[cfg_attr(feature = "serde", serde(bound(deserialize = "S: serde::Deserialize<'de>")))]
+    #[cfg_attr(feature = "serde", serde(bound(serialize = "S: serde::Serialize")))]
+    final_info_set: Option<S>,
+
+    #[cfg_attr(feature = "serde", serde(bound(deserialize = "DP::UniversalReward: serde::Deserialize<'de>")))]
+    #[cfg_attr(feature = "serde", serde(bound(serialize = "DP::UniversalReward: serde::Serialize")))]
+    final_payoff: Option<DP::UniversalReward>,
+
 }
 
 impl<DP: DomainParameters, S: InformationSet<DP>>  Default for AgentTrajectory<DP, S>{
     fn default() -> Self {
-        Self{ information_sets: vec![], payoffs: vec![] }
+        Self{ information_sets: vec![], payoffs: vec![], actions: vec![],
+            final_info_set: None, final_payoff: None }
     }
 }
 
@@ -306,30 +330,96 @@ impl<DP: DomainParameters, S: InformationSet<DP>> AgentTrajectory<DP, S>{
         Default::default()
     }
 
+    pub fn clear(&mut self){
+        self.actions.clear();
+        self.payoffs.clear();
+        self.information_sets.clear();
+        self.final_payoff = None;
+        self.final_info_set = None;
+    }
+
     pub fn with_capacity(size: usize) -> Self{
         Self{
             information_sets: Vec::with_capacity(size),
             payoffs: Vec::with_capacity(size),
+            actions: Vec::with_capacity(size),
+            final_info_set: None,
+            final_payoff: None,
         }
     }
 
-    pub fn register_step(&mut self, info_set: S, payoff: DP::UniversalReward){
+    pub fn register_step(&mut self, info_set: S, action: DP::ActionType, payoff: DP::UniversalReward)
+    -> Result<(), AmfiteatrError<DP>>{
+        if self.final_payoff.is_some() || self.final_info_set.is_some(){
+            return Err(AmfiteatrError::Protocol(UpdateOnFinishedAgentTrajectory(info_set.agent_id().clone())))
+        }
         self.payoffs.push(payoff);
+        self.actions.push(action);
         self.information_sets.push(info_set);
+        Ok(())
+    }
+    pub fn finish(&mut self, info_set: S,  payoff: DP::UniversalReward) -> Result<(), AmfiteatrError<DP>>{
+        if self.final_payoff.is_some() || self.final_info_set.is_some(){
+            return Err(AmfiteatrError::Protocol(UpdateOnFinishedAgentTrajectory(info_set.agent_id().clone())))
+        }
+        self.final_info_set = Some(info_set);
+        self.final_payoff = Some(payoff);
+        Ok(())
+    }
+    pub fn is_finished(&self) -> bool{
+        self.final_payoff.is_some() && self.final_info_set.is_some()
+    }
+    pub fn is_empty(&self) -> bool{
+        self.information_sets.is_empty() || self.actions.is_empty() || self.payoffs.is_empty()
+    }
+
+    pub fn last_view_step(&self) -> Option<AgentStepView<DP, S>>{
+        if self.final_payoff.is_some() && self.final_info_set.is_some(){
+            self.view_step(self.payoffs.len().saturating_sub(1))
+        } else {
+            self.view_step(self.payoffs.len().saturating_sub(2))
+        }
     }
 
     pub fn view_step(&self, index: usize) -> Option<AgentStepView<DP, S>>{
-
+        //first check if there is next normal step
         self.information_sets.get(index+1).and_then(|se|{
             self.payoffs.get(index+1).and_then(|pe|{
                 Some(AgentStepView::new(
                     &self.information_sets[index],
-                    se, &self.payoffs[index], pe))
+                    se, &self.payoffs[index],
+                    pe,
+                    &self.actions[index]))
             })
+        }).or_else(||{
+            //check if we ask for last data in normal vector
+            if index + 1 == self.information_sets.len(){
+                // check if step is final
+                if let (Some(info_set), Some(payoff)) = (&self.final_info_set, &self.final_payoff){
+                    Some(AgentStepView::new(
+                        &self.information_sets[index],
+                        info_set,
+                        &self.payoffs[index],
+                        payoff,
+                        &self.actions[index]
+                    ))
+                } else {
+                    None
+                }
+            } else {
+                None
+            }
+
         })
+
+
     }
     pub fn completed_len(&self) -> usize{
-        self.information_sets.len().saturating_sub(1)
+        match self.is_finished(){
+            true => self.information_sets.len(),
+            false => self.information_sets.len().saturating_sub(1),
+        }
+
     }
     
     pub fn iter(&self) -> AgentStepIterator<DP, S>{
@@ -355,5 +445,51 @@ impl<'a, DP: DomainParameters, S: InformationSet<DP>> Iterator for AgentStepIter
             self.index += 1;
             Some(v)
         })
+    }
+}
+#[cfg(test)]
+mod tests{
+    use std::collections::HashMap;
+    use std::thread;
+    use crate::agent::{AgentGen, AutomaticAgentRewarded, RandomPolicy, TracingAgent, TracingAgentGen};
+    use crate::comm::StdEnvironmentEndpoint;
+    use crate::demo::{DEMO_AGENT_BLUE, DEMO_AGENT_RED, DemoDomain, DemoInfoSet, DemoPolicySelectFirst, DemoState};
+    use crate::env::{RoundRobinUniversalEnvironment, TracingHashMapEnvironment};
+
+    #[test]
+    fn agent_trajectory_test(){
+        let bandits = vec![5.0, 11.5, 6.0];
+        let number_of_bandits = bandits.len();
+        let (comm_env_blue, comm_agent_blue) = StdEnvironmentEndpoint::new_pair();
+        let (comm_env_red, comm_agent_red) = StdEnvironmentEndpoint::new_pair();
+        let mut env_comms = HashMap::new();
+        env_comms.insert(DEMO_AGENT_BLUE, comm_env_blue);
+        env_comms.insert(DEMO_AGENT_RED, comm_env_red);
+        let player_set = env_comms.keys().map(|id| *id).collect();
+        let state = DemoState::new_with_players(bandits, 3, &player_set);
+        let mut environment = TracingHashMapEnvironment::new(state, env_comms);
+        let blue_info_set = DemoInfoSet::new(DEMO_AGENT_BLUE, number_of_bandits);
+        let red_info_set = DemoInfoSet::new(DEMO_AGENT_RED, number_of_bandits);
+        let mut agent_blue = TracingAgentGen::new(blue_info_set, comm_agent_blue, RandomPolicy::<DemoDomain, DemoInfoSet>::new());
+        let mut agent_red = AgentGen::new(red_info_set, comm_agent_red, DemoPolicySelectFirst{});
+        thread::scope(|s|{
+            s.spawn(||{
+                environment.run_round_robin_with_rewards().unwrap();
+            });
+            s.spawn(||{
+                agent_blue.run_rewarded().unwrap();
+            });
+            s.spawn(||{
+                agent_red.run_rewarded().unwrap();
+            });
+        });
+
+
+        assert!(agent_blue.game_trajectory().is_finished());
+        assert_eq!(agent_blue.game_trajectory().information_sets.len(), 3);
+        assert_eq!(agent_blue.game_trajectory().completed_len(), 3);
+        assert!(agent_blue.game_trajectory().view_step(0).unwrap().payoff() < agent_blue.game_trajectory().view_step(0).unwrap().late_payoff());
+        assert_eq!(agent_blue.game_trajectory().view_step(0).unwrap().late_payoff(), agent_blue.game_trajectory().view_step(1).unwrap().payoff());
+        assert!(agent_blue.game_trajectory().view_step(1).unwrap().late_payoff() < agent_blue.game_trajectory().view_step(2).unwrap().late_payoff());
     }
 }

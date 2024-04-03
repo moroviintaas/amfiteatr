@@ -53,7 +53,7 @@ where <T as StatefulAgent<DP>>::InfoSetType: EvaluatedInformationSet<DP>
 /// uses trajectory including information set.
 pub trait RlModelAgent<DP: DomainParameters, Seed, IS: EvaluatedInformationSet<DP>>:
     AutomaticAgentRewarded<DP>
-    + SelfEvaluatingAgent<DP,  Assessment= <IS as EvaluatedInformationSet<DP>>::RewardType>
+    //+ SelfEvaluatingAgent<DP,  Assessment= <IS as EvaluatedInformationSet<DP>>::RewardType>
     + ReseedAgent<DP, Seed>
     + PolicyAgent<DP> + StatefulAgent<DP, InfoSetType=IS>
     + MultiEpisodeTracingAgent<DP, IS, Seed>
@@ -70,7 +70,7 @@ impl<
     Seed,
     IS: EvaluatedInformationSet<DP>,
     T: AutomaticAgentRewarded<DP>
-        + SelfEvaluatingAgent<DP,  Assessment= <IS as EvaluatedInformationSet<DP>>::RewardType>
+        //+ SelfEvaluatingAgent<DP,  Assessment= <IS as EvaluatedInformationSet<DP>>::RewardType>
         + ReseedAgent<DP, Seed>
         + PolicyAgent<DP> + StatefulAgent<DP, InfoSetType=IS>
         + MultiEpisodeTracingAgent<DP, IS, Seed>

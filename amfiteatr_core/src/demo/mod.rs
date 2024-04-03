@@ -195,10 +195,19 @@ impl EnvironmentStateSequential<DemoDomain> for DemoState{
             if self.player_ids[current_player_index] != agent{
                 return Err(DemoError(format!("Bad player order, expected: {}, received: {agent}", &self.player_ids[current_player_index] )));
             }
+
             let mut r = thread_rng();
             let d = Uniform::new(0.0, self.ceilings[action.0 as usize]);
             let reward: f32 = d.sample(&mut r);
+
+            /*
+            let reward = match action{
+                DemoAction(n) => (n%2) as f32
+            };
+
+             */
             self.rewards.get_mut(&agent).unwrap().push(reward);
+
 
 
             let mut next_player_index = current_player_index+1;

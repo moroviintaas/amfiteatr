@@ -195,8 +195,8 @@ impl Model{
         for agent in &self.learning_agents{
             let guard = agent.lock().unwrap();
             let score = guard.current_universal_score() as f32;
-            let coops = guard.episodes().last().and_then(|t| Some(t.list().iter().filter(|t|{
-                t.taken_action() == &ClassicAction::Down
+            let coops = guard.episodes().last().and_then(|t| Some(t.iter().filter(|t|{
+                t.action() == &ClassicAction::Down
             }).count())).unwrap_or(0usize);
             /*
             let defects = guard.game_trajectory().list().iter().filter(|t|{
@@ -205,8 +205,8 @@ impl Model{
 
 
              */
-            let defects = guard.episodes().last().and_then(|t| Some(t.list().iter().filter(|t|{
-                t.taken_action() == &ClassicAction::Up
+            let defects = guard.episodes().last().and_then(|t| Some(t.iter().filter(|t|{
+                t.action() == &ClassicAction::Up
             }).count())).unwrap_or(0usize);
             self.learning_defects.push(defects as f32);
             self.learning_coops.push(coops as f32);

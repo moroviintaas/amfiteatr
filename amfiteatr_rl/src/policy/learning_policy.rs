@@ -1,6 +1,6 @@
 use tch::nn::VarStore;
 use tch::Tensor;
-use amfiteatr_core::agent::{AgentTraceStep, Trajectory, Policy, EvaluatedInformationSet};
+use amfiteatr_core::agent::{AgentTraceStep, Trajectory, Policy, EvaluatedInformationSet, AgentTrajectory, InformationSet, AgentStepView};
 
 use amfiteatr_core::domain::DomainParameters;
 use crate::error::AmfiteatrRlError;
@@ -13,7 +13,7 @@ pub trait DiscountFactor {
 }
 /// Trait representing policy that uses neural network to select action and can be trained.
 pub trait LearningNetworkPolicy<DP: DomainParameters> : Policy<DP>
-where <Self as Policy<DP>>::InfoSetType: EvaluatedInformationSet<DP>
+where <Self as Policy<DP>>::InfoSetType: InformationSet<DP>
 {
     type Network;
     type TrainConfig;
@@ -42,27 +42,30 @@ where <Self as Policy<DP>>::InfoSetType: EvaluatedInformationSet<DP>
     /// This is generic training function. Generic type `R` must produce reward tensor that
     /// agent got in this step. In traditional RL model it will be vectorised reward calculated
     /// by environment. This is in fact implemented by [`train_on_trajectories_env_reward`](LearningNetworkPolicy::train_on_trajectories_env_reward).
-    fn train_on_trajectories<R: Fn(&AgentTraceStep<DP, <Self as Policy<DP>>::InfoSetType>) -> Tensor>(
+    fn train_on_trajectories<R: Fn(&AgentStepView<DP, <Self as Policy<DP>>::InfoSetType>) -> Tensor>(
         &mut self,
-        trajectories: &[Trajectory<DP, <Self as Policy<DP>>::InfoSetType>],
+        trajectories: &[AgentTrajectory<DP, <Self as Policy<DP>>::InfoSetType>],
         reward_f: R,
     ) -> Result<(), AmfiteatrRlError<DP>>;
 
     /// Training implementation using environment distributed reward
     fn train_on_trajectories_env_reward(&mut self,
-                                        trajectories: &[Trajectory<DP, <Self as Policy<DP>>::InfoSetType>]) -> Result<(), AmfiteatrRlError<DP>>
+                                        trajectories: &[AgentTrajectory<DP, <Self as Policy<DP>>::InfoSetType>]) -> Result<(), AmfiteatrRlError<DP>>
     where <DP as DomainParameters>::UniversalReward: FloatTensorReward{
 
-        self.train_on_trajectories(trajectories,  |step| step.step_universal_reward().to_tensor())
+        self.train_on_trajectories(trajectories,  |step| step.reward().to_tensor())
     }
 
+    /*
     /// Training implementation using self assessment calculated based on information set
     fn train_on_trajectories_self_assessed(&mut self,
-                                           trajectories: &[Trajectory<DP, <Self as Policy<DP>>::InfoSetType>],
+                                           trajectories: &[AgentTrajectory<DP, <Self as Policy<DP>>::InfoSetType>],
                                               ) -> Result<(), AmfiteatrRlError<DP>>
     where <<Self as Policy<DP>>::InfoSetType as EvaluatedInformationSet<DP>>::RewardType: FloatTensorReward{
 
         self.train_on_trajectories(trajectories,  |step| step.step_subjective_reward().to_tensor())
     }
+
+     */
 
 }

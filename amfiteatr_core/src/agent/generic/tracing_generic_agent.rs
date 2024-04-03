@@ -5,6 +5,7 @@ use crate::agent::info_set::EvaluatedInformationSet;
 use crate::comm::BidirectionalEndpoint;
 use crate::error::{AmfiteatrError, CommunicationError};
 use crate::domain::{AgentMessage, DomainParameters, EnvironmentMessage, Renew, Reward};
+use crate::error::ProtocolError::TiedStepRecordWithNoAction;
 
 
 /// Generic agent implementing traits proposed in this crate.
@@ -18,7 +19,7 @@ pub struct TracingAgentGen<
         OutwardType=AgentMessage<DP>,
         InwardType=EnvironmentMessage<DP>,
         Error=CommunicationError<DP>>>
-where <P as Policy<DP>>::InfoSetType: EvaluatedInformationSet<DP>{
+where <P as Policy<DP>>::InfoSetType: InformationSet<DP>{
 
 
     information_set: <P as Policy<DP>>::InfoSetType,
@@ -29,11 +30,10 @@ where <P as Policy<DP>>::InfoSetType: EvaluatedInformationSet<DP>{
     constructed_universal_reward: <DP as DomainParameters>::UniversalReward,
     committed_universal_score: <DP as DomainParameters>::UniversalReward,
 
-    game_trajectory: Trajectory<DP, P::InfoSetType>,
+    game_trajectory: AgentTrajectory<DP, P::InfoSetType>,
     last_action: Option<DP::ActionType>,
     state_before_last_action: Option<<P as Policy<DP>>::InfoSetType>,
-    explicit_subjective_reward_component: <P::InfoSetType as EvaluatedInformationSet<DP>>::RewardType,
-    episodes: Vec< Trajectory<DP, P::InfoSetType>>,
+    episodes: Vec<AgentTrajectory<DP, P::InfoSetType>>,
 }
 
 impl <DP: DomainParameters,
@@ -43,7 +43,7 @@ impl <DP: DomainParameters,
         InwardType=EnvironmentMessage<DP>,
         Error=CommunicationError<DP>>>
 TracingAgentGen<DP, P, Comm>
-where <P as Policy<DP>>::InfoSetType: EvaluatedInformationSet<DP>{
+where <P as Policy<DP>>::InfoSetType: InformationSet<DP>{
 
     pub fn new(state: <P as Policy<DP>>::InfoSetType, comm: Comm, policy: P) -> Self{
         Self{
@@ -53,10 +53,10 @@ where <P as Policy<DP>>::InfoSetType: EvaluatedInformationSet<DP>{
             _phantom:PhantomData::default(),
             constructed_universal_reward: Reward::neutral(),
             committed_universal_score: Reward::neutral(),
-            game_trajectory: Trajectory::new(),
+            game_trajectory: AgentTrajectory::new(),
             state_before_last_action: None,
             last_action: None,
-            explicit_subjective_reward_component: <P::InfoSetType as EvaluatedInformationSet<DP>>::RewardType::neutral(),
+            //explicit_subjective_reward_component: <P::InfoSetType as EvaluatedInformationSet<DP>>::RewardType::neutral(),
             episodes: vec![],
         }
     }
@@ -84,7 +84,7 @@ where <P as Policy<DP>>::InfoSetType: EvaluatedInformationSet<DP>{
             last_action: self.last_action,
             state_before_last_action: self.state_before_last_action,
             game_trajectory: self.game_trajectory,
-            explicit_subjective_reward_component: self.explicit_subjective_reward_component,
+            //explicit_subjective_reward_component: self.explicit_subjective_reward_component,
             episodes: vec![],
         }
     }
@@ -110,7 +110,6 @@ where <P as Policy<DP>>::InfoSetType: EvaluatedInformationSet<DP>{
             _phantom: Default::default(),
             constructed_universal_reward: self.constructed_universal_reward,
             comm: self.comm,
-            explicit_subjective_reward_component: self.explicit_subjective_reward_component,
             last_action: self.last_action,
             state_before_last_action: self.state_before_last_action,
             game_trajectory: self.game_trajectory,
@@ -141,11 +140,11 @@ where <P as Policy<DP>>::InfoSetType: EvaluatedInformationSet<DP>{
     }
 
 
-    pub fn episodes(&self) -> &Vec<Trajectory<DP, P::InfoSetType>>{
+    pub fn episodes(&self) -> &Vec<AgentTrajectory<DP, P::InfoSetType>>{
         &self.episodes
     }
 
-    pub fn take_episodes(&mut self) -> Vec<Trajectory<DP, P::InfoSetType>>{
+    pub fn take_episodes(&mut self) -> Vec<AgentTrajectory<DP, P::InfoSetType>>{
         let mut v = Vec::with_capacity(self.episodes.len());
         std::mem::swap(&mut v, &mut self.episodes);
         v
@@ -163,7 +162,7 @@ impl<
         InwardType=EnvironmentMessage<DP>,
         Error=CommunicationError<DP>>>
     CommunicatingAgent<DP> for TracingAgentGen<DP, P, Comm>
-where <P as Policy<DP>>::InfoSetType: EvaluatedInformationSet<DP> + Clone{
+where <P as Policy<DP>>::InfoSetType: InformationSet<DP> + Clone{
 
     type CommunicationError = CommunicationError<DP>;
 
@@ -184,7 +183,7 @@ impl<
         InwardType=EnvironmentMessage<DP>,
         Error=CommunicationError<DP>>>
 StatefulAgent<DP> for TracingAgentGen<DP, P, Comm>
-where <P as Policy<DP>>::InfoSetType: EvaluatedInformationSet<DP>{
+where <P as Policy<DP>>::InfoSetType: InformationSet<DP>{
 
     type InfoSetType = <P as Policy<DP>>::InfoSetType;
 
@@ -206,7 +205,7 @@ impl<
         Error=CommunicationError<DP>>,
     Seed> ReseedAgent<DP, Seed> for TracingAgentGen<DP, P, Comm>
 where <P as Policy<DP>>::InfoSetType: Renew<DP, Seed>
-    + EvaluatedInformationSet<DP>,
+    + InformationSet<DP>,
 <Self as StatefulAgent<DP>>::InfoSetType: Renew<DP, Seed>{
     fn reseed(&mut self, seed: Seed) -> Result<(), AmfiteatrError<DP>>{
 
@@ -226,7 +225,7 @@ impl<
         InwardType=EnvironmentMessage<DP>,
         Error=CommunicationError<DP>>>
 ActingAgent<DP> for TracingAgentGen<DP, P, Comm>
-where <P as Policy<DP>>::InfoSetType: EvaluatedInformationSet<DP> + Clone{
+where <P as Policy<DP>>::InfoSetType: InformationSet<DP> + Clone{
 
     /// Firstly, agent commits last step to stack.
     fn take_action(&mut self) -> Option<DP::ActionType> {
@@ -239,9 +238,18 @@ where <P as Policy<DP>>::InfoSetType: EvaluatedInformationSet<DP> + Clone{
     }
 
     fn finalize(&mut self) {
+        /*
         self.commit_trace();
         self.game_trajectory.finalize(self.information_set.clone());
         self.state_before_last_action = Some(self.information_set.clone())
+
+         */
+        //self.game_trajectory.finish(self.information_set.clone(), self.last_action.take()).unwrap()
+        self.finalize_trajectory().unwrap()
+    }
+
+    fn react_refused_action(&mut self) {
+
     }
 }
 
@@ -253,7 +261,7 @@ impl<
         InwardType=EnvironmentMessage<DP>,
         Error=CommunicationError<DP>>>
 TracingAgent<DP, <P as Policy<DP>>::InfoSetType> for TracingAgentGen<DP, P, Comm>
-where <P as Policy<DP>>::InfoSetType: EvaluatedInformationSet<DP> ,
+where <P as Policy<DP>>::InfoSetType: InformationSet<DP> + Clone,
 //for <'a> &'a<DP as DomainParameters>::UniversalReward: Sub<&'a <DP as DomainParameters>::UniversalReward, Output=<DP as DomainParameters>::UniversalReward>,
 //for<'a> &'a <<P as Policy<DP>>::StateType as ScoringInformationSet<DP>>::RewardType: Sub<&'a  <<P as Policy<DP>>::StateType as ScoringInformationSet<DP>>::RewardType, Output = <<P as Policy<DP>>::StateType as ScoringInformationSet<DP>>::RewardType>
 {
@@ -262,32 +270,27 @@ where <P as Policy<DP>>::InfoSetType: EvaluatedInformationSet<DP> ,
         self.last_action = None;
     }
 
-    fn take_trajectory(&mut self) -> Trajectory<DP, <P as Policy<DP>>::InfoSetType> {
+    fn take_trajectory(&mut self) -> AgentTrajectory<DP, <P as Policy<DP>>::InfoSetType> {
         std::mem::take(&mut self.game_trajectory)
     }
 
-    fn game_trajectory(&self) -> &Trajectory<DP, <P as Policy<DP>>::InfoSetType> {
+    fn game_trajectory(&self) -> &AgentTrajectory<DP, <P as Policy<DP>>::InfoSetType> {
         &self.game_trajectory
     }
 
     /// Commits information set change to trajectory. Adds [
-    fn commit_trace(&mut self) {
+    fn commit_trace(&mut self) -> Result<(), AmfiteatrError<DP>> {
         if let Some(prev_action) = self.last_action.take(){
 
-           /* let universal_score_before_update = self.committed_universal_score.clone();
-
-            self.committed_universal_score += &self.constructed_universal_reward;
-            let universal_score_after_update = self.committed_universal_score.clone();
-            self.constructed_universal_reward = DP::UniversalReward::neutral();
-            */
             let universal_score_before_update = self.committed_universal_score.clone();
             self.commit_partial_rewards();
-            let universal_score_after_update = self.committed_universal_score.clone();
+            //let universal_score_after_update = self.committed_universal_score.clone();
             let initial_state = self.state_before_last_action.take().unwrap();
-            let subjective_score_before_update = initial_state.current_subjective_score();
-            let subjective_score_after_update = self.information_set.current_subjective_score() + &self.explicit_subjective_reward_component;
+            //let subjective_score_before_update = initial_state.current_subjective_score();
+            //let subjective_score_after_update = self.information_set.current_subjective_score() + &self.explicit_subjective_reward_component;
 
 
+            /*
             self.game_trajectory.push_trace_step(
                 AgentTraceStep::new(
                     initial_state,
@@ -298,9 +301,33 @@ where <P as Policy<DP>>::InfoSetType: EvaluatedInformationSet<DP> ,
                     subjective_score_after_update,
                     ));
 
+             */
+            self.game_trajectory.register_step(initial_state, prev_action, universal_score_before_update)
+
+        } else {
+            Ok(())
         }
+        /*else {
+            Err(AmfiteatrError::Protocol(TiedStepRecordWithNoAction(self.info_set().agent_id().clone())))
+        }
+
+         */
+
     }
 
+    fn finalize_trajectory(&mut self) -> Result<(), AmfiteatrError<DP>> {
+        if let (Some(action), Some(info_set_before)) = (&self.last_action, &self.state_before_last_action){
+            self.game_trajectory.register_step(info_set_before.clone(), action.clone(), self.committed_universal_score.clone())?;
+            self.commit_partial_rewards();
+            self.game_trajectory.finish(self.information_set.clone(), self.committed_universal_score.clone())
+        } else {
+            #[cfg(feature = "log_warn")]
+            log::warn!("Finalizing trajectory with no previous step");
+            Ok(())
+        }
+
+
+    }
 }
 
 
@@ -319,7 +346,7 @@ where Self: ReseedAgent<DP, Seed> + AutomaticAgent<DP>,
       <P as Policy<DP>>::InfoSetType: EvaluatedInformationSet<DP> + Clone,
 {
     fn store_episode(&mut self) {
-        let mut new_trajectory = Trajectory::new();
+        let mut new_trajectory = AgentTrajectory::with_capacity(self.game_trajectory.completed_len());
         std::mem::swap(&mut new_trajectory, &mut self.game_trajectory);
         self.episodes.push(new_trajectory);
 
@@ -342,10 +369,12 @@ impl<
     Seed>
 MultiEpisodeTracingAgent<DP, <P as Policy<DP>>::InfoSetType, Seed> for TracingAgentGen<DP, P, Comm>
     where <P as Policy<DP>>::InfoSetType: EvaluatedInformationSet<DP> + Clone,
-    Self: ReseedAgent<DP, Seed> + SelfEvaluatingAgent<DP> + AutomaticAgent<DP>,
+    Self: ReseedAgent<DP, Seed>
+    //+ SelfEvaluatingAgent<DP>
+    + AutomaticAgent<DP>,
           <Self as StatefulAgent<DP>>::InfoSetType: EvaluatedInformationSet<DP>{
 
-    fn take_episodes(&mut self) -> Vec<Trajectory<DP, <P as Policy<DP>>::InfoSetType>> {
+    fn take_episodes(&mut self) -> Vec<AgentTrajectory<DP, <P as Policy<DP>>::InfoSetType>> {
         let mut episodes = Vec::with_capacity(self.episodes.len());
         std::mem::swap(&mut episodes, &mut self.episodes);
         episodes
@@ -379,7 +408,7 @@ impl<
         InwardType=EnvironmentMessage<DP>,
         Error=CommunicationError<DP>>>
 RewardedAgent<DP> for TracingAgentGen<DP, P, Comm>
-where <P as Policy<DP>>::InfoSetType: EvaluatedInformationSet<DP>{
+where <P as Policy<DP>>::InfoSetType: InformationSet<DP>{
 
     fn current_universal_reward(&self) -> DP::UniversalReward {
         self.constructed_universal_reward.clone()
@@ -420,6 +449,7 @@ where <P as Policy<DP>>::InfoSetType: EvaluatedInformationSet<DP>{
     }
 }
 
+/*
 impl<
     DP: DomainParameters,
     P: Policy<DP>,
@@ -443,3 +473,6 @@ where <Self as StatefulAgent<DP>>::InfoSetType: EvaluatedInformationSet<DP>,
     }
 }
 
+
+
+ */

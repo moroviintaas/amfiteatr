@@ -5,7 +5,7 @@ use rand::distributions::uniform::{UniformFloat, UniformSampler};
 use tch::Kind::Float;
 use tch::nn::{Optimizer, VarStore};
 use tch::{Kind, Reduction, Tensor};
-use amfiteatr_core::agent::{AgentTraceStep, Trajectory, InformationSet, Policy, PresentPossibleActions, EvaluatedInformationSet};
+use amfiteatr_core::agent::{AgentTraceStep, Trajectory, InformationSet, Policy, PresentPossibleActions, EvaluatedInformationSet, AgentTrajectory, AgentStepView};
 use amfiteatr_core::domain::DomainParameters;
 
 
@@ -182,9 +182,9 @@ where <<InfoSet as PresentPossibleActions<DP>>::ActionIteratorType as IntoIterat
     }
 
     fn train_on_trajectories<
-        R: Fn(&AgentTraceStep<DP, <Self as Policy<DP>>::InfoSetType>) -> Tensor>(
+        R: Fn(&AgentStepView<DP, <Self as Policy<DP>>::InfoSetType>) -> Tensor>(
         &mut self,
-        trajectories: &[Trajectory<DP, <Self as Policy<DP>>::InfoSetType>],
+        trajectories: &[AgentTrajectory<DP, <Self as Policy<DP>>::InfoSetType>],
         reward_f: R)
         -> Result<(), AmfiteatrRlError<DP>> {
 
@@ -192,13 +192,13 @@ where <<InfoSet as PresentPossibleActions<DP>>::ActionIteratorType as IntoIterat
         //log::info!("Starting Learning DQN policy for agent {}")
         let _device = self.network.device();
         let capacity_estimate = trajectories.iter().fold(0, |acc, x|{
-           acc + x.list().len()
+           acc + x.completed_len()
         });
         let tmp_capacity_estimate = trajectories.iter().map(|x|{
-            x.list().len()
+            x.completed_len()
         }).max().unwrap_or(0);
         let batch_size_estimate = trajectories.iter().map(|x|{
-            x.list().len()
+            x.completed_len()
         }).sum();
         let mut qval_tensor_vec_t = Vec::with_capacity(tmp_capacity_estimate);
         let mut qval_tensor_vec = Vec::with_capacity(batch_size_estimate);
@@ -215,14 +215,14 @@ where <<InfoSet as PresentPossibleActions<DP>>::ActionIteratorType as IntoIterat
         for t in trajectories{
 
 
-            if t.list().is_empty(){
+            if t.is_empty(){
                 continue;
             }
-            let steps_in_trajectory = t.list().len();
+            let steps_in_trajectory = t.completed_len();
 
-            let mut state_action_q_tensor_vec_t: Vec<Tensor>  = t.list().iter().map(|step|{
-                let s = step.step_info_set().to_tensor(&self.info_set_way);
-                let a = step.taken_action().to_tensor(&self.action_way);
+            let mut state_action_q_tensor_vec_t: Vec<Tensor>  = t.iter().map(|step|{
+                let s = step.info_set().to_tensor(&self.info_set_way);
+                let a = step.action().to_tensor(&self.action_way);
                 let t = Tensor::cat(&[s,a], 0);
                 let q = (self.network.net())(&t);
                 qval_tensor_vec_t.push(q);
@@ -232,7 +232,7 @@ where <<InfoSet as PresentPossibleActions<DP>>::ActionIteratorType as IntoIterat
 
 
 
-            let final_score_t: Tensor =  reward_f(t.list().last().unwrap());
+            let final_score_t: Tensor =  reward_f(&t.last_view_step().unwrap());
             #[cfg(feature = "log_debug")]
             log::debug!("Final score tensor shape: {:?}", final_score_t.size());
             discounted_rewards_tensor_vec.clear();
@@ -244,10 +244,10 @@ where <<InfoSet as PresentPossibleActions<DP>>::ActionIteratorType as IntoIterat
             //let mut discounted_rewards_tensor_vec: Vec<Tensor> = vec![Tensor::zeros(DP::UniversalReward::total_size(), (Kind::Float, self.network.device())); steps_in_trajectory+1];
             //discounted_rewards_tensor_vec.last_mut().unwrap().copy_(&final_score_t);
             #[cfg(feature = "log_trace")]
-            log::trace!("Reward stream: {:?}", t.list().iter().map(|x| reward_f(x)).collect::<Vec<Tensor>>());
+            log::trace!("Reward stream: {:?}", t.iter().map(|x| reward_f(&x)).collect::<Vec<Tensor>>());
             for s in (0..discounted_rewards_tensor_vec.len()-1).rev(){
                 //println!("{}", s);
-                let r_s = reward_f(&t[s]).to_device(self.network.device()) + (&discounted_rewards_tensor_vec[s+1] * self.training_config.gamma);
+                let r_s = reward_f(&t.view_step(s).unwrap()).to_device(self.network.device()) + (&discounted_rewards_tensor_vec[s+1] * self.training_config.gamma);
                 discounted_rewards_tensor_vec[s].copy_(&r_s);
             }
             discounted_rewards_tensor_vec.pop();

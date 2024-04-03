@@ -3,7 +3,7 @@ use std::marker::PhantomData;
 use tch::Kind::{Float};
 use tch::nn::{Optimizer, VarStore};
 use tch::{Kind, kind, Tensor};
-use amfiteatr_core::agent::{AgentTraceStep, Trajectory, InformationSet, Policy, EvaluatedInformationSet};
+use amfiteatr_core::agent::{AgentTraceStep, Trajectory, InformationSet, Policy, EvaluatedInformationSet, AgentStepView, AgentTrajectory};
 use amfiteatr_core::domain::DomainParameters;
 
 use crate::error::{AmfiteatrRlError, TensorRepresentationError};
@@ -196,20 +196,20 @@ impl<
         &self.training_config
     }
 
-    fn train_on_trajectories<R: Fn(&AgentTraceStep<DP, InfoSet>) -> Tensor>(
+    fn train_on_trajectories<R: Fn(&AgentStepView<DP, InfoSet>) -> Tensor>(
 
         &mut self,
-        trajectories: &[Trajectory<DP, InfoSet>],
+        trajectories: &[AgentTrajectory<DP, InfoSet>],
         reward_f: R,
         ) -> Result<(), AmfiteatrRlError<DP>>{
 
 
         let device = self.network.device();
         let capacity_estimate = trajectories.iter().fold(0, |acc, x|{
-           acc + x.list().len()
+           acc + x.completed_len()
         });
         let tmp_capacity_estimate = trajectories.iter().map(|x|{
-            x.list().len()
+            x.completed_len()
         }).max().unwrap_or(0);
         let mut state_tensor_vec = Vec::<Tensor>::with_capacity(capacity_estimate);
         let mut reward_tensor_vec = Vec::<Tensor>::with_capacity(capacity_estimate);
@@ -217,28 +217,28 @@ impl<
         let mut discounted_payoff_tensor_vec: Vec<Tensor> = Vec::with_capacity(tmp_capacity_estimate);
         for t in trajectories{
 
-            if let Some(_trace_step) = t.list().get(0){
-                #[cfg(feature = "log_debug")]
-                log::debug!("Training neural-network for agent {} (from first trace entry).", _trace_step.step_info_set().agent_id());
+            if let Some(_trace_step) = t.view_step(0){
+                #[cfg(feature = "log_trace")]
+                log::trace!("Training neural-network for agent {} (from first trace step entry).", _trace_step.info_set().agent_id());
             }
 
 
-            if t.list().is_empty(){
+            if t.is_empty(){
                 continue;
             }
-            let steps_in_trajectory = t.list().len();
+            let steps_in_trajectory = t.completed_len();
 
-            let mut state_tensor_vec_t: Vec<Tensor> = t.list().iter().map(|step|{
+            let mut state_tensor_vec_t: Vec<Tensor> = t.iter().map(|step|{
                 //self.state_converter.make_tensor(step.step_state())
-                step.step_info_set().to_tensor(&self.info_set_conversion_context)
+                step.info_set().to_tensor(&self.info_set_conversion_context)
             }).collect();
 
-            let mut action_tensor_vec_t: Vec<Tensor> = t.list().iter().map(|step|{
-                step.taken_action().try_to_tensor().map(|t| t.to_kind(kind::Kind::Int64))
+            let mut action_tensor_vec_t: Vec<Tensor> = t.iter().map(|step|{
+                step.action().try_to_tensor().map(|t| t.to_kind(kind::Kind::Int64))
             }).collect::<Result<Vec<Tensor>, TensorRepresentationError>>()?;
 
             //let final_score_t: Tensor =  t.list().last().unwrap().subjective_score_after().to_tensor();
-            let final_score_t: Tensor =   reward_f(t.list().last().unwrap());
+            let final_score_t: Tensor =   reward_f(&t.last_view_step().unwrap());
 
             discounted_payoff_tensor_vec.clear();
             for _ in 0..=steps_in_trajectory{
@@ -248,11 +248,11 @@ impl<
             log::trace!("Discounted_rewards_tensor_vec len before inserting: {}", discounted_payoff_tensor_vec.len());
             //let mut discounted_rewards_tensor_vec: Vec<Tensor> = vec![Tensor::zeros(DP::UniversalReward::total_size(), (Kind::Float, self.network.device())); steps_in_trajectory+1];
             #[cfg(feature = "log_trace")]
-            log::trace!("Reward stream: {:?}", t.list().iter().map(|x| reward_f(x)).collect::<Vec<Tensor>>());
+            log::trace!("Reward stream: {:?}", t.iter().map(|x| reward_f(&x)).collect::<Vec<Tensor>>());
             //discounted_payoff_tensor_vec.last_mut().unwrap().copy_(&final_score_t);
             for s in (0..discounted_payoff_tensor_vec.len()-1).rev(){
                 //println!("{}", s);
-                let this_reward = reward_f(&t[s]).to_device(device);
+                let this_reward = reward_f(&t.view_step(s).unwrap()).to_device(device);
                 let r_s = &this_reward + (&discounted_payoff_tensor_vec[s+1] * self.training_config.gamma);
                 discounted_payoff_tensor_vec[s].copy_(&r_s);
                 #[cfg(feature = "log_trace")]

@@ -5,9 +5,9 @@ use crate::agent::{
     StatefulAgent,
     PolicyAgent,
     RewardedAgent,
-    SelfEvaluatingAgent,
     EvaluatedInformationSet,
-    IdAgent,};
+    IdAgent,
+    InformationSet};
 use crate::error::{CommunicationError, AmfiteatrError};
 use crate::error::ProtocolError::{NoPossibleAction, ReceivedKill};
 use crate::error::AmfiteatrError::Protocol;
@@ -73,10 +73,10 @@ impl<
 impl<A, DP> AutomaticAgent<DP> for A
 where A: StatefulAgent<DP> + ActingAgent<DP>
     + CommunicatingAgent<DP, CommunicationError=CommunicationError<DP>>
-    + PolicyAgent<DP>
-    + SelfEvaluatingAgent<DP>,
+    + PolicyAgent<DP>,
+    //+ SelfEvaluatingAgent<DP>,
       DP: DomainParameters,
-      <A as StatefulAgent<DP>>::InfoSetType: EvaluatedInformationSet<DP>
+      <A as StatefulAgent<DP>>::InfoSetType: InformationSet<DP>
 {
     fn run(&mut self) -> Result<(), AmfiteatrError<DP>> {
         #[cfg(feature = "log_info")]
@@ -109,7 +109,8 @@ where A: StatefulAgent<DP> + ActingAgent<DP>
                         }
                     }
                     EnvironmentMessage::MoveRefused => {
-                        self.add_explicit_assessment(&self.penalty_for_illegal_action())
+                        self.react_refused_action()
+                        //self.add_explicit_assessment(&self.penalty_for_illegal_action())
                             /*&<Self as InternalRewardedAgent<DP>>::InternalReward
                             ::penalty_for_illegal())
 
@@ -171,10 +172,10 @@ impl<Agnt, DP> AutomaticAgentRewarded<DP> for Agnt
 where Agnt: StatefulAgent<DP> + ActingAgent<DP>
     + CommunicatingAgent<DP, CommunicationError=CommunicationError<DP>>
     + PolicyAgent<DP>
-    + RewardedAgent<DP>
-    + SelfEvaluatingAgent<DP>,
+    + RewardedAgent<DP>,
+    //+ SelfEvaluatingAgent<DP>,
       DP: DomainParameters,
-    <Agnt as StatefulAgent<DP>>::InfoSetType: EvaluatedInformationSet<DP>
+    <Agnt as StatefulAgent<DP>>::InfoSetType: InformationSet<DP>
 {
     fn run_rewarded(&mut self) -> Result<(), AmfiteatrError<DP>>
     {
@@ -204,7 +205,8 @@ where Agnt: StatefulAgent<DP> + ActingAgent<DP>
                         }
                     }
                     EnvironmentMessage::MoveRefused => {
-                        self.add_explicit_assessment(&self.penalty_for_illegal_action())
+                        self.react_refused_action()
+                        //self.add_explicit_assessment(&self.penalty_for_illegal_action())
                         /*(
                             &<<Self as StatefulAgent<DP>>::InfoSetType as ScoringInformationSet<DP>>
                             ::penalty_for_illegal())

@@ -19,6 +19,9 @@ pub trait ActingAgent<DP: DomainParameters>{
     /// This method is meant to do optional actions of [`take_action`](crate::agent::ActingAgent::take_action)
     /// without selecting new action. Usually to be invoked at the end of game to commit last step to trace.
     fn finalize(&mut self);
+
+
+    fn react_refused_action(&mut self);
 }
 /// Agent that follows some policy, which can be referenced.
 pub trait PolicyAgent<DP: DomainParameters>: StatefulAgent<DP>{

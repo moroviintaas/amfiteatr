@@ -17,7 +17,7 @@ pub struct AgentGen<
         OutwardType=AgentMessage<DP>,
         InwardType=EnvironmentMessage<DP>,
         Error=CommunicationError<DP>>>
-where <P as Policy<DP>>::InfoSetType: EvaluatedInformationSet<DP>{
+where <P as Policy<DP>>::InfoSetType: InformationSet<DP>{
     /// Information Set (State as viewed by agent)
     information_set: <P as Policy<DP>>::InfoSetType,
     /// Communication endpoint, should be paired with environment's.
@@ -28,7 +28,7 @@ where <P as Policy<DP>>::InfoSetType: EvaluatedInformationSet<DP>{
 
     constructed_universal_reward: <DP as DomainParameters>::UniversalReward,
     committed_universal_score: <DP as DomainParameters>::UniversalReward,
-    explicit_subjective_reward_component: <P::InfoSetType as EvaluatedInformationSet<DP>>::RewardType,
+    //explicit_subjective_reward_component: <P::InfoSetType as EvaluatedInformationSet<DP>>::RewardType,
 }
 
 impl<
@@ -41,7 +41,7 @@ impl<
     >
 >
     AgentGen<DP, P, Comm>
-where <P as Policy<DP>>::InfoSetType: EvaluatedInformationSet<DP>
+where <P as Policy<DP>>::InfoSetType: InformationSet<DP>
 {
 
 
@@ -53,7 +53,7 @@ where <P as Policy<DP>>::InfoSetType: EvaluatedInformationSet<DP>
             _phantom:PhantomData::default(),
             constructed_universal_reward: Reward::neutral(),
             committed_universal_score: Reward::neutral(),
-            explicit_subjective_reward_component: <P::InfoSetType as EvaluatedInformationSet<DP>>::RewardType::neutral()
+            //explicit_subjective_reward_component: <P::InfoSetType as EvaluatedInformationSet<DP>>::RewardType::neutral()
         }
     }
 
@@ -82,7 +82,7 @@ where <P as Policy<DP>>::InfoSetType: EvaluatedInformationSet<DP>
             constructed_universal_reward: self.constructed_universal_reward,
             committed_universal_score: self.committed_universal_score,
             comm: self.comm,
-            explicit_subjective_reward_component: self.explicit_subjective_reward_component
+            //explicit_subjective_reward_component: self.explicit_subjective_reward_component
         }
     }
     /// Given new policy consumes this agent producing replacement agent (with moved internal state).
@@ -106,7 +106,7 @@ where <P as Policy<DP>>::InfoSetType: EvaluatedInformationSet<DP>
             constructed_universal_reward: self.constructed_universal_reward,
             committed_universal_score: self.committed_universal_score,
             comm: self.comm,
-            explicit_subjective_reward_component: self.explicit_subjective_reward_component
+            //explicit_subjective_reward_component: self.explicit_subjective_reward_component
         }, p)
     }
 
@@ -117,12 +117,12 @@ where <P as Policy<DP>>::InfoSetType: EvaluatedInformationSet<DP>
     }
     /// Using [`std::mem::swap`](::std::mem::swap) swaps communication endpoints between two instances.
     pub fn swap_comms<P2: Policy<DP>>(&mut self, other: &mut AgentGen<DP, P2, Comm>)
-    where <P2 as Policy<DP>>::InfoSetType: EvaluatedInformationSet<DP>{
+    where <P2 as Policy<DP>>::InfoSetType: InformationSet<DP>{
         std::mem::swap(&mut self.comm, &mut other.comm)
     }
     /// Using [`std::mem::swap`](::std::mem::swap) swaps communication endpoints with instance of [`AgentGentT`](crate::agent::TracingAgentGen).
     pub fn swap_comms_with_tracing<P2: Policy<DP>>(&mut self, other: &mut TracingAgentGen<DP, P2, Comm>)
-    where <P2 as Policy<DP>>::InfoSetType: EvaluatedInformationSet<DP>{
+    where <P2 as Policy<DP>>::InfoSetType: InformationSet<DP>{
         std::mem::swap(&mut self.comm, &mut other.comm_mut())
     }
 
@@ -175,7 +175,7 @@ impl<
     >
 >
 StatefulAgent<DP> for AgentGen<DP, P, Comm>
-where <P as Policy<DP>>::InfoSetType: EvaluatedInformationSet<DP>{
+where <P as Policy<DP>>::InfoSetType: InformationSet<DP>{
     type InfoSetType = <P as Policy<DP>>::InfoSetType;
 
     fn update(&mut self, state_update: DP::UpdateType) -> Result<(), DP::GameErrorType> {
@@ -220,7 +220,7 @@ impl<
     Seed>
 MultiEpisodeAutoAgent<DP, Seed> for AgentGen<DP, P, Comm>
     where Self: ReseedAgent<DP, Seed> + AutomaticAgent<DP>,
-          <P as Policy<DP>>::InfoSetType: EvaluatedInformationSet<DP>,
+          <P as Policy<DP>>::InfoSetType: InformationSet<DP>,
 {
     fn store_episode(&mut self) {
 
@@ -238,7 +238,7 @@ impl<
         InwardType=EnvironmentMessage<DP>,
         Error=CommunicationError<DP>>>
 ActingAgent<DP> for AgentGen<DP, P, Comm>
-where <P as Policy<DP>>::InfoSetType: EvaluatedInformationSet<DP>{
+where <P as Policy<DP>>::InfoSetType: InformationSet<DP>{
 
     fn take_action(&mut self) -> Option<DP::ActionType> {
         //self.commit_reward_to_score();
@@ -250,6 +250,10 @@ where <P as Policy<DP>>::InfoSetType: EvaluatedInformationSet<DP>{
     fn finalize(&mut self) {
         self.commit_partial_rewards();
         //self.commit_reward_to_score();
+    }
+
+    fn react_refused_action(&mut self) {
+
     }
 }
 
@@ -281,7 +285,7 @@ impl<DP: DomainParameters,
         OutwardType=AgentMessage<DP>,
         InwardType=EnvironmentMessage<DP>,
         Error=CommunicationError<DP>>> RewardedAgent<DP> for AgentGen<DP, P, Comm>
-where <P as Policy<DP>>::InfoSetType: EvaluatedInformationSet<DP>{
+where <P as Policy<DP>>::InfoSetType: InformationSet<DP>{
     fn current_universal_reward(&self) -> DP::UniversalReward {
         self.constructed_universal_reward.clone()
     }
@@ -309,7 +313,7 @@ impl<
         InwardType=EnvironmentMessage<DP>,
         Error=CommunicationError<DP>>>
 ReinitAgent<DP> for AgentGen<DP, P, Comm>
-where <P as Policy<DP>>::InfoSetType: EvaluatedInformationSet<DP>{
+where <P as Policy<DP>>::InfoSetType: InformationSet<DP>{
 
     fn reinit(&mut self, initial_state: <Self as StatefulAgent<DP>>::InfoSetType) {
         self.information_set = initial_state;
@@ -318,6 +322,7 @@ where <P as Policy<DP>>::InfoSetType: EvaluatedInformationSet<DP>{
     }
 }
 
+/*
 impl<
     DP: DomainParameters,
     P: Policy<DP>,
@@ -341,4 +346,4 @@ where <Self as StatefulAgent<DP>>::InfoSetType: EvaluatedInformationSet<DP>,
         self.info_set().penalty_for_illegal()
     }
 }
-
+*/

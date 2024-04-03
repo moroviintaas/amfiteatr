@@ -16,7 +16,13 @@ pub enum ProtocolError<DP: DomainParameters>{
     #[error("agent {:} has no possible action", .0)]
     NoPossibleAction(DP::AgentId),
     #[error("agent {} has exited the game", .0)]
-    PlayerExited(DP::AgentId)
+    PlayerExited(DP::AgentId),
+    #[error("Agent {} tried registering step after closing trajectory", .0)]
+    UpdateOnFinishedAgentTrajectory(DP::AgentId),
+    #[error("Agent {} tried finishing step after closing trajectory", .0)]
+    FinishingOnFinishedAgentTrajectory(DP::AgentId),
+    #[error("Agent {} tried finishing step after without having played action in step", .0)]
+    TiedStepRecordWithNoAction(DP::AgentId),
 }
 
 impl<DP: DomainParameters> From<ProtocolError<DP>> for AmfiteatrError<DP>{
