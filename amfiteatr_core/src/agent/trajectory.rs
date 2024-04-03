@@ -1,7 +1,8 @@
 use std::fmt::{Debug, Display, Formatter};
 use std::ops::Index;
 use crate::agent::info_set::EvaluatedInformationSet;
-use crate::domain::DomainParameters;
+use crate::agent::InformationSet;
+use crate::domain::{DomainParameters, Reward};
 
 
 /// This struct contains information about _information set (game state from view of agent)_
@@ -231,5 +232,128 @@ impl<DP: DomainParameters, S: EvaluatedInformationSet<DP>> Index<usize> for Traj
 
     fn index(&self, index: usize) -> &Self::Output {
         &self.history[index]
+    }
+}
+
+
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Debug)]
+pub struct AgentStepView<'a, DP: DomainParameters, S: InformationSet<DP>>{
+
+    #[cfg_attr(feature = "serde", serde(bound(deserialize = "&'a S: serde::Deserialize<'de>")))]
+    #[cfg_attr(feature = "serde", serde(bound(serialize = "&'a S: serde::Serialize")))]
+    pub(crate) start_info_set: &'a S,
+    #[cfg_attr(feature = "serde", serde(bound(serialize = "&'a DP::UniversalReward: serde::Serialize")))]
+    #[cfg_attr(feature = "serde", serde(bound(deserialize = "&'a DP::UniversalReward: serde::Deserialize<'de>")))]
+    pub(crate) start_payoff: &'a DP::UniversalReward,
+    #[cfg_attr(feature = "serde", serde(bound(deserialize = "&'a S: serde::Deserialize<'de>")))]
+    #[cfg_attr(feature = "serde", serde(bound(serialize = "&'a S: serde::Serialize")))]
+    pub(crate) end_info_set: &'a S,
+    #[cfg_attr(feature = "serde", serde(bound(deserialize = "&'a DP::UniversalReward: serde::Deserialize<'de>")))]
+    #[cfg_attr(feature = "serde", serde(bound(serialize = "&'a DP::UniversalReward: serde::Serialize")))]
+    pub(crate) end_payoff: &'a DP::UniversalReward,
+
+}
+
+impl<'a, DP: DomainParameters, S: InformationSet<DP>> AgentStepView<'a, DP, S>{
+    pub fn new(start_info_set: &'a S, end_info_set: &'a S,
+               start_payoff: &'a DP::UniversalReward, end_payoff: &'a DP::UniversalReward) -> Self{
+        Self{
+            start_info_set,
+            start_payoff,
+            end_info_set,
+            end_payoff,
+        }
+    }
+    pub fn info_set(&self) -> &S{
+        &self.start_info_set
+    }
+    pub fn payoff(&self) -> &DP::UniversalReward{
+        &self.start_payoff
+    }
+    pub fn late_info_set(&self) -> &S{
+        &self.end_info_set
+    }
+    pub fn late_payoff(&self) -> &DP::UniversalReward{
+        &self.end_payoff
+    }
+    pub fn reward(&self) -> DP::UniversalReward{
+        self.end_payoff.ref_sub(self.start_payoff)
+    }
+}
+
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Debug)]
+pub struct AgentTrajectory<DP: DomainParameters, S: InformationSet<DP>>{
+
+    #[cfg_attr(feature = "serde", serde(bound(deserialize = "S: serde::Deserialize<'de>")))]
+    #[cfg_attr(feature = "serde", serde(bound(serialize = "S: serde::Serialize")))]
+    information_sets: Vec<S>,
+    #[cfg_attr(feature = "serde", serde(bound(deserialize = "DP::UniversalReward: serde::Deserialize<'de>")))]
+    #[cfg_attr(feature = "serde", serde(bound(serialize = "DP::UniversalReward: serde::Serialize")))]
+    payoffs: Vec<DP::UniversalReward>,
+}
+
+impl<DP: DomainParameters, S: InformationSet<DP>>  Default for AgentTrajectory<DP, S>{
+    fn default() -> Self {
+        Self{ information_sets: vec![], payoffs: vec![] }
+    }
+}
+
+impl<DP: DomainParameters, S: InformationSet<DP>> AgentTrajectory<DP, S>{
+
+    pub fn new() -> Self{
+        Default::default()
+    }
+
+    pub fn with_capacity(size: usize) -> Self{
+        Self{
+            information_sets: Vec::with_capacity(size),
+            payoffs: Vec::with_capacity(size),
+        }
+    }
+
+    pub fn register_step(&mut self, info_set: S, payoff: DP::UniversalReward){
+        self.payoffs.push(payoff);
+        self.information_sets.push(info_set);
+    }
+
+    pub fn view_step(&self, index: usize) -> Option<AgentStepView<DP, S>>{
+
+        self.information_sets.get(index+1).and_then(|se|{
+            self.payoffs.get(index+1).and_then(|pe|{
+                Some(AgentStepView::new(
+                    &self.information_sets[index],
+                    se, &self.payoffs[index], pe))
+            })
+        })
+    }
+    pub fn completed_len(&self) -> usize{
+        self.information_sets.len().saturating_sub(1)
+    }
+    
+    pub fn iter(&self) -> AgentStepIterator<DP, S>{
+        AgentStepIterator{
+            trajectory: &self,
+            index: 0,
+        }
+    }
+
+}
+
+pub struct AgentStepIterator<'a, DP: DomainParameters, S: InformationSet<DP>>{
+    trajectory: &'a AgentTrajectory<DP, S>,
+    index: usize
+}
+
+impl<'a, DP: DomainParameters, S: InformationSet<DP>> Iterator for AgentStepIterator<'a, DP, S>{
+    type Item = AgentStepView<'a, DP, S>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+
+        self.trajectory.view_step(self.index).and_then(|v|{
+            self.index += 1;
+            Some(v)
+        })
     }
 }

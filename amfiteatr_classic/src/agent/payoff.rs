@@ -397,5 +397,13 @@ impl<R: Reward + Copy> Reward for AgentAssessmentClassic<R>{
             education_assessment: 0.0
         }
     }
+
+    fn ref_sub(&self, rhs: &Self) -> Self {
+        Self{
+            table_payoff: self.table_payoff - rhs.table_payoff,
+            action_counts : self.action_counts - rhs.action_counts,
+            education_assessment: self.education_assessment - rhs.education_assessment
+        }
+    }
 }
 

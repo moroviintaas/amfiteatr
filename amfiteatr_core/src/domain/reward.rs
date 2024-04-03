@@ -13,31 +13,18 @@ pub trait Reward: Send + Clone + Debug + PartialEq  + PartialOrd + Default +
     /// the reward that does not change the score. For standard numeric
     /// types this is just value of 0.
     fn neutral() -> Self;
-//where for<'a> &'a Self: Add<Output=Self> + Sub<Output=Self>{
-//where for<'a> &'a Self: Sub<&'a Self, Output=Self>
+    
+    fn ref_sub(&self, rhs: &Self) -> Self;
+
 }
 
-/*
-pub trait ProportionalReward<Float>: Reward
-where for<'a>& 'a Self: Add<&'a Self, Output=Self>,
-for<'a> &'a Self: Div<&'a Self, Output=Float>{}
-
- */
 
 
 /// Reward that can be compared to another with proportion (division) resulting in float
 pub trait ProportionalReward<Float>: Reward{
     fn proportion(&self, other: &Self) -> Float;
 }
-/*
-impl<T: Send + Clone + Debug + PartialEq + Eq + PartialOrd + Default +
-    for<'a> Add<&'a Self, Output=Self> + Add<Output=Self>  + for<'a> AddAssign<&'a Self>
-    + Sub<Output=Self> + for<'a> Sub<&'a Self, Output=Self>
-    + Default> Reward for T {
-    fn neutral() -> Self {
-        T::default()
-    }
-}*/
+
 
 macro_rules! impl_reward_std {
     ($($x: ty), +) => {
@@ -46,6 +33,9 @@ macro_rules! impl_reward_std {
               fn neutral() -> $x{
                   0
               }
+              fn ref_sub(&self, rhs: &Self) -> Self {
+                  self - rhs
+            }
           }
 
         )*
@@ -59,10 +49,18 @@ impl Reward for f32{
     fn neutral() -> Self {
         0.0
     }
+
+    fn ref_sub(&self, rhs: &Self) -> Self {
+        self - rhs
+    }
 }
 impl Reward for f64{
     fn neutral() -> Self {
         0.0
+    }
+
+    fn ref_sub(&self, rhs: &Self) -> Self {
+        self - rhs
     }
 }
 
@@ -151,5 +149,9 @@ impl<'a> Sub<&'a Self> for NoneReward {
 impl Reward for NoneReward{
     fn neutral() -> Self {
         NoneReward{}
+    }
+
+    fn ref_sub(&self, _rhs: &Self) -> Self {
+        Self::neutral()
     }
 }
