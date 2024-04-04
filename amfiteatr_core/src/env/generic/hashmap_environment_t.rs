@@ -1,6 +1,18 @@
 use std::collections::HashMap;
 use crate::comm::{EnvironmentEndpoint};
-use crate::env::{BroadcastingEndpointEnvironment, CommunicatingEndpointEnvironment, EnvironmentStateSequential, EnvironmentStateUniScore, EnvironmentWithAgents, EnvironmentTraceStep, ScoreEnvironment, StatefulEnvironment, ReinitEnvironment, EnvironmentTrajectory, TracingEnvironment, ReseedEnvironment, DirtyReseedEnvironment};
+use crate::env::{
+    BroadcastingEndpointEnvironment,
+    CommunicatingEndpointEnvironment,
+    EnvironmentStateSequential,
+    EnvironmentStateUniScore,
+    EnvironmentWithAgents,
+    ScoreEnvironment,
+    StatefulEnvironment,
+    ReinitEnvironment,
+    TracingEnvironment,
+    ReseedEnvironment,
+    DirtyReseedEnvironment,
+    GameTrajectory};
 use crate::env::generic::{HashMapEnvironment};
 use crate::error::{AmfiteatrError, CommunicationError};
 use crate::domain::{AgentMessage, DomainParameters, EnvironmentMessage, Renew, RenewWithSideEffect};
@@ -16,7 +28,7 @@ pub struct TracingHashMapEnvironment<
     C: EnvironmentEndpoint<DP>>{
 
     base_environment: HashMapEnvironment<DP, S,C>,
-    history: EnvironmentTrajectory<DP, S>
+    history: GameTrajectory<DP, S>
 }
 
 impl<
@@ -64,23 +76,29 @@ StatefulEnvironment<DP> for TracingHashMapEnvironment<DP, S,C>{
     }
 
     fn process_action(&mut self, agent: &DP::AgentId, action: &DP::ActionType)
-        -> Result<<Self::State as EnvironmentStateSequential<DP>>::Updates, DP::GameErrorType> {
+        -> Result<<Self::State as EnvironmentStateSequential<DP>>::Updates, AmfiteatrError<DP>> {
 
         let state_clone = self.state().clone();
 
         match self.base_environment.process_action(agent, action){
             Ok(updates) => {
+
+                //self.history.push_trace_step(EnvironmentTraceStep::new(state_clone, agent.clone(), action.clone(), true));
+                self.history.register_step(state_clone, agent.clone(), action.clone(), true)?;
                 if self.base_environment.state().is_finished(){
-                    self.history.finalize(self.base_environment.state().clone());
+                    //self.history.finalize(self.base_environment.state().clone());
+                    self.history.finish(self.base_environment.state().clone())?;
                 }
-                self.history.push_trace_step(EnvironmentTraceStep::new(state_clone, agent.clone(), action.clone(), true));
                 Ok(updates)
             }
             Err(e) => {
+
+                //self.history.push_trace_step(EnvironmentTraceStep::new(state_clone, agent.clone(), action.clone(), false));
                 if self.base_environment.state().is_finished(){
-                    self.history.finalize(self.base_environment.state().clone());
+                    //self.history.finalize(self.base_environment.state().clone());
+                    self.history.finish(self.base_environment.state().clone())?;
                 }
-                self.history.push_trace_step(EnvironmentTraceStep::new(state_clone, agent.clone(), action.clone(), false));
+                self.history.register_step(state_clone.clone(), agent.clone(), action.clone(), false)?;
                 Err(e)
             }
         }
@@ -94,22 +112,26 @@ impl<
 ScoreEnvironment<DP> for TracingHashMapEnvironment<DP, S, C>{
     fn process_action_penalise_illegal(
         &mut self, agent: &DP::AgentId, action: &DP::ActionType, penalty_reward: DP::UniversalReward)
-        -> Result<<Self::State as EnvironmentStateSequential<DP>>::Updates, DP::GameErrorType> {
+        -> Result<<Self::State as EnvironmentStateSequential<DP>>::Updates, AmfiteatrError<DP>> {
 
         let state_clone = self.state().clone();
         match self.base_environment.process_action_penalise_illegal(agent, action, penalty_reward){
             Ok(updates) => {
+
+
+                self.history.register_step(state_clone, agent.clone(), action.clone(), true)?;
                 if self.base_environment.state().is_finished(){
-                    self.history.finalize(self.base_environment.state().clone());
+                    self.history.finish(self.base_environment.state().clone())?
                 }
-                self.history.push_trace_step(EnvironmentTraceStep::new(state_clone, agent.clone(), action.clone(), true));
                 Ok(updates)
             }
             Err(e) => {
+
+                self.history.register_step(state_clone, agent.clone(), action.clone(), false)?;
                 if self.base_environment.state().is_finished(){
-                    self.history.finalize(self.base_environment.state().clone());
+                    //self.history.finalize(self.base_environment.state().clone());
+                    self.history.finish(self.base_environment.state().clone())?
                 }
-                self.history.push_trace_step(EnvironmentTraceStep::new(state_clone, agent.clone(), action.clone(), false));
                 Err(e)
             }
         }
@@ -177,7 +199,7 @@ impl<'a, DP: DomainParameters + 'a,
     S: EnvironmentStateSequential<DP>,
     C: EnvironmentEndpoint<DP>>
 TracingEnvironment<DP, S> for TracingHashMapEnvironment<DP, S, C>{
-    fn trajectory(&self) -> &EnvironmentTrajectory<DP, S> {
+    fn trajectory(&self) -> &GameTrajectory<DP, S> {
         &self.history
     }
 }

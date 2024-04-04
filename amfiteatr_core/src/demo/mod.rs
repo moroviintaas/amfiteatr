@@ -36,7 +36,7 @@
 //!     });
 //! });
 //!
-//! assert_eq!(environment.trajectory().list().len(), 200);
+//! assert_eq!(environment.trajectory().completed_len(), 200);
 //! assert!(environment.actual_score_of_player(&DEMO_AGENT_BLUE) > 10.0);
 //! assert!(agent_blue.current_universal_score() > 10.0);
 //! assert!(agent_red.current_universal_score() > 10.0);

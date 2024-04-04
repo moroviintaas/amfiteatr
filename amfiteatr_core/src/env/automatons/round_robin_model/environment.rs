@@ -65,7 +65,7 @@ DP: DomainParameters
                 }
                 Ok(())
             }
-            Err(e) => {Err(AmfiteatrError::Game(e))}
+            Err(e) => {Err(e)}
         }
     }
 
@@ -114,7 +114,7 @@ where Env: CommunicatingEndpointEnvironment<DP, CommunicationError=Communication
                                     log::error!("Action was refused or caused error in updating state: {e:}");
                                     let _ = self.send_to(&player, EnvironmentMessage::MoveRefused);
                                     let _ = self.send_to_all(EnvironmentMessage::GameFinishedWithIllegalAction(player.clone()));
-                                    return Err(GameA(e, player));
+                                    return Err(e);
                                 }
                             }
                             if let Some(next_player) = self.current_player(){
@@ -226,7 +226,7 @@ where Env: CommunicatingEndpointEnvironment<DP, CommunicationError=Communication
                                     let _ = self.send_to(&player, EnvironmentMessage::MoveRefused);
 
                                     let _ = self.send_to_all(EnvironmentMessage::GameFinishedWithIllegalAction(player.clone()));
-                                    return Err(GameA(e, player));
+                                    return Err(e);
                                 }
                             }
 
@@ -340,7 +340,7 @@ where Env: CommunicatingEndpointEnvironment<DP, CommunicationError=Communication
                                         let _ = self.send_to(player, EnvironmentMessage::RewardFragment(reward));
                                     }
                                     let _ = self.send_to_all(EnvironmentMessage::GameFinishedWithIllegalAction(player.clone()));
-                                    return Err(GameA(e, player));
+                                    return Err(e);
                                 }
                             }
                             if let Some(next_player) = self.current_player(){

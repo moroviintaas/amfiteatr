@@ -5,7 +5,7 @@ use crate::agent::info_set::EvaluatedInformationSet;
 use crate::comm::BidirectionalEndpoint;
 use crate::error::{AmfiteatrError, CommunicationError};
 use crate::domain::{AgentMessage, DomainParameters, EnvironmentMessage, Renew, Reward};
-use crate::error::ProtocolError::TiedStepRecordWithNoAction;
+
 
 
 /// Generic agent implementing traits proposed in this crate.

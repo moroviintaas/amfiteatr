@@ -4,7 +4,7 @@ use crate::agent::info_set::EvaluatedInformationSet;
 use crate::agent::InformationSet;
 use crate::domain::{DomainParameters, Reward};
 use crate::error::AmfiteatrError;
-use crate::error::ProtocolError::UpdateOnFinishedAgentTrajectory;
+use crate::error::TrajectoryError::UpdateOnFinishedAgentTrajectory;
 
 /*
 /// This struct contains information about _information set (game state from view of agent)_
@@ -351,7 +351,7 @@ impl<DP: DomainParameters, S: InformationSet<DP>> AgentTrajectory<DP, S>{
     pub fn register_step(&mut self, info_set: S, action: DP::ActionType, payoff: DP::UniversalReward)
     -> Result<(), AmfiteatrError<DP>>{
         if self.final_payoff.is_some() || self.final_info_set.is_some(){
-            return Err(AmfiteatrError::Protocol(UpdateOnFinishedAgentTrajectory(info_set.agent_id().clone())))
+            return Err(AmfiteatrError::Trajectory{ source: UpdateOnFinishedAgentTrajectory(info_set.agent_id().clone())})
         }
         self.payoffs.push(payoff);
         self.actions.push(action);
@@ -360,7 +360,7 @@ impl<DP: DomainParameters, S: InformationSet<DP>> AgentTrajectory<DP, S>{
     }
     pub fn finish(&mut self, info_set: S,  payoff: DP::UniversalReward) -> Result<(), AmfiteatrError<DP>>{
         if self.final_payoff.is_some() || self.final_info_set.is_some(){
-            return Err(AmfiteatrError::Protocol(UpdateOnFinishedAgentTrajectory(info_set.agent_id().clone())))
+            return Err(AmfiteatrError::Trajectory{ source: UpdateOnFinishedAgentTrajectory(info_set.agent_id().clone())})
         }
         self.final_info_set = Some(info_set);
         self.final_payoff = Some(payoff);

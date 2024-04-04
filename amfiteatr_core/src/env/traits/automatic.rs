@@ -67,7 +67,7 @@ impl <
                 }
                 Ok(())
             }
-            Err(e) => {Err(AmfiteatrError::Game(e))}
+            Err(e) => Err(e)
         }
     }
 }
@@ -116,7 +116,7 @@ impl <
                                     log::error!("Action was refused or caused error in updating state: {e:}");
                                     let _ = self.send(&player, EnvironmentMessage::MoveRefused);
                                     let _ = self.send_all(EnvironmentMessage::GameFinishedWithIllegalAction(player.clone()));
-                                    return Err(AmfiteatrError::GameA(e, player));
+                                    return Err(e);
                                 }
                             }
                             if let Some(next_player) = self.current_player(){
@@ -228,7 +228,7 @@ impl <
                                     log::error!("Action was refused or caused error in updating state: {e:}");
                                     let _ = self.send(&player, EnvironmentMessage::MoveRefused);
                                     let _ = self.send_all(EnvironmentMessage::GameFinishedWithIllegalAction(player.clone()));
-                                    return Err(AmfiteatrError::GameA(e, player));
+                                    return Err(e);
                                 }
                             }
                             if let Some(next_player) = self.current_player(){
@@ -349,7 +349,7 @@ impl <
                                         let _ = self.send(player, EnvironmentMessage::RewardFragment(reward));
                                     }
                                     let _ = self.send_all(EnvironmentMessage::GameFinishedWithIllegalAction(player.clone()));
-                                    return Err(GameA(e, player));
+                                    return Err(e);
                                 }
                             }
                             if let Some(next_player) = self.current_player(){

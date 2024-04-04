@@ -1,5 +1,6 @@
 use crate::domain::DomainParameters;
 use crate::env::EnvironmentStateSequential;
+use crate::error::AmfiteatrError;
 
 /// Environment for games with some state, actually it is for almost every game.
 pub trait StatefulEnvironment<DP: DomainParameters>{
@@ -19,7 +20,7 @@ pub trait StatefulEnvironment<DP: DomainParameters>{
     /// Processes action of agent, if result is Ok, iterator of updates for every player is
     /// returned.
     fn process_action(&mut self, agent: &DP::AgentId, action: &DP::ActionType) 
-        -> Result<<Self::State as EnvironmentStateSequential<DP>>::Updates, DP::GameErrorType>;
+        -> Result<<Self::State as EnvironmentStateSequential<DP>>::Updates, AmfiteatrError<DP>>;
 
 
 }

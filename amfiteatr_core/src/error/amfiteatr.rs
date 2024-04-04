@@ -1,5 +1,5 @@
 use thiserror::Error;
-use crate::error::{CommunicationError, ProtocolError, WorldError};
+use crate::error::{CommunicationError, ProtocolError, TrajectoryError, WorldError};
 use crate::domain::{DomainParameters};
 
 #[derive(Debug, Clone, Error)]
@@ -26,7 +26,13 @@ pub enum AmfiteatrError<DP: DomainParameters>{
     Lock{
         description: String,
         object: String
+    },
+    #[error("Trajectory maintanance error: {source:}")]
+    Trajectory{
+        #[source]
+        source: TrajectoryError<DP>
     }
     //#[error("External: {0}")]
     //External(String)
 }
+

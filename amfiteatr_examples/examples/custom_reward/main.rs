@@ -294,7 +294,7 @@ fn main() -> Result<(), AmfiteatrError<ClassicGameDomain<AgentNum>>>{
 
 
 
-    println!("{}", environment.trajectory().list().last().unwrap());
+    println!("{}", environment.trajectory().last_view_step().unwrap());
 
     println!("Scores: 0: {},\t1: {}", environment.actual_score_of_player(&0), environment.actual_score_of_player(&1));
 

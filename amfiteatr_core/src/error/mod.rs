@@ -5,6 +5,7 @@ mod internal_error;
 //mod setup;
 mod convert;
 mod world;
+mod trajectory;
 
 pub use comm::*;
 pub use self::amfiteatr::*;
@@ -13,3 +14,4 @@ pub use internal_error::*;
 //pub use setup::*;
 pub use convert::*;
 pub use world::*;
+pub use trajectory::*;
