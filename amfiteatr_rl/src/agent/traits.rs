@@ -17,7 +17,7 @@ pub trait NetworkLearningAgent<DP: DomainParameters>:
     + PolicyAgent<DP>
     + TracingAgent<DP, <Self as StatefulAgent<DP>>::InfoSetType>
     where  <Self as PolicyAgent<DP>>::Policy: LearningNetworkPolicy<DP>,
-    <Self as StatefulAgent<DP>>::InfoSetType: EvaluatedInformationSet<DP>
+    <Self as StatefulAgent<DP>>::InfoSetType: InformationSet<DP>
 {
 }
 
@@ -25,7 +25,7 @@ impl <DP: DomainParameters, T: AutomaticAgentRewarded<DP>  + PolicyAgent<DP>
 + TracingAgent<DP, <Self as StatefulAgent<DP>>::InfoSetType>>
 NetworkLearningAgent<DP> for T
 where <T as PolicyAgent<DP>>::Policy: LearningNetworkPolicy<DP>,
-<T as StatefulAgent<DP>>::InfoSetType: EvaluatedInformationSet<DP>
+<T as StatefulAgent<DP>>::InfoSetType: InformationSet<DP>
 {
 }
 
@@ -51,7 +51,7 @@ where <T as StatefulAgent<DP>>::InfoSetType: EvaluatedInformationSet<DP>
 /// This trait is object safe, however collections of dynamically typed agents of this trait must
 /// share the same type of information set, because [`LearningNetworkPolicy`](crate::policy::LearningNetworkPolicy)
 /// uses trajectory including information set.
-pub trait RlModelAgent<DP: DomainParameters, Seed, IS: EvaluatedInformationSet<DP>>:
+pub trait RlModelAgent<DP: DomainParameters, Seed, IS: InformationSet<DP>>:
     AutomaticAgentRewarded<DP>
     //+ SelfEvaluatingAgent<DP,  Assessment= <IS as EvaluatedInformationSet<DP>>::RewardType>
     + ReseedAgent<DP, Seed>
@@ -68,7 +68,7 @@ where <Self as PolicyAgent<DP>>::Policy: LearningNetworkPolicy<DP>,
 impl<
     DP: DomainParameters,
     Seed,
-    IS: EvaluatedInformationSet<DP>,
+    IS: InformationSet<DP>,
     T: AutomaticAgentRewarded<DP>
         //+ SelfEvaluatingAgent<DP,  Assessment= <IS as EvaluatedInformationSet<DP>>::RewardType>
         + ReseedAgent<DP, Seed>
@@ -110,7 +110,7 @@ impl<
         OutwardType=AgentMessage<DP>,
         InwardType=EnvironmentMessage<DP>,
         Error=CommunicationError<DP>> + Send> RlSimpleLearningAgent<DP, Seed> for TracingAgentGen<DP, P, Comm, >
-    where <P as Policy<DP>>::InfoSetType: EvaluatedInformationSet<DP> + Renew<DP, Seed>,
+    where <P as Policy<DP>>::InfoSetType: InformationSet<DP> + Renew<DP, Seed>,
           <DP as DomainParameters>::UniversalReward: FloatTensorReward,
     Self: AutomaticAgentRewarded<DP> + MultiEpisodeAutoAgentRewarded<DP, Seed>
     {

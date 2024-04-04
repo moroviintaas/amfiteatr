@@ -150,7 +150,7 @@ impl<
     >
 >
     CommunicatingAgent<DP> for AgentGen<DP, P, Comm>
-where <P as Policy<DP>>::InfoSetType: EvaluatedInformationSet<DP>
+where <P as Policy<DP>>::InfoSetType: InformationSet<DP>
 {
 
     type CommunicationError = CommunicationError<DP>;
@@ -196,7 +196,7 @@ impl<
         Error=CommunicationError<DP>>,
     Seed> ReseedAgent<DP, Seed> for AgentGen<DP, P, Comm>
 where <P as Policy<DP>>::InfoSetType: Renew<DP, Seed>
-    + EvaluatedInformationSet<DP>,
+    + InformationSet<DP>,
 <Self as StatefulAgent<DP>>::InfoSetType: Renew<DP, Seed>{
     fn reseed(&mut self, seed: Seed) -> Result<(), AmfiteatrError<DP>> {
 
@@ -265,7 +265,7 @@ impl<
         InwardType=EnvironmentMessage<DP>,
         Error=CommunicationError<DP>>>
 PolicyAgent<DP> for AgentGen<DP, P, Comm>
-where <P as Policy<DP>>::InfoSetType: EvaluatedInformationSet<DP>{
+where <P as Policy<DP>>::InfoSetType: InformationSet<DP>{
     type Policy = P;
 
     fn policy(&self) -> &Self::Policy {

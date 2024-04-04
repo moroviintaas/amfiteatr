@@ -221,10 +221,9 @@ impl<ID: UsizeAgentId> Renew<ClassicGameDomain<ID>, ()> for LocalHistoryInfoSet<
 }
 
 
-impl<ID: UsizeAgentId> EvaluatedInformationSet<ClassicGameDomain<ID>,> for LocalHistoryInfoSet<ID>{
-    type RewardType = AgentAssessmentClassic<i64>;
+impl<ID: UsizeAgentId> EvaluatedInformationSet<ClassicGameDomain<ID>, AgentAssessmentClassic<i64>> for LocalHistoryInfoSet<ID>{
 
-    fn current_subjective_score(&self) -> Self::RewardType {
+    fn current_subjective_score(&self) ->AgentAssessmentClassic<i64> {
 
         let mut edu_asses = 0.0;
         if self.previous_encounters.len() >=2{
@@ -255,7 +254,7 @@ impl<ID: UsizeAgentId> EvaluatedInformationSet<ClassicGameDomain<ID>,> for Local
         AgentAssessmentClassic::new(self.cache_table_payoff, self.count_actions, edu_asses)
     }
 
-    fn penalty_for_illegal(&self) -> Self::RewardType {
+    fn penalty_for_illegal(&self) -> AgentAssessmentClassic<i64> {
         AgentAssessmentClassic::with_only_table_payoff(-100)
     }
 }

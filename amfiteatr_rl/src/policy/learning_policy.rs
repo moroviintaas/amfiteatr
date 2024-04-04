@@ -1,6 +1,11 @@
 use tch::nn::VarStore;
 use tch::Tensor;
-use amfiteatr_core::agent::{AgentTraceStep, Trajectory, Policy, EvaluatedInformationSet, AgentTrajectory, InformationSet, AgentStepView};
+use amfiteatr_core::agent::{
+    Policy,
+    AgentTrajectory,
+    InformationSet,
+    AgentStepView
+};
 
 use amfiteatr_core::domain::DomainParameters;
 use crate::error::AmfiteatrRlError;

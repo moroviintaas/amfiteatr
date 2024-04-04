@@ -3,7 +3,13 @@ use std::marker::PhantomData;
 use tch::Kind::{Float};
 use tch::nn::{Optimizer, VarStore};
 use tch::{Kind, kind, Tensor};
-use amfiteatr_core::agent::{AgentTraceStep, Trajectory, InformationSet, Policy, EvaluatedInformationSet, AgentStepView, AgentTrajectory};
+use amfiteatr_core::agent::{
+    InformationSet,
+    Policy,
+    EvaluatedInformationSet,
+    AgentStepView,
+    AgentTrajectory
+};
 use amfiteatr_core::domain::DomainParameters;
 
 use crate::error::{AmfiteatrRlError, TensorRepresentationError};
@@ -35,7 +41,7 @@ pub struct ActorCriticPolicy<
 
 impl<
     DP: DomainParameters,
-    InfoSet: EvaluatedInformationSet<DP>  + Debug + CtxTryIntoTensor<InfoSetConversionContext>,
+    InfoSet: InformationSet<DP>  + Debug + CtxTryIntoTensor<InfoSetConversionContext>,
     InfoSetConversionContext: ConversionToTensor,
     //ActionConversionContext: ConversionFromTensor,
     >
@@ -147,7 +153,7 @@ where <DP as DomainParameters>::ActionType: TryFromTensor{
 
 impl<
     DP: DomainParameters,
-    InfoSet: EvaluatedInformationSet<DP>  + Debug + CtxTryIntoTensor<InfoSetWay>,
+    InfoSet: InformationSet<DP>  + Debug + CtxTryIntoTensor<InfoSetWay>,
     InfoSetWay: ConversionToTensor,
     //InfoSet: ScoringInformationSet<DP> + Debug,
     //StateConverter: ConvStateToTensor<InfoSet>>

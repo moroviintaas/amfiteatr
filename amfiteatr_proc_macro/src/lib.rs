@@ -18,26 +18,24 @@ pub fn no_assessment_info_set(attr: proc_macro::TokenStream, item: proc_macro::T
 
     let implementation = match params.is_empty(){
         true => quote!{
-            impl amfiteatr_core::agent::EvaluatedInformationSet<#domain> for #ident{
-                type RewardType = amfiteatr_core::domain::NoneReward;
+            impl amfiteatr_core::agent::EvaluatedInformationSet<#domain,  amfiteatr_core::domain::NoneReward> for #ident{
 
-                fn current_subjective_score(&self) -> Self::RewardType {
+                fn current_subjective_score(&self) -> amfiteatr_core::domain::NoneReward{
                     amfiteatr_core::domain::NoneReward{}
                 }
-                fn penalty_for_illegal(&self) -> Self::RewardType {
+                fn penalty_for_illegal(&self) -> amfiteatr_core::domain::NoneReward {
                     amfiteatr_core::domain::NoneReward{}
                 }
             }
         },
         false => quote!{
-            impl<#params> amfiteatr_core::agent::EvaluatedInformationSet<#domain> for #ident <#params>
+            impl<#params> amfiteatr_core::agent::EvaluatedInformationSet<#domain, amfiteatr_core::domain::NoneReward> for #ident <#params>
             #where_clause{
-                type RewardType = amfiteatr_core::domain::NoneReward;
 
-                fn current_subjective_score(&self) -> Self::RewardType {
+                fn current_subjective_score(&self) -> amfiteatr_core::domain::NoneReward {
                     amfiteatr_core::domain::NoneReward{}
                 }
-                fn penalty_for_illegal(&self) -> Self::RewardType {
+                fn penalty_for_illegal(&self) -> amfiteatr_core::domain::NoneReward {
                     amfiteatr_core::domain::NoneReward{}
                 }
             }

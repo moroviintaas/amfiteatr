@@ -302,14 +302,13 @@ impl PresentPossibleActions<DemoDomain> for DemoInfoSet{
     }
 }
 
-impl EvaluatedInformationSet<DemoDomain> for DemoInfoSet{
-    type RewardType = f32;
+impl EvaluatedInformationSet<DemoDomain, f32> for DemoInfoSet{
 
-    fn current_subjective_score(&self) -> Self::RewardType {
+    fn current_subjective_score(&self) -> f32 {
         self.rewards.iter().sum()
     }
 
-    fn penalty_for_illegal(&self) -> Self::RewardType {
+    fn penalty_for_illegal(&self) -> f32 {
         -100.0
     }
 }

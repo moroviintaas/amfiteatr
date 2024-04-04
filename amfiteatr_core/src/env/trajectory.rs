@@ -1,6 +1,5 @@
 use std::fmt::{Display, Formatter};
 use std::ops::Index;
-pub use crate::agent::Trajectory;
 use crate::env::EnvironmentStateSequential;
 use crate::domain::DomainParameters;
 

@@ -6,7 +6,7 @@ use crate::domain::{DomainParameters, Reward};
 use crate::error::AmfiteatrError;
 use crate::error::ProtocolError::UpdateOnFinishedAgentTrajectory;
 
-
+/*
 /// This struct contains information about _information set (game state from view of agent)_
 /// before taken action along with taken action and saved score before and after taking action.
 /// __Note__ scores after taking action are __not__ measured in the moment just after taking action,
@@ -30,8 +30,6 @@ pub struct AgentTraceStep<DP: DomainParameters, S: EvaluatedInformationSet<DP>> 
 
 
 impl<DP: DomainParameters, S: EvaluatedInformationSet<DP>> AgentTraceStep<DP, S>
-//where for <'a> &'a<DP as DomainParameters>::UniversalReward: Sub<&'a <DP as DomainParameters>::UniversalReward, Output=<DP as DomainParameters>::UniversalReward>,
-//    for<'a> &'a <S as ScoringInformationSet<DP>>::RewardType: Sub<&'a  <S as ScoringInformationSet<DP>>::RewardType, Output = <S as ScoringInformationSet<DP>>::RewardType>
 
 {
     /// Constructor of AgentTraceStep
@@ -237,6 +235,8 @@ impl<DP: DomainParameters, S: EvaluatedInformationSet<DP>> Index<usize> for Traj
     }
 }
 
+
+ */
 
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Clone, Debug)]

@@ -20,7 +20,7 @@ use crate::domain::DomainParameters;
 /// //                      InformationSet-------------------------^
 /// ```
 /// This trait has blanket implementation for types implementing it's supertraits
-pub trait ModelAgent<DP: DomainParameters, Seed, IS: EvaluatedInformationSet<DP>>:
+pub trait ModelAgent<DP: DomainParameters, Seed, IS: InformationSet<DP>>:
 
     AutomaticAgentRewarded<DP>
     //SelfEvaluatingAgent<DP, Assessment= <IS as EvaluatedInformationSet<DP>>::RewardType>
@@ -34,7 +34,7 @@ pub trait ModelAgent<DP: DomainParameters, Seed, IS: EvaluatedInformationSet<DP>
 impl<
     DP: DomainParameters,
     Seed,
-    IS: EvaluatedInformationSet<DP>,
+    IS: InformationSet<DP>,
     T: AutomaticAgentRewarded<DP>
         //+ SelfEvaluatingAgent<DP, Assessment= <IS as EvaluatedInformationSet<DP>>::RewardType>
         + ReseedAgent<DP, Seed>

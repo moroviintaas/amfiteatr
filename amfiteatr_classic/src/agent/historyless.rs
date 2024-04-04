@@ -64,14 +64,13 @@ impl InformationSet<ClassicGameDomain<AgentNum>> for MinimalInfoSet {
     }
 }
 
-impl EvaluatedInformationSet<ClassicGameDomainNumbered> for MinimalInfoSet {
-    type RewardType = IntReward;
+impl EvaluatedInformationSet<ClassicGameDomainNumbered, IntReward> for MinimalInfoSet {
 
-    fn current_subjective_score(&self) -> Self::RewardType {
+    fn current_subjective_score(&self) -> IntReward {
         self.payoff
     }
 
-    fn penalty_for_illegal(&self) -> Self::RewardType {
+    fn penalty_for_illegal(&self) -> IntReward {
         -10
     }
 }

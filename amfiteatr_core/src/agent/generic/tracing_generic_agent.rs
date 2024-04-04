@@ -125,13 +125,13 @@ where <P as Policy<DP>>::InfoSetType: InformationSet<DP>{
     }
     /// Using [`std::mem::swap`](::std::mem::swap) swaps communication endpoints between two instances.
     pub fn swap_comms<P2: Policy<DP>>(&mut self, other: &mut TracingAgentGen<DP, P2, Comm>)
-    where <P2 as Policy<DP>>::InfoSetType: EvaluatedInformationSet<DP> + Clone{
+    where <P2 as Policy<DP>>::InfoSetType: InformationSet<DP> + Clone{
         std::mem::swap(&mut self.comm, &mut other.comm)
     }
 
     /// Using [`std::mem::swap`](::std::mem::swap) swaps communication endpoints with instance of [`AgentGent`](crate::agent::AgentGen).
     pub fn swap_comms_with_basic<P2: Policy<DP>>(&mut self, other: &mut AgentGen<DP, P2, Comm>)
-    where <P2 as Policy<DP>>::InfoSetType: EvaluatedInformationSet<DP> + Clone{
+    where <P2 as Policy<DP>>::InfoSetType: InformationSet<DP> + Clone{
         std::mem::swap(&mut self.comm, &mut other.comm_mut())
     }
 
@@ -286,32 +286,12 @@ where <P as Policy<DP>>::InfoSetType: InformationSet<DP> + Clone,
             self.commit_partial_rewards();
             //let universal_score_after_update = self.committed_universal_score.clone();
             let initial_state = self.state_before_last_action.take().unwrap();
-            //let subjective_score_before_update = initial_state.current_subjective_score();
-            //let subjective_score_after_update = self.information_set.current_subjective_score() + &self.explicit_subjective_reward_component;
 
-
-            /*
-            self.game_trajectory.push_trace_step(
-                AgentTraceStep::new(
-                    initial_state,
-                    prev_action,
-                    universal_score_before_update,
-                    universal_score_after_update,
-                    subjective_score_before_update,
-                    subjective_score_after_update,
-                    ));
-
-             */
             self.game_trajectory.register_step(initial_state, prev_action, universal_score_before_update)
 
         } else {
             Ok(())
         }
-        /*else {
-            Err(AmfiteatrError::Protocol(TiedStepRecordWithNoAction(self.info_set().agent_id().clone())))
-        }
-
-         */
 
     }
 
@@ -343,7 +323,7 @@ impl<
     Seed>
 MultiEpisodeAutoAgent<DP, Seed> for TracingAgentGen<DP, P, Comm>
 where Self: ReseedAgent<DP, Seed> + AutomaticAgent<DP>,
-      <P as Policy<DP>>::InfoSetType: EvaluatedInformationSet<DP> + Clone,
+      <P as Policy<DP>>::InfoSetType: InformationSet<DP> + Clone,
 {
     fn store_episode(&mut self) {
         let mut new_trajectory = AgentTrajectory::with_capacity(self.game_trajectory.completed_len());
@@ -368,11 +348,11 @@ impl<
         Error=CommunicationError<DP>>,
     Seed>
 MultiEpisodeTracingAgent<DP, <P as Policy<DP>>::InfoSetType, Seed> for TracingAgentGen<DP, P, Comm>
-    where <P as Policy<DP>>::InfoSetType: EvaluatedInformationSet<DP> + Clone,
+    where <P as Policy<DP>>::InfoSetType: InformationSet<DP> + Clone,
     Self: ReseedAgent<DP, Seed>
     //+ SelfEvaluatingAgent<DP>
     + AutomaticAgent<DP>,
-          <Self as StatefulAgent<DP>>::InfoSetType: EvaluatedInformationSet<DP>{
+          <Self as StatefulAgent<DP>>::InfoSetType: InformationSet<DP>{
 
     fn take_episodes(&mut self) -> Vec<AgentTrajectory<DP, <P as Policy<DP>>::InfoSetType>> {
         let mut episodes = Vec::with_capacity(self.episodes.len());
@@ -388,7 +368,7 @@ impl<
         InwardType=EnvironmentMessage<DP>,
         Error=CommunicationError<DP>>>
 PolicyAgent<DP> for TracingAgentGen<DP, P, Comm>
-where <P as Policy<DP>>::InfoSetType: EvaluatedInformationSet<DP>{
+where <P as Policy<DP>>::InfoSetType: InformationSet<DP>{
     type Policy = P;
 
     fn policy(&self) -> &Self::Policy {
@@ -436,7 +416,7 @@ impl<
         InwardType=EnvironmentMessage<DP>,
         Error=CommunicationError<DP>>>
 ReinitAgent<DP> for TracingAgentGen<DP, P, Comm>
-where <P as Policy<DP>>::InfoSetType: EvaluatedInformationSet<DP>{
+where <P as Policy<DP>>::InfoSetType: InformationSet<DP>{
 
     fn reinit(&mut self, initial_state: <Self as StatefulAgent<DP>>::InfoSetType) {
         self.information_set = initial_state;
