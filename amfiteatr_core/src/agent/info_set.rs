@@ -53,14 +53,14 @@ impl<DP: DomainParameters, T: PresentPossibleActions<DP>> PresentPossibleActions
 /// one numeric value as reward agent may be interested in some vector of numeric values representing
 /// his multi-criterion view on game's result.
 pub trait EvaluatedInformationSet<DP: DomainParameters, R: Reward>: InformationSet<DP>{
-    fn current_subjective_score(&self) -> R;
+    fn current_assessment(&self) -> R;
     fn penalty_for_illegal(&self) -> R;
 }
 
 impl<T: EvaluatedInformationSet<DP, R>, DP: DomainParameters, R: Reward> EvaluatedInformationSet<DP, R> for Box<T> {
 
-    fn current_subjective_score(&self) -> R {
-        self.as_ref().current_subjective_score()
+    fn current_assessment(&self) -> R {
+        self.as_ref().current_assessment()
     }
 
     fn penalty_for_illegal(&self) -> R {

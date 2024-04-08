@@ -66,7 +66,7 @@ impl InformationSet<ClassicGameDomain<AgentNum>> for MinimalInfoSet {
 
 impl EvaluatedInformationSet<ClassicGameDomainNumbered, IntReward> for MinimalInfoSet {
 
-    fn current_subjective_score(&self) -> IntReward {
+    fn current_assessment(&self) -> IntReward {
         self.payoff
     }
 

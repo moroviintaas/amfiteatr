@@ -178,7 +178,7 @@ fn main() -> Result<(), AmfiteatrError<ClassicGameDomain<AgentNum>>>{
         scores[0].push(agent_0.current_universal_score()) ;
         scores[1].push(agent_1.current_universal_score());
         //scores[2].push(reward_f(agent_1.current_assessment_total()) as i64);
-        scores[2].push(reward_f(agent_1.info_set().current_subjective_score()) as i64);
+        scores[2].push(reward_f(agent_1.info_set().current_assessment()) as i64);
         coops[0].push(agent_0.info_set().count_actions_self_calculate(Down));
         coops[1].push(agent_1.info_set().count_actions_self_calculate(Down));
 
@@ -217,7 +217,7 @@ fn main() -> Result<(), AmfiteatrError<ClassicGameDomain<AgentNum>>>{
                     //let own_defects = step.step_info_set().count_actions_self(Defect) as i64;
                     //let custom_reward = step.step_subjective_reward().count_other_actions(Cooperate);
                     //let custom_reward = reward_f(step.step_subjective_reward());
-                    let custom_reward = reward_f(step.late_info_set().current_subjective_score() - step.info_set().current_subjective_score());
+                    let custom_reward = reward_f(step.late_information_set().current_assessment() - step.information_set().current_assessment());
                     let v_custom_reward = vec![custom_reward];
                     //trace!("Calculating custom reward on info set: {}, with agent reward: {:?}.",
                     //    step.step_info_set(), step.step_subjective_reward());
@@ -230,7 +230,7 @@ fn main() -> Result<(), AmfiteatrError<ClassicGameDomain<AgentNum>>>{
                 agent_1.policy_mut().train_on_trajectories(&trajectories_1[..], |step| {
                     //let own_defects = step.step_info_set().count_actions_self(Defect) as i64;
                     //let custom_reward = step.step_subjective_reward().f_combine_table_with_other_coop(100.0);
-                    let custom_reward = reward_f(step.late_info_set().current_subjective_score() - step.info_set().current_subjective_score());
+                    let custom_reward = reward_f(step.late_information_set().current_assessment() - step.information_set().current_assessment());
                     let v_custom_reward = vec![custom_reward];
                     //trace!("Calculating custom reward on info set: {}, with agent reward: {:?}.",
                     //    step.step_info_set(), step.step_subjective_reward());
@@ -241,7 +241,7 @@ fn main() -> Result<(), AmfiteatrError<ClassicGameDomain<AgentNum>>>{
 
             SecondPolicy::StdMinDefectsBoth => {
                 agent_1.policy_mut().train_on_trajectories(&trajectories_1[..], |step| {
-                    let custom_reward = reward_f(step.late_info_set().current_subjective_score() - step.info_set().current_subjective_score());
+                    let custom_reward = reward_f(step.late_information_set().current_assessment() - step.information_set().current_assessment());
                     let v_custom_reward = vec![custom_reward];
 
                     Tensor::from_slice(&v_custom_reward[..])
@@ -249,7 +249,7 @@ fn main() -> Result<(), AmfiteatrError<ClassicGameDomain<AgentNum>>>{
             },
             SecondPolicy::Edu => {
                 agent_1.policy_mut().train_on_trajectories(&trajectories_1[..], |step| {
-                    let custom_reward = reward_f(step.late_info_set().current_subjective_score() - step.info_set().current_subjective_score());
+                    let custom_reward = reward_f(step.late_information_set().current_assessment() - step.information_set().current_assessment());
                     let v_custom_reward = vec![custom_reward];
 
                     Tensor::from_slice(&v_custom_reward[..])
@@ -266,7 +266,7 @@ fn main() -> Result<(), AmfiteatrError<ClassicGameDomain<AgentNum>>>{
             scores[0].push(agent_0.current_universal_score());
             scores[1].push(agent_1.current_universal_score());
             //scores[2].push(reward_f(agent_1.current_assessment_total()) as i64);
-            scores[2].push(reward_f(agent_1.info_set().current_subjective_score()) as i64);
+            scores[2].push(reward_f(agent_1.info_set().current_assessment()) as i64);
             coops[0].push(agent_0.info_set().count_actions_self_calculate(Down));
             coops[1].push(agent_1.info_set().count_actions_self_calculate(Down));
 

@@ -1,6 +1,12 @@
 # Changelog
 
 ---
+## Version 0.5.0
++ Rework of tracing - replaced `Trajectory` with `AgentTrajectory` without
+need of information set to implement `EvaluatedInformationSet`;
+and `EnvTrajectory` with `GameTrajectory` working in similar way like `AgentTrajectory`.
++ Changed trait `EvaluatedInformationSet` to have generic reward allowing multiple implementations for single information set.
+
 ## Version 0.4.0
 + Renamed `AmfiRLError` to `AmfiteatrRlError`.
 + Added `serde` support for protocol messages.

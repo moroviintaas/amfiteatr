@@ -1,4 +1,4 @@
-use std::fmt::{Debug, Display, Formatter};
+use std::fmt::{Debug, Display};
 use std::ops::Index;
 use crate::agent::info_set::EvaluatedInformationSet;
 use crate::agent::InformationSet;
@@ -6,238 +6,23 @@ use crate::domain::{DomainParameters, Reward};
 use crate::error::AmfiteatrError;
 use crate::error::TrajectoryError::UpdateOnFinishedAgentTrajectory;
 
-/*
-/// This struct contains information about _information set (game state from view of agent)_
-/// before taken action along with taken action and saved score before and after taking action.
-/// __Note__ scores after taking action are __not__ measured in the moment just after taking action,
-/// but just before taking subsequent action i.e. this is _information set_ for __next__ step.
+
+/// View of single step in game trajectory.
 ///
-
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-#[derive(Clone, Debug)]
-pub struct AgentTraceStep<DP: DomainParameters, S: EvaluatedInformationSet<DP>> {
-    initial_info_set: S,
-    taken_action: DP::ActionType,
-    initial_payoff: DP::UniversalReward,
-    updated_payoff: DP::UniversalReward,
-
-    initial_subjective_assessment: S::RewardType,
-    updated_subjective_assessment: S::RewardType
-
-
-}
-
-
-
-impl<DP: DomainParameters, S: EvaluatedInformationSet<DP>> AgentTraceStep<DP, S>
-
-{
-    /// Constructor of AgentTraceStep
-    /// # Args:
-    /// - `initial_info_set`: Information set before taken action
-    /// - `taken_action`: Performed action (in the state of `initial_info_set`)
-    /// - `initial_universal_state_score`: score before taking action, i.e. at the moment of `initial_info_set`,
-    ///  taken from environment
-    /// - `updated_universal_state_score`: score after taking action
-    /// taken from environment
-    /// - `initial_subjective_state_score`: score before taking action, i.e. at the moment of `initial_info_set`
-    /// measured on information set
-    /// - `updated_universal_state_score`: score after taking action - measured on information set
-    pub fn new(
-
-        initial_info_set: S,
-        taken_action: DP::ActionType,
-        initial_universal_state_score: DP::UniversalReward,
-        updated_universal_state_score: DP::UniversalReward,
-        initial_subjective_state_score: S::RewardType,
-        updated_subjective_state_score: S::RewardType
-    ) -> Self{
-        Self {
-            initial_info_set,
-            taken_action,
-            initial_payoff: initial_universal_state_score,
-            updated_payoff: updated_universal_state_score,
-            initial_subjective_assessment: initial_subjective_state_score,
-            updated_subjective_assessment: updated_subjective_state_score
-        }
-    }
-
-    /// Returns reference to information set trapped for this step (before action taken)
-    pub fn step_info_set(&self) -> &S{
-        &self.initial_info_set
-    }
-
-    /// Return reference to taken action in this step
-    pub fn taken_action(&self) -> &DP::ActionType{
-        &self.taken_action
-    }
-
-    /// Returns subjective reward for taken action - difference between score before __next__ action,
-    /// and score before taking __this__ action. This relates to reward received from environment.
-    pub fn step_subjective_reward(&self) -> S::RewardType{
-        let n = self.updated_subjective_assessment.clone();
-        n - &self.initial_subjective_assessment
-
-    }
-    /// Returns subjective reward for taken action - difference between score before __next__ action,
-    /// and score before taking __this__ action. This relates to reward measured on information set.
-    pub fn step_universal_reward(&self) -> DP::UniversalReward{
-        let n = self.updated_payoff.clone();
-        n - &self.initial_payoff
-    }
-
-    /// Returns reference universal score (sourced from environment)
-    pub fn universal_score_before(&self) -> &DP::UniversalReward{
-        &self.initial_payoff
-    }
-    /// Returns reference to score sourced from information set (before action)
-    pub fn subjective_score_before(&self) -> &S::RewardType{
-        &self.initial_subjective_assessment
-    }
-
-
-    /// Returns reference to universal score (sourced from environment) after taking action (and optional actions of other players
-    pub fn universal_score_after(&self) -> &DP::UniversalReward{
-        &self.updated_payoff
-    }
-
-    /// Returns reference to subjective score (sourced from information set) after taking action (and optional actions of other players
-    pub fn subjective_score_after(&self) -> &S::RewardType{
-        &self.updated_subjective_assessment
-    }
-
-
-
-    /// Returns tuple of respectively: reference to information set, reference to taken action, reward for taken action (sourced from environment)
-    pub fn s_a_r_universal(&self) -> (&S, &DP::ActionType, DP::UniversalReward) {
-        (self.step_info_set(), self.taken_action(), self.step_universal_reward())
-    }
-
-    /// Returns tuple of respectively: reference to information set, reference to taken action, reward for taken action (sourced from information set)
-    pub fn s_a_r_subjective(&self) -> (&S, &DP::ActionType, S::RewardType) {
-        (self.step_info_set(), self.taken_action(), self.step_subjective_reward())
-    }
-    //pub fn s_a_r(&self, source:S RewardSource) -
-}
-
-impl<DP: DomainParameters, S: EvaluatedInformationSet<DP>> Display for AgentTraceStep<DP, S>
-where
-    S: Display,
-    <DP as DomainParameters>::UniversalReward: Display,
-    <DP as DomainParameters>::ActionType: Display,
-    <S as  EvaluatedInformationSet<DP>>::RewardType : Display{
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "[State: {} ][From Score: U = {} | A = {}][Action: {} ][To Score: U = {} | A = {}]",
-               self.initial_info_set,
-
-               self.initial_payoff,
-               self.initial_subjective_assessment,
-               self.taken_action,
-               self.updated_payoff,
-               self.updated_subjective_assessment
-        )
-    }
-}
-
-
-/// Trajectory of game from the view of agent.
-/// > This structure needs a rework in future. For now it wraps around `Vec` of steps, where single
-/// step typically consists of initial state, taken action, and rewards. It may be helpful to make
-/// single steps have access to another steps (to allow some difference analysis) - in such case
-/// we would like some counted reference ([`Arc`](std::sync::Arc)).
-/// Second problem is that current implementation does not capture final state in trajectory.
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-#[derive(Debug)]
-pub struct Trajectory<DP: DomainParameters, S: EvaluatedInformationSet<DP>> {
-
-
-    //top_state: S,
-    #[cfg_attr(feature = "serde",
-        serde(bound(serialize =
-            "DP::ActionType: serde::Serialize, \
-            DP::UniversalReward: serde::Serialize, \
-            <S as EvaluatedInformationSet<DP>>::RewardType: serde::Serialize"))
-        )
-    ]
-    #[cfg_attr(feature = "serde",
-    serde(bound(deserialize =
-    "DP::ActionType: serde::Deserialize<'de>, \
-            DP::UniversalReward: serde::Deserialize<'de>, \
-            <S as EvaluatedInformationSet<DP>>::RewardType: serde::Deserialize<'de>"))
-        )
-    ]
-    history: Vec<AgentTraceStep<DP, S>>,
-    //revoked_steps: Vec<AgentTraceStep<DP, S>>,
-    final_information_set: Option<S>,
-
-}
-/// This is proposed default agent trajectory, where single step is of type
-/// [`AgentTraceStep`]
-//pub type StdAgentTrajectory<DP, IS> = Trajectory<AgentTraceStep<DP, IS>>;
-impl<DP: DomainParameters, S: EvaluatedInformationSet<DP>>  Default for Trajectory<DP, S>{
-    fn default() -> Self {
-        Self{ history: Default::default(), final_information_set: Default::default()}
-    }
-}
-impl<DP: DomainParameters, S: EvaluatedInformationSet<DP>>  Trajectory<DP, S>
-{
-
-
-    pub fn new() -> Self{
-        Self{ history: Default::default(), final_information_set: Default::default()}
-    }
-    /*pub fn register_line(&mut self, state: S, action: DP::ActionType, reward_for_action: S::RewardType){
-        self.trace.push(GameTraceLine::new(state, action, reward_for_action));
-
-    }*/
-    pub fn new_reserve(capacity: usize) -> Self{
-        Self{ history: Vec::with_capacity(capacity), final_information_set: Default::default()}
-    }
-
-    /// Pushes trace step on the end of trajectory.
-    pub fn push_trace_step(&mut self, trace_step: AgentTraceStep<DP, S>){
-        self.history.push(trace_step);
-    }
-    /// Clears trajectory using [`Vec::clear()`](std::vec::Vec::clear)
-    pub fn clear(&mut self){
-        self.history.clear();
-        self.final_information_set = None;
-    }
-
-    /// Returns reference to `Vec` inside the structure.
-    pub fn list(&self) -> &Vec<AgentTraceStep<DP, S>>{
-        &self.history
-    }
-
-    /// Pops step from trajectory using [`Vec::pop()`](std::vec::Vec::pop)
-    pub fn pop_step(&mut self) -> Option<AgentTraceStep<DP, S>>{
-        self.history.pop()
-    }
-
-
-    pub fn is_empty(&self) -> bool{
-        self.list().is_empty()
-    }
-
-    pub fn finalize(&mut self, information_set: S){
-        self.final_information_set = Some(information_set);
-    }
-    pub fn final_information_set(&self) -> &Option<S>{
-        &self.final_information_set
-    }
-}
-
-impl<DP: DomainParameters, S: EvaluatedInformationSet<DP>> Index<usize> for Trajectory<DP, S>{
-    type Output = AgentTraceStep<DP, S>;
-
-    fn index(&self, index: usize) -> &Self::Output {
-        &self.history[index]
-    }
-}
-
-
- */
-
+/// Provides references to information sets and
+/// domain payoffs both for time moment before taking action and at the moment before player does next
+/// game action.
+/// View contains also action made in this step. Reward for step is calculated as difference in
+/// payoffs. It may be also calculated as difference in assessments provided by InformationSet
+/// implementing [`EvaluatedInformationSet`].
+///
+///
+/// __Note__: Unlike the [`GameStepView`],  step is measured from the moment of taking action to the moment just before next
+/// action of the same player.
+/// For one [`AgentStepView`] there might be  one or more [`GameStepView`]s registered by the environment.
+/// In the meantime action multiple updates on information set and payoff can be made.
+///
+/// For trace collected by central environment refer to [`GameTrajectory`].
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Clone, Debug)]
 pub struct AgentStepView<'a, DP: DomainParameters, S: InformationSet<DP>>{
@@ -272,27 +57,68 @@ impl<'a, DP: DomainParameters, S: InformationSet<DP>> AgentStepView<'a, DP, S>{
             action
         }
     }
-    pub fn info_set(&self) -> &S{
+    /// Information set before taking action.
+    pub fn information_set(&self) -> &S{
         &self.start_info_set
     }
+    /// Payoff set before taking action.
     pub fn payoff(&self) -> &DP::UniversalReward{
         &self.start_payoff
     }
-    pub fn late_info_set(&self) -> &S{
+    /// Information set after step completion (just before next step).
+    pub fn late_information_set(&self) -> &S{
         &self.end_info_set
     }
+    /// Payoff after step completion (just before next step).
     pub fn late_payoff(&self) -> &DP::UniversalReward{
         &self.end_payoff
     }
+    /// Difference in late payoff and start payoff calculated via [`Reward::ref_sub`].
     pub fn reward(&self) -> DP::UniversalReward{
         self.end_payoff.ref_sub(self.start_payoff)
     }
+    /// Action taken in this step.
     pub fn action(&self) -> &DP::ActionType{
         self.action
     }
 
 }
 
+
+/// Whole trajectory structure from the point of view of agent.
+/// Consists of sequences of [`InformationSet`]s, respectful payoffs [`Reward`].
+///
+///
+/// Trajectory consists of series step points tuples of:
+/// +  __information set__ in time point of performing action,
+/// + the __action__ selected,
+/// + __payoff__ in the moment of performing action.
+///
+/// Trajectory ends with final information set (state) and corresponding payoff (no action performed there).
+/// Data can be considered with following array:
+///
+///
+/// | Information Set | Action | Payoff |
+/// |:---------------:|:------:|:-------|
+/// | s\_0 | a\_0 | p\_0 |
+/// | s\_1 | a\_1 | p\_1 |
+/// | ... | ... | ... |
+/// | s\_n | a\_n | p\_n |
+/// | final state | --- | final payoff |
+///
+/// Each row is added via function [`AgentTrajectory::register_step_point`] and the final row is added
+/// via [`AgentTrajectory::finish`].
+///
+/// One game step is measured between point in time for one performed action and next action performed.
+/// Note that during single step information set and payoff may be updated one or more times as other players
+/// may change the game state in the meantime.
+/// It is important to catch game information at the exact moments of taking actions.
+/// The reward for _a\_0_ in previous table is _p\_1 - p\_0_, therefore to calculate reward for game step
+/// it is needed that the initial point is known and next point - this may be begining of next step or
+/// final point in game.
+///
+/// Similarly, agent side calculated assessment on information set implementing [`EvaluatedInformationSet`]
+/// can be done by subtracting [`current_assessment`](EvaluatedInformationSet::current_assessment).
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Clone, Debug)]
 pub struct AgentTrajectory<DP: DomainParameters, S: InformationSet<DP>>{
@@ -317,6 +143,8 @@ pub struct AgentTrajectory<DP: DomainParameters, S: InformationSet<DP>>{
 
 }
 
+
+
 impl<DP: DomainParameters, S: InformationSet<DP>>  Default for AgentTrajectory<DP, S>{
     fn default() -> Self {
         Self{ information_sets: vec![], payoffs: vec![], actions: vec![],
@@ -326,10 +154,13 @@ impl<DP: DomainParameters, S: InformationSet<DP>>  Default for AgentTrajectory<D
 
 impl<DP: DomainParameters, S: InformationSet<DP>> AgentTrajectory<DP, S>{
 
+    /// Creates new trajectory. Initializing undergoing vectors with [`default`](Default::default).
+    /// If size can be estimated before it will be better to use [`Self::with_capacity`]
     pub fn new() -> Self{
         Default::default()
     }
 
+    /// Clears vectors of data. Uses [`Vec::clear`], so elements are removed but no reallocation occurs.
     pub fn clear(&mut self){
         self.actions.clear();
         self.payoffs.clear();
@@ -338,6 +169,7 @@ impl<DP: DomainParameters, S: InformationSet<DP>> AgentTrajectory<DP, S>{
         self.final_info_set = None;
     }
 
+    /// Creates new trajectory with size hint to allocate memory at initialization.
     pub fn with_capacity(size: usize) -> Self{
         Self{
             information_sets: Vec::with_capacity(size),
@@ -348,8 +180,9 @@ impl<DP: DomainParameters, S: InformationSet<DP>> AgentTrajectory<DP, S>{
         }
     }
 
-    pub fn register_step(&mut self, info_set: S, action: DP::ActionType, payoff: DP::UniversalReward)
-    -> Result<(), AmfiteatrError<DP>>{
+    /// Register parameters for step. Provide starting information set, action and payoff at start.
+    pub fn register_step_point(&mut self, info_set: S, action: DP::ActionType, payoff: DP::UniversalReward)
+                               -> Result<(), AmfiteatrError<DP>>{
         if self.final_payoff.is_some() || self.final_info_set.is_some(){
             return Err(AmfiteatrError::Trajectory{ source: UpdateOnFinishedAgentTrajectory(info_set.agent_id().clone())})
         }
@@ -358,6 +191,9 @@ impl<DP: DomainParameters, S: InformationSet<DP>> AgentTrajectory<DP, S>{
         self.information_sets.push(info_set);
         Ok(())
     }
+
+    /// Registers final information set and payoff in trajectory. Marks Trajectory as finished
+    /// and no later [`Self::register_step_point`] and [`Self::finish`] are allowed.
     pub fn finish(&mut self, info_set: S,  payoff: DP::UniversalReward) -> Result<(), AmfiteatrError<DP>>{
         if self.final_payoff.is_some() || self.final_info_set.is_some(){
             return Err(AmfiteatrError::Trajectory{ source: UpdateOnFinishedAgentTrajectory(info_set.agent_id().clone())})
@@ -366,13 +202,21 @@ impl<DP: DomainParameters, S: InformationSet<DP>> AgentTrajectory<DP, S>{
         self.final_payoff = Some(payoff);
         Ok(())
     }
+
+    /// Checks if trajectory is finished (the final game point is registered via method [`Self::finish`].
     pub fn is_finished(&self) -> bool{
         self.final_payoff.is_some() && self.final_info_set.is_some()
     }
+
+    /// Checks if there is no step points registered.
     pub fn is_empty(&self) -> bool{
         self.information_sets.is_empty() || self.actions.is_empty() || self.payoffs.is_empty()
     }
 
+    /// Returns view for last step in trajectory - if the game is not finished it will be
+    /// step measured between two last registered entries. If game is finished (trajectory invoked
+    /// function [`AgentTrajectory::finish`]) then the step between last registered information set
+    /// and information set provided for the finish function is used to mark last step.
     pub fn last_view_step(&self) -> Option<AgentStepView<DP, S>>{
         if self.final_payoff.is_some() && self.final_info_set.is_some(){
             self.view_step(self.payoffs.len().saturating_sub(1))
@@ -381,6 +225,7 @@ impl<DP: DomainParameters, S: InformationSet<DP>> AgentTrajectory<DP, S>{
         }
     }
 
+    /// Returns view of indexed step
     pub fn view_step(&self, index: usize) -> Option<AgentStepView<DP, S>>{
         //first check if there is next normal step
         self.information_sets.get(index+1).and_then(|se|{
@@ -414,14 +259,58 @@ impl<DP: DomainParameters, S: InformationSet<DP>> AgentTrajectory<DP, S>{
 
 
     }
-    pub fn completed_len(&self) -> usize{
+    /// Number of full steps (available for view). Step is complete when there is next information set
+    /// and payoff able to select. This means that initially trajectory has step len 0, after
+    /// first registration step len is still 0, as only initial information set is known and
+    /// not information set at the end of step. Subsequent updates increment number of steps and finishing also.
+    ///
+    /// # Example:
+    /// ```
+    /// use amfiteatr_core::agent::AgentTrajectory;
+    /// use amfiteatr_core::comm::StdEnvironmentEndpoint;
+    /// use amfiteatr_core::demo::{DemoAction, DemoDomain, DemoInfoSet};
+    /// let infoset = DemoInfoSet::new(1, 2);
+    /// let mut trajectory: AgentTrajectory<DemoDomain, DemoInfoSet> = AgentTrajectory::new();
+    /// assert_eq!(trajectory.number_of_steps(), 0);
+    /// trajectory.register_step_point(infoset.clone(), DemoAction(0), 0.0).unwrap();
+    /// assert_eq!(trajectory.number_of_steps(), 0);
+    /// trajectory.register_step_point(infoset.clone(), DemoAction(1), 2.0).unwrap();
+    /// assert_eq!(trajectory.number_of_steps(), 1);
+    /// trajectory.finish(infoset.clone(), 3.0).unwrap();
+    /// assert_eq!(trajectory.number_of_steps(), 2);
+    ///
+    /// ```
+    pub fn number_of_steps(&self) -> usize{
         match self.is_finished(){
             true => self.information_sets.len(),
             false => self.information_sets.len().saturating_sub(1),
         }
 
     }
-    
+    /// Returns the number of raw action points registered. For finished trajectory it equals number
+    /// of steps in game. For unfinished games, the number of steps is one less, as the noted step point
+    /// has no follower.
+    /// # Example:
+    /// ```
+    /// use amfiteatr_core::agent::AgentTrajectory;
+    /// use amfiteatr_core::comm::StdEnvironmentEndpoint;
+    /// use amfiteatr_core::demo::{DemoAction, DemoDomain, DemoInfoSet};
+    /// let infoset = DemoInfoSet::new(1, 2);
+    /// let mut trajectory: AgentTrajectory<DemoDomain, DemoInfoSet> = AgentTrajectory::new();
+    /// assert_eq!(trajectory.number_of_action_points(), 0);
+    /// trajectory.register_step_point(infoset.clone(), DemoAction(0), 0.0).unwrap();
+    /// assert_eq!(trajectory.number_of_action_points(), 1);
+    /// trajectory.register_step_point(infoset.clone(), DemoAction(1), 2.0).unwrap();
+    /// assert_eq!(trajectory.number_of_action_points(), 2);
+    /// trajectory.finish(infoset.clone(), 3.0).unwrap();
+    /// assert_eq!(trajectory.number_of_action_points(), 2);
+    ///
+    /// ```
+    pub fn number_of_action_points(&self) -> usize{
+        self.information_sets.len()
+    }
+
+    /// Returns iterator of step views.
     pub fn iter(&self) -> AgentStepIterator<DP, S>{
         AgentStepIterator{
             trajectory: &self,
@@ -431,6 +320,7 @@ impl<DP: DomainParameters, S: InformationSet<DP>> AgentTrajectory<DP, S>{
 
 }
 
+/// Iterator for step views in agent trajectory
 pub struct AgentStepIterator<'a, DP: DomainParameters, S: InformationSet<DP>>{
     trajectory: &'a AgentTrajectory<DP, S>,
     index: usize
@@ -487,7 +377,7 @@ mod tests{
 
         assert!(agent_blue.game_trajectory().is_finished());
         assert_eq!(agent_blue.game_trajectory().information_sets.len(), 3);
-        assert_eq!(agent_blue.game_trajectory().completed_len(), 3);
+        assert_eq!(agent_blue.game_trajectory().number_of_steps(), 3);
         assert!(agent_blue.game_trajectory().view_step(0).unwrap().payoff() < agent_blue.game_trajectory().view_step(0).unwrap().late_payoff());
         assert_eq!(agent_blue.game_trajectory().view_step(0).unwrap().late_payoff(), agent_blue.game_trajectory().view_step(1).unwrap().payoff());
         assert!(agent_blue.game_trajectory().view_step(1).unwrap().late_payoff() < agent_blue.game_trajectory().view_step(2).unwrap().late_payoff());

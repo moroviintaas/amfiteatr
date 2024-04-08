@@ -96,7 +96,7 @@
 //! |                ----------------------     |    ---------
 //!  -------------------------------------------
 //! ```
-//! //! Choice of api objects to use this model:
+//! Choice of api objects to use this model:
 //! 1. [`AgentMpscPort`](crate::comm::AgentMpscAdapter)
 //! 2. [`EnvironmentMpscPort`](crate::comm::EnvironmentMpscPort)
 //! 3. [`BasicEnvironment`](crate::env::HashMapEnvironment) or [`TracingEnvironment`](crate::env::TracingHashMapEnvironment)

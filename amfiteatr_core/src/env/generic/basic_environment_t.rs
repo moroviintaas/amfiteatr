@@ -78,7 +78,7 @@ impl <
             Ok(updates) => {
 
                 //self.history.push_trace_step(EnvironmentTraceStep::new(state_clone, agent.clone(), action.clone(), true));
-                self.history.register_step(state_clone, agent.clone(), action.clone(), true)?;
+                self.history.register_step_point(state_clone, agent.clone(), action.clone(), true)?;
                 if self.base_environment.state().is_finished(){
                     self.history.finish(self.base_environment.state().clone())?;
                 }
@@ -86,7 +86,7 @@ impl <
             }
             Err(e) => {
 
-                self.history.register_step(state_clone, agent.clone(), action.clone(), false)?;
+                self.history.register_step_point(state_clone, agent.clone(), action.clone(), false)?;
                 if self.base_environment.state().is_finished(){
                     self.history.finish(self.base_environment.state().clone())?;
                 }
@@ -145,7 +145,7 @@ impl <
         match self.base_environment.process_action_penalise_illegal(agent, action, penalty_reward){
             Ok(updates) => {
 
-                self.history.register_step(state_clone, agent.clone(), action.clone(), true)?;
+                self.history.register_step_point(state_clone, agent.clone(), action.clone(), true)?;
                 if self.base_environment.state().is_finished(){
                     self.history.finish(self.base_environment.state().clone())?;
                 }
@@ -153,7 +153,7 @@ impl <
             }
             Err(e) => {
 
-                self.history.register_step(state_clone, agent.clone(), action.clone(), false)?;
+                self.history.register_step_point(state_clone, agent.clone(), action.clone(), false)?;
                 if self.base_environment.state().is_finished(){
                     self.history.finish(self.base_environment.state().clone())?;
                 }

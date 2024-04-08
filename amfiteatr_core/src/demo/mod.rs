@@ -36,7 +36,7 @@
 //!     });
 //! });
 //!
-//! assert_eq!(environment.trajectory().completed_len(), 200);
+//! assert_eq!(environment.trajectory().number_of_steps(), 200);
 //! assert!(environment.actual_score_of_player(&DEMO_AGENT_BLUE) > 10.0);
 //! assert!(agent_blue.current_universal_score() > 10.0);
 //! assert!(agent_red.current_universal_score() > 10.0);
@@ -304,7 +304,7 @@ impl PresentPossibleActions<DemoDomain> for DemoInfoSet{
 
 impl EvaluatedInformationSet<DemoDomain, f32> for DemoInfoSet{
 
-    fn current_subjective_score(&self) -> f32 {
+    fn current_assessment(&self) -> f32 {
         self.rewards.iter().sum()
     }
 

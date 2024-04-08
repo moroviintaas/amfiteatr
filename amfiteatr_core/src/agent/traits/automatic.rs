@@ -5,7 +5,6 @@ use crate::agent::{
     StatefulAgent,
     PolicyAgent,
     RewardedAgent,
-    EvaluatedInformationSet,
     IdAgent,
     InformationSet};
 use crate::error::{CommunicationError, AmfiteatrError};
@@ -39,34 +38,7 @@ pub trait AutomaticAgentRewarded<DP: DomainParameters>: AutomaticAgent<DP> + Rew
     fn run_rewarded(&mut self) -> Result<(), AmfiteatrError<DP>>;
 }
 
-/*
-/// Combination of traits [`AutomaticAgentRewarded`](AutomaticAgentRewarded),
-/// [`SelfEvaluatingAgent`](SelfEvaluatingAgent).
-pub trait AutomaticAgentRE<DP: DomainParameters>: AutomaticAgentRewarded<DP> + SelfEvaluatingAgent<DP>{
 
-}
-
-
-
-impl<DP: DomainParameters, T: AutomaticAgentRewarded<DP> + SelfEvaluatingAgent<DP>> AutomaticAgentRE<DP> for T{}
-*/
-/*
-/// [`AutomaticAgent`](AutomaticAgent) that is also a [`TracingAgent`](crate::agent::TracingAgent) using
-/// .
-pub trait AutomaticAgentWithStdTrace<DP: DomainParameters, IS: EvaluatedInformationSet<DP>>:
-    AutomaticAgentRewarded<DP>
-    + SelfEvaluatingAgent<DP, Assessment = IS::RewardType>
-    + TracingAgent<DP, IS>{}
-
-impl<
-    DP: DomainParameters,
-    IS: EvaluatedInformationSet<DP>,
-    T: AutomaticAgentRewarded<DP>
-        + TracingAgent<DP, IS>
-        + SelfEvaluatingAgent<DP, Assessment = IS::RewardType>> AutomaticAgentWithStdTrace<DP, IS> for T{
-
-}
-*/
 
 /// Generic implementation of AutomaticAgent - probably will be done via macro
 /// in the future to avoid conflicts with custom implementations.

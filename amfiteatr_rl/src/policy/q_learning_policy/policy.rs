@@ -198,13 +198,13 @@ where <<InfoSet as PresentPossibleActions<DP>>::ActionIteratorType as IntoIterat
         //log::info!("Starting Learning DQN policy for agent {}")
         let _device = self.network.device();
         let capacity_estimate = trajectories.iter().fold(0, |acc, x|{
-           acc + x.completed_len()
+           acc + x.number_of_steps()
         });
         let tmp_capacity_estimate = trajectories.iter().map(|x|{
-            x.completed_len()
+            x.number_of_steps()
         }).max().unwrap_or(0);
         let batch_size_estimate = trajectories.iter().map(|x|{
-            x.completed_len()
+            x.number_of_steps()
         }).sum();
         let mut qval_tensor_vec_t = Vec::with_capacity(tmp_capacity_estimate);
         let mut qval_tensor_vec = Vec::with_capacity(batch_size_estimate);
@@ -224,10 +224,10 @@ where <<InfoSet as PresentPossibleActions<DP>>::ActionIteratorType as IntoIterat
             if t.is_empty(){
                 continue;
             }
-            let steps_in_trajectory = t.completed_len();
+            let steps_in_trajectory = t.number_of_steps();
 
             let mut state_action_q_tensor_vec_t: Vec<Tensor>  = t.iter().map(|step|{
-                let s = step.info_set().to_tensor(&self.info_set_way);
+                let s = step.information_set().to_tensor(&self.info_set_way);
                 let a = step.action().to_tensor(&self.action_way);
                 let t = Tensor::cat(&[s,a], 0);
                 let q = (self.network.net())(&t);

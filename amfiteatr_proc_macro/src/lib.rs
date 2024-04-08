@@ -20,7 +20,7 @@ pub fn no_assessment_info_set(attr: proc_macro::TokenStream, item: proc_macro::T
         true => quote!{
             impl amfiteatr_core::agent::EvaluatedInformationSet<#domain,  amfiteatr_core::domain::NoneReward> for #ident{
 
-                fn current_subjective_score(&self) -> amfiteatr_core::domain::NoneReward{
+                fn current_assessment(&self) -> amfiteatr_core::domain::NoneReward{
                     amfiteatr_core::domain::NoneReward{}
                 }
                 fn penalty_for_illegal(&self) -> amfiteatr_core::domain::NoneReward {
@@ -32,7 +32,7 @@ pub fn no_assessment_info_set(attr: proc_macro::TokenStream, item: proc_macro::T
             impl<#params> amfiteatr_core::agent::EvaluatedInformationSet<#domain, amfiteatr_core::domain::NoneReward> for #ident <#params>
             #where_clause{
 
-                fn current_subjective_score(&self) -> amfiteatr_core::domain::NoneReward {
+                fn current_assessment(&self) -> amfiteatr_core::domain::NoneReward {
                     amfiteatr_core::domain::NoneReward{}
                 }
                 fn penalty_for_illegal(&self) -> amfiteatr_core::domain::NoneReward {

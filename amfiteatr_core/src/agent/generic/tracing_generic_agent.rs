@@ -287,7 +287,7 @@ where <P as Policy<DP>>::InfoSetType: InformationSet<DP> + Clone,
             //let universal_score_after_update = self.committed_universal_score.clone();
             let initial_state = self.state_before_last_action.take().unwrap();
 
-            self.game_trajectory.register_step(initial_state, prev_action, universal_score_before_update)
+            self.game_trajectory.register_step_point(initial_state, prev_action, universal_score_before_update)
 
         } else {
             Ok(())
@@ -297,7 +297,7 @@ where <P as Policy<DP>>::InfoSetType: InformationSet<DP> + Clone,
 
     fn finalize_trajectory(&mut self) -> Result<(), AmfiteatrError<DP>> {
         if let (Some(action), Some(info_set_before)) = (&self.last_action, &self.state_before_last_action){
-            self.game_trajectory.register_step(info_set_before.clone(), action.clone(), self.committed_universal_score.clone())?;
+            self.game_trajectory.register_step_point(info_set_before.clone(), action.clone(), self.committed_universal_score.clone())?;
             self.commit_partial_rewards();
             self.game_trajectory.finish(self.information_set.clone(), self.committed_universal_score.clone())
         } else {
@@ -326,7 +326,7 @@ where Self: ReseedAgent<DP, Seed> + AutomaticAgent<DP>,
       <P as Policy<DP>>::InfoSetType: InformationSet<DP> + Clone,
 {
     fn store_episode(&mut self) {
-        let mut new_trajectory = AgentTrajectory::with_capacity(self.game_trajectory.completed_len());
+        let mut new_trajectory = AgentTrajectory::with_capacity(self.game_trajectory.number_of_steps());
         std::mem::swap(&mut new_trajectory, &mut self.game_trajectory);
         self.episodes.push(new_trajectory);
 

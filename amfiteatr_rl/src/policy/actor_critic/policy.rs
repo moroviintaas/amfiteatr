@@ -212,10 +212,10 @@ impl<
 
         let device = self.network.device();
         let capacity_estimate = trajectories.iter().fold(0, |acc, x|{
-           acc + x.completed_len()
+           acc + x.number_of_steps()
         });
         let tmp_capacity_estimate = trajectories.iter().map(|x|{
-            x.completed_len()
+            x.number_of_steps()
         }).max().unwrap_or(0);
         let mut state_tensor_vec = Vec::<Tensor>::with_capacity(capacity_estimate);
         let mut reward_tensor_vec = Vec::<Tensor>::with_capacity(capacity_estimate);
@@ -225,18 +225,18 @@ impl<
 
             if let Some(_trace_step) = t.view_step(0){
                 #[cfg(feature = "log_trace")]
-                log::trace!("Training neural-network for agent {} (from first trace step entry).", _trace_step.info_set().agent_id());
+                log::trace!("Training neural-network for agent {} (from first trace step entry).", _trace_step.information_set().agent_id());
             }
 
 
             if t.is_empty(){
                 continue;
             }
-            let steps_in_trajectory = t.completed_len();
+            let steps_in_trajectory = t.number_of_steps();
 
             let mut state_tensor_vec_t: Vec<Tensor> = t.iter().map(|step|{
                 //self.state_converter.make_tensor(step.step_state())
-                step.info_set().to_tensor(&self.info_set_conversion_context)
+                step.information_set().to_tensor(&self.info_set_conversion_context)
             }).collect();
 
             let mut action_tensor_vec_t: Vec<Tensor> = t.iter().map(|step|{

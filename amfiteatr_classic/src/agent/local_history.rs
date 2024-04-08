@@ -223,7 +223,7 @@ impl<ID: UsizeAgentId> Renew<ClassicGameDomain<ID>, ()> for LocalHistoryInfoSet<
 
 impl<ID: UsizeAgentId> EvaluatedInformationSet<ClassicGameDomain<ID>, AgentAssessmentClassic<i64>> for LocalHistoryInfoSet<ID>{
 
-    fn current_subjective_score(&self) ->AgentAssessmentClassic<i64> {
+    fn current_assessment(&self) ->AgentAssessmentClassic<i64> {
 
         let mut edu_asses = 0.0;
         if self.previous_encounters.len() >=2{
