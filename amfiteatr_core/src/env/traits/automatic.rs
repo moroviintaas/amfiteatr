@@ -4,7 +4,6 @@ use crate::{error::{AmfiteatrError, CommunicationError}, domain::{DomainParamete
 use crate::env::ListPlayers;
 use crate::domain::Reward;
 use crate::env::ScoreEnvironment;
-use crate::error::AmfiteatrError::GameA;
 
 use super::{StatefulEnvironment, CommunicatingAdapterEnvironment, BroadConnectedEnvironment};
 use crate::error::ProtocolError::PlayerExited;

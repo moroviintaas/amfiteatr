@@ -30,7 +30,7 @@ impl PythonGymnasiumCartPoleState {
     pub fn new() -> PyResult<Self>{
         Python::with_gil(|py|{
 
-            let gymnasium = py.import("gymnasium")?;
+            let gymnasium = py.import_bound("gymnasium")?;
 
 
             let fn_make = gymnasium.getattr("make")?;
@@ -47,7 +47,7 @@ impl PythonGymnasiumCartPoleState {
             let observation_space = observation_space.getattr("shape")?.extract()?;
             let internal_obj: PyObject = env_obj.to_object(py);
             let step0 = internal_obj.call_method0(py, "reset")?;
-            let step0_t = step0.downcast::<pyo3::types::PyTuple>(py)?;
+            let step0_t = step0.downcast_bound::<pyo3::types::PyTuple>(py)?;
             //let step0 = PyTuple::from
             let obs = step0_t.get_item(0)?;
             let v = obs.extract()?;
@@ -74,7 +74,8 @@ impl PythonGymnasiumCartPoleState {
             let result = self.internal.call_method1(py, "step", (action, ))?;
 
 
-            let result_tuple: &pyo3::types::PyTuple = result.downcast(py)?;
+            //let result_tuple: &pyo3::types::PyTuple = result.downcast(py)?.into();
+            let result_tuple: &Bound<'_, pyo3::types::PyTuple> = result.downcast_bound(py)?;
 
             let observation = result_tuple.get_item(0)?;
             let reward = result_tuple.get_item(1)?;
@@ -96,7 +97,8 @@ impl PythonGymnasiumCartPoleState {
     pub fn __reset(&mut self) -> PyResult<Vec<f32>>{
         Python::with_gil(|py|{
             let result = self.internal.call_method0(py, "reset")?;
-            let result_tuple: &pyo3::types::PyTuple = result.downcast(py)?;
+            let result_tuple: &Bound<'_, pyo3::types::PyTuple> = result.downcast_bound(py)?;
+            //let result_tuple: &pyo3::types::PyTuple = result.downcast(py)?;
             let observation = result_tuple.get_item(0)?;
             self.truncated = false;
             self.terminated = false;

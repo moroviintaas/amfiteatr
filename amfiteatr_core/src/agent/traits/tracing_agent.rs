@@ -1,6 +1,5 @@
 
 use crate::agent::{AgentTrajectory,
-                   EvaluatedInformationSet,
                    InformationSet,
                    MultiEpisodeAutoAgentRewarded};
 use crate::domain::DomainParameters;

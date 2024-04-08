@@ -1,7 +1,6 @@
 use std::marker::PhantomData;
 
 use crate::agent::*;
-use crate::agent::info_set::EvaluatedInformationSet;
 use crate::comm::BidirectionalEndpoint;
 use crate::error::{AmfiteatrError, CommunicationError};
 use crate::domain::{AgentMessage, DomainParameters, EnvironmentMessage, Renew, Reward};
@@ -228,16 +227,16 @@ ActingAgent<DP> for TracingAgentGen<DP, P, Comm>
 where <P as Policy<DP>>::InfoSetType: InformationSet<DP> + Clone{
 
     /// Firstly, agent commits last step to stack.
-    fn take_action(&mut self) -> Option<DP::ActionType> {
-        self.commit_trace();
+    fn take_action(&mut self) -> Result<Option<DP::ActionType>, AmfiteatrError<DP>> {
+        self.commit_trace()?;
 
         let action = self.policy.select_action(&self.information_set);
         self.last_action = action.clone();
         self.state_before_last_action = Some(self.information_set.clone());
-        action
+        Ok(action)
     }
 
-    fn finalize(&mut self) {
+    fn finalize(&mut self) -> Result<(), AmfiteatrError<DP>>{
         /*
         self.commit_trace();
         self.game_trajectory.finalize(self.information_set.clone());
@@ -245,11 +244,11 @@ where <P as Policy<DP>>::InfoSetType: InformationSet<DP> + Clone{
 
          */
         //self.game_trajectory.finish(self.information_set.clone(), self.last_action.take()).unwrap()
-        self.finalize_trajectory().unwrap()
+        self.finalize_trajectory()
     }
 
-    fn react_refused_action(&mut self) {
-
+    fn react_refused_action(&mut self) -> Result<(), AmfiteatrError<DP>> {
+        todo!()
     }
 }
 

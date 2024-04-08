@@ -62,10 +62,25 @@ where A: StatefulAgent<DP> + ActingAgent<DP>
                         log::trace!("Agent {} received 'YourMove' signal.", self.id());
                         //current_score = Default::default();
 
-                        //debug!("Agent's {:?} possible actions: {:?}", self.id(), Vec::from_iter(self.state().available_actions().into_iter()));
-                        //trace!("Agent's {} possible actions: {}]", self.id(), self.info_set().available_actions().into_iter()
-                        //    .fold(String::from("["), |a, b| a + &format!("{b:#}") + ", ").trim_end());
-                        //match self.policy_select_action(){
+                        match self.take_action(){
+                            Ok(act_opt) => match act_opt{
+                                None => {
+                                    #[cfg(feature = "log_error")]
+                                    log::error!("Agent {} has no possible action", self.id());
+                                    self.send(AgentMessage::NotifyError(NoPossibleAction(self.id().clone()).into()))?;
+                                }
+
+                                Some(a) => {
+                                    #[cfg(feature = "log_debug")]
+                                    log::debug!("Agent {} selects action {:#}", self.id(), &a);
+                                    self.send(AgentMessage::TakeAction(a))?;
+                                }
+                            }
+                            Err(e) => {
+                                self.and_send_error(e);
+                            }
+                        }
+                        /*
                         match self.take_action(){
                             None => {
                                 #[cfg(feature = "log_error")]
@@ -79,9 +94,11 @@ where A: StatefulAgent<DP> + ActingAgent<DP>
                                 self.send(AgentMessage::TakeAction(a))?;
                             }
                         }
+
+                         */
                     }
                     EnvironmentMessage::MoveRefused => {
-                        self.react_refused_action()
+                        let _ = self.react_refused_action().map_err(|e|self.and_send_error(e));
                         //self.add_explicit_assessment(&self.penalty_for_illegal_action())
                             /*&<Self as InternalRewardedAgent<DP>>::InternalReward
                             ::penalty_for_illegal())
@@ -91,14 +108,14 @@ where A: StatefulAgent<DP> + ActingAgent<DP>
                     EnvironmentMessage::GameFinished => {
                         #[cfg(feature = "log_info")]
                         log::info!("Agent {} received information that game is finished.", self.id());
-                        self.finalize();
+                        self.finalize().map_err(|e| self.and_send_error(e))?;
                         return Ok(())
 
                     }
                     EnvironmentMessage::GameFinishedWithIllegalAction(_id) => {
                         #[cfg(feature = "log_warn")]
                         log::warn!("Agent {} received information that game is finished with agent {_id:} performing illegal action.", self.id());
-                        self.finalize();
+                        self.finalize().map_err(|e| self.and_send_error(e))?;
                         return Ok(())
 
                     }
@@ -163,39 +180,38 @@ where Agnt: StatefulAgent<DP> + ActingAgent<DP>
                         //debug!("Agent's {:?} possible actions: {}]", self.id(), self.info_set().available_actions().into_iter()
                         //    .fold(String::from("["), |a, b| a + &format!("{b:#}") + ", ").trim_end());
                         match self.take_action(){
-                            None => {
-                                #[cfg(feature = "log_error")]
-                                log::error!("Agent {} has no possible action", self.id());
-                                self.send(AgentMessage::NotifyError(NoPossibleAction(self.id().clone()).into()))?;
-                            }
+                            Ok(act_opt) => match act_opt{
+                                None => {
+                                    #[cfg(feature = "log_error")]
+                                    log::error!("Agent {} has no possible action", self.id());
+                                    self.send(AgentMessage::NotifyError(NoPossibleAction(self.id().clone()).into()))?;
+                                }
 
-                            Some(a) => {
-                                #[cfg(feature = "log_info")]
-                                log::info!("Agent {} selects action {:#}", self.id(), &a);
-                                self.send(AgentMessage::TakeAction(a))?;
+                                Some(a) => {
+                                    #[cfg(feature = "log_debug")]
+                                    log::debug!("Agent {} selects action {:#}", self.id(), &a);
+                                    self.send(AgentMessage::TakeAction(a))?;
+                                }
+                            }
+                            Err(e) => {
+                                self.and_send_error(e);
                             }
                         }
                     }
                     EnvironmentMessage::MoveRefused => {
-                        self.react_refused_action()
-                        //self.add_explicit_assessment(&self.penalty_for_illegal_action())
-                        /*(
-                            &<<Self as StatefulAgent<DP>>::InfoSetType as ScoringInformationSet<DP>>
-                            ::penalty_for_illegal())
-
-                         */
+                        let _ = self.react_refused_action().map_err(|e|self.and_send_error(e));
                     }
                     EnvironmentMessage::GameFinished => {
                         #[cfg(feature = "log_info")]
                         log::info!("Agent {} received information that game is finished.", self.id());
-                        self.finalize();
+                        self.finalize().map_err(|e| self.and_send_error(e))?;
                         return Ok(())
 
                     }
                     EnvironmentMessage::GameFinishedWithIllegalAction(_id)=> {
                         #[cfg(feature = "log_warn")]
                         log::warn!("Agent {} received information that game is finished with agent {_id:} performing illegal action.", self.id());
-                        self.finalize();
+                        self.finalize().map_err(|e| self.and_send_error(e))?;
                         return Ok(())
 
                     }

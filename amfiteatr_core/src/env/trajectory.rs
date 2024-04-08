@@ -1,5 +1,4 @@
 use std::fmt::{Display, Formatter};
-use crate::agent::{AgentTrajectory, EvaluatedInformationSet};
 use crate::env::EnvironmentStateSequential;
 use crate::domain::DomainParameters;
 use crate::error::{AmfiteatrError, TrajectoryError};

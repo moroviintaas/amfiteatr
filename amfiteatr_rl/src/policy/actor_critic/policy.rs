@@ -6,7 +6,6 @@ use tch::{Kind, kind, Tensor};
 use amfiteatr_core::agent::{
     InformationSet,
     Policy,
-    EvaluatedInformationSet,
     AgentStepView,
     AgentTrajectory
 };

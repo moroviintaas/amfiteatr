@@ -1,5 +1,6 @@
 use crate::agent::{Policy, StatefulAgent};
 use crate::domain::DomainParameters;
+use crate::error::AmfiteatrError;
 
 /// Trait for agents that performs actions, possibly mutating some attributes of agent.
 ///
@@ -14,14 +15,14 @@ pub trait ActingAgent<DP: DomainParameters>{
     /// [`AgentGenT`](crate::agent::TracingAgentGen) uses it also to add new step entry to his/her game trajectory.
     /// __Note__ that this method should not affect agents _information set_, as the way of changing it is through [`DomainParameters::UpdateType`](crate::domain::DomainParameters::UpdateType)
     /// provided by _environment_.
-    fn take_action(&mut self) -> Option<DP::ActionType>;
+    fn take_action(&mut self) -> Result<Option<DP::ActionType>, AmfiteatrError<DP>>;
 
     /// This method is meant to do optional actions of [`take_action`](crate::agent::ActingAgent::take_action)
     /// without selecting new action. Usually to be invoked at the end of game to commit last step to trace.
-    fn finalize(&mut self);
+    fn finalize(&mut self) -> Result<(), AmfiteatrError<DP>>;
 
 
-    fn react_refused_action(&mut self);
+    fn react_refused_action(&mut self) -> Result<(), AmfiteatrError<DP>>;
 }
 /// Agent that follows some policy, which can be referenced.
 pub trait PolicyAgent<DP: DomainParameters>: StatefulAgent<DP>{

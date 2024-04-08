@@ -1,6 +1,6 @@
 use std::marker::PhantomData;
 use crate::agent::*;
-use crate::agent::info_set::{InformationSet, EvaluatedInformationSet};
+use crate::agent::info_set::{InformationSet};
 use crate::agent::policy::Policy;
 use crate::comm::BidirectionalEndpoint;
 use crate::error::{AmfiteatrError, CommunicationError};
@@ -240,20 +240,21 @@ impl<
 ActingAgent<DP> for AgentGen<DP, P, Comm>
 where <P as Policy<DP>>::InfoSetType: InformationSet<DP>{
 
-    fn take_action(&mut self) -> Option<DP::ActionType> {
+    fn take_action(&mut self) -> Result<Option<DP::ActionType>, AmfiteatrError<DP>> {
         //self.commit_reward_to_score();
         self.commit_partial_rewards();
-        self.policy.select_action(&self.information_set)
+        Ok(self.policy.select_action(&self.information_set))
 
     }
 
-    fn finalize(&mut self) {
+    fn finalize(&mut self) -> Result<(), AmfiteatrError<DP>>{
         self.commit_partial_rewards();
+        Ok(())
         //self.commit_reward_to_score();
     }
 
-    fn react_refused_action(&mut self) {
-
+    fn react_refused_action(&mut self) -> Result<(), AmfiteatrError<DP>>{
+        todo!()
     }
 }
 

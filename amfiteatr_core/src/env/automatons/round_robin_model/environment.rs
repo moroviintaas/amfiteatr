@@ -4,7 +4,6 @@ use crate::error::{CommunicationError, AmfiteatrError};
 use crate::error::ProtocolError::PlayerExited;
 use crate::domain::{AgentMessage, EnvironmentMessage, DomainParameters, Reward};
 use crate::domain::EnvironmentMessage::ErrorNotify;
-use crate::error::AmfiteatrError::GameA;
 
 
 /// Interface for environment using round robin strategy for listening to agents' messages.

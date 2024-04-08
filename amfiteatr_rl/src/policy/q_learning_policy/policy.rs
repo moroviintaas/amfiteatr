@@ -9,7 +9,6 @@ use amfiteatr_core::agent::{
     InformationSet,
     Policy,
     PresentPossibleActions,
-    EvaluatedInformationSet,
     AgentTrajectory,
     AgentStepView};
 use amfiteatr_core::domain::DomainParameters;

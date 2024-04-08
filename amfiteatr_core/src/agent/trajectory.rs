@@ -1,6 +1,4 @@
-use std::fmt::{Debug, Display};
-use std::ops::Index;
-use crate::agent::info_set::EvaluatedInformationSet;
+use std::fmt::{Debug};
 use crate::agent::InformationSet;
 use crate::domain::{DomainParameters, Reward};
 use crate::error::AmfiteatrError;
