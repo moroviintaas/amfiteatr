@@ -12,9 +12,10 @@ pub enum TensorRepresentationError{
         info_set: String,
         shape: Vec<i64>
     },
-    #[error("Error originating in tch crate's function: {error:}, in context: {context:}")]
+    #[error("Error originating in tch crate's function: {source:}, in context: {context:}")]
     Torch{
-        error: TchError,
+        #[source]
+        source: TchError,
         context: String
     },
     #[error("Conversion of value to tensor is not supported ({comment:})")]
@@ -27,13 +28,13 @@ pub enum TensorRepresentationError{
 
 impl<DP: DomainParameters> From<TensorRepresentationError> for AmfiteatrRlError<DP>{
     fn from(value: TensorRepresentationError) -> Self {
-        AmfiteatrRlError::TensorRepresentation(value)
+        AmfiteatrRlError::TensorRepresentation{source: value}
     }
 }
 impl From<TchError> for TensorRepresentationError{
     fn from(value: TchError) -> Self {
         Self::Torch{
-            error: value,
+            source: value,
             context: "unspecified".into()
         }
     }

@@ -147,8 +147,9 @@ impl <
                         AgentMessage::Quit => {
                             #[cfg(feature = "log_error")]
                             log::error!("Player {} exited game.", player);
-                            self.notify_error(AmfiteatrError::Protocol(PlayerExited(player.clone())))?;
-                            return Err(AmfiteatrError::Protocol(PlayerExited(player)))
+                            self.notify_error(
+                                AmfiteatrError::Protocol{source: PlayerExited(player.clone())})?;
+                            return Err(AmfiteatrError::Protocol{source: PlayerExited(player)})
                         }
                     }
                 }
@@ -162,7 +163,7 @@ impl <
                         #[cfg(feature = "log_error")]
                         log::error!("Failed trying to receive message");
                         self.send_all(EnvironmentMessage::ErrorNotify(err.clone().into()))?;
-                        return Err(AmfiteatrError::Communication(err));
+                        return Err(AmfiteatrError::Communication{source: err});
                     }
 
 
@@ -259,8 +260,8 @@ impl <
                         AgentMessage::Quit => {
                             #[cfg(feature = "log_error")]
                             log::error!("Player {} exited game.", player);
-                            self.notify_error(AmfiteatrError::Protocol(PlayerExited(player.clone())))?;
-                            return Err(AmfiteatrError::Protocol(PlayerExited(player)))
+                            self.notify_error(AmfiteatrError::Protocol{source: PlayerExited(player.clone())})?;
+                            return Err(AmfiteatrError::Protocol{source: PlayerExited(player)})
                         }
                     }
                 }
@@ -274,7 +275,7 @@ impl <
                         #[cfg(feature = "log_error")]
                         log::error!("Failed trying to receive message");
                         self.send_all(EnvironmentMessage::ErrorNotify(err.clone().into()))?;
-                        return Err(AmfiteatrError::Communication(err));
+                        return Err(AmfiteatrError::Communication{source: err});
                     }
 
 
@@ -380,8 +381,8 @@ impl <
                         AgentMessage::Quit => {
                             #[cfg(feature = "log_error")]
                             log::error!("Player {} exited game.", player);
-                            self.notify_error(AmfiteatrError::Protocol(PlayerExited(player.clone())))?;
-                            return Err(AmfiteatrError::Protocol(PlayerExited(player)))
+                            self.notify_error(AmfiteatrError::Protocol{source: PlayerExited(player.clone())})?;
+                            return Err(AmfiteatrError::Protocol{source: PlayerExited(player)})
                         }
                     }
                 }
@@ -395,7 +396,7 @@ impl <
                         #[cfg(feature = "log_error")]
                         log::error!("Failed trying to receive message");
                         self.send_all(EnvironmentMessage::ErrorNotify(err.clone().into()))?;
-                        return Err(AmfiteatrError::Communication(err));
+                        return Err(AmfiteatrError::Communication{source: err});
                     }
 
 

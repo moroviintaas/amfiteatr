@@ -145,8 +145,8 @@ where Env: CommunicatingEndpointEnvironment<DP, CommunicationError=Communication
                         AgentMessage::Quit => {
                             #[cfg(feature = "log_error")]
                             log::error!("Player {} exited game (via Quit signal).", player);
-                            self.notify_error(AmfiteatrError::Protocol(PlayerExited(player.clone())))?;
-                            return Err(AmfiteatrError::Protocol(PlayerExited(player)))
+                            self.notify_error(AmfiteatrError::Protocol{source: PlayerExited(player.clone())})?;
+                            return Err(AmfiteatrError::Protocol{source: PlayerExited(player)})
                         }
                     },
                     Ok(None) => {},
@@ -160,7 +160,7 @@ where Env: CommunicatingEndpointEnvironment<DP, CommunicationError=Communication
                             #[cfg(feature = "log_error")]
                             log::error!("Failed trying to receive from {} with {err}", player);
                             self.send_to_all(EnvironmentMessage::ErrorNotify(err.clone().into()))?;
-                            return Err(AmfiteatrError::Communication(err));
+                            return Err(AmfiteatrError::Communication{source: err});
                         }
 
 
@@ -258,8 +258,8 @@ where Env: CommunicatingEndpointEnvironment<DP, CommunicationError=Communication
                         AgentMessage::Quit => {
                             #[cfg(feature = "log_error")]
                             log::error!("Player {} exited game (via Quit signal).", player);
-                            self.notify_error(AmfiteatrError::Protocol(PlayerExited(player.clone())))?;
-                            return Err(AmfiteatrError::Protocol(PlayerExited(player)))
+                            self.notify_error(AmfiteatrError::Protocol{source: PlayerExited(player.clone())})?;
+                            return Err(AmfiteatrError::Protocol{source: PlayerExited(player)})
                         }
                     },
                     Ok(None) => {},
@@ -273,7 +273,7 @@ where Env: CommunicatingEndpointEnvironment<DP, CommunicationError=Communication
                             #[cfg(feature = "log_error")]
                             log::error!("Failed trying to receive from {} with {err}", player);
                             self.send_to_all(EnvironmentMessage::ErrorNotify(err.clone().into()))?;
-                            return Err(AmfiteatrError::Communication(err));
+                            return Err(AmfiteatrError::Communication{source: err});
                         }
 
 
@@ -370,8 +370,8 @@ where Env: CommunicatingEndpointEnvironment<DP, CommunicationError=Communication
                         AgentMessage::Quit => {
                             #[cfg(feature = "log_error")]
                             log::error!("Player {} exited game (via Quit signal).", player);
-                            self.notify_error(AmfiteatrError::Protocol(PlayerExited(player.clone())))?;
-                            return Err(AmfiteatrError::Protocol(PlayerExited(player)))
+                            self.notify_error(AmfiteatrError::Protocol{source: PlayerExited(player.clone())})?;
+                            return Err(AmfiteatrError::Protocol{source: PlayerExited(player)})
                         }
                     },
                     Ok(None) => {},
@@ -385,7 +385,7 @@ where Env: CommunicatingEndpointEnvironment<DP, CommunicationError=Communication
                             #[cfg(feature = "log_error")]
                             log::error!("Failed trying to receive from {} with {err}", player);
                             self.send_to_all(EnvironmentMessage::ErrorNotify(err.clone().into()))?;
-                            return Err(AmfiteatrError::Communication(err));
+                            return Err(AmfiteatrError::Communication{source: err});
                         }
 
 

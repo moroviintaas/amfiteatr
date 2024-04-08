@@ -11,17 +11,24 @@ use amfiteatr_core::domain::DomainParameters;
 #[derive(Error, Debug)]
 pub enum AmfiteatrRlError<DP: DomainParameters>{
     /// Variant - [`AmfiteatrError`]
-    #[error("Basic amfiteatr error: {0}")]
-    Amfi(AmfiteatrError<DP>),
+    #[error("Basic amfiteatr error: {source}")]
+    Amfiteatr {
+        #[source]
+        source:AmfiteatrError<DP>
+    },
     /// Variant wrapping error captured by [`tch`]
-    #[error("Torch error: {error} in context: {context:}")]
+    #[error("Torch error: {source} in context: {context:}")]
     Torch{
-        error: TchError,
+        #[source]
+        source: TchError,
         context: String
     },
     /// Error with tensor representation
-    #[error("Tensor representation: {0}")]
-    TensorRepresentation(TensorRepresentationError),
+    #[error("Tensor representation: {source}")]
+    TensorRepresentation{
+        #[source]
+        source:TensorRepresentationError
+    },
     #[error("Input/Output Error")]
     IO(String),
     #[error("Empty training data")]
@@ -33,7 +40,7 @@ pub enum AmfiteatrRlError<DP: DomainParameters>{
 impl<DP: DomainParameters> From<TchError> for AmfiteatrRlError<DP>{
     fn from(value: TchError) -> Self {
         Self::Torch{
-            error: value,
+            source: value,
             context: String::from("unspecified")
         }
     }
@@ -41,14 +48,14 @@ impl<DP: DomainParameters> From<TchError> for AmfiteatrRlError<DP>{
 
 impl<DP: DomainParameters> From<AmfiteatrError<DP>> for AmfiteatrRlError<DP>{
     fn from(value: AmfiteatrError<DP>) -> Self {
-        Self::Amfi(value)
+        Self::Amfiteatr{source: value}
     }
 }
 
 impl<DP: DomainParameters> From<AmfiteatrRlError<DP>> for AmfiteatrError<DP>{
     fn from(value: AmfiteatrRlError<DP>) -> Self {
         match value{
-            AmfiteatrRlError::Amfi(n) => n,
+            AmfiteatrRlError::Amfiteatr{source: n} => n,
             any => AmfiteatrError::Custom(format!("{:?}", any))
         }
     }

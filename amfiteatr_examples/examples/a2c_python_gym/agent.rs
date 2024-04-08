@@ -72,7 +72,7 @@ impl CtxTryIntoTensor<CartPoleInformationSetConversion> for PythonGymnasiumCartP
 
         Tensor::f_from_slice(&v)
             .map_err(|e| TensorRepresentationError::Torch {
-                error: e,
+                source: e,
                 context: "Failed to convert observation to tensor".to_string()
             })
 

@@ -52,7 +52,7 @@ pub trait CtxTryIntoTensor<W: ConversionToTensor> : Debug{
         let t1 = self.try_to_tensor(way)?;
         t1.f_flatten(0, -1).map_err(|e|{
             TensorRepresentationError::Torch {
-                error: e,
+                source: e,
                 context: format!("Flattening tensor {t1:?} from information set: {:?}", self)
             }
         })

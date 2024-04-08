@@ -88,6 +88,6 @@ impl<Spec: DomainParameters, T> From<TrySendError<T>> for CommunicationError<Spe
 
 impl <Spec: DomainParameters> From<CommunicationError<Spec>> for AmfiteatrError<Spec>{
     fn from(value: CommunicationError<Spec>) -> Self {
-        Self::Communication(value)
+        Self::Communication {source: value}
     }
 }

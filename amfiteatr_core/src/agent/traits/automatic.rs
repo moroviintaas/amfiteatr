@@ -105,7 +105,7 @@ where A: StatefulAgent<DP> + ActingAgent<DP>
                     EnvironmentMessage::Kill => {
                         #[cfg(feature = "log_info")]
                         log::info!("Agent {:?} received kill signal.", self.id());
-                        return Err(Protocol(ReceivedKill(self.id().clone())))
+                        return Err(Protocol{source: ReceivedKill(self.id().clone())})
                     }
                     EnvironmentMessage::UpdateState(su) => {
                         #[cfg(feature = "log_trace")]
@@ -118,8 +118,8 @@ where A: StatefulAgent<DP> + ActingAgent<DP>
                             Err(err) => {
                                 #[cfg(feature = "log_error")]
                                 log::error!("Agent {:?} error on updating state: {}", self.id(), &err);
-                                self.send(AgentMessage::NotifyError(AmfiteatrError::GameA(err.clone(), self.id().clone())))?;
-                                return Err(AmfiteatrError::GameA(err.clone(), self.id().clone()));
+                                self.send(AgentMessage::NotifyError(AmfiteatrError::GameA{source: err.clone(), agent: self.id().clone()}))?;
+                                return Err(AmfiteatrError::GameA{source: err.clone(), agent: self.id().clone()});
                             }
                         }
                     }
@@ -202,7 +202,7 @@ where Agnt: StatefulAgent<DP> + ActingAgent<DP>
                     EnvironmentMessage::Kill => {
                         #[cfg(feature = "log_info")]
                         log::info!("Agent {:?} received kill signal.", self.id());
-                        return Err(Protocol(ReceivedKill(self.id().clone())))
+                        return Err(Protocol{source: ReceivedKill(self.id().clone())})
                     }
                     EnvironmentMessage::UpdateState(su) => {
                         #[cfg(feature = "log_debug")]
@@ -215,8 +215,8 @@ where Agnt: StatefulAgent<DP> + ActingAgent<DP>
                             Err(err) => {
                                 #[cfg(feature = "log_error")]
                                 log::error!("Agent {:?} error on updating state: {}", self.id(), &err);
-                                self.send(AgentMessage::NotifyError(AmfiteatrError::Game(err.clone())))?;
-                                return Err(AmfiteatrError::Game(err));
+                                self.send(AgentMessage::NotifyError(AmfiteatrError::Game{source: err.clone()}))?;
+                                return Err(AmfiteatrError::Game{source: err});
                             }
                         }
                     }

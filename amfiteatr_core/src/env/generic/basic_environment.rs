@@ -71,7 +71,7 @@ impl <
     fn process_action(&mut self, agent: &<DP as DomainParameters>::AgentId, action: &<DP as DomainParameters>::ActionType) 
         -> Result<<Self::State as EnvironmentStateSequential<DP>>::Updates, AmfiteatrError<DP>> {
         self.game_state.forward(agent.clone(), action.clone()).map_err(|e|{
-            AmfiteatrError::Game(e)
+            AmfiteatrError::Game{source: e}
         })
     }
 }
@@ -125,7 +125,7 @@ impl <
                 let actual_penalty = self.penalties.remove(agent).unwrap_or(<DP::UniversalReward as Reward>::neutral());
 
                 self.penalties.insert(agent.clone(), penalty_reward + &actual_penalty);
-                AmfiteatrError::Game(e)
+                AmfiteatrError::Game{source: e}
             })
     }
 

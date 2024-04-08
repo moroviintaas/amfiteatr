@@ -162,7 +162,7 @@ impl RenewWithSideEffect<CartPoleDomain, ()> for PythonGymnasiumCartPoleState{
 
     fn renew_with_side_effect_from(&mut self, _base: ()) -> Result<Self::SideEffect, AmfiteatrError<CartPoleDomain>> {
         match self.__reset(){
-            Err(e) => Err(AmfiteatrError::Game(e.into())),
+            Err(e) => Err(AmfiteatrError::Game{source: e.into()}),
             Ok(observation_vec) => {
                 if observation_vec.len() >= 4{
                     let observation = CartPoleObservation::new(
@@ -172,9 +172,9 @@ impl RenewWithSideEffect<CartPoleDomain, ()> for PythonGymnasiumCartPoleState{
                         observation_vec[3]);
                     Ok([(SINGLE_PLAYER_ID, observation)])
                 } else {
-                    Err(AmfiteatrError::Game(CartPoleError::InterpretingPythonData {
+                    Err(AmfiteatrError::Game{source: CartPoleError::InterpretingPythonData {
                         description: format!("Expected observation containing 4 f32 values, observed {}", observation_vec.len())
-                    }))
+                    }})
                 }
             }
         }

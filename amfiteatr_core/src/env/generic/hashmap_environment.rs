@@ -75,7 +75,8 @@ StatefulEnvironment<DP> for HashMapEnvironment<DP, S, C>{
     fn process_action(&mut self, agent: &DP::AgentId, action: &DP::ActionType) 
         -> Result<<Self::State as EnvironmentStateSequential<DP>>::Updates, AmfiteatrError<DP>> {
         //let updates = self.action_processor.process_action(&mut self.game_state, agent, action)?;
-        self.game_state.forward(agent.clone(), action.clone()).map_err(|e|AmfiteatrError::Game(e))
+        self.game_state.forward(agent.clone(), action.clone()).map_err(|e|
+            AmfiteatrError::Game{source: e})
         //Ok(updates)
 
     }
@@ -101,7 +102,7 @@ ScoreEnvironment<DP> for HashMapEnvironment<DP, S, C>{
 
         self.game_state.forward(agent.clone(), action.clone()).map_err(|e|{
             self.penalties.insert(agent.clone(), penalty_reward + &self.penalties[agent]);
-            AmfiteatrError::Game(e)
+            AmfiteatrError::Game{source: e}
         })
     }
 

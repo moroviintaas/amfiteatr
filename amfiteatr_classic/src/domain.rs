@@ -240,7 +240,7 @@ impl Into<AmfiError<PrisonerDomain>> for PrisonerError {
  */
 impl<ID: UsizeAgentId> From<ClassicGameError<ID>> for AmfiteatrError<ClassicGameDomain<ID>>{
     fn from(value: ClassicGameError<ID>) -> Self {
-        AmfiteatrError::Game(value)
+        AmfiteatrError::Game{source: value}
     }
 }
 

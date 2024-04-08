@@ -274,7 +274,7 @@ where <<InfoSet as PresentPossibleActions<DP>>::ActionIteratorType as IntoIterat
         }
         let _state_action_batch = Tensor::f_stack(&state_action_tensor_vec[..], 0).map_err(|e|{
             AmfiteatrRlError::<DP>::Torch {
-                error: e, context: "Empty vector of  (state,action) tensor".into()
+                source: e, context: "Empty vector of  (state,action) tensor".into()
             }
         })?;
         let results_batch = Tensor::stack(&reward_tensor_vec[..], 0);

@@ -22,6 +22,6 @@ pub enum ProtocolError<DP: DomainParameters>{
 
 impl<DP: DomainParameters> From<ProtocolError<DP>> for AmfiteatrError<DP>{
     fn from(value: ProtocolError<DP>) -> Self {
-        Self::Protocol(value)
+        Self::Protocol{source: value}
     }
 }

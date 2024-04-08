@@ -28,7 +28,9 @@ where <R as PolicyAgent<CartPoleDomain>>::Policy: LearningNetworkPolicy<CartPole
     for _ in 0..number_of_tests{
         let mut observation = env.dirty_reseed(())?;
         let observation = observation.remove(&SINGLE_PLAYER_ID)
-            .ok_or(AmfiteatrRlError::Amfi(AmfiteatrError::Custom(String::from("No observation for only player in resetting game"))))?;
+            .ok_or(AmfiteatrRlError::Amfiteatr{source: AmfiteatrError::Custom(
+                String::from("No observation for only player in resetting game")
+            )})?;
 
         thread::scope(|s|{
             s.spawn(||{
@@ -57,7 +59,9 @@ where <R as PolicyAgent<CartPoleDomain>>::Policy: LearningNetworkPolicy<CartPole
     for _ in 0..number_of_games{
         let mut observation = env.dirty_reseed(())?;
         let observation = observation.remove(&SINGLE_PLAYER_ID)
-            .ok_or(AmfiteatrRlError::Amfi(AmfiteatrError::Custom(String::from("No observation for only player in resetting game"))))?;
+            .ok_or(AmfiteatrRlError::Amfiteatr{source: AmfiteatrError::Custom(
+                String::from("No observation for only player in resetting game")
+            )})?;
 
         thread::scope(|s|{
             s.spawn(||{
