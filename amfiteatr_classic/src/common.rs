@@ -132,7 +132,7 @@ impl<R: Reward + Copy> AsymmetricRewardTable<R> {
 
 impl<R: Reward + Copy> From<SymmetricRewardTable<R>> for AsymmetricRewardTable<R>{
     fn from(value: SymmetricRewardTable<R>) -> Self {
-        let mut reverted = value.clone();
+        let mut reverted = value;
         reverted.map[ClassicAction::Down][ClassicAction::Up] =
             value.map[ClassicAction::Up][ClassicAction::Down];
         reverted.map[ClassicAction::Up][ClassicAction::Down] =

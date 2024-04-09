@@ -59,7 +59,7 @@ impl<ID: UsizeAgentId> LocalHistoryInfoSet<ID>{
 
 impl<ID: UsizeAgentId> Display for LocalHistoryInfoSet<ID> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "Local History InfoSet:: Agent: {}, Rounds: {} \n", self.id, self.previous_encounters.len())?;
+        writeln!(f, "Local History InfoSet:: Agent: {}, Rounds: {} ", self.id, self.previous_encounters.len())?;
         /*let mut s = self.previous_encounters.iter().fold(String::new(), |mut acc, update| {
             acc.push_str(&format!("({:?}){:#}-{:#} #  ", update.side, update.own_action, update.other_player_action));
             acc
@@ -74,7 +74,7 @@ impl<ID: UsizeAgentId> Display for LocalHistoryInfoSet<ID> {
                     )?;
         }
         write!(f, "Current table payoff: {}.\t", self.cache_table_payoff,)?;
-        write!(f, "Previous observations: (c-c: {}, c-d: {}, d-c: {}, d-d: {})\n", self.count_actions[Down][Down],
+        writeln!(f, "Previous observations: (c-c: {}, c-d: {}, d-c: {}, d-d: {})", self.count_actions[Down][Down],
                self.count_actions[Down][Up],
                self.count_actions[Up][Down],
                self.count_actions[Up][Up])?;

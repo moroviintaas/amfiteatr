@@ -40,7 +40,7 @@ impl QSelector{
     pub fn select_q_value_index(&self, q_vals: &Tensor, exploring_enabled: bool) -> Option<usize>{
         if ! exploring_enabled{
             let rv = f32::try_from(q_vals.argmax(None, false));
-            return rv.ok().and_then(|i| Some(i as usize))
+            return rv.ok().map(|i| i as usize)
         }
         match self{
             Self::Max => {
@@ -50,7 +50,7 @@ impl QSelector{
                 //println!("{:?}", rv);
                 //rv.map(|v| v.first()).ok().and_then(|i| Some(i as usize))
                 //rv.ok().and_then(|v|v.first().and_then(|i| Some(*i as usize)))
-                rv.ok().and_then(|i| Some(i as usize))
+                rv.ok().map(|i| i as usize)
 
             },
             Self::MultinomialLogits => {
@@ -58,7 +58,7 @@ impl QSelector{
                 let index_t = probs.multinomial(1, false);
                 let rv =  Vec::<f32>::try_from(index_t);
                 //rv.map(|v|v.first()).ok().and_then(|i| Some(i as usize))
-                rv.ok().and_then(|v|v.first().and_then(|i| Some(*i as usize)))
+                rv.ok().and_then(|v|v.first().map(|i| *i as usize))
             }
             Self::EpsilonGreedy(epsilon) =>{
                 let mut rng = thread_rng();
@@ -69,10 +69,10 @@ impl QSelector{
                     let index_t = probs.multinomial(1, false);
                     let rv =  Vec::<f32>::try_from(index_t);
                     //rv.map(|v|v.first()).ok().and_then(|i| Some(i as usize))
-                    rv.ok().and_then(|v|v.first().and_then(|i| Some(*i as usize)))
+                    rv.ok().and_then(|v|v.first().map(|i| *i as usize))
                 } else {
                     let rv = f32::try_from(q_vals.argmax(None, false));
-                    rv.ok().and_then(|i| Some(i as usize))
+                    rv.ok().map(|i| i as usize)
                 }
 
             }
@@ -309,7 +309,7 @@ where <<InfoSet as PresentPossibleActions<DP>>::ActionIteratorType as IntoIterat
         let q_predictions : Vec<_>/*<Tensor>*/ = state.available_actions().into_iter().map(|a|{
             let action_tensor = a.to_tensor(&self.action_way);
             let input_tensor = Tensor::cat(&[state.to_tensor(&self.info_set_way), action_tensor], 0);
-            let q_val = (&self.network.net())(&input_tensor).narrow(0,0,1);
+            let q_val = self.network.net()(&input_tensor).narrow(0,0,1);
             actions.push(a);
             q_val
         }).collect();

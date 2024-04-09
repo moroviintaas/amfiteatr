@@ -195,9 +195,9 @@ fn main() -> Result<(), AmfiteatrError<ClassicGameDomain<AgentNum>>>{
     agent_0_coops.push(coops_a[0] as f32);
     agent_1_coops.push(coops_a[1] as f32);
 
-    payoffs_0.push(avg[0] as f32);
-    payoffs_1.push(avg[1] as f32);
-    custom_payoffs_1.push(avg[2] as f32);
+    payoffs_0.push(avg[0]);
+    payoffs_1.push(avg[1]);
+    custom_payoffs_1.push(avg[2]);
 
 
     for e in 0..args.epochs{
@@ -218,7 +218,7 @@ fn main() -> Result<(), AmfiteatrError<ClassicGameDomain<AgentNum>>>{
                     //let custom_reward = step.step_subjective_reward().count_other_actions(Cooperate);
                     //let custom_reward = reward_f(step.step_subjective_reward());
                     let custom_reward = reward_f(step.late_information_set().current_assessment() - step.information_set().current_assessment());
-                    let v_custom_reward = vec![custom_reward];
+                    let v_custom_reward = [custom_reward];
                     //trace!("Calculating custom reward on info set: {}, with agent reward: {:?}.",
                     //    step.step_info_set(), step.step_subjective_reward());
                     //trace!("Custom reward calculated: {}", &custom_reward);
@@ -231,7 +231,7 @@ fn main() -> Result<(), AmfiteatrError<ClassicGameDomain<AgentNum>>>{
                     //let own_defects = step.step_info_set().count_actions_self(Defect) as i64;
                     //let custom_reward = step.step_subjective_reward().f_combine_table_with_other_coop(100.0);
                     let custom_reward = reward_f(step.late_information_set().current_assessment() - step.information_set().current_assessment());
-                    let v_custom_reward = vec![custom_reward];
+                    let v_custom_reward = [custom_reward];
                     //trace!("Calculating custom reward on info set: {}, with agent reward: {:?}.",
                     //    step.step_info_set(), step.step_subjective_reward());
                     //trace!("Custom reward calculated: {}", &custom_reward);
@@ -242,7 +242,7 @@ fn main() -> Result<(), AmfiteatrError<ClassicGameDomain<AgentNum>>>{
             SecondPolicy::StdMinDefectsBoth => {
                 agent_1.policy_mut().train_on_trajectories(&trajectories_1[..], |step| {
                     let custom_reward = reward_f(step.late_information_set().current_assessment() - step.information_set().current_assessment());
-                    let v_custom_reward = vec![custom_reward];
+                    let v_custom_reward = [custom_reward];
 
                     Tensor::from_slice(&v_custom_reward[..])
                 })
@@ -250,7 +250,7 @@ fn main() -> Result<(), AmfiteatrError<ClassicGameDomain<AgentNum>>>{
             SecondPolicy::Edu => {
                 agent_1.policy_mut().train_on_trajectories(&trajectories_1[..], |step| {
                     let custom_reward = reward_f(step.late_information_set().current_assessment() - step.information_set().current_assessment());
-                    let v_custom_reward = vec![custom_reward];
+                    let v_custom_reward = [custom_reward];
 
                     Tensor::from_slice(&v_custom_reward[..])
                 })
@@ -334,7 +334,7 @@ fn main() -> Result<(), AmfiteatrError<ClassicGameDomain<AgentNum>>>{
         SecondPolicy::StdMinDefects => {
             format!("{:?}-{:?}", SecondPolicy::StdMinDefects, args.reward_bias_scale)
         },
-        SecondPolicy::Edu => format!("edu"),
+        SecondPolicy::Edu => "edu".to_string(),
         a => format!("{:?}", a)
     };
     let stamp = chrono::Local::now().format("[%Y-%m-%d][%H:%M:%S]");

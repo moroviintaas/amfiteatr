@@ -195,9 +195,9 @@ impl Model{
         for agent in &self.learning_agents{
             let guard = agent.lock().unwrap();
             let score = guard.current_universal_score() as f32;
-            let coops = guard.episodes().last().and_then(|t| Some(t.iter().filter(|t|{
+            let coops = guard.episodes().last().map(|t| t.iter().filter(|t|{
                 t.action() == &ClassicAction::Down
-            }).count())).unwrap_or(0usize);
+            }).count()).unwrap_or(0usize);
             /*
             let defects = guard.game_trajectory().list().iter().filter(|t|{
                 t.taken_action() == &ClassicAction::Defect
@@ -205,9 +205,9 @@ impl Model{
 
 
              */
-            let defects = guard.episodes().last().and_then(|t| Some(t.iter().filter(|t|{
+            let defects = guard.episodes().last().map(|t| t.iter().filter(|t|{
                 t.action() == &ClassicAction::Up
-            }).count())).unwrap_or(0usize);
+            }).count()).unwrap_or(0usize);
             self.learning_defects.push(defects as f32);
             self.learning_coops.push(coops as f32);
             self.scores_all.push(score);
@@ -624,7 +624,7 @@ fn main() -> Result<(), AmfiteatrError<D>>{
 
     let stamp = chrono::Local::now().format("[%Y-%m-%d][%H:%M:%S]");
     let base_path = "results/replicator_dynamics/";
-    std::fs::create_dir_all(&base_path).unwrap();
+    std::fs::create_dir_all(base_path).unwrap();
 
     plot_many_series(Path::new(
         format!("{}/payoffs-replicator-{:?}_{}-{}-{}-{}_{}.svg",

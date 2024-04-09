@@ -77,7 +77,7 @@ impl<ID: UsizeAgentId> PairingState<ID>{
 
          */
 
-        let mut indexes: Vec<usize> = (0..players).into_iter().collect();
+        let mut indexes: Vec<usize> = (0..players).collect();
         let mut rng = thread_rng();
         indexes.shuffle(&mut rng);
         //debug!("Shuffled indexes: {:?}", &indexes);
@@ -94,13 +94,13 @@ impl<ID: UsizeAgentId> PairingState<ID>{
             reward_table,
             score_cache,
             current_player_index: 0,
-            _id: PhantomData::default()
+            _id: PhantomData
         })
     }
 
     fn create_pairings(indexes: &[usize]) -> Result<PairingVec<ID>, ClassicGameError<ID>>{
         if indexes.len() & 0x01 != 0{
-            return Err(ClassicGameError::ExpectedEvenNumberOfPlayers(indexes.len() as u32));
+            Err(ClassicGameError::ExpectedEvenNumberOfPlayers(indexes.len() as u32))
         } else {
             let mut v = Vec::with_capacity(indexes.len());
             v.resize_with(indexes.len(), || PlayerPairing{
@@ -109,13 +109,13 @@ impl<ID: UsizeAgentId> PairingState<ID>{
                 side: Default::default(),
             }) ;
             for i in 0..indexes.len(){
-                let index:usize = indexes[i] as usize;
+                let index:usize = indexes[i];
                 if i & 0x01 == 0{
 
 
                     //even
                     v[index] = PlayerPairing{
-                        paired_player: ID::make_from_usize(indexes[i+1] as usize),
+                        paired_player: ID::make_from_usize(indexes[i+1]),
                         taken_action: None,
                         side: Side::Left,
                     }
@@ -123,7 +123,7 @@ impl<ID: UsizeAgentId> PairingState<ID>{
                 } else {
 
                     v[index] = PlayerPairing{
-                        paired_player: ID::make_from_usize(indexes[i-1] as usize),
+                        paired_player: ID::make_from_usize(indexes[i-1]),
                         taken_action: None,
                         side: Side::Right,
                     }
@@ -169,7 +169,7 @@ impl<ID: UsizeAgentId> Display for PairingState<ID>{
         write!(f, "{}", s)*/
 
         for r in 0..self.previous_pairings.len(){
-            write!(f, "Round: {r:}:\n")?;
+            writeln!(f, "Round: {r:}:")?;
             for i in 0..self.previous_pairings[r].len(){
                 write!(f, "\t{}\tpositioned: {:?}\tpaired with: {}\t;",
                        i, self.previous_pairings[r][i].side, self.previous_pairings[r][i].paired_player)?;
@@ -186,7 +186,7 @@ impl<ID: UsizeAgentId> Display for PairingState<ID>{
                 else{
                     write!(f, "against: ---\t")?;
                 }
-                write!(f, "\n")?;
+                writeln!(f)?;
             }
         }
         write!(f, "")
@@ -243,8 +243,7 @@ impl<ID: UsizeAgentId> EnvironmentStateSequential<ClassicGameDomain<ID>> for Pai
 
 
 
-                    let encounters_vec: HashMap<ID, EncounterReport<ID>> = (0..self.actual_pairings.len())
-                        .into_iter().map(|i|{
+                    let encounters_vec: HashMap<ID, EncounterReport<ID>> = (0..self.actual_pairings.len()).map(|i|{
                         let actual_pairing = self.actual_pairings[i];
                         let other_player = self.actual_pairings[i].paired_player;
                         //let reverse_pairing = self.actual_pairings[other_player.as_usize()];
@@ -270,8 +269,7 @@ impl<ID: UsizeAgentId> EnvironmentStateSequential<ClassicGameDomain<ID>> for Pai
                         encounters,
                         pairing: opairings,
                     };
-                    let updates: Vec<(ID, ClassicGameUpdate<ID>)> = (0..self.actual_pairings.len())
-                        .into_iter().map(|i|{
+                    let updates: Vec<(ID, ClassicGameUpdate<ID>)> = (0..self.actual_pairings.len()).map(|i|{
                         (ID::make_from_usize(i), singe_update.clone())
                     }).collect();
 

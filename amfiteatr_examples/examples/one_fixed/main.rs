@@ -303,13 +303,13 @@ fn main() -> Result<(), AmfiteatrError<ClassicGameDomain<AgentNum>>>{
 
     let s_policy = match args.policy{
         SecondPolicy::Mixed => {format!("mixed-{:.02}", args.defect_proba)}
-        SecondPolicy::SwitchTwo => {format!("switch2")}
-        SecondPolicy::FibonacciForgive => {format!("fibonacci")},
-        SecondPolicy::ForgiveAfterTwo => format!("forgive_2coops"),
+        SecondPolicy::SwitchTwo => {"switch2".to_string()}
+        SecondPolicy::FibonacciForgive => {"fibonacci".to_string()},
+        SecondPolicy::ForgiveAfterTwo => "forgive_2coops".to_string(),
     };
     let stamp = chrono::Local::now().format("[%Y-%m-%d][%H:%M:%S]");
     let base_path = "results/one_fixed/";
-    std::fs::create_dir_all(&base_path).unwrap();
+    std::fs::create_dir_all(base_path).unwrap();
 
     let mut series = MultiAgentPayoffSeries::<D>{
         agent_series: vec![],

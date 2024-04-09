@@ -55,21 +55,21 @@ impl<'a, DP: DomainParameters, S: EnvironmentStateSequential<DP>> GameStepView<'
 
     /// Returns state before taking action.
     pub fn state(&self) -> &S{
-        &self.state_before
+        self.state_before
     }
     /// Returns state after taking action.
     pub fn late_state(&self) -> &S{
-        &self.state_after
+        self.state_after
     }
 
     /// Returns reference to the agent id who performed action in the step's early state.
     pub fn agent(&self) -> &DP::AgentId{
-        &self.agent
+        self.agent
     }
 
     /// Returns reference to action performed during the step
     pub fn action(&self) -> &DP::ActionType{
-        &self.action
+        self.action
     }
 
 
@@ -250,15 +250,16 @@ impl<DP: DomainParameters, S: EnvironmentStateSequential<DP>> GameTrajectory<DP,
     }
     /// Returns view of indexed step
     pub fn view_step(&self, index: usize) -> Option<GameStepView<DP, S>>{
-        self.states.get(index+1).and_then(|se|{
-            Some(GameStepView::new(
+        self.states.get(index+1).map(|se|{
+            GameStepView::new(
                 &self.states[index],
                 &self.agents[index],
                 &self.actions[index],
                 self.validations[index],
-                &se))
+                se)
         }).or_else(||{
             if index + 1 == self.states.len(){
+                /*
                 if let Some(fi_state) = &self.final_state{
                     Some(GameStepView::new(
                         &self.states[index],
@@ -270,6 +271,15 @@ impl<DP: DomainParameters, S: EnvironmentStateSequential<DP>> GameTrajectory<DP,
                 } else {
                     None
                 }
+
+                 */
+                self.final_state.as_ref().map(|fi_state| GameStepView::new(
+                    &self.states[index],
+                    &self.agents[index],
+                    &self.actions[index],
+                    self.validations[index],
+                    fi_state
+                ))
             } else { None}
         })
     }

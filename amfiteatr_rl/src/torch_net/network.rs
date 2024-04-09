@@ -132,8 +132,8 @@ NeuralNetTemplate<O, N, F>{
 
     pub fn new(net_closure: F) -> Self{
         Self{
-            _output: PhantomData::default(),
-            _net_closure: PhantomData::default(),
+            _output: PhantomData,
+            _net_closure: PhantomData,
             net_closure
         }
     }

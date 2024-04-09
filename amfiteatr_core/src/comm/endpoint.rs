@@ -9,6 +9,8 @@ use crate::{
     },
     error::CommunicationError
 };
+use crate::env::AgentStampedMessage;
+
 /// Trait for structures using to communicate in synchronous mode between two objects.
 pub trait BidirectionalEndpoint {
     /// The type that is sent via this endpoint.
@@ -98,7 +100,7 @@ pub trait EnvironmentAdapter<DP: DomainParameters>{
     /// This method does not specify agent from whom message is expected.
     /// Instead it looks for first incoming message (or first queued) and then
     /// outputs tuple of agent id and received message wrapped in `Result`.
-    fn receive_non_blocking(&mut self) -> Result<Option<(DP::AgentId, AgentMessage<DP>)>, CommunicationError<DP>>;
+    fn receive_non_blocking(&mut self) -> Result<Option<AgentStampedMessage<DP>>, CommunicationError<DP>>;
 
     /// Diagnostic message to state if agent is available - if it can be addressed
     /// to send message.

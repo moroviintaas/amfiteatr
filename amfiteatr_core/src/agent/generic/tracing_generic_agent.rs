@@ -49,7 +49,7 @@ where <P as Policy<DP>>::InfoSetType: InformationSet<DP>{
             information_set: state,
             comm,
             policy,
-            _phantom:PhantomData::default(),
+            _phantom:PhantomData,
             constructed_universal_reward: Reward::neutral(),
             committed_universal_score: Reward::neutral(),
             game_trajectory: AgentTrajectory::new(),
@@ -131,7 +131,7 @@ where <P as Policy<DP>>::InfoSetType: InformationSet<DP>{
     /// Using [`std::mem::swap`](::std::mem::swap) swaps communication endpoints with instance of [`AgentGent`](crate::agent::AgentGen).
     pub fn swap_comms_with_basic<P2: Policy<DP>>(&mut self, other: &mut AgentGen<DP, P2, Comm>)
     where <P2 as Policy<DP>>::InfoSetType: InformationSet<DP> + Clone{
-        std::mem::swap(&mut self.comm, &mut other.comm_mut())
+        std::mem::swap(&mut self.comm, other.comm_mut())
     }
 
     pub(crate) fn comm_mut(&mut self) -> &mut Comm{
@@ -248,7 +248,9 @@ where <P as Policy<DP>>::InfoSetType: InformationSet<DP> + Clone{
     }
 
     fn react_refused_action(&mut self) -> Result<(), AmfiteatrError<DP>> {
-        todo!()
+        #[cfg(feature = "log_error")]
+        log::error!("Agent: {0} Action  has been refused", self.information_set.agent_id());
+        Ok(())
     }
 }
 

@@ -57,19 +57,19 @@ impl<'a, DP: DomainParameters, S: InformationSet<DP>> AgentStepView<'a, DP, S>{
     }
     /// Information set before taking action.
     pub fn information_set(&self) -> &S{
-        &self.start_info_set
+        self.start_info_set
     }
     /// Payoff set before taking action.
     pub fn payoff(&self) -> &DP::UniversalReward{
-        &self.start_payoff
+        self.start_payoff
     }
     /// Information set after step completion (just before next step).
     pub fn late_information_set(&self) -> &S{
-        &self.end_info_set
+        self.end_info_set
     }
     /// Payoff after step completion (just before next step).
     pub fn late_payoff(&self) -> &DP::UniversalReward{
-        &self.end_payoff
+        self.end_payoff
     }
     /// Difference in late payoff and start payoff calculated via [`Reward::ref_sub`].
     pub fn reward(&self) -> DP::UniversalReward{
@@ -227,12 +227,12 @@ impl<DP: DomainParameters, S: InformationSet<DP>> AgentTrajectory<DP, S>{
     pub fn view_step(&self, index: usize) -> Option<AgentStepView<DP, S>>{
         //first check if there is next normal step
         self.information_sets.get(index+1).and_then(|se|{
-            self.payoffs.get(index+1).and_then(|pe|{
-                Some(AgentStepView::new(
+            self.payoffs.get(index+1).map(|pe|{
+                AgentStepView::new(
                     &self.information_sets[index],
                     se, &self.payoffs[index],
                     pe,
-                    &self.actions[index]))
+                    &self.actions[index])
             })
         }).or_else(||{
             //check if we ask for last data in normal vector
@@ -311,7 +311,7 @@ impl<DP: DomainParameters, S: InformationSet<DP>> AgentTrajectory<DP, S>{
     /// Returns iterator of step views.
     pub fn iter(&self) -> AgentStepIterator<DP, S>{
         AgentStepIterator{
-            trajectory: &self,
+            trajectory: self,
             index: 0,
         }
     }
@@ -329,9 +329,9 @@ impl<'a, DP: DomainParameters, S: InformationSet<DP>> Iterator for AgentStepIter
 
     fn next(&mut self) -> Option<Self::Item> {
 
-        self.trajectory.view_step(self.index).and_then(|v|{
+        self.trajectory.view_step(self.index).map(|v|{
             self.index += 1;
-            Some(v)
+            v
         })
     }
 }

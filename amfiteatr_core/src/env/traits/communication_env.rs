@@ -2,7 +2,7 @@ use std::error::Error;
 
 use crate::{domain::{AgentMessage, EnvironmentMessage, DomainParameters}, error::CommunicationError};
 
-
+pub(crate) type AgentStampedMessage<DP> = (<DP as DomainParameters>::AgentId, AgentMessage<DP>);
 /// Environment communicating with agent using endpoints.
 /// This mean environment can receive from specified endpoint
 /// (from certain agent)
@@ -35,7 +35,7 @@ pub trait CommunicatingAdapterEnvironment<DP: DomainParameters>{
     fn blocking_receive(&mut self)
                         -> Result<(DP::AgentId, AgentMessage<DP>), CommunicationError<DP>>;
     fn nonblocking_receive(&mut self)
-                           -> Result<Option<(DP::AgentId, AgentMessage<DP>)>, CommunicationError<DP>>;
+                           -> Result<Option<AgentStampedMessage<DP>>, CommunicationError<DP>>;
         
 }
 /// Broadcasting extension to trait [`CommunicatingAdapterEnvironment`](CommunicatingAdapterEnvironment)

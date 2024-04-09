@@ -48,7 +48,7 @@ impl<ID: UsizeAgentId, IS: InformationSet<ClassicGameDomain<ID>>> ClassicMixedSt
         }
     }
     pub fn new_checked(probability: f64) -> Result<Self, ClassicGameError<ID>>{
-        if probability < 0.0 || probability > 1.0{
+        if !(0.0..=1.0).contains(&probability){
             Err(ClassicGameError::NotAProbability(probability))
         } else{
             Ok(Self::new(probability))
@@ -62,11 +62,11 @@ impl<ID: UsizeAgentId, IS: InformationSet<ClassicGameDomain<ID>>> Policy<Classic
     fn select_action(&self, _state: &Self::InfoSetType) -> Option<ClassicAction> {
         let mut rng = thread_rng();
         let sample = rng.gen_range(0.0..1.0);
-        sample.partial_cmp(&self.probability_up).and_then(|o|{
+        sample.partial_cmp(&self.probability_up).map(|o|{
           match o{
-              Ordering::Less => Some(Up),
-              Ordering::Equal => Some(Down),
-              Ordering::Greater => Some(Down),
+              Ordering::Less => Up,
+              Ordering::Equal => Down,
+              Ordering::Greater => Down,
           }
         })
 

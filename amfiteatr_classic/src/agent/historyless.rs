@@ -54,7 +54,7 @@ impl InformationSet<ClassicGameDomain<AgentNum>> for MinimalInfoSet {
             self.payoff += reward;
             Ok(())
         } else{
-            Err(EncounterNotReported(self.id as u32))
+            Err(EncounterNotReported(self.id))
         }
             //.ok_or(Err(EncounterNotReported(self.id as u32)));
 

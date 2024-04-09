@@ -129,7 +129,7 @@ pub trait FloatTensorReward: Reward{
     //fn shape(&self) -> Dims;
     fn shape() -> Vec<i64>;
     fn total_size() -> i64{
-        Self::shape().iter().fold(0, |acc, x| acc+x)
+        Self::shape().iter().sum::<i64>()
     }
 }
 

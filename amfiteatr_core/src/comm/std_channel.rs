@@ -30,14 +30,14 @@ pub type StdAgentEndpoint<DP> = StdEndpoint<AgentMessage<DP>, EnvironmentMessage
 impl<OT, IT, E: Error> StdEndpoint<OT, IT, E>
 where StdEndpoint<OT, IT, E> :  BidirectionalEndpoint<OutwardType = OT, InwardType = IT, Error = E>{
     pub fn new(sender: Sender<OT>, receiver: Receiver<IT>) -> Self{
-        Self{sender, receiver, _phantom: PhantomData::default()}
+        Self{sender, receiver, _phantom: PhantomData}
     }
     pub fn new_pair() -> (Self, StdEndpoint<IT, OT, E>) {
         let (tx_1, rx_1) = channel();
         let (tx_2, rx_2) = channel();
 
-        (Self{sender: tx_1, receiver: rx_2, _phantom: PhantomData::default()},
-         StdEndpoint {sender: tx_2, receiver: rx_1, _phantom: PhantomData::default()})
+        (Self{sender: tx_1, receiver: rx_2, _phantom: PhantomData},
+         StdEndpoint {sender: tx_2, receiver: rx_1, _phantom: PhantomData})
     }
     pub fn _decompose(self) -> (Sender<OT>, Receiver<IT>){
         (self.sender, self.receiver)
@@ -168,12 +168,18 @@ pub struct EnvironmentMpscPort<DP: DomainParameters>{
     senders: HashMap<DP::AgentId, Sender<EnvironmentMessage<DP>>>
 }
 
+impl<DP: DomainParameters> Default for EnvironmentMpscPort<DP>{
+    fn default() -> Self {
+        Self::new()
+    }
+}
 impl<DP: DomainParameters> EnvironmentMpscPort<DP>{
     pub fn new() -> Self{
         let (sender_template, receiver) = channel();
         Self{receiver, sender_template, senders: HashMap::new()}
     }
     pub fn register_agent(&mut self, id: DP::AgentId) -> Result<AgentMpscAdapter<DP>, CommunicationError<DP>>{
+        /*
         if self.senders.contains_key(&id){
             return Err(CommunicationError::DuplicatedAgent(id));
         } else {
@@ -186,6 +192,19 @@ impl<DP: DomainParameters> EnvironmentMpscPort<DP>{
             self.senders.insert(id, env_tx);
             Ok(agent_adapter)
 
+        }*/
+        if let std::collections::hash_map::Entry::Vacant(e) = self.senders.entry(id.clone()) {
+            let (env_tx, agent_rx) = channel();
+            let agent_adapter = AgentMpscAdapter::new(
+                    id.clone(),
+                    self.sender_template.clone(),
+                    agent_rx,
+                );
+            e.insert(env_tx);
+            Ok(agent_adapter)
+
+            } else {
+            Err(CommunicationError::DuplicatedAgent(id))
         }
 
     }
@@ -251,7 +270,11 @@ impl<DP: DomainParameters> ListPlayers<DP> for EnvironmentMpscPort<DP>{
 pub struct EnvRRAdapter<DP: DomainParameters, T: EnvironmentEndpoint<DP>>{
     endpoints: HashMap<DP::AgentId, T>,
 }
-
+impl <DP: DomainParameters, T: EnvironmentEndpoint<DP>> Default for EnvRRAdapter<DP, T>{
+    fn default() -> Self {
+        Self::new()
+    }
+}
 impl <DP: DomainParameters, T: EnvironmentEndpoint<DP>> EnvRRAdapter<DP, T>{
 
     pub fn new() -> Self{
@@ -261,11 +284,20 @@ impl <DP: DomainParameters, T: EnvironmentEndpoint<DP>> EnvRRAdapter<DP, T>{
     /// Adds new agent, inserts communication endpoint to HashMap.
     /// Returns error if there is already enpdoint dedicated to this agent.
     pub fn register_agent(&mut self, agent_id: DP::AgentId, comm: T) -> Result<(), CommunicationError<DP>>{
+        /*
         if self.endpoints.contains_key(&agent_id){
             return Err(CommunicationError::DuplicatedAgent(agent_id));
         } else {
             self.endpoints.insert(agent_id, comm);
             Ok(())
+        }
+
+         */
+        if let std::collections::hash_map::Entry::Vacant(e) = self.endpoints.entry(agent_id.clone()) {
+            e.insert(comm);
+            Ok(())
+        } else {
+            Err(CommunicationError::DuplicatedAgent(agent_id))
         }
     }
 }
@@ -276,6 +308,7 @@ impl<DP: DomainParameters> EnvRRAdapter<DP, StdEnvironmentEndpoint<DP>>{
     /// Creates endpoint pair, environment side is stored in HashMap
     /// and endpoint of agent is returned.
     pub fn create_local_connection(&mut self, agent_id: DP::AgentId) -> Result<StdAgentEndpoint<DP>, CommunicationError<DP>>{
+        /*
         if self.endpoints.contains_key(&agent_id){
             return Err(CommunicationError::DuplicatedAgent(agent_id));
         } else {
@@ -285,6 +318,15 @@ impl<DP: DomainParameters> EnvRRAdapter<DP, StdEnvironmentEndpoint<DP>>{
             self.endpoints.insert(agent_id, env_comm);
             Ok(agent_comm)
         }
+
+         */
+          if let std::collections::hash_map::Entry::Vacant(e) = self.endpoints.entry(agent_id.clone()) {
+              let (env_comm, agent_comm) = StdEnvironmentEndpoint::<DP>::new_pair();
+              e.insert(env_comm);
+              Ok(agent_comm)
+          } else {
+              Err(CommunicationError::DuplicatedAgent(agent_id))
+          }
     }
 }
 
@@ -292,12 +334,22 @@ impl<DP: DomainParameters> EnvRRAdapter<DP, StdEnvironmentEndpoint<DP>>{
 impl<DP: DomainParameters> EnvRRAdapter<DP, Box<dyn EnvironmentEndpoint<DP>>>{
 
     pub fn create_local_connection(&mut self, agent_id: DP::AgentId) -> Result<StdAgentEndpoint<DP>, CommunicationError<DP>>{
+        /*
         if self.endpoints.contains_key(&agent_id){
             return Err(CommunicationError::DuplicatedAgent(agent_id));
         } else {
             let (env_comm, agent_comm) = StdEnvironmentEndpoint::<DP>::new_pair();
             self.endpoints.insert(agent_id, Box::new(env_comm));
             Ok(agent_comm)
+        }
+
+         */
+        if let std::collections::hash_map::Entry::Vacant(e) = self.endpoints.entry(agent_id.clone()) {
+            let (env_comm, agent_comm) = StdEnvironmentEndpoint::<DP>::new_pair();
+            e.insert(Box::new(env_comm));
+            Ok(agent_comm)
+        } else {
+            Err(CommunicationError::DuplicatedAgent(agent_id))
         }
     }
 }
@@ -342,7 +394,7 @@ impl <DP: DomainParameters, T: EnvironmentEndpoint<DP>> EnvironmentAdapter<DP> f
                 }
             }
         }
-        return Ok(None);
+        Ok(None)
 
     }
 
@@ -358,7 +410,7 @@ impl <DP: DomainParameters, T: EnvironmentEndpoint<DP>> BroadcastingEnvironmentA
             let r = endpoint.send(message.clone());
             if let Err(e) = r{
                 if result.is_ok(){
-                    result = Err(CommunicationError::from(e));
+                    result = Err(e);
                 }
             }
                

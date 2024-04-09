@@ -26,7 +26,7 @@ pub struct RandomPolicy<DP: DomainParameters, State: InformationSet<DP>>{
 }
 impl<DP: DomainParameters, InfoSet: InformationSet<DP>> RandomPolicy<DP, InfoSet>{
     pub fn new() -> Self{
-        Self{state: PhantomData::default(), _spec: PhantomData::default()}
+        Self{state: PhantomData, _spec: PhantomData}
     }
 }
 

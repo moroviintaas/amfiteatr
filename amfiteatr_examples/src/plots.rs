@@ -48,12 +48,12 @@ pub fn plot_payoffs(file: &Path, series_0: &PlotSeries) -> Result<(), Box<dyn st
             &RED,
         ))?
         .label(series_0.description.as_str())
-        .legend(|(x, y)| PathElement::new(vec![(x, y), (x + 20, y)], &RED));
+        .legend(|(x, y)| PathElement::new(vec![(x, y), (x + 20, y)], RED));
 
     chart
         .configure_series_labels()
-        .background_style(&WHITE.mix(0.8))
-        .border_style(&BLACK)
+        .background_style(WHITE.mix(0.8))
+        .border_style(BLACK)
         .draw()?;
 
     root.present()?;
@@ -141,7 +141,7 @@ pub fn plot_many_series(file: &Path, title: &str, series: &[PlotSeries], x_desc:
                 &s.color,
             ))?
             .label(s.description.as_str())
-            .legend(|(x, y)| PathElement::new(vec![(x, y), (x + 20, y)], &s.color));
+            .legend(|(x, y)| PathElement::new(vec![(x, y), (x + 20, y)], s.color));
 
     }
     chart

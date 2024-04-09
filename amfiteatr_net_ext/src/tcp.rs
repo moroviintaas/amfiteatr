@@ -40,7 +40,7 @@ pub struct BoundedTcpEndpoint<OT, IT, E: Error, const  SIZE: usize>{
 
 impl<OT, IT, E: Error, const  SIZE: usize> BoundedTcpEndpoint<OT, IT, E, SIZE>{
     pub fn new(stream : std::net::TcpStream) -> Self{
-        Self{stream, _ot: PhantomData::default(), _it: PhantomData::default(), _e: PhantomData::default(), _buff: PhantomData::default()}
+        Self{stream, _ot: PhantomData, _it: PhantomData, _e: PhantomData, _buff: PhantomData}
     }
 
 
@@ -59,8 +59,8 @@ impl<DP: DomainParameters, const SIZE: usize> BoundedTcpEnvironmentEndpoint<DP, 
 
         //let mut hold_env = None;
         //let mut hold_agent = None;
-        let tcp_listener = std::net::TcpListener::bind(&format!("127.0.0.1:{}", port))
-            .expect(&format!("Failed listening on local port {port:}"));
+        let tcp_listener = std::net::TcpListener::bind(format!("127.0.0.1:{}", port))
+            .unwrap_or_else(|_| panic!("Failed listening on local port {port:}"));
         let handle_env = thread::spawn(move ||{
 
 
@@ -74,7 +74,7 @@ impl<DP: DomainParameters, const SIZE: usize> BoundedTcpEnvironmentEndpoint<DP, 
 
 
         let handle_agent = thread::spawn(move ||{
-            let agent_connector = std::net::TcpStream::connect(&format!("127.0.0.1:{}", port))
+            let agent_connector = std::net::TcpStream::connect(format!("127.0.0.1:{}", port))
                 .expect("Failed connecting from client");
             tx_agent.send(agent_connector)
                 .expect("Failed sending initiator socket");

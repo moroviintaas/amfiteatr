@@ -128,7 +128,7 @@ impl DemoState{
     }
     */
     pub fn new_with_players(ceilings: Vec<f32>, max_rounds: usize, comms: &HashSet<DemoAgentID>) -> Self{
-        let player_ids: Vec<DemoAgentID> = comms.iter().map(|id| id.clone()).collect();
+        let player_ids: Vec<DemoAgentID> = comms.iter().copied().collect();
         let turn_of  = if max_rounds > 0{
             Some(0)
         } else {
@@ -155,7 +155,7 @@ impl EnvironmentStateSequential<DemoDomain> for DemoState{
                 None
             }
         }*/
-        self.turn_of.and_then(|index| Some(self.player_ids[index]))
+        self.turn_of.map(|index| self.player_ids[index])
     }
 
     fn is_finished(&self) -> bool {
@@ -221,14 +221,14 @@ impl EnvironmentStateSequential<DemoDomain> for DemoState{
             }
 
             let updates = self.player_ids.iter().map(|id|{
-                (id.clone(), (agent.clone(), action.clone(), reward.clone()))
+                (*id, (agent, action.clone(), reward))
             }).collect();
 
             Ok(updates)
 
 
         } else {
-            return Err(DemoError(format!("Player {} played, while game is finished", agent)));
+            Err(DemoError(format!("Player {} played, while game is finished", agent)))
         }
 
 
@@ -340,6 +340,6 @@ impl Policy<DemoDomain> for DemoPolicySelectFirst{
     type InfoSetType = DemoInfoSet;
 
     fn select_action(&self, state: &Self::InfoSetType) -> Option<DemoAction> {
-        state.available_actions().first().map(|a| a.clone())
+        state.available_actions().first().cloned()
     }
 }

@@ -182,7 +182,7 @@ impl <
         + ListPlayers<DP>
 > AutoEnvironmentWithScores<DP> for E{
     fn run_with_scores(&mut self) -> Result<(), AmfiteatrError<DP>> {
-        let mut actual_universal_scores: HashMap<DP::AgentId, DP::UniversalReward> = self.players().into_iter()
+        let mut actual_universal_scores: HashMap<DP::AgentId, DP::UniversalReward> = self.players()
             .map(|id|{
                 (id, DP::UniversalReward::neutral())
             }).collect();
@@ -296,7 +296,7 @@ impl <
 > AutoEnvironmentWithScoresAndPenalties<DP> for E{
     fn run_with_scores_and_penalties<P: Fn(&<Self as StatefulEnvironment<DP>>::State,&DP::AgentId)
         -> DP::UniversalReward>(&mut self, penalty: P) -> Result<(), AmfiteatrError<DP>> {
-        let mut actual_universal_scores: HashMap<DP::AgentId, DP::UniversalReward> = self.players().into_iter()
+        let mut actual_universal_scores: HashMap<DP::AgentId, DP::UniversalReward> = self.players()
             .map(|id|{
                 (id, DP::UniversalReward::neutral())
             }).collect();
@@ -341,7 +341,7 @@ impl <
                                     #[cfg(feature = "log_error")]
                                     log::error!("Player {player:} performed illegal action: {action:}");
                                     let _ = self.send(&player, EnvironmentMessage::MoveRefused);
-                                    let _ = self.send(&player, EnvironmentMessage::RewardFragment(penalty(&self.state(), &player)));
+                                    let _ = self.send(&player, EnvironmentMessage::RewardFragment(penalty(self.state(), &player)));
                                     for (player, score) in actual_universal_scores.iter_mut(){
 
                                         let reward = self.actual_score_of_player(player) - score.clone();

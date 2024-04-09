@@ -37,7 +37,7 @@ pub fn bench_demo_game_tcp_speedy_hashmap(c: &mut Criterion){
 
 
                     }
-                    let player_set = (0..player_number_setup).map(|k| k.clone()).collect();
+                    let player_set = (0..player_number_setup).collect();
                     let state = DemoState::new_with_players(bandits, 10, &player_set);
                     let env = HashMapEnvironment::new(state, env_comms);
                     (env, agents)
@@ -99,7 +99,7 @@ pub fn bench_demo_game_mpsc_hashmap(c: &mut Criterion){
 
 
                          }
-                         let player_set = (0..player_number_setup).map(|k| k.clone()).collect();
+                         let player_set = (0..player_number_setup).collect();
                          let state = DemoState::new_with_players(bandits, 10, &player_set);
                          let env = HashMapEnvironment::new(state, env_comms);
                          (env, agents)
@@ -161,7 +161,7 @@ pub fn bench_demo_game_single_mpsc(c: &mut Criterion){
 
 
                          }
-                         let player_set = (0..player_number_setup).map(|k| k.clone()).collect();
+                         let player_set = (0..player_number_setup).collect();
                          let state = DemoState::new_with_players(bandits, 10, &player_set);
                          let env = BasicEnvironment::new(state, env_adapter);
                          (env, agents)

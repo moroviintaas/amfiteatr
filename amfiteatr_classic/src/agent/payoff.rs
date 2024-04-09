@@ -67,7 +67,7 @@ impl<T: Copy + Clone + Debug + PartialEq> IndexMut<ClassicAction> for ActionPair
     }
 }
 
-impl<'a, T: Copy + Clone + Debug + PartialEq + Default> Default for ActionPairMapper<T>{
+impl<T: Copy + Clone + Debug + PartialEq + Default> Default for ActionPairMapper<T>{
     fn default() -> Self {
         Self(enum_map! {
             ClassicAction::Up => enum_map! {
