@@ -320,8 +320,8 @@ impl<
         InwardType=EnvironmentMessage<DP>,
         Error=CommunicationError<DP>>,
     Seed>
-MultiEpisodeAutoAgent<DP, Seed> for TracingAgentGen<DP, P, Comm>
-where Self: ReseedAgent<DP, Seed> + AutomaticAgent<DP>,
+MultiEpisodeAutoAgentRewarded<DP, Seed> for TracingAgentGen<DP, P, Comm>
+where Self: ReseedAgent<DP, Seed> + AutomaticAgentRewarded<DP>,
       <P as Policy<DP>>::InfoSetType: InformationSet<DP> + Clone,
 {
     fn store_episode(&mut self) {
@@ -350,8 +350,10 @@ MultiEpisodeTracingAgent<DP, <P as Policy<DP>>::InfoSetType, Seed> for TracingAg
     where <P as Policy<DP>>::InfoSetType: InformationSet<DP> + Clone,
     Self: ReseedAgent<DP, Seed>
     //+ SelfEvaluatingAgent<DP>
-    + AutomaticAgent<DP>,
+    + AutomaticAgentRewarded<DP>,
           <Self as StatefulAgent<DP>>::InfoSetType: InformationSet<DP>{
+
+
 
     fn take_episodes(&mut self) -> Vec<AgentTrajectory<DP, <P as Policy<DP>>::InfoSetType>> {
         let mut episodes = Vec::with_capacity(self.episodes.len());

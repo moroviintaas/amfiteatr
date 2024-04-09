@@ -218,8 +218,8 @@ impl<
         InwardType=EnvironmentMessage<DP>,
         Error=CommunicationError<DP>>,
     Seed>
-MultiEpisodeAutoAgent<DP, Seed> for AgentGen<DP, P, Comm>
-    where Self: ReseedAgent<DP, Seed> + AutomaticAgent<DP>,
+MultiEpisodeAutoAgentRewarded<DP, Seed> for AgentGen<DP, P, Comm>
+    where Self: ReseedAgent<DP, Seed> + AutomaticAgentRewarded<DP>,
           <P as Policy<DP>>::InfoSetType: InformationSet<DP>,
 {
     fn store_episode(&mut self) {
@@ -229,6 +229,8 @@ MultiEpisodeAutoAgent<DP, Seed> for AgentGen<DP, P, Comm>
     fn clear_episodes(&mut self) {
     }
 }
+
+
 
 impl<
     DP: DomainParameters,
@@ -322,29 +324,3 @@ where <P as Policy<DP>>::InfoSetType: InformationSet<DP>{
         self.committed_universal_score = DP::UniversalReward::neutral();
     }
 }
-
-/*
-impl<
-    DP: DomainParameters,
-    P: Policy<DP>,
-    Comm: BidirectionalEndpoint<
-        OutwardType=AgentMessage<DP>,
-        InwardType=EnvironmentMessage<DP>,
-        Error=CommunicationError<DP>>>
-SelfEvaluatingAgent<DP> for AgentGen<DP, P, Comm>
-where <Self as StatefulAgent<DP>>::InfoSetType: EvaluatedInformationSet<DP>,
-      <P as Policy<DP>>::InfoSetType: EvaluatedInformationSet<DP>{
-    type Assessment = <<Self as StatefulAgent<DP>>::InfoSetType as EvaluatedInformationSet<DP>>::RewardType;
-    fn current_assessment_total(&self) ->  Self::Assessment {
-        self.information_set.current_subjective_score() + &self.explicit_subjective_reward_component
-    }
-
-    fn add_explicit_assessment(&mut self, explicit_reward: &Self::Assessment) {
-        self.explicit_subjective_reward_component += explicit_reward
-    }
-
-    fn penalty_for_illegal_action(&self) -> Self::Assessment {
-        self.info_set().penalty_for_illegal()
-    }
-}
-*/

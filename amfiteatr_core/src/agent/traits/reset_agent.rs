@@ -30,19 +30,3 @@ pub trait ReseedAgent<DP: DomainParameters, Seed>
     fn reseed(&mut self, seed: Seed) -> Result<(), AmfiteatrError<DP>>;
 }
 
-/*
-impl<DP: DomainParameters, Seed, T: ReseedAgent<DP, Seed>> ReseedAgent<DP, Seed> for Arc<Mutex<T>>{
-    fn reseed(&mut self, seed: Seed) -> Result<(), AmfiteatrError<DP>> {
-
-        let mut guard = self.lock()
-            .map_err(|e| AmfiteatrError::Lock {
-                description: format!("{:}", e),
-                object: String::from("Agent")
-            })?;
-        guard.reseed(seed)?;
-
-        Ok(())
-    }
-}
-
-*/
