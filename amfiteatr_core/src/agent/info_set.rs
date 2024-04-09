@@ -49,7 +49,7 @@ impl<DP: DomainParameters, T: PresentPossibleActions<DP>> PresentPossibleActions
 /// Information Set that can produce score based on it's state.
 /// This reward can be in different type that defined in [`DomainParameters`](DomainParameters).
 /// > It can represent different kind of reward than defined in protocol parameters.
-/// Primary use case is to allow agent interpret it's situation, for example instead of
+/// Primary use case is to allow agent interpret its situation, for example instead of
 /// one numeric value as reward agent may be interested in some vector of numeric values representing
 /// his multi-criterion view on game's result.
 pub trait EvaluatedInformationSet<DP: DomainParameters, R: Reward>: InformationSet<DP>{

@@ -1,7 +1,7 @@
 
 use crate::agent::{AgentTrajectory,
                    InformationSet,
-                   MultiEpisodeAutoAgentRewarded};
+                   MultiEpisodeAutoAgent};
 use crate::domain::DomainParameters;
 use crate::error::AmfiteatrError;
 
@@ -28,7 +28,7 @@ pub trait TracingAgent<DP: DomainParameters, S: InformationSet<DP>>{
 
 /// Trait for moving out trajectories of many games from agent.
 pub trait MultiEpisodeTracingAgent<DP: DomainParameters, S: InformationSet<DP>, Seed>:
-    TracingAgent<DP, S> + MultiEpisodeAutoAgentRewarded<DP, Seed>{
+    TracingAgent<DP, S> + MultiEpisodeAutoAgent<DP, Seed>{
 
 
     fn take_episodes(&mut self) -> Vec<AgentTrajectory<DP, S>>;

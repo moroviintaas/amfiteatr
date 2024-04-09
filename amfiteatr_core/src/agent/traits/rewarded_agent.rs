@@ -14,7 +14,7 @@ pub trait RewardedAgent<DP: DomainParameters>{
     /// change game state it generates partial rewards for _A_ respectively 0 and -1.
     /// Score for this action (difference between state value before next and this action)
     /// will be `+3 +0 -1 = +2`.
-    /// Agents usually will be interested in score change between __their__ subsequent actions.
+    /// Agents will usually be interested in score change between __their__ subsequent actions.
     /// Action that gives `+3` score but immediately is punished by other player with `-1` to `-2`
     /// will be better than action giving `+10` and immediately punished by `-100`, right?.
     /// So this should return score change since last action performed by this agent.

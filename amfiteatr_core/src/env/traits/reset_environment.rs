@@ -36,14 +36,14 @@ pub trait ReseedEnvironment<DP: DomainParameters, Seed>
 
 /// Environment to be reset using some seed. During reseeding environment produces
 /// initial observations for agents.
-/// These observations should compatible with [`ReseedAgent`](crate::agent:ReseedAgent), then
+/// These observations should compatible with [`ReseedAgent`](crate::agent::ReseedAgent), then
 /// it can be used to reinitialize agents.
 /// > For example when environment shuffles and distributes card, agents can observe their initial cards
 /// and this information can be used to initialize their information set. Or when constructing similar environment
 /// to [`Gymnasium`](https://gymnasium.farama.org/), while reseeding environment player observes the same data type
 /// as when he makes _step_.
 pub trait DirtyReseedEnvironment<DP: DomainParameters, Seed>{
-    /// Observation type for one player (probably corresponding to `ReseedAgent's` [Seed](crate::agent:ReseedAgent)
+    /// Observation type for one player (probably corresponding to `ReseedAgent's` [Seed](crate::agent::ReseedAgent)
     /// parameter
     type Observation;
     /// Aggregator for initial observations (e.g. [`HashMap<AgentId, Self::Observation`](std::collections::HashMap))

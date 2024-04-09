@@ -13,7 +13,7 @@ use crate::tensor_data::FloatTensorReward;
 /// information set with generic parameter of [`DomainParameters`](amfiteatr_core::domain::DomainParameters).
 ///
 pub trait NetworkLearningAgent<DP: DomainParameters>:
-    AutomaticAgentRewarded<DP>
+    AutomaticAgent<DP>
     + PolicyAgent<DP>
     + TracingAgent<DP, <Self as StatefulAgent<DP>>::InfoSetType>
     where  <Self as PolicyAgent<DP>>::Policy: LearningNetworkPolicy<DP>,
@@ -21,7 +21,7 @@ pub trait NetworkLearningAgent<DP: DomainParameters>:
 {
 }
 
-impl <DP: DomainParameters, T: AutomaticAgentRewarded<DP>  + PolicyAgent<DP>
+impl <DP: DomainParameters, T: AutomaticAgent<DP>  + PolicyAgent<DP>
 + TracingAgent<DP, <Self as StatefulAgent<DP>>::InfoSetType>>
 NetworkLearningAgent<DP> for T
 where <T as PolicyAgent<DP>>::Policy: LearningNetworkPolicy<DP>,
@@ -52,7 +52,7 @@ where <T as StatefulAgent<DP>>::InfoSetType: EvaluatedInformationSet<DP>
 /// share the same type of information set, because [`LearningNetworkPolicy`](crate::policy::LearningNetworkPolicy)
 /// uses trajectory including information set.
 pub trait RlModelAgent<DP: DomainParameters, Seed, IS: InformationSet<DP>>:
-    AutomaticAgentRewarded<DP>
+    AutomaticAgent<DP>
     //+ SelfEvaluatingAgent<DP,  Assessment= <IS as EvaluatedInformationSet<DP>>::RewardType>
     + ReseedAgent<DP, Seed>
     + PolicyAgent<DP> + StatefulAgent<DP, InfoSetType=IS>
@@ -69,7 +69,7 @@ impl<
     DP: DomainParameters,
     Seed,
     IS: InformationSet<DP>,
-    T: AutomaticAgentRewarded<DP>
+    T: AutomaticAgent<DP>
         //+ SelfEvaluatingAgent<DP,  Assessment= <IS as EvaluatedInformationSet<DP>>::RewardType>
         + ReseedAgent<DP, Seed>
         + PolicyAgent<DP> + StatefulAgent<DP, InfoSetType=IS>
@@ -83,12 +83,12 @@ where <Self as PolicyAgent<DP>>::Policy: LearningNetworkPolicy<DP>,{
 
 
 pub trait RlSimpleTestAgent<DP: DomainParameters, Seed>:
-AutomaticAgentRewarded<DP> + ReseedAgent<DP, Seed> + Send{
+AutomaticAgent<DP> + ReseedAgent<DP, Seed> + Send{
 
 }
 
 pub trait RlSimpleLearningAgent<DP: DomainParameters, Seed>:
-AutomaticAgentRewarded<DP> + ReseedAgent<DP, Seed> + Send + MultiEpisodeAutoAgentRewarded<DP, Seed>
+AutomaticAgent<DP> + ReseedAgent<DP, Seed> + Send + MultiEpisodeAutoAgent<DP, Seed>
 {
     fn simple_apply_experience(&mut self) -> Result<(), AmfiteatrRlError<DP>>;
     //fn clear_experience(&mut self) -> Result<(), AmfiteatrError<DP>>;
@@ -112,7 +112,7 @@ impl<
         Error=CommunicationError<DP>> + Send> RlSimpleLearningAgent<DP, Seed> for TracingAgentGen<DP, P, Comm, >
     where <P as Policy<DP>>::InfoSetType: InformationSet<DP> + Renew<DP, Seed>,
           <DP as DomainParameters>::UniversalReward: FloatTensorReward,
-    Self: AutomaticAgentRewarded<DP> + MultiEpisodeAutoAgentRewarded<DP, Seed>
+    Self: AutomaticAgent<DP> + MultiEpisodeAutoAgent<DP, Seed>
     {
     fn simple_apply_experience(&mut self) -> Result<(), AmfiteatrRlError<DP>> {
         let episodes = self.take_episodes();

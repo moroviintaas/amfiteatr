@@ -37,7 +37,7 @@ where <R as PolicyAgent<CartPoleDomain>>::Policy: LearningNetworkPolicy<CartPole
                 env.run_with_scores()
             });
             s.spawn(||{
-                agent.run_episode_rewarded(observation).unwrap()
+                agent.run_episode(observation).unwrap()
             });
         });
         result_sum += agent.current_universal_score() as f64;
@@ -68,7 +68,7 @@ where <R as PolicyAgent<CartPoleDomain>>::Policy: LearningNetworkPolicy<CartPole
                 env.run_with_scores()
             });
             s.spawn(||{
-                agent.run_episode_rewarded(observation).unwrap()
+                agent.run_episode(observation).unwrap()
             });
         });
     }

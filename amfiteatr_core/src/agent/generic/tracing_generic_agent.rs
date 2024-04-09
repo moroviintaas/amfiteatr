@@ -320,8 +320,8 @@ impl<
         InwardType=EnvironmentMessage<DP>,
         Error=CommunicationError<DP>>,
     Seed>
-MultiEpisodeAutoAgentRewarded<DP, Seed> for TracingAgentGen<DP, P, Comm>
-where Self: ReseedAgent<DP, Seed> + AutomaticAgentRewarded<DP>,
+MultiEpisodeAutoAgent<DP, Seed> for TracingAgentGen<DP, P, Comm>
+where Self: ReseedAgent<DP, Seed> + AutomaticAgent<DP>,
       <P as Policy<DP>>::InfoSetType: InformationSet<DP> + Clone,
 {
     fn store_episode(&mut self) {
@@ -350,7 +350,7 @@ MultiEpisodeTracingAgent<DP, <P as Policy<DP>>::InfoSetType, Seed> for TracingAg
     where <P as Policy<DP>>::InfoSetType: InformationSet<DP> + Clone,
     Self: ReseedAgent<DP, Seed>
     //+ SelfEvaluatingAgent<DP>
-    + AutomaticAgentRewarded<DP>,
+    + AutomaticAgent<DP>,
           <Self as StatefulAgent<DP>>::InfoSetType: InformationSet<DP>{
 
 

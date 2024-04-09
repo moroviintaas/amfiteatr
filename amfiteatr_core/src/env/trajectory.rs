@@ -101,7 +101,7 @@ impl<'a, DP: DomainParameters, S: EnvironmentStateSequential<DP>> GameStepView<'
 /// /// Each row is added via function [`GameTrajectory::register_step_point`] and the final row is added
 /// via [`GameTrajectory::finish`].
 ///
-/// For trace collected by players refer to [`AgentTrajectory`].
+/// For trace collected by players refer to [`AgentTrajectory`](crate::agent::AgentTrajectory).
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Clone, Debug)]
 pub struct GameTrajectory<DP: DomainParameters, S: EnvironmentStateSequential<DP>>{

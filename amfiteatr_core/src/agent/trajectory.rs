@@ -12,15 +12,15 @@ use crate::error::TrajectoryError::UpdateOnFinishedAgentTrajectory;
 /// game action.
 /// View contains also action made in this step. Reward for step is calculated as difference in
 /// payoffs. It may be also calculated as difference in assessments provided by InformationSet
-/// implementing [`EvaluatedInformationSet`].
+/// implementing [`EvaluatedInformationSet`](crate::agent::EvaluatedInformationSet).
 ///
 ///
-/// __Note__: Unlike the [`GameStepView`],  step is measured from the moment of taking action to the moment just before next
+/// __Note__: Unlike the [`GameStepView`](crate::env::GameStepView),  step is measured from the moment of taking action to the moment just before next
 /// action of the same player.
-/// For one [`AgentStepView`] there might be  one or more [`GameStepView`]s registered by the environment.
+/// For one [`AgentStepView`] there might be  one or more [`GameStepView`](crate::env::GameStepView)s registered by the environment.
 /// In the meantime action multiple updates on information set and payoff can be made.
 ///
-/// For trace collected by central environment refer to [`GameTrajectory`].
+/// For trace collected by central environment refer to [`GameTrajectory`](crate::agent::AgentTrajectory).
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Clone, Debug)]
 pub struct AgentStepView<'a, DP: DomainParameters, S: InformationSet<DP>>{
@@ -115,8 +115,8 @@ impl<'a, DP: DomainParameters, S: InformationSet<DP>> AgentStepView<'a, DP, S>{
 /// it is needed that the initial point is known and next point - this may be begining of next step or
 /// final point in game.
 ///
-/// Similarly, agent side calculated assessment on information set implementing [`EvaluatedInformationSet`]
-/// can be done by subtracting [`current_assessment`](EvaluatedInformationSet::current_assessment).
+/// Similarly, agent side calculated assessment on information set implementing [`EvaluatedInformationSet`](crate::agent::EvaluatedInformationSet)
+/// can be done by subtracting [`current_assessment`](crate::agent::EvaluatedInformationSet::current_assessment).
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Clone, Debug)]
 pub struct AgentTrajectory<DP: DomainParameters, S: InformationSet<DP>>{
@@ -339,7 +339,7 @@ impl<'a, DP: DomainParameters, S: InformationSet<DP>> Iterator for AgentStepIter
 mod tests{
     use std::collections::HashMap;
     use std::thread;
-    use crate::agent::{AgentGen, AutomaticAgentRewarded, RandomPolicy, TracingAgent, TracingAgentGen};
+    use crate::agent::{AgentGen, AutomaticAgent, RandomPolicy, TracingAgent, TracingAgentGen};
     use crate::comm::StdEnvironmentEndpoint;
     use crate::demo::{DEMO_AGENT_BLUE, DEMO_AGENT_RED, DemoDomain, DemoInfoSet, DemoPolicySelectFirst, DemoState};
     use crate::env::{RoundRobinUniversalEnvironment, TracingHashMapEnvironment};
@@ -365,10 +365,10 @@ mod tests{
                 environment.run_round_robin_with_rewards().unwrap();
             });
             s.spawn(||{
-                agent_blue.run_rewarded().unwrap();
+                agent_blue.run().unwrap();
             });
             s.spawn(||{
-                agent_red.run_rewarded().unwrap();
+                agent_red.run().unwrap();
             });
         });
 

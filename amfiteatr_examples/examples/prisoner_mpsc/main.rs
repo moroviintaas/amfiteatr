@@ -5,7 +5,7 @@ use amfiteatr_classic::domain::TwoPlayersStdName::{Alice, Bob};
 use amfiteatr_classic::env::PairingState;
 use amfiteatr_classic::policy::{ClassicMixedStrategy, ClassicPureStrategy};
 use amfiteatr_classic::SymmetricRewardTableInt;
-use amfiteatr_core::agent::{AgentGen, AutomaticAgentRewarded, StatefulAgent, TracingAgent, TracingAgentGen};
+use amfiteatr_core::agent::{AgentGen, AutomaticAgent, StatefulAgent, TracingAgent, TracingAgentGen};
 use amfiteatr_core::comm::EnvironmentMpscPort;
 use amfiteatr_core::env::{AutoEnvironmentWithScores, StatefulEnvironment, TracingBasicEnvironment, TracingEnvironment};
 
@@ -37,10 +37,10 @@ fn main() {
             environment.run_with_scores().unwrap();
         });
         s.spawn(||{
-            alice.run_rewarded().unwrap();
+            alice.run().unwrap();
         });
         s.spawn(||{
-            bob.run_rewarded().unwrap();
+            bob.run().unwrap();
         });
     });
 

@@ -7,9 +7,9 @@ use crate::domain::DomainParameters;
 /// This is done because Mutex<dyn ...> can use only one non-auto trait so if you need dynamic agent
 /// that can track his trace and can [`reseed`](ReseedAgent) it's information set before episode you probably want to use this or build something over it.
 /// The reason why this trait needs specifying information set is that it is part of tracing interface
-/// which operates on [`AgentTraceStep<...>`](AgentTraceStep).
+/// which operates on [`AgentStepView`].
 /// If you don't need access to tracing and want to avoid providing concrete info set you could
-/// probably use [`MultiEpisodeAutoAgent`](EpisodeMemoryAutoAgent) or [`MultiEpisodeAutoAgentRewarded`](MultiEpisodeAutoAgentRewarded).
+/// probably use [`MultiEpisodeAutoAgent`].
 /// ```
 /// use std::sync::{Arc, Mutex};
 /// use amfiteatr_core::agent::ModelAgent;
@@ -22,10 +22,10 @@ use crate::domain::DomainParameters;
 /// This trait has blanket implementation for types implementing it's supertraits
 pub trait ModelAgent<DP: DomainParameters, Seed, IS: InformationSet<DP>>:
 
-    AutomaticAgentRewarded<DP>
+    AutomaticAgent<DP>
     //SelfEvaluatingAgent<DP, Assessment= <IS as EvaluatedInformationSet<DP>>::RewardType>
     + ReseedAgent<DP, Seed>
-    + MultiEpisodeAutoAgentRewarded<DP, Seed>
+    + MultiEpisodeAutoAgent<DP, Seed>
     + StatefulAgent<DP, InfoSetType=IS>
     + TracingAgent<DP, IS>
     + Send
@@ -35,10 +35,10 @@ impl<
     DP: DomainParameters,
     Seed,
     IS: InformationSet<DP>,
-    T: AutomaticAgentRewarded<DP>
+    T: AutomaticAgent<DP>
         //+ SelfEvaluatingAgent<DP, Assessment= <IS as EvaluatedInformationSet<DP>>::RewardType>
         + ReseedAgent<DP, Seed>
-        + MultiEpisodeAutoAgentRewarded<DP, Seed>
+        + MultiEpisodeAutoAgent<DP, Seed>
         + StatefulAgent<DP, InfoSetType=IS>
         + TracingAgent<DP, IS>
         + Send

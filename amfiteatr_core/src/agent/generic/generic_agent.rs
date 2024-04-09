@@ -218,8 +218,8 @@ impl<
         InwardType=EnvironmentMessage<DP>,
         Error=CommunicationError<DP>>,
     Seed>
-MultiEpisodeAutoAgentRewarded<DP, Seed> for AgentGen<DP, P, Comm>
-    where Self: ReseedAgent<DP, Seed> + AutomaticAgentRewarded<DP>,
+MultiEpisodeAutoAgent<DP, Seed> for AgentGen<DP, P, Comm>
+    where Self: ReseedAgent<DP, Seed> + AutomaticAgent<DP>,
           <P as Policy<DP>>::InfoSetType: InformationSet<DP>,
 {
     fn store_episode(&mut self) {

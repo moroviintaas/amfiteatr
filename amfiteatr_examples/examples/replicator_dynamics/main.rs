@@ -279,7 +279,7 @@ impl Model{
                 let agent = a.clone();
                 s.spawn(move ||{
                     let mut guard = agent.lock().unwrap();
-                    guard.run_episode_rewarded(()).unwrap();
+                    guard.run_episode(()).unwrap();
 
                 });
             };
@@ -288,7 +288,7 @@ impl Model{
                 let agent = a.clone();
                 s.spawn(move ||{
                     let mut guard = agent.lock().unwrap();
-                    guard.run_episode_rewarded(()).unwrap();
+                    guard.run_episode(()).unwrap();
 
                 });
             };
@@ -297,7 +297,7 @@ impl Model{
                 let agent = a.clone();
                 s.spawn(move ||{
                     let mut guard = agent.lock().unwrap();
-                    guard.run_episode_rewarded(()).unwrap();
+                    guard.run_episode(()).unwrap();
 
                 });
             };
@@ -306,7 +306,7 @@ impl Model{
                 let agent = a.clone();
                 s.spawn(move ||{
                     let mut guard = agent.lock().unwrap();
-                    guard.run_episode_rewarded(()).unwrap();
+                    guard.run_episode(()).unwrap();
 
                 });
             };

@@ -2,7 +2,7 @@
 //! ```
 //! use std::collections::{HashMap, HashSet};
 //! use std::thread;
-//! use amfiteatr_core::agent::{AgentGen, TracingAgentGen,  AutomaticAgentRewarded, RewardedAgent, RandomPolicy};
+//! use amfiteatr_core::agent::{AgentGen, TracingAgentGen,  AutomaticAgent, RewardedAgent, RandomPolicy};
 //! use amfiteatr_core::comm::StdEnvironmentEndpoint;
 //! use amfiteatr_core::demo::{DemoInfoSet, DemoDomain, DemoState, DemoPolicySelectFirst, DEMO_AGENT_BLUE, DEMO_AGENT_RED};
 //! use amfiteatr_core::env::*;
@@ -29,10 +29,10 @@
 //!         environment.run_round_robin_with_rewards().unwrap();
 //!     });
 //!     s.spawn(||{
-//!         agent_blue.run_rewarded().unwrap();
+//!         agent_blue.run().unwrap();
 //!     });
 //!     s.spawn(||{
-//!         agent_red.run_rewarded().unwrap();
+//!         agent_red.run().unwrap();
 //!     });
 //! });
 //!

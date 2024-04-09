@@ -16,15 +16,15 @@ use crate::domain::{AgentMessage, EnvironmentMessage, DomainParameters};
 
 /// Trait for agents that perform their interactions with environment automatically,
 /// without waiting for interrupting interaction from anyone but environment.
-pub trait AutomaticAgentRewarded<DP: DomainParameters>:RewardedAgent<DP> + IdAgent<DP>{
-    /// Runs agent beginning in it's current state (information set)
+pub trait AutomaticAgent<DP: DomainParameters>:RewardedAgent<DP> + IdAgent<DP>{
+    /// Runs agent beginning in its current state (information set)
     /// and returns when game is finished.
-    fn run_rewarded(&mut self) -> Result<(), AmfiteatrError<DP>>;
+    fn run(&mut self) -> Result<(), AmfiteatrError<DP>>;
 }
 
 
 
-impl<Agnt, DP> AutomaticAgentRewarded<DP> for Agnt
+impl<Agnt, DP> AutomaticAgent<DP> for Agnt
 where Agnt: StatefulAgent<DP> + ActingAgent<DP>
     + CommunicatingAgent<DP, CommunicationError=CommunicationError<DP>>
     + PolicyAgent<DP>
@@ -33,7 +33,7 @@ where Agnt: StatefulAgent<DP> + ActingAgent<DP>
       DP: DomainParameters,
     <Agnt as StatefulAgent<DP>>::InfoSetType: InformationSet<DP>
 {
-    fn run_rewarded(&mut self) -> Result<(), AmfiteatrError<DP>>
+    fn run(&mut self) -> Result<(), AmfiteatrError<DP>>
     {
         #[cfg(feature = "log_info")]
         log::info!("Agent {} starts", self.id());

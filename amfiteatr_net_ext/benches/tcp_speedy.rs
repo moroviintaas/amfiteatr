@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 use criterion::{BenchmarkId, Criterion, criterion_group, criterion_main};
 
-use amfiteatr_core::agent::{AgentGen, AutomaticAgentRewarded, RandomPolicy};
+use amfiteatr_core::agent::{AgentGen, AutomaticAgent, RandomPolicy};
 use amfiteatr_core::comm::{EnvironmentMpscPort, StdEnvironmentEndpoint};
 use amfiteatr_core::demo::{DemoDomain, DemoInfoSet, DemoState};
 use amfiteatr_core::env::{AutoEnvironmentWithScores, BasicEnvironment, HashMapEnvironment, RoundRobinUniversalEnvironment};
@@ -54,7 +54,7 @@ pub fn bench_demo_game_tcp_speedy_hashmap(c: &mut Criterion){
                         for agent in agents{
                             s.spawn(move ||{
                                 let mut guard = agent.as_ref().lock().unwrap();
-                                guard.run_rewarded().unwrap();
+                                guard.run().unwrap();
                             });
                             //let mut guard = agent.as_ref().lock().unwrap();
 
@@ -116,7 +116,7 @@ pub fn bench_demo_game_mpsc_hashmap(c: &mut Criterion){
                              for agent in agents{
                                  s.spawn(move ||{
                                      let mut guard = agent.as_ref().lock().unwrap();
-                                     guard.run_rewarded().unwrap();
+                                     guard.run().unwrap();
                                  });
                                  //let mut guard = agent.as_ref().lock().unwrap();
 
@@ -178,7 +178,7 @@ pub fn bench_demo_game_single_mpsc(c: &mut Criterion){
                              for agent in agents{
                                  s.spawn(move ||{
                                      let mut guard = agent.as_ref().lock().unwrap();
-                                     guard.run_rewarded().unwrap();
+                                     guard.run().unwrap();
                                  });
                                  //let mut guard = agent.as_ref().lock().unwrap();
 
