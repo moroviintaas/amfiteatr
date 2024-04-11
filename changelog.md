@@ -7,6 +7,7 @@ need of information set to implement `EvaluatedInformationSet`;
 and `EnvTrajectory` with `GameTrajectory` working in similar way like `AgentTrajectory`.
 + Changed trait `EvaluatedInformationSet` to have generic reward allowing multiple implementations for single information set.
 + Changed `ActingAgent` trait's functions to return `Result` wrapped outputs
++ Merged traits [`AutomaticAgent`] and [`AutomaticAgentRewarded`] into [`AutomaticAgent`].
 
 ## Version 0.4.0
 + Renamed `AmfiRLError` to `AmfiteatrRlError`.
