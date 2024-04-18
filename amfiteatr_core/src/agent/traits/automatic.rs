@@ -46,7 +46,7 @@ where Agnt: StatefulAgent<DP> + ActingAgent<DP>
                         log::debug!("Agent {} received 'YourMove' signal.", self.id());
                         //debug!("Agent's {:?} possible actions: {}]", self.id(), self.info_set().available_actions().into_iter()
                         //    .fold(String::from("["), |a, b| a + &format!("{b:#}") + ", ").trim_end());
-                        match self.take_action(){
+                        match self.select_action(){
                             Ok(act_opt) => match act_opt{
                                 None => {
                                     #[cfg(feature = "log_error")]

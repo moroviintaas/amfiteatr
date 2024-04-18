@@ -15,9 +15,9 @@ pub trait ActingAgent<DP: DomainParameters>{
     /// [`AgentGenT`](crate::agent::TracingAgentGen) uses it also to add new step entry to his/her game trajectory.
     /// __Note__ that this method should not affect agents _information set_, as the way of changing it is through [`DomainParameters::UpdateType`](crate::domain::DomainParameters::UpdateType)
     /// provided by _environment_.
-    fn take_action(&mut self) -> Result<Option<DP::ActionType>, AmfiteatrError<DP>>;
+    fn select_action(&mut self) -> Result<Option<DP::ActionType>, AmfiteatrError<DP>>;
 
-    /// This method is meant to do optional actions of [`take_action`](crate::agent::ActingAgent::take_action)
+    /// This method is meant to do optional actions of [`take_action`](crate::agent::ActingAgent::select_action)
     /// without selecting new action. Usually to be invoked at the end of game to commit last step to trace.
     fn finalize(&mut self) -> Result<(), AmfiteatrError<DP>>;
 

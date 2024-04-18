@@ -166,7 +166,7 @@ impl<DP: DomainParameters, S: EnvironmentStateSequential<DP>> GameTrajectory<DP,
     /// use amfiteatr_core::comm::StdEnvironmentEndpoint;
     /// use amfiteatr_core::demo::{DemoAction, DemoDomain, DemoInfoSet, DemoState};
     /// use amfiteatr_core::env::GameTrajectory;
-    /// let state = DemoState::new_with_players(vec![2.0, 3.0], 1, &Default::default());
+    /// let state = DemoState::new_with_players(vec![(2.0, 2.0), (3.0, 3.0)], 1, &Default::default());
     /// let mut trajectory: GameTrajectory<DemoDomain, DemoState> = GameTrajectory::new();
     /// assert_eq!(trajectory.number_of_steps(), 0);
     /// trajectory.register_step_point(state.clone(), 0, DemoAction(0), true).unwrap();
@@ -192,7 +192,7 @@ impl<DP: DomainParameters, S: EnvironmentStateSequential<DP>> GameTrajectory<DP,
     /// use amfiteatr_core::comm::StdEnvironmentEndpoint;
     /// use amfiteatr_core::demo::{DemoAction, DemoDomain, DemoInfoSet, DemoState};
     /// use amfiteatr_core::env::GameTrajectory;
-    /// let state = DemoState::new_with_players(vec![2.0, 3.0], 1, &Default::default());
+    /// let state = DemoState::new_with_players(vec![(2.0, 2.0), (3.0, 3.0)], 1, &Default::default());
     /// let mut trajectory: GameTrajectory<DemoDomain, DemoState> = GameTrajectory::new();
     /// assert_eq!(trajectory.number_of_action_points(), 0);
     /// trajectory.register_step_point(state.clone(), 0, DemoAction(0), true).unwrap();

@@ -15,12 +15,16 @@ pub trait TracingAgent<DP: DomainParameters, S: InformationSet<DP>>{
     fn take_trajectory(&mut self) -> AgentTrajectory<DP, S>;
     //fn set_new_state(&mut self);
     /// Returns reference to held trajectory.
-    fn game_trajectory(&self) -> &AgentTrajectory<DP, S>;
+    fn trajectory(&self) -> &AgentTrajectory<DP, S>;
+
+    /*
     /// Adds new record to stored trajectory, information set before taking action, and
     /// rewards in which resulted performed action.
     fn commit_trace(&mut self) -> Result<(), AmfiteatrError<DP>>;
 
     fn finalize_trajectory(&mut self) -> Result<(), AmfiteatrError<DP>>;
+
+     */
 
 
 }

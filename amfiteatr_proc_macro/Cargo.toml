@@ -1,6 +1,6 @@
 [package]
 name = "amfiteatr_proc_macro"
-version = "0.5.0"
+version = "0.6.0"
 edition = "2021"
 repository = "https://github.com/moroviintaas/amfiteatr"
 license-file = "LICENSE"

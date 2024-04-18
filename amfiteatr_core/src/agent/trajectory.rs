@@ -5,6 +5,7 @@ use crate::error::AmfiteatrError;
 use crate::error::TrajectoryError::UpdateOnFinishedAgentTrajectory;
 
 
+
 /// View of single step in game trajectory.
 ///
 /// Provides references to information sets and
@@ -40,19 +41,21 @@ pub struct AgentStepView<'a, DP: DomainParameters, S: InformationSet<DP>>{
     #[cfg_attr(feature = "serde", serde(bound(deserialize = "&'a DP::ActionType: serde::Deserialize<'de>")))]
     #[cfg_attr(feature = "serde", serde(bound(serialize = "&'a DP::ActionType: serde::Serialize")))]
     pub(crate) action: &'a DP::ActionType,
+    pub(crate) legality: bool
 
 }
 
 impl<'a, DP: DomainParameters, S: InformationSet<DP>> AgentStepView<'a, DP, S>{
     pub fn new(start_info_set: &'a S, end_info_set: &'a S,
                start_payoff: &'a DP::UniversalReward, end_payoff: &'a DP::UniversalReward,
-    action: &'a DP::ActionType) -> Self{
+    action: &'a DP::ActionType, legality: bool) -> Self{
         Self{
             start_info_set,
             start_payoff,
             end_info_set,
             end_payoff,
-            action
+            action,
+            legality
         }
     }
     /// Information set before taking action.
@@ -78,6 +81,11 @@ impl<'a, DP: DomainParameters, S: InformationSet<DP>> AgentStepView<'a, DP, S>{
     /// Action taken in this step.
     pub fn action(&self) -> &DP::ActionType{
         self.action
+    }
+
+    /// If action is legal returns `true`, else `false`
+    pub fn is_action_legal(&self) -> bool{
+        self.legality
     }
 
 }
@@ -139,6 +147,11 @@ pub struct AgentTrajectory<DP: DomainParameters, S: InformationSet<DP>>{
     #[cfg_attr(feature = "serde", serde(bound(serialize = "DP::UniversalReward: serde::Serialize")))]
     final_payoff: Option<DP::UniversalReward>,
 
+    legalities: Vec<bool>,
+
+    //illegal_combinations: Vec<S,DP::ActionType>
+
+
 }
 
 
@@ -146,7 +159,9 @@ pub struct AgentTrajectory<DP: DomainParameters, S: InformationSet<DP>>{
 impl<DP: DomainParameters, S: InformationSet<DP>>  Default for AgentTrajectory<DP, S>{
     fn default() -> Self {
         Self{ information_sets: vec![], payoffs: vec![], actions: vec![],
-            final_info_set: None, final_payoff: None }
+            final_info_set: None, final_payoff: None, legalities: vec![],
+            //illegal_combinations: vec![]
+        }
     }
 }
 
@@ -165,6 +180,7 @@ impl<DP: DomainParameters, S: InformationSet<DP>> AgentTrajectory<DP, S>{
         self.information_sets.clear();
         self.final_payoff = None;
         self.final_info_set = None;
+        //self.illegal_combinations.clear();
     }
 
     /// Creates new trajectory with size hint to allocate memory at initialization.
@@ -175,6 +191,8 @@ impl<DP: DomainParameters, S: InformationSet<DP>> AgentTrajectory<DP, S>{
             actions: Vec::with_capacity(size),
             final_info_set: None,
             final_payoff: None,
+            legalities: Vec::with_capacity(size),
+            //illegal_combinations: Vec::new()
         }
     }
 
@@ -187,8 +205,19 @@ impl<DP: DomainParameters, S: InformationSet<DP>> AgentTrajectory<DP, S>{
         self.payoffs.push(payoff);
         self.actions.push(action);
         self.information_sets.push(info_set);
+        self.legalities.push(true);
         Ok(())
     }
+
+    /// Marks previously committed step point as illegal
+    pub fn mark_previous_action_illegal(&mut self){
+        if let Some(valid) = self.legalities.last_mut(){
+            *valid = false;
+        }
+    }
+
+
+    
 
     /// Registers final information set and payoff in trajectory. Marks Trajectory as finished
     /// and no later [`Self::register_step_point`] and [`Self::finish`] are allowed.
@@ -232,7 +261,9 @@ impl<DP: DomainParameters, S: InformationSet<DP>> AgentTrajectory<DP, S>{
                     &self.information_sets[index],
                     se, &self.payoffs[index],
                     pe,
-                    &self.actions[index])
+                    &self.actions[index],
+                    self.legalities[index],
+                )
             })
         }).or_else(||{
             //check if we ask for last data in normal vector
@@ -244,7 +275,8 @@ impl<DP: DomainParameters, S: InformationSet<DP>> AgentTrajectory<DP, S>{
                         info_set,
                         &self.payoffs[index],
                         payoff,
-                        &self.actions[index]
+                        &self.actions[index],
+                        self.legalities[index]
                     ))
                 } else {
                     None
@@ -346,7 +378,7 @@ mod tests{
 
     #[test]
     fn agent_trajectory_test(){
-        let bandits = vec![5.0, 11.5, 6.0];
+        let bandits = vec![(5.0,5.0), (11.5, 11.5), (6.0, 6.0)];
         let number_of_bandits = bandits.len();
         let (comm_env_blue, comm_agent_blue) = StdEnvironmentEndpoint::new_pair();
         let (comm_env_red, comm_agent_red) = StdEnvironmentEndpoint::new_pair();
@@ -358,8 +390,8 @@ mod tests{
         let mut environment = TracingHashMapEnvironment::new(state, env_comms);
         let blue_info_set = DemoInfoSet::new(DEMO_AGENT_BLUE, number_of_bandits);
         let red_info_set = DemoInfoSet::new(DEMO_AGENT_RED, number_of_bandits);
-        let mut agent_blue = TracingAgentGen::new(blue_info_set, comm_agent_blue, RandomPolicy::<DemoDomain, DemoInfoSet>::new());
-        let mut agent_red = AgentGen::new(red_info_set, comm_agent_red, DemoPolicySelectFirst{});
+        let mut agent_blue = TracingAgentGen::new(blue_info_set, comm_agent_blue,  RandomPolicy::<DemoDomain, DemoInfoSet>::new());
+        let mut agent_red = TracingAgentGen::new(red_info_set, comm_agent_red, DemoPolicySelectFirst{});
         thread::scope(|s|{
             s.spawn(||{
                 environment.run_round_robin_with_rewards().unwrap();
@@ -373,11 +405,21 @@ mod tests{
         });
 
 
-        assert!(agent_blue.game_trajectory().is_finished());
-        assert_eq!(agent_blue.game_trajectory().information_sets.len(), 3);
-        assert_eq!(agent_blue.game_trajectory().number_of_steps(), 3);
-        assert!(agent_blue.game_trajectory().view_step(0).unwrap().payoff() < agent_blue.game_trajectory().view_step(0).unwrap().late_payoff());
-        assert_eq!(agent_blue.game_trajectory().view_step(0).unwrap().late_payoff(), agent_blue.game_trajectory().view_step(1).unwrap().payoff());
-        assert!(agent_blue.game_trajectory().view_step(1).unwrap().late_payoff() < agent_blue.game_trajectory().view_step(2).unwrap().late_payoff());
+
+        assert!(agent_blue.trajectory().is_finished());
+        assert_eq!(agent_blue.trajectory().information_sets.len(), 3);
+        assert_eq!(agent_blue.trajectory().number_of_steps(), 3);
+        assert_eq!(agent_red.trajectory().view_step(0).unwrap().payoff().clone(), 0.0);
+
+        assert_eq!(agent_red.trajectory().view_step(0).unwrap().late_payoff(), &5.0);
+        assert_eq!(agent_red.trajectory().view_step(1).unwrap().payoff(), &5.0);
+        assert_eq!(agent_red.trajectory().view_step(1).unwrap().late_payoff(), &10.0);
+        assert_eq!(agent_red.trajectory().view_step(2).unwrap().payoff(), &10.0);
+        assert_eq!(agent_red.trajectory().view_step(2).unwrap().late_payoff(), &15.0);
+
+
+        assert!(agent_blue.trajectory().view_step(0).unwrap().payoff() < agent_blue.trajectory().view_step(0).unwrap().late_payoff());
+        assert_eq!(agent_blue.trajectory().view_step(0).unwrap().late_payoff(), agent_blue.trajectory().view_step(1).unwrap().payoff());
+        assert!(agent_blue.trajectory().view_step(1).unwrap().late_payoff() < agent_blue.trajectory().view_step(2).unwrap().late_payoff());
     }
 }

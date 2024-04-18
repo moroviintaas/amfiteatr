@@ -1,6 +1,6 @@
 [package]
 name = "amfiteatr_examples"
-version = "0.5.0"
+version = "0.6.0"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
@@ -42,11 +42,11 @@ plotters = "0.3.5"
 serde_json = "1.0.115"
 pyo3 = { version = "0.21.1", features = ["auto-initialize"], optional = true}
 
-amfiteatr_core = {version = "0.5.0", path = "../amfiteatr_core", features = ["serde", "log_trace"] }
-amfiteatr_proc_macro = {version = "0.5.0", path = "../amfiteatr_proc_macro"}
-amfiteatr_rl = {version = "0.5.0", path = "../amfiteatr_rl", features = ["log_trace"]}
-amfiteatr_classic = { version = "0.5.0", path = "../amfiteatr_classic" }
-amfiteatr_net_ext = {version = "0.5.0", path = "../amfiteatr_net_ext" }
+amfiteatr_core = {version = "0.6.0", path = "../amfiteatr_core", features = ["serde", "log_trace"] }
+amfiteatr_proc_macro = {version = "0.6.0", path = "../amfiteatr_proc_macro"}
+amfiteatr_rl = {version = "0.6.0", path = "../amfiteatr_rl", features = ["log_trace"]}
+amfiteatr_classic = { version = "0.6.0", path = "../amfiteatr_classic" }
+amfiteatr_net_ext = {version = "0.6.0", path = "../amfiteatr_net_ext" }
 
 [features]
 rl-python = ["pyo3"]

@@ -48,6 +48,6 @@ fn main() {
     println!("Trajectory of environment: {:?}", environment.trajectory());
 
     println!("Alice final information set: {}", alice.info_set());
-    println!("Trajectory of Alice: {:?}", alice.game_trajectory());
+    println!("Trajectory of Alice: {:?}", alice.trajectory());
 
 }

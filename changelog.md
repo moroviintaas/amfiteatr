@@ -1,6 +1,12 @@
 # Changelog
 
 ---
+## Version 0.6.0
++ Added step legality validation note in `AgentTrajectory` and `AgentStepView`
++ Renamed `PolicyAgent::take_action` to `PolicyAgent::do_action`, as _take_ is conventionally used in Rust to move out field
++ Changed trait `TracingAgent`, now does not demand functions `commit_trace` nor `finalize_trajectory`.
+Only trajectory read and reset is needed, maintaining trajectory is now internal responsibility of agent (can and probably should be private logic of agent).
+
 ## Version 0.5.0
 + Rework of tracing - replaced `Trajectory` with `AgentTrajectory` without
 need of information set to implement `EvaluatedInformationSet`;

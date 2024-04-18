@@ -8,7 +8,7 @@
 //! use amfiteatr_core::env::*;
 //!
 //!
-//! let bandits = vec![5.0, 11.5, 6.0];
+//! let bandits = vec![(0.0, 5.0), (0.0, 11.5), (0.0, 6.0)];
 //! let number_of_bandits = bandits.len();
 //!
 //! let (comm_env_blue, comm_agent_blue) = StdEnvironmentEndpoint::new_pair();
@@ -111,7 +111,7 @@ impl DomainParameters for DemoDomain {
 
 #[derive(Clone, Debug)]
 pub struct DemoState{
-    ceilings: Vec<f32>,
+    bounds: Vec<(f32, f32)>,
     max_rounds: usize,
     //rewards_red: Vec<f32>,
     //rewards_blue: Vec<f32>,
@@ -127,7 +127,7 @@ impl DemoState{
         Self{ceilings, max_rounds, rewards: HashMap::new(), player_indexes: Vec::new(), turn_of: None }
     }
     */
-    pub fn new_with_players(ceilings: Vec<f32>, max_rounds: usize, comms: &HashSet<DemoAgentID>) -> Self{
+    pub fn new_with_players(bounds: Vec<(f32, f32)>, max_rounds: usize, comms: &HashSet<DemoAgentID>) -> Self{
         let player_ids: Vec<DemoAgentID> = comms.iter().copied().collect();
         let turn_of  = if max_rounds > 0{
             Some(0)
@@ -136,7 +136,7 @@ impl DemoState{
         };
         let rewards = player_ids.iter().map(|id| (id.to_owned(), Vec::new())).collect();
         Self{
-            ceilings, max_rounds, rewards, player_ids, turn_of
+            bounds, max_rounds, rewards, player_ids, turn_of
         }
 
     }
@@ -188,7 +188,7 @@ impl EnvironmentStateSequential<DemoDomain> for DemoState{
         Ok(vec![(agent, (agent, action.clone(), reward))])
 
          */
-        if action.0 as usize > self.ceilings.len(){
+        if action.0 as usize > self.bounds.len(){
             return Err(DemoError(format!("Agent used {}'th bandit which is not defined", action.0)));
         }
         if let Some(current_player_index) = self.turn_of{
@@ -197,8 +197,13 @@ impl EnvironmentStateSequential<DemoDomain> for DemoState{
             }
 
             let mut r = thread_rng();
-            let d = Uniform::new(0.0, self.ceilings[action.0 as usize]);
-            let reward: f32 = d.sample(&mut r);
+            let reward = if self.bounds[action.0 as usize].0 == self.bounds[action.0 as usize].1{
+                self.bounds[action.0 as usize].0
+            } else {
+                let d = Uniform::new(self.bounds[action.0 as usize].0, self.bounds[action.0 as usize].1);
+                d.sample(&mut r)
+            };
+
 
             /*
             let reward = match action{

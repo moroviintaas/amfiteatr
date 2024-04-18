@@ -30,8 +30,8 @@ where <P as Policy<DP>>::InfoSetType: InformationSet<DP>{
     committed_universal_score: <DP as DomainParameters>::UniversalReward,
 
     game_trajectory: AgentTrajectory<DP, P::InfoSetType>,
-    last_action: Option<DP::ActionType>,
-    state_before_last_action: Option<<P as Policy<DP>>::InfoSetType>,
+    //last_action: Option<DP::ActionType>,
+    //state_before_last_action: Option<<P as Policy<DP>>::InfoSetType>,
     episodes: Vec<AgentTrajectory<DP, P::InfoSetType>>,
 }
 
@@ -53,9 +53,8 @@ where <P as Policy<DP>>::InfoSetType: InformationSet<DP>{
             constructed_universal_reward: Reward::neutral(),
             committed_universal_score: Reward::neutral(),
             game_trajectory: AgentTrajectory::new(),
-            state_before_last_action: None,
-            last_action: None,
-            //explicit_subjective_reward_component: <P::InfoSetType as EvaluatedInformationSet<DP>>::RewardType::neutral(),
+            //state_before_last_action: None,
+            //last_action: None,
             episodes: vec![],
         }
     }
@@ -80,10 +79,9 @@ where <P as Policy<DP>>::InfoSetType: InformationSet<DP>{
             constructed_universal_reward: self.constructed_universal_reward,
             committed_universal_score: self.committed_universal_score,
             comm: self.comm,
-            last_action: self.last_action,
-            state_before_last_action: self.state_before_last_action,
+            //last_action: self.last_action,
+            //state_before_last_action: self.state_before_last_action,
             game_trajectory: self.game_trajectory,
-            //explicit_subjective_reward_component: self.explicit_subjective_reward_component,
             episodes: vec![],
         }
     }
@@ -109,8 +107,8 @@ where <P as Policy<DP>>::InfoSetType: InformationSet<DP>{
             _phantom: Default::default(),
             constructed_universal_reward: self.constructed_universal_reward,
             comm: self.comm,
-            last_action: self.last_action,
-            state_before_last_action: self.state_before_last_action,
+            //last_action: self.last_action,
+            //state_before_last_action: self.state_before_last_action,
             game_trajectory: self.game_trajectory,
             committed_universal_score: self.committed_universal_score,
             episodes: vec![],
@@ -148,6 +146,7 @@ where <P as Policy<DP>>::InfoSetType: InformationSet<DP>{
         std::mem::swap(&mut v, &mut self.episodes);
         v
     }
+
 
 }
 
@@ -226,28 +225,49 @@ impl<
 ActingAgent<DP> for TracingAgentGen<DP, P, Comm>
 where <P as Policy<DP>>::InfoSetType: InformationSet<DP> + Clone{
 
-    /// Firstly, agent commits last step to stack.
-    fn take_action(&mut self) -> Result<Option<DP::ActionType>, AmfiteatrError<DP>> {
-        self.commit_trace()?;
 
-        let action = self.policy.select_action(&self.information_set);
-        self.last_action = action.clone();
-        self.state_before_last_action = Some(self.information_set.clone());
-        Ok(action)
+
+    /// Firstly, agent commits last step to stack.
+    fn select_action(&mut self) -> Result<Option<DP::ActionType>, AmfiteatrError<DP>> {
+        //self.commit_trace()?;
+        //self.merge_partial_rewards();
+        self.commit_partial_rewards();
+
+        let opt_action = self.policy.select_action(&self.information_set);
+        //self.last_action = action.clone();
+        //self.state_before_last_action = Some(self.information_set.clone());
+        if let Some(ref action) = opt_action{
+            self.game_trajectory.register_step_point(self.information_set.clone(), action.clone(), self.committed_universal_score.clone())?;
+        } else {
+            #[cfg(feature = "log_warn")]
+            log::warn!("Agent {} does not select any action, therefore nothing is registered in trajectory", self.information_set.agent_id());
+        }
+
+        Ok(opt_action)
     }
 
     fn finalize(&mut self) -> Result<(), AmfiteatrError<DP>>{
+        self.commit_partial_rewards();
+
+        //self.finalize_trajectory()
         /*
-        self.commit_trace();
-        self.game_trajectory.finalize(self.information_set.clone());
-        self.state_before_last_action = Some(self.information_set.clone())
+        if let (Some(action), Some(info_set_before)) = (&self.last_action, &self.state_before_last_action){
+            self.game_trajectory.register_step_point(info_set_before.clone(), action.clone(), self.committed_universal_score.clone())?;
+            self.commit_partial_rewards();
+            self.game_trajectory.finish(self.information_set.clone(), self.committed_universal_score.clone())
+        } else {
+            #[cfg(feature = "log_warn")]
+            log::warn!("Finalizing trajectory with no previous step");
+            Ok(())
+        }
 
          */
-        //self.game_trajectory.finish(self.information_set.clone(), self.last_action.take()).unwrap()
-        self.finalize_trajectory()
+        self.game_trajectory.finish(self.information_set.clone(), self.committed_universal_score.clone())
+
     }
 
     fn react_refused_action(&mut self) -> Result<(), AmfiteatrError<DP>> {
+        self.game_trajectory.mark_previous_action_illegal();
         #[cfg(feature = "log_error")]
         log::error!("Agent: {0} Action  has been refused", self.information_set.agent_id());
         Ok(())
@@ -268,24 +288,22 @@ where <P as Policy<DP>>::InfoSetType: InformationSet<DP> + Clone,
 {
     fn reset_trajectory(&mut self) {
         self.game_trajectory.clear();
-        self.last_action = None;
+        //self.last_action = None;
     }
 
     fn take_trajectory(&mut self) -> AgentTrajectory<DP, <P as Policy<DP>>::InfoSetType> {
         std::mem::take(&mut self.game_trajectory)
     }
 
-    fn game_trajectory(&self) -> &AgentTrajectory<DP, <P as Policy<DP>>::InfoSetType> {
+    fn trajectory(&self) -> &AgentTrajectory<DP, <P as Policy<DP>>::InfoSetType> {
         &self.game_trajectory
     }
-
-    /// Commits information set change to trajectory. Adds [
+    /*
     fn commit_trace(&mut self) -> Result<(), AmfiteatrError<DP>> {
         if let Some(prev_action) = self.last_action.take(){
 
             let universal_score_before_update = self.committed_universal_score.clone();
             self.commit_partial_rewards();
-            //let universal_score_after_update = self.committed_universal_score.clone();
             let initial_state = self.state_before_last_action.take().unwrap();
 
             self.game_trajectory.register_step_point(initial_state, prev_action, universal_score_before_update)
@@ -309,6 +327,8 @@ where <P as Policy<DP>>::InfoSetType: InformationSet<DP> + Clone,
 
 
     }
+
+     */
 }
 
 
@@ -426,8 +446,8 @@ where <P as Policy<DP>>::InfoSetType: InformationSet<DP>{
         self.game_trajectory.clear();
         self.constructed_universal_reward = DP::UniversalReward::neutral();
         self.committed_universal_score = DP::UniversalReward::neutral();
-        self.state_before_last_action = None;
-        self.last_action = None;
+        //self.state_before_last_action = None;
+        //self.last_action = None;
 
     }
 }
