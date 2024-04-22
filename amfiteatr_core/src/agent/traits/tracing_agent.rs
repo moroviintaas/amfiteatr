@@ -3,7 +3,6 @@ use crate::agent::{AgentTrajectory,
                    InformationSet,
                    MultiEpisodeAutoAgent};
 use crate::domain::DomainParameters;
-use crate::error::AmfiteatrError;
 
 
 /// Agent that collects game trajectory, which contains recorded information sets
@@ -17,14 +16,6 @@ pub trait TracingAgent<DP: DomainParameters, S: InformationSet<DP>>{
     /// Returns reference to held trajectory.
     fn trajectory(&self) -> &AgentTrajectory<DP, S>;
 
-    /*
-    /// Adds new record to stored trajectory, information set before taking action, and
-    /// rewards in which resulted performed action.
-    fn commit_trace(&mut self) -> Result<(), AmfiteatrError<DP>>;
-
-    fn finalize_trajectory(&mut self) -> Result<(), AmfiteatrError<DP>>;
-
-     */
 
 
 }

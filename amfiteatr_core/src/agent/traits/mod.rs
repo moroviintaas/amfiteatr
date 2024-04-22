@@ -19,3 +19,7 @@ pub use policy_agent::*;
 pub use id_agent::*;
 pub use multi_episode_agent::*;
 pub use model::*;
+
+
+//#[cfg(feature = "manual_control")]
+pub mod manual_control;

@@ -45,6 +45,7 @@
 
 use std::collections::{HashMap, HashSet};
 use std::fmt::{Debug, Display, Formatter};
+use nom::IResult;
 use rand::{thread_rng};
 use rand::distributions::Uniform;
 use crate::agent::{AgentIdentifier, Policy, PresentPossibleActions};
@@ -52,12 +53,13 @@ use crate::domain::{Action, DomainParameters, Renew};
 use crate::env::{EnvironmentStateSequential, EnvironmentStateUniScore};
 use rand::distributions::Distribution;
 use crate::agent::{InformationSet, EvaluatedInformationSet};
+use crate::agent::manual_control::NomParsed;
 use crate::error::AmfiteatrError;
 
 pub const DEMO_AGENT_BLUE: DemoAgentID = 0;
 pub const DEMO_AGENT_RED: DemoAgentID = 1;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 #[cfg_attr(feature = "speedy", derive(speedy::Writable, speedy::Readable))]
 pub struct DemoAction(pub u8);
 impl Display for DemoAction{
@@ -65,6 +67,13 @@ impl Display for DemoAction{
         write!(f, "{:?}", self)
     }
 }
+
+impl<'c> NomParsed<&'c str> for DemoAction{
+    fn nom_parse(input: &'c str) -> IResult<&'c str, Self> {
+        nom::character::complete::u8(input).map(|(rest, n)|(rest, Self(n)))
+    }
+}
+
 impl Action for DemoAction{}
 
 /*
@@ -98,7 +107,7 @@ impl Display for DemoError{
 
 
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct DemoDomain {}
 
 impl DomainParameters for DemoDomain {
@@ -168,26 +177,7 @@ impl EnvironmentStateSequential<DemoDomain> for DemoState{
     }
 
     fn forward(&mut self, agent: DemoAgentID, action: DemoAction) -> Result<Self::Updates, DemoError> {
-        /*
-        if action.0 as usize > self.ceilings.len(){
-            return Err(DemoError{})
-        }
-        let mut r = thread_rng();
-        let d = Uniform::new(0.0, self.ceilings[action.0 as usize]);
-        let reward: f32 = d.sample(&mut r);
-        match agent{
-            Blue => {
-                self.rewards_blue.push(reward);
-            }
-            Red => {
-                self.rewards_red.push(reward);
-            }
-        }
 
-
-        Ok(vec![(agent, (agent, action.clone(), reward))])
-
-         */
         if action.0 as usize > self.bounds.len(){
             return Err(DemoError(format!("Agent used {}'th bandit which is not defined", action.0)));
         }
@@ -204,13 +194,6 @@ impl EnvironmentStateSequential<DemoDomain> for DemoState{
                 d.sample(&mut r)
             };
 
-
-            /*
-            let reward = match action{
-                DemoAction(n) => (n%2) as f32
-            };
-
-             */
             self.rewards.get_mut(&agent).unwrap().push(reward);
 
 
@@ -244,7 +227,7 @@ impl EnvironmentStateSequential<DemoDomain> for DemoState{
 
 
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct DemoInfoSet{
     player_id: DemoAgentID,
     pub number_of_bandits: usize,

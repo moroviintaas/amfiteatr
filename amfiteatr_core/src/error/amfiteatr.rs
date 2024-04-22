@@ -47,7 +47,15 @@ pub enum AmfiteatrError<DP: DomainParameters>{
     Trajectory{
         #[source]
         source: TrajectoryError<DP>
-    }
+    },
+    #[error("Error in nom parser: {explanation:}")]
+    Nom{
+        explanation: String
+    },
+    #[error("Error in I/O operation: {explanation:}")]
+    IO{
+        explanation: String
+    },
     //#[error("External: {0}")]
     //External(String)
 }

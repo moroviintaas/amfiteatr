@@ -19,16 +19,20 @@ pub trait Policy<DP: DomainParameters>: Send{
 
 /// Generic random policy - selects action at random based on iterator of possible actions
 /// provided by [`InformationSet`](crate::agent::InformationSet).
-#[derive(Debug, Copy, Clone, Default)]
+#[derive(Debug, Copy, Clone, Default, PartialEq)]
 pub struct RandomPolicy<DP: DomainParameters, State: InformationSet<DP>>{
     state: PhantomData<State>,
     _spec: PhantomData<DP>
 }
+
+
 impl<DP: DomainParameters, InfoSet: InformationSet<DP>> RandomPolicy<DP, InfoSet>{
     pub fn new() -> Self{
         Self{state: PhantomData, _spec: PhantomData}
     }
 }
+
+
 
 impl<DP: DomainParameters, InfoSet: PresentPossibleActions<DP>> Policy<DP> for RandomPolicy<DP, InfoSet>
 where <<InfoSet as PresentPossibleActions<DP>>::ActionIteratorType as IntoIterator>::IntoIter : ExactSizeIterator{
