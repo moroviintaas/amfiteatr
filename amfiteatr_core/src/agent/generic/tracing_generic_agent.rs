@@ -162,13 +162,13 @@ impl<
     CommunicatingAgent<DP> for TracingAgentGen<DP, P, Comm>
 where <P as Policy<DP>>::InfoSetType: InformationSet<DP> + Clone{
 
-    type CommunicationError = CommunicationError<DP>;
+    //type CommunicationError = CommunicationError<DP>;
 
-    fn send(&mut self, message: AgentMessage<DP>) -> Result<(), Self::CommunicationError> {
+    fn send(&mut self, message: AgentMessage<DP>) -> Result<(), CommunicationError<DP>> {
         self.comm.send(message)
     }
 
-    fn recv(&mut self) -> Result<EnvironmentMessage<DP>, Self::CommunicationError> {
+    fn recv(&mut self) -> Result<EnvironmentMessage<DP>, CommunicationError<DP>> {
         self.comm.receive_blocking()
     }
 }

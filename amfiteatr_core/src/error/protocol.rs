@@ -17,6 +17,8 @@ pub enum ProtocolError<DP: DomainParameters>{
     NoPossibleAction(DP::AgentId),
     #[error("agent {} has exited the game", .0)]
     PlayerExited(DP::AgentId),
+    #[error("Player {} refused to select action (command Quit)", .0)]
+    PlayerSelectedNoneAction(DP::AgentId),
 
 }
 

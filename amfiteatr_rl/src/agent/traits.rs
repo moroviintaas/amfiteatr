@@ -57,6 +57,7 @@ pub trait RlModelAgent<DP: DomainParameters, Seed, IS: InformationSet<DP>>:
     + ReseedAgent<DP, Seed>
     + PolicyAgent<DP> + StatefulAgent<DP, InfoSetType=IS>
     + MultiEpisodeTracingAgent<DP, IS, Seed>
+    + RewardedAgent<DP>
     + Send
 
 where <Self as PolicyAgent<DP>>::Policy: LearningNetworkPolicy<DP>,
@@ -74,6 +75,7 @@ impl<
         + ReseedAgent<DP, Seed>
         + PolicyAgent<DP> + StatefulAgent<DP, InfoSetType=IS>
         + MultiEpisodeTracingAgent<DP, IS, Seed>
+        + RewardedAgent<DP>
         + Send
 
 > RlModelAgent<DP, Seed, IS> for T
@@ -112,7 +114,7 @@ impl<
         Error=CommunicationError<DP>> + Send> RlSimpleLearningAgent<DP, Seed> for TracingAgentGen<DP, P, Comm, >
     where <P as Policy<DP>>::InfoSetType: InformationSet<DP> + Renew<DP, Seed>,
           <DP as DomainParameters>::UniversalReward: FloatTensorReward,
-    Self: AutomaticAgent<DP> + MultiEpisodeAutoAgent<DP, Seed>
+    Self: AutomaticAgent<DP> + MultiEpisodeAutoAgent<DP, Seed> + PolicyAgent<DP, Policy=P>
     {
     fn simple_apply_experience(&mut self) -> Result<(), AmfiteatrRlError<DP>> {
         let episodes = self.take_episodes();

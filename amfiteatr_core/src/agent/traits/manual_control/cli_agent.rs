@@ -1,10 +1,11 @@
+use std::fmt::Display;
 use std::io;
-use std::io::BufRead;
-use nom::IResult;
-use crate::agent::{ActingAgent, AutomaticAgent, CommunicatingAgent, IdAgent, InformationSet, PolicyAgent, RewardedAgent, StatefulAgent};
+use std::io::{BufRead};
+use nom::{IResult, Parser};
+use crate::agent::{ActingAgent, AutomaticAgent, CommunicatingAgent, IdAgent, InformationSet, PolicyAgent, ProcedureAgent, RewardedAgent, StatefulAgent};
 use crate::agent::manual_control::{AssistingPolicy, NomParsed, TurnCommand};
 use crate::domain::{AgentMessage, DomainParameters, EnvironmentMessage};
-use crate::error::{AmfiteatrError, CommunicationError};
+use crate::error::{AmfiteatrError, CommunicationError, ProtocolError};
 use crate::error::AmfiteatrError::Protocol;
 use crate::error::ProtocolError::{NoPossibleAction, ReceivedKill};
 
@@ -16,16 +17,50 @@ pub trait CliAgent<DP: DomainParameters>{
 impl<A, DP> CliAgent<DP> for A
 where
     A: StatefulAgent<DP> + ActingAgent<DP>
-    + CommunicatingAgent<DP, CommunicationError=CommunicationError<DP>>
+    + CommunicatingAgent<DP>
     + PolicyAgent<DP>
     + RewardedAgent<DP>,
     DP: DomainParameters,
-    <A as StatefulAgent<DP>>::InfoSetType: InformationSet<DP>,
+    <A as StatefulAgent<DP>>::InfoSetType: InformationSet<DP> + Display,
     <Self as PolicyAgent<DP>>::Policy: AssistingPolicy<DP>,
     <<Self as PolicyAgent<DP>>::Policy as AssistingPolicy<DP>>::Question: for<'a> NomParsed<&'a str>,
     //TopCommand<DP, <<Self as PolicyAgent<DP>>::Policy>>: for<'a> NomParsed<'str>,
     DP::ActionType: for<'a> NomParsed<&'a str>{
     fn run_interactive(&mut self) -> Result<(), AmfiteatrError<DP>> {
+
+
+        /*ProcedureAgent::run_protocol(self, |agent|{
+            let mut buffer = String::new();
+            let stdin = io::stdin();
+            #[cfg(feature = "log_debug")]
+            log::debug!("Agent {} received 'YourMove' signal.", self.id());
+            loop{
+                let mut handle = stdin.lock();
+
+                println!("Agent: {} >", self.id());
+                buffer.clear();
+
+                handle.read_line(&mut buffer).map_err(|e|AmfiteatrError::IO {explanation: format!("{e}")})?;
+
+                match TurnCommand::<DP, <Self as PolicyAgent<DP>>::Policy>::nom_parse(&buffer[..]){
+                    Ok((_rest, command)) => match command{
+                        TurnCommand::Quit => {
+                            return Err(ProtocolError::PlayerSelectedNoneAction(self.id().clone()).into())
+                        }
+                        TurnCommand::Play(_) => {}
+                        TurnCommand::Show => {}
+                        TurnCommand::AskPolicy(_) => {}
+                    }
+                    Err(e) => {
+                        println!("Failed parsing input: {buffer} with error: {e:}" )
+                    }
+                }
+
+            }
+        })
+
+         */
+
         let mut buffer = String::new();
         let stdin = io::stdin();
         #[cfg(feature = "log_info")]
@@ -53,9 +88,15 @@ where
                                         self.send(AgentMessage::Quit).unwrap();
                                         //return Ok(())
                                     }
-                                    TurnCommand::Play(_) => {}
-                                    TurnCommand::Show => {}
-                                    TurnCommand::AskPolicy(_) => {}
+                                    TurnCommand::Play(n) => {
+                                        self.send(AgentMessage::TakeAction(n)).unwrap();
+                                    }
+                                    TurnCommand::Show => {
+                                        println!("{:#}", self.info_set());
+                                    }
+                                    TurnCommand::AskPolicy(p) => {
+                                        self.policy().assist(p).unwrap();
+                                    }
                                 }
                                 Err(e) => {
                                     println!("Failed parsing input: {buffer} with error: {e:}" )
@@ -123,5 +164,7 @@ where
                 Err(e) => return Err(e.into())
             }
         }
+
+
     }
 }

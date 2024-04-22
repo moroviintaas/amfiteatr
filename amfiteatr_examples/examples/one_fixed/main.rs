@@ -91,26 +91,12 @@ pub fn run_game(
     Ok(())
 
 }
-/*
-pub trait CustomLearningAgent<DP: DomainParameters>:
-    MultiEpisodeAgent<DP> + NetworkLearningAgent<DP> + AutomaticAgentBothPayoffs<DP>{}
-pub trait CustomNotLearningAgent<DP: DomainParameters>:
-    MultiEpisodeAgent<DP> + AutomaticAgentBothPayoffs<DP>{}
 
-impl<DP: DomainParameters, T: MultiEpisodeAgent<DP> + NetworkLearningAgent<DP> + AutomaticAgentBothPayoffs<DP>>
-CustomLearningAgent<DP> for T{}
-
-impl<DP: DomainParameters, T: MultiEpisodeAgent<DP>  + AutomaticAgentBothPayoffs<DP>>
-CustomNotLearningAgent<DP> for T{}
-*/
 pub enum AgentWrap{
     //Learning(Arc<Mutex<dyn NetworkLearningAgent<InfoSetType=(), Policy=()>>>),
     //Simple(Arc<Mutex<dyn Au>>)
 }
 type D = ClassicGameDomainNumbered;
-//type C = SyncCommAgent<D>;
-//type IS = OwnHistoryInfoSet<AgentNum>;
-
 
 fn main() -> Result<(), AmfiteatrError<ClassicGameDomain<AgentNum>>>{
 
@@ -315,12 +301,12 @@ fn main() -> Result<(), AmfiteatrError<ClassicGameDomain<AgentNum>>>{
         agent_series: vec![],
     };
     series.agent_series.push(PayoffSeries{
-        id: *agent_0.id(),
+        id: *agent_0.info_set().agent_id(),
         payoffs: agent0_data.data.clone()
 
     });
     series.agent_series.push(PayoffSeries{
-        id: *agent_1.id(),
+        id: *agent_1.info_set().agent_id(),
         payoffs: agent1_data.data.clone()
 
     });
