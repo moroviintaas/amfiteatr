@@ -19,7 +19,7 @@ use crate::domain::DomainParameters;
 /// //                      Seed ------------------------^
 /// //                      InformationSet-------------------------^
 /// ```
-/// This trait has blanket implementation for types implementing it's supertraits
+/// This trait has blanket implementation for types implementing its supertraits
 pub trait ModelAgent<DP: DomainParameters, Seed, IS: InformationSet<DP>>:
 
     AutomaticAgent<DP>
@@ -46,3 +46,6 @@ impl<
         + Send
 
 > ModelAgent<DP, Seed, IS> for T {}
+
+
+

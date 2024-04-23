@@ -23,3 +23,4 @@ pub use model::*;
 
 //#[cfg(feature = "manual_control")]
 pub mod manual_control;
+//pub use manual_control::MultiEpisodeCliAgent;

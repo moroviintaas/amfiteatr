@@ -130,13 +130,12 @@ impl<'c, DP: DomainParameters, P: AssistingPolicy<DP>> NomParsed<&'c str> for Tu
 mod tests{
     use crate::agent::manual_control::{NomParsed, TurnCommand};
     use crate::agent::RandomPolicy;
-    use crate::demo::{DemoAction, DemoDomain, DemoInfoSet, DemoState};
+    use crate::demo::{DemoAction, DemoDomain, DemoInfoSet};
 
     type DemoTopCommand = TurnCommand<DemoDomain, RandomPolicy<DemoDomain, DemoInfoSet>>;
     #[test]
     fn parse_interactive_command(){
 
-        let p: RandomPolicy<DemoDomain, DemoInfoSet> = RandomPolicy::new();
 
         let mut tc = DemoTopCommand::nom_parse("quit  dasd").unwrap().1;
         assert_eq!(tc, TurnCommand::Quit);

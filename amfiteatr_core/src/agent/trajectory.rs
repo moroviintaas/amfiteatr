@@ -373,7 +373,7 @@ impl<'a, DP: DomainParameters, S: InformationSet<DP>> Iterator for AgentStepIter
 mod tests{
     use std::collections::HashMap;
     use std::thread;
-    use crate::agent::{AgentGen, AutomaticAgent, RandomPolicy, TracingAgent, TracingAgentGen};
+    use crate::agent::{AutomaticAgent, RandomPolicy, TracingAgent, TracingAgentGen};
     use crate::comm::StdEnvironmentEndpoint;
     use crate::demo::{DEMO_AGENT_BLUE, DEMO_AGENT_RED, DemoDomain, DemoInfoSet, DemoPolicySelectFirst, DemoState};
     use crate::env::{RoundRobinUniversalEnvironment, TracingHashMapEnvironment};

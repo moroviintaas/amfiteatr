@@ -1,20 +1,29 @@
 
-use crate::agent::{CommunicatingAgent, ActingAgent, StatefulAgent, PolicyAgent, RewardedAgent, IdAgent, InformationSet, Policy};
-use crate::error::{CommunicationError, AmfiteatrError};
+use crate::agent::{
+    CommunicatingAgent,
+    ActingAgent,
+    StatefulAgent,
+    PolicyAgent,
+    RewardedAgent,
+    IdAgent,
+};
+use crate::error::{AmfiteatrError};
 use crate::error::ProtocolError::{NoPossibleAction, ReceivedKill};
 use crate::error::AmfiteatrError::Protocol;
 use crate::domain::{AgentMessage, EnvironmentMessage, DomainParameters};
 
-
+/// Helping trait for almost automatic agent.
+/// It is used as frame implementation of automatic agent.
 pub trait ProcedureAgent<DP: DomainParameters>: RewardedAgent<DP> + IdAgent<DP>
 + CommunicatingAgent<DP> + ActingAgent<DP> + StatefulAgent<DP>{
 
+    /// Runs automatic agent provided with function selecting action.
+    /// This is meant to be backend implementation for [`AutomaticAgent::run`] and [`CliAgent`](crate::agent::manual_control::CliAgent).
     fn run_protocol<
         P: Fn(&mut Self) -> Result<Option<DP::ActionType>, AmfiteatrError<DP>>,
     >(&mut self, action_selector: P) -> Result<(), AmfiteatrError<DP>>{
         #[cfg(feature = "log_info")]
         log::info!("Agent {} starts", self.id());
-        //let mut current_score = Spec::UniversalReward::default();
         loop{
             match self.recv(){
                 Ok(message) => match message{

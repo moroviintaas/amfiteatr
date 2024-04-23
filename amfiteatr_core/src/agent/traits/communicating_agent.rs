@@ -1,4 +1,3 @@
-use std::error::Error;
 use crate::domain::{AgentMessage, EnvironmentMessage, DomainParameters};
 use crate::error::{AmfiteatrError, CommunicationError};
 
