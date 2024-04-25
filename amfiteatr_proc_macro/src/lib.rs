@@ -1,6 +1,10 @@
+mod nom_parsed;
+
+use proc_macro2::TokenStream;
 use quote::quote;
 
-use syn::{ItemStruct, parse_macro_input};
+use syn::{DeriveInput, ItemStruct, parse_macro_input};
+use crate::nom_parsed::nom_parsed;
 
 #[proc_macro_attribute]
 pub fn no_assessment_info_set(attr: proc_macro::TokenStream, item: proc_macro::TokenStream) -> proc_macro::TokenStream{
@@ -50,3 +54,9 @@ pub fn no_assessment_info_set(attr: proc_macro::TokenStream, item: proc_macro::T
 
 }
 
+
+#[proc_macro_derive(NomParsed, attributes(keywords))]
+pub fn derive_nom_parsed(item: proc_macro::TokenStream) -> proc_macro::TokenStream{
+    let input = parse_macro_input!(item as DeriveInput);
+    nom_parsed(input)
+}
