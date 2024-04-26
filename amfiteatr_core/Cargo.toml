@@ -23,7 +23,7 @@ serde = {version = "1.0.197", features = ["derive"],  optional = true}
 ron = {version = "0.8.1", optional = true}
 nom = {version = "7.1.3"}
 clap = { version = "4.5.4", features = ["derive"] }
-
+amfiteatr_proc_macro = {version = "0.6.0"}
 
 [features]
 

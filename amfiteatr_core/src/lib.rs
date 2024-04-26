@@ -21,6 +21,8 @@ pub mod env;
 pub mod demo;
 pub mod util;
 
+use amfiteatr_proc_macro as macros;
+
 //pub mod world;
 
 //mod map;

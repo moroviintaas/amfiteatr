@@ -6,7 +6,7 @@ use nom::sequence::{pair};
 use crate::agent::{Policy, PresentPossibleActions, RandomPolicy};
 use crate::domain::DomainParameters;
 use crate::error::AmfiteatrError;
-use crate::util::NomParsed;
+use crate::util::StreamParsed;
 
 
 pub trait AssistingPolicy<DP: DomainParameters>: Policy<DP>{
@@ -39,10 +39,10 @@ pub enum TurnCommand<DP: DomainParameters, P: AssistingPolicy<DP>>{
 }
 
 
-impl<'c, DP: DomainParameters, P: AssistingPolicy<DP>> NomParsed<&'c str> for TurnCommand<DP, P>
-    where DP::ActionType: NomParsed<&'c str>,
-    <P as AssistingPolicy<DP>>::Question: NomParsed<&'c str>{
-    fn nom_parse(input: &'c str) -> IResult<&'c str, Self> {
+impl<'c, DP: DomainParameters, P: AssistingPolicy<DP>> StreamParsed<&'c str> for TurnCommand<DP, P>
+    where DP::ActionType: StreamParsed<&'c str>,
+    <P as AssistingPolicy<DP>>::Question: StreamParsed<&'c str>{
+    fn parse_from_stream(input: &'c str) -> IResult<&'c str, Self> {
         /*
         if let Ok((rest, action)) = separated_pair(
             alt((tag("do"), tag("action"), tag("play"), tag("a"))),
@@ -79,13 +79,13 @@ impl<'c, DP: DomainParameters, P: AssistingPolicy<DP>> NomParsed<&'c str> for Tu
             alt((tag("do"), tag("action"), tag("play"), tag::<&str, &str, nom::error::Error<&str>>("a"))),
             space1
         )(input){
-            <DP::ActionType as NomParsed<&'c str>>::nom_parse(action_str)
+            <DP::ActionType as StreamParsed<&'c str>>::parse_from_stream(action_str)
                 .map(|(rest, action)| (rest, Self::Play(action)))
         } else if let Ok((question_str, _)) = pair(
             alt((tag("hint"), tag("policy"), tag("Kowalski analysis"), tag("analysis"), tag("p"), tag::<&str, &str, nom::error::Error<&str>>("Kowalski"))),
             space1
         )(input){
-            <P::Question as NomParsed<&'c str>>::nom_parse(question_str)
+            <P::Question as StreamParsed<&'c str>>::parse_from_stream(question_str)
                 .map(|(rest, question)| (rest, Self::AskPolicy(question)))
         }
 
@@ -122,22 +122,22 @@ mod tests{
     use crate::agent::manual_control::{TurnCommand};
     use crate::agent::RandomPolicy;
     use crate::demo::{DemoAction, DemoDomain, DemoInfoSet};
-    use crate::util::NomParsed;
+    use crate::util::StreamParsed;
 
     type DemoTopCommand = TurnCommand<DemoDomain, RandomPolicy<DemoDomain, DemoInfoSet>>;
     #[test]
     fn parse_interactive_command(){
 
 
-        let mut tc = DemoTopCommand::nom_parse("quit  dasd").unwrap().1;
+        let mut tc = DemoTopCommand::parse_from_stream("quit  dasd").unwrap().1;
         assert_eq!(tc, TurnCommand::Quit);
-        tc = TurnCommand::nom_parse("play     2").unwrap().1;
+        tc = TurnCommand::parse_from_stream("play     2").unwrap().1;
         assert_eq!(tc, TurnCommand::Play(DemoAction(2)));
-        assert!(DemoTopCommand::nom_parse("play  900").is_err());
+        assert!(DemoTopCommand::parse_from_stream("play  900").is_err());
 
-        tc = TurnCommand::nom_parse("hint ddd").unwrap().1;
+        tc = TurnCommand::parse_from_stream("hint ddd").unwrap().1;
         assert_eq!(tc, TurnCommand::AskPolicy(()));
-        tc = TurnCommand::nom_parse("info dsaaww").unwrap().1;
+        tc = TurnCommand::parse_from_stream("info dsaaww").unwrap().1;
         assert_eq!(tc, TurnCommand::Show);
 
     }

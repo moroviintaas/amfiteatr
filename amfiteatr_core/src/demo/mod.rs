@@ -54,7 +54,7 @@ use crate::env::{EnvironmentStateSequential, EnvironmentStateUniScore};
 use rand::distributions::Distribution;
 use crate::agent::{InformationSet, EvaluatedInformationSet};
 use crate::error::AmfiteatrError;
-use crate::util::NomParsed;
+use crate::util::StreamParsed;
 
 pub const DEMO_AGENT_BLUE: DemoAgentID = 0;
 pub const DEMO_AGENT_RED: DemoAgentID = 1;
@@ -68,8 +68,8 @@ impl Display for DemoAction{
     }
 }
 
-impl<'c> NomParsed<&'c str> for DemoAction{
-    fn nom_parse(input: &'c str) -> IResult<&'c str, Self> {
+impl<'c> StreamParsed<&'c str> for DemoAction{
+    fn parse_from_stream(input: &'c str) -> IResult<&'c str, Self> {
         nom::character::complete::u8(input).map(|(rest, n)|(rest, Self(n)))
     }
 }
