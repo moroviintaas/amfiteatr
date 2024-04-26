@@ -19,6 +19,7 @@ pub mod error;
 pub mod env;
 /// Module with demonstration constructions
 pub mod demo;
+pub mod util;
 
 //pub mod world;
 

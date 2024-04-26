@@ -12,9 +12,10 @@ use crate::agent::{
     RewardedAgent,
     StatefulAgent
 };
-use crate::agent::manual_control::{AssistingPolicy, NomParsed, TurnCommand};
+use crate::agent::manual_control::{AssistingPolicy, TurnCommand};
 use crate::domain::{AgentMessage, DomainParameters};
 use crate::error::{AmfiteatrError};
+use crate::util::NomParsed;
 
 pub trait CliAgent<DP: DomainParameters>{
 

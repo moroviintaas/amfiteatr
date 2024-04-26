@@ -6,18 +6,9 @@ use nom::sequence::{pair};
 use crate::agent::{Policy, PresentPossibleActions, RandomPolicy};
 use crate::domain::DomainParameters;
 use crate::error::AmfiteatrError;
+use crate::util::NomParsed;
 
 
-pub trait NomParsed<I>: Sized{
-
-    fn nom_parse(input: I) -> IResult<I, Self>;
-}
-
-impl<I> NomParsed<I>  for (){
-    fn nom_parse(input: I) -> IResult<I, Self> {
-        Ok((input, ()))
-    }
-}
 pub trait AssistingPolicy<DP: DomainParameters>: Policy<DP>{
 
     type Question;
@@ -128,9 +119,10 @@ impl<'c, DP: DomainParameters, P: AssistingPolicy<DP>> NomParsed<&'c str> for Tu
 
 #[cfg(test)]
 mod tests{
-    use crate::agent::manual_control::{NomParsed, TurnCommand};
+    use crate::agent::manual_control::{TurnCommand};
     use crate::agent::RandomPolicy;
     use crate::demo::{DemoAction, DemoDomain, DemoInfoSet};
+    use crate::util::NomParsed;
 
     type DemoTopCommand = TurnCommand<DemoDomain, RandomPolicy<DemoDomain, DemoInfoSet>>;
     #[test]

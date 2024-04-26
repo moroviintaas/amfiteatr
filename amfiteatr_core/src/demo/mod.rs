@@ -53,8 +53,8 @@ use crate::domain::{Action, DomainParameters, Renew};
 use crate::env::{EnvironmentStateSequential, EnvironmentStateUniScore};
 use rand::distributions::Distribution;
 use crate::agent::{InformationSet, EvaluatedInformationSet};
-use crate::agent::manual_control::NomParsed;
 use crate::error::AmfiteatrError;
+use crate::util::NomParsed;
 
 pub const DEMO_AGENT_BLUE: DemoAgentID = 0;
 pub const DEMO_AGENT_RED: DemoAgentID = 1;

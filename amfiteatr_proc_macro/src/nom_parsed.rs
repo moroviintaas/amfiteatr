@@ -63,7 +63,7 @@ fn build_parse_variant_stream(tags: &Vec<LitStr>, var_ident: &syn::Ident, fields
                     let this_member_tmp_name = format_ident!("result_member_{}",i);
 
                     streams.push(quote! {
-                        let #this_member_tmp_name = <#ty as amfiteatr_core::agent::manual_control::NomParsed<&str>>::nom_parse(rest)?.1;
+                        let #this_member_tmp_name = <#ty as amfiteatr_core::util::NomParsed<&str>>::nom_parse(rest)?.1;
                     });
                     member_names.push(quote! {#this_member_tmp_name ,});
                     //panic!("This member tmp name: {}", this_member_tmp_name)
@@ -180,7 +180,7 @@ pub(crate) fn nom_parsed(input: DeriveInput) -> proc_macro::TokenStream{
         acc
     });
     let implementation = quote! {
-        impl <'a, #generics_params> amfiteatr_core::agent::manual_control::NomParsed<&'a str> for #ident <#generic_params_idents>
+        impl <'a, #generics_params> amfiteatr_core::util::NomParsed<&'a str> for #ident <#generic_params_idents>
         #where_clause{
             fn nom_parse(input: &str) -> nom::IResult<&str, Self>{
                 #parse_variants
