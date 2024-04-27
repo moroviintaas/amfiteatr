@@ -1,10 +1,12 @@
 mod stream_parsed;
+mod str_parsed;
 
 use proc_macro2::TokenStream;
 use quote::quote;
 
 use syn::{DeriveInput, ItemStruct, parse_macro_input};
-use crate::stream_parsed::nom_parsed;
+use crate::str_parsed::{derive_code_str_parsed};
+use crate::stream_parsed::{derive_code_stream_parsed};
 
 #[proc_macro_attribute]
 pub fn no_assessment_info_set(attr: proc_macro::TokenStream, item: proc_macro::TokenStream) -> proc_macro::TokenStream{
@@ -55,8 +57,17 @@ pub fn no_assessment_info_set(attr: proc_macro::TokenStream, item: proc_macro::T
 }
 
 
-#[proc_macro_derive(StreamParsed, attributes(keywords))]
-pub fn derive_nom_parsed(item: proc_macro::TokenStream) -> proc_macro::TokenStream{
+#[proc_macro_derive(StrParsed, attributes(keywords))]
+pub fn derive_str_parsed(item: proc_macro::TokenStream) -> proc_macro::TokenStream{
     let input = parse_macro_input!(item as DeriveInput);
-    nom_parsed(input)
+    derive_code_str_parsed(input)
+}
+
+
+
+
+#[proc_macro_derive(StreamParsed, attributes(keywords))]
+pub fn derive_stream_parsed(item: proc_macro::TokenStream) -> proc_macro::TokenStream{
+    let input = parse_macro_input!(item as DeriveInput);
+    derive_code_stream_parsed(input)
 }

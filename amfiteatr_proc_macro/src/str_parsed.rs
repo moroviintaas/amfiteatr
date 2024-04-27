@@ -25,7 +25,7 @@ fn make_variant_parser_str(tags: &Vec<LitStr>) -> proc_macro2::TokenStream{
     stream.extend(tag_streams);
     quote!{nom::branch::alt((#stream))}
     //::<&str, Self, nom::IResult<&'input_lifetime str, Self>>
-    
+
 }
 
 
@@ -45,12 +45,12 @@ fn build_parse_variant_stream_str(tags: &Vec<LitStr>, var_ident: &syn::Ident, fi
             for field in fields.iter(){
                 //if let Some(ref member_type_ident) = field.ident{
                 let ref ty = field.ty;
-                    let this_member_tmp_name = format_ident!("result_member_{}",i);
+                let this_member_tmp_name = format_ident!("result_member_{}",i);
 
-                    streams.push(quote! {
-                        let (rest, #this_member_tmp_name) = <#ty as amfiteatr_core::util::StreamParsed<&str>>::parse_from_stream(rest)?;
+                streams.push(quote! {
+                        let (rest, #this_member_tmp_name) = <#ty as amfiteatr_core::util::StrParsed>::parse_from_str(rest)?;
                     });
-                    member_names.push(quote! {#this_member_tmp_name ,});
+                member_names.push(quote! {#this_member_tmp_name ,});
                 //}
                 i += 1;
             }
@@ -123,7 +123,7 @@ pub(crate) fn code_for_parse_input_data_from_slice_str(data: &Data) -> TokenStre
     }
 }
 
-pub(crate) fn derive_code_stream_parsed(input: DeriveInput) -> proc_macro::TokenStream{
+pub(crate) fn derive_code_str_parsed(input: DeriveInput) -> proc_macro::TokenStream{
 
 
     let generics = input.generics.clone();
@@ -156,9 +156,9 @@ pub(crate) fn derive_code_stream_parsed(input: DeriveInput) -> proc_macro::Token
 
 
     let implementation_str = quote! {
-        impl <'input_lifetime, #generics_params> amfiteatr_core::util::StreamParsed<&'input_lifetime str> for #ident <#generic_params_idents>
+        impl <#generics_params> amfiteatr_core::util::StrParsed for #ident <#generic_params_idents>
         #where_clause{
-            fn parse_from_stream(input: &str) -> nom::IResult<&str, Self>{
+            fn parse_from_str(input: &str) -> nom::IResult<&str, Self>{
                 #parsing_code
 
                 return Result::Err(nom::Err::Failure(nom::error::Error::new(input, nom::error::ErrorKind::Complete)))
