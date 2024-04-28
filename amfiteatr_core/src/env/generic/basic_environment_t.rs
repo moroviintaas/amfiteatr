@@ -38,11 +38,14 @@ impl <
 
     pub fn insert_penalty_template(&mut self, penalties:  HashMap<DP::AgentId, DP::UniversalReward>){
 
-        self.base_environment.inert_penalty_template(penalties)
+        self.base_environment.insert_illegal_reward_template(penalties)
 
     }
     pub fn set_penalty_template(&mut self, agent: DP::AgentId, penalty: DP::UniversalReward){
-        self.base_environment.set_penalty_template(agent, penalty)
+        self.base_environment.set_illegal_reward_template(agent, penalty)
+    }
+    pub fn completed_steps(&self) -> u64{
+        self.history.number_of_steps() as u64
     }
 }
 

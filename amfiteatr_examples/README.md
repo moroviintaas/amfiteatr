@@ -1,6 +1,6 @@
 # Examples of model deployment
 ___
-## [`a2c_python_gym`](./examples/a2c_python_gym)
+## [`a2c_python_gym`](./examples/cart_pole_python)
 
 Example of wrapping Python [`gymnasium`](https://gymnasium.farama.org/)
 

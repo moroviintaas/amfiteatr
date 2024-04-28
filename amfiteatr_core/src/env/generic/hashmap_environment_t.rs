@@ -55,6 +55,9 @@ impl<
 
         Self{base_environment, history: Default::default() }
     }
+    pub fn completed_steps(&self) -> u64{
+        self.history.number_of_steps() as u64
+    }
 
     
 

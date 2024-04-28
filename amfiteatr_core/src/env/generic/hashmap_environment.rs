@@ -22,6 +22,7 @@ pub struct HashMapEnvironment<
     comm_endpoints: HashMap<DP::AgentId, C>,
     penalties: HashMap<DP::AgentId, DP::UniversalReward>,
     game_state: S,
+    game_steps: u64,
 }
 
 impl <
@@ -43,7 +44,7 @@ HashMapEnvironment<DP, S, C>{
             .map(|agent| (agent.clone(), DP::UniversalReward::neutral()))
             .collect();
 
-        Self{comm_endpoints, game_state, penalties}
+        Self{comm_endpoints, game_state, penalties, game_steps: 0}
     }
 
     pub fn replace_state(&mut self, state: S){
@@ -55,6 +56,10 @@ HashMapEnvironment<DP, S, C>{
     }
     pub fn comms_mut(&mut self) -> &mut HashMap<DP::AgentId, C> {
         &mut self.comm_endpoints
+    }
+
+    pub fn completed_steps(&self) -> u64{
+        self.game_steps
     }
 }
 
@@ -74,10 +79,10 @@ StatefulEnvironment<DP> for HashMapEnvironment<DP, S, C>{
 
     fn process_action(&mut self, agent: &DP::AgentId, action: &DP::ActionType) 
         -> Result<<Self::State as EnvironmentStateSequential<DP>>::Updates, AmfiteatrError<DP>> {
-        //let updates = self.action_processor.process_action(&mut self.game_state, agent, action)?;
-        self.game_state.forward(agent.clone(), action.clone()).map_err(|e|
-            AmfiteatrError::Game{source: e})
-        //Ok(updates)
+        self.game_steps += 1;
+        self.game_state.forward(agent.clone(), action.clone())
+            .map_err(|e| AmfiteatrError::Game{source: e})
+
 
     }
 
@@ -98,12 +103,14 @@ ScoreEnvironment<DP> for HashMapEnvironment<DP, S, C>{
         action: &DP::ActionType,
         penalty_reward: DP::UniversalReward)
         -> Result<<Self::State as EnvironmentStateSequential<DP>>::Updates, AmfiteatrError<DP>> {
+        self.game_steps += 1;
 
+        self.game_state.forward(agent.clone(), action.clone())
+            .map_err(|e|{
+                self.penalties.insert(agent.clone(), penalty_reward + &self.penalties[agent]);
+                AmfiteatrError::Game{source: e}
+            })
 
-        self.game_state.forward(agent.clone(), action.clone()).map_err(|e|{
-            self.penalties.insert(agent.clone(), penalty_reward + &self.penalties[agent]);
-            AmfiteatrError::Game{source: e}
-        })
     }
 
     fn actual_state_score_of_player(
@@ -255,7 +262,9 @@ DP: DomainParameters,
     C: EnvironmentEndpoint<DP>>
 ReinitEnvironment<DP> for HashMapEnvironment<DP, S, C>{
     fn reinit(&mut self, initial_state: <Self as StatefulEnvironment<DP>>::State) {
+
         self.game_state = initial_state;
+        self.game_steps = 0;
         for vals in self.penalties.values_mut(){
             *vals = DP::UniversalReward::neutral();
         }
@@ -269,6 +278,7 @@ impl <
 > ReseedEnvironment<DP, Seed> for HashMapEnvironment<DP, S, CP>
     where <Self as StatefulEnvironment<DP>>::State: Renew<DP, Seed>{
     fn reseed(&mut self, seed: Seed) -> Result<(), AmfiteatrError<DP>>{
+        self.game_steps = 0;
         self.game_state.renew_from(seed)
     }
 }
@@ -288,6 +298,7 @@ impl <
     type InitialObservations = HashMap<DP::AgentId, Self::Observation>;
 
     fn dirty_reseed(&mut self, seed: Seed) -> Result<Self::InitialObservations, AmfiteatrError<DP>>{
+        self.game_steps = 0;
         self.game_state.renew_with_side_effect_from(seed)
             .map(|agent_observation_iter|
                 agent_observation_iter.into_iter().collect())
