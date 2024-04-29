@@ -1,3 +1,4 @@
+use log::warn;
 use amfiteatr_core::domain::{DomainParameters, Renew};
 use amfiteatr_core::env::{EnvironmentStateSequential, EnvironmentStateUniScore};
 use amfiteatr_core::error::AmfiteatrError;
@@ -14,6 +15,7 @@ pub struct ConnectFourRustEnvState{
     scores: [f32;2],
     step: u32,
     winner: [bool;2],
+    render: bool
 
 }
 
@@ -33,6 +35,7 @@ impl ConnectFourRustEnvState{
             scores: [0.0, 0.0],
             step: 0,
             winner: [false, false],
+            render: false
         }
     }
     pub fn steps_completed(&self) -> u32{
@@ -165,6 +168,11 @@ impl EnvironmentStateSequential<ConnectFourDomain> for ConnectFourRustEnvState{
             self.current_player = None;
         } else {
             self.current_player = Some(agent.other());
+        }
+
+        #[no_mangle]
+        if self.render{
+            warn!("Rendering is not suppoerted, this is operation placeholder")
         }
 
         Ok([(agent.other(), ConnectFourBinaryObservation::build_from(&self.board, agent.other()))])

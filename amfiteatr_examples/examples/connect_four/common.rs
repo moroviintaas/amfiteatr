@@ -1,4 +1,5 @@
 use std::fmt::{Display, Formatter};
+use pyo3::PyErr;
 use amfiteatr_core::agent::AgentIdentifier;
 use amfiteatr_core::domain::{Action, DomainParameters};
 use amfiteatr_core::error::{AmfiteatrError, ConvertError};
@@ -120,18 +121,26 @@ pub enum ConnectFourError {
     PlayerViolatedOrder{
         player: ConnectFourPlayer,
     },
+    #[error("PyError occurred: {internal:}")]
+    PyError{
+        internal: String
+    },
+}
 
-
-
+impl From<PyErr> for ConnectFourError{
+    fn from(value: PyErr) -> Self {
+        Self::PyError {internal: format!("{}", value)}
+    }
 }
 
 impl ConnectFourError{
     pub fn fault_of_player(&self) -> Option<ConnectFourPlayer>{
         match self{
-            Self::GameStateNotInitialized => None,
+
             Self::IllegalActionFullColumn { player, .. }
             | Self::PlayerDeadStep { player, .. }
             | Self::PlayerViolatedOrder{ player, ..} => Some(*player),
+            _ => None
         }
     }
 }

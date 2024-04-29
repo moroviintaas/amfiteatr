@@ -4,7 +4,8 @@ use log::LevelFilter;
 
 #[derive(Subcommand)]
 pub enum Implementation{
-    Rust
+    Rust,
+    Wrap
 }
 
 #[derive(Parser)]

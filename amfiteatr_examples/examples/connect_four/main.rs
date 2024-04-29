@@ -1,14 +1,16 @@
 use clap::Parser;
+use pyo3::prelude::PyAnyMethods;
+use pyo3::Python;
 use amfiteatr_rl::error::AmfiteatrRlError;
 use crate::common::ErrorRL;
 use crate::options::{ConnectFourOptions, Implementation};
 use crate::rust::env::ConnectFourRustEnvState;
+use crate::rust::env_wrapped::PythonPettingZooStateWrap;
 use crate::rust::model::ConnectFourModelRust;
 
 mod rust;
 pub mod common;
 mod options;
-
 
 
 pub fn setup_logger(options: &ConnectFourOptions) -> Result<(), fern::InitError> {
@@ -47,7 +49,25 @@ fn main() -> Result<(), ErrorRL>{
             );
             model.run_session(cli.epochs, cli.num_episodes, cli.num_test_episodes)?;
 
+        },
+
+        Implementation::Wrap => {
+            let mut model = ConnectFourModelRust::<PythonPettingZooStateWrap>::new(
+                &cli.layer_sizes_1[..], &cli.layer_sizes_2[..]
+            );
+            Python::with_gil(|py|{
+                let pylogger = py.import_bound("pettingzoo.utils.env_logger").unwrap();
+                pylogger.getattr("EnvLogger").unwrap()
+                   .call_method0("suppress_output").unwrap();
+
+            });
+            model.run_session(cli.epochs, cli.num_episodes, cli.num_test_episodes).unwrap();
+
+
         }
+
+
+
     }
     Ok(())
 

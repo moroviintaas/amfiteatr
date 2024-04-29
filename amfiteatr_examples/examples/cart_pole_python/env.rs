@@ -1,4 +1,4 @@
-
+//! Wrapping Farama gymnasium [CartPole environment](https://github.com/Farama-Foundation/Gymnasium)
 use std::fmt::{Debug};
 use pyo3::prelude::*;
 use amfiteatr_core::domain::{DomainParameters, RenewWithSideEffect};
@@ -79,8 +79,8 @@ impl PythonGymnasiumCartPoleState {
 
             let observation = result_tuple.get_item(0)?;
             let reward = result_tuple.get_item(1)?;
-            let truncated = result_tuple.get_item(2)?;
-            let terminated = result_tuple.get_item(3)?;
+            let truncated = result_tuple.get_item(3)?;
+            let terminated = result_tuple.get_item(2)?;
             let _info = result_tuple.get_item(4)?;
 
             self.terminated = terminated.extract()?;

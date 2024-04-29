@@ -83,8 +83,9 @@ impl Div<f64> for Summary{
     }
 }
 
-fn build_a2c_policy(layer_sizes: &[i64]) -> Result<C4A2CPolicy, AmfiteatrRlError<ConnectFourDomain>>{
-    let var_store = VarStore::new(Device::cuda_if_available());
+fn build_a2c_policy(layer_sizes: &[i64], device: Device) -> Result<C4A2CPolicy, AmfiteatrRlError<ConnectFourDomain>>{
+    let var_store = VarStore::new(device);
+    //let var_store = VarStore::new(Device::Cuda(0));
     let input_shape = ConnectFourTensorReprD1{}.desired_shape()[0];
     let hidden_layers = &layer_sizes;
     let network_pattern = NeuralNetTemplate::new(|path| {
@@ -163,8 +164,8 @@ impl<S:  EnvironmentStateUniScore<ConnectFourDomain> + Clone + Renew<ConnectFour
 
 
         let env = Environment::new(S::default(), hm, );
-        let agent_policy_1 = build_a2c_policy(agent_layers_1).unwrap();
-        let agent_policy_2 = build_a2c_policy(agent_layers_1).unwrap();
+        let agent_policy_1 = build_a2c_policy(agent_layers_1, Device::Cpu).unwrap();
+        let agent_policy_2 = build_a2c_policy(agent_layers_1, Device::Cpu).unwrap();
         let agent_1 = Agent::new(ConnectFourInfoSet::new(ConnectFourPlayer::One), c_a1, agent_policy_1);
         let agent_2 = Agent::new(ConnectFourInfoSet::new(ConnectFourPlayer::Two), c_a2, agent_policy_2);
 

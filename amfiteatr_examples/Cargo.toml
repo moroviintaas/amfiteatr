@@ -24,11 +24,12 @@ name = "one_fixed"
 name = "cart_pole_python"
 required-features = ["rl-python"]
 
-[[example]]
-name = "cart_pole_pure_rust"
+#[[example]]
+#name = "cart_pole_pure_rust"
 
 [[example]]
 name = "connect_four"
+required-features = ["rl-python"]
 
 [dependencies]
 
@@ -46,7 +47,7 @@ plotters = "0.3.5"
 #plotlib = "0.5.1"
 
 serde_json = "1.0.115"
-pyo3 = { version = "0.21.1", features = ["auto-initialize"], optional = true}
+pyo3 = { version = "0.21.2", features = ["auto-initialize"], optional = true}
 
 amfiteatr_core = {version = "0.6.0", path = "../amfiteatr_core", features = ["serde", "log_trace"] }
 amfiteatr_proc_macro = {version = "0.6.0", path = "../amfiteatr_proc_macro"}
@@ -54,6 +55,7 @@ amfiteatr_rl = {version = "0.6.0", path = "../amfiteatr_rl", features = ["log_tr
 amfiteatr_classic = { version = "0.6.0", path = "../amfiteatr_classic" }
 amfiteatr_net_ext = {version = "0.6.0", path = "../amfiteatr_net_ext" }
 ndarray = "0.15.6"
+numpy = "0.21.0"
 
 [features]
 rl-python = ["pyo3"]
