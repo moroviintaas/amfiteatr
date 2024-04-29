@@ -329,7 +329,7 @@ where Env: CommunicatingEndpointEnvironment<DP, CommunicationError=Communication
                                 }
                                 Err(e) => {
                                     #[cfg(feature = "log_error")]
-                                    log::error!("Player {player:} performed illegal action: {action:}");
+                                    log::error!("Player {player:} performed illegal action: {action:}, detailed error: {e}");
                                     let _ = self.send_to(&player, EnvironmentMessage::MoveRefused);
                                     let _ = self.send_to(&player, EnvironmentMessage::RewardFragment(penalty));
                                     for (player, score) in actual_universal_scores.iter_mut(){

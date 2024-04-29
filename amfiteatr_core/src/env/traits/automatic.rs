@@ -87,8 +87,8 @@ impl <
             }
             Some(n) => n
         };
-        #[cfg(feature = "log_info")]
-        log::info!("Sending YourMove signal to first agent: {:?}", &first_player);
+        #[cfg(feature = "log_debug")]
+        log::debug!("Sending YourMove signal to first agent: {:?}", &first_player);
         self.send(&first_player, EnvironmentMessage::YourMove).map_err(|e|e.specify_id(first_player))?;
         loop{
             match self.blocking_receive(){
@@ -194,8 +194,8 @@ impl <
             }
             Some(n) => n
         };
-        #[cfg(feature = "log_info")]
-        log::info!("Sending YourMove signal to first agent: {:?}", &first_player);
+        #[cfg(feature = "log_debug")]
+        log::debug!("Sending YourMove signal to first agent: {:?}", &first_player);
         self.send(&first_player, EnvironmentMessage::YourMove).map_err(|e|e.specify_id(first_player))?;
         loop{
             match self.blocking_receive(){
@@ -308,8 +308,8 @@ impl <
             }
             Some(n) => n
         };
-        #[cfg(feature = "log_info")]
-        log::info!("Sending YourMove signal to first agent: {:?}", &first_player);
+        #[cfg(feature = "log_debug")]
+        log::debug!("Sending YourMove signal to first agent: {:?}", &first_player);
         self.send(&first_player, EnvironmentMessage::YourMove).map_err(|e|e.specify_id(first_player))?;
         loop{
             match self.blocking_receive(){
