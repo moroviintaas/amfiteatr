@@ -3,6 +3,8 @@
 use speedy::{Writable, Readable, LittleEndian};
 use amfiteatr_core::comm::{BidirectionalEndpoint, StdEndpoint};
 use std::{fmt::Debug, sync::mpsc::{RecvError, SendError, TryRecvError}};
+use amfiteatr_core::domain::{AgentMessage, DomainParameters, EnvironmentMessage};
+use amfiteatr_core::error::CommunicationError;
 
 use crate::tcp::{BoundedTcpEndpoint, TcpCommError};
 
@@ -45,3 +47,9 @@ E: std::error::Error + From<TcpCommError> + From<RecvError> + From<SendError<OT>
 
 pub type ComplexComm2048<OT, IT, E> = ComplexComm<OT, IT, E, 2048>;
 pub type ComplexComm1024<OT, IT, E> = ComplexComm<OT, IT, E, 1024>;
+pub type ComplexComm128<OT, IT, E> = ComplexComm<OT, IT, E, 128>;
+pub type ComplexComm256<OT, IT, E> = ComplexComm<OT, IT, E, 256>;
+pub type ComplexComm512<OT, IT, E> = ComplexComm<OT, IT, E, 512>;
+
+pub type DomainCommE512<DP: DomainParameters> = ComplexComm<EnvironmentMessage<DP>, AgentMessage<DP>, CommunicationError<DP>, 512>;
+pub type DomainCommA512<DP: DomainParameters> = ComplexComm<AgentMessage<DP>, EnvironmentMessage<DP>,  CommunicationError<DP>, 512>;

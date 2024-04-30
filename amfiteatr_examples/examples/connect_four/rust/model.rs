@@ -165,7 +165,7 @@ impl<S:  EnvironmentStateUniScore<ConnectFourDomain> + Clone + Renew<ConnectFour
 
         let env = Environment::new(S::default(), hm, );
         let agent_policy_1 = build_a2c_policy(agent_layers_1, Device::Cpu).unwrap();
-        let agent_policy_2 = build_a2c_policy(agent_layers_1, Device::Cpu).unwrap();
+        let agent_policy_2 = build_a2c_policy(agent_layers_2, Device::Cpu).unwrap();
         let agent_1 = Agent::new(ConnectFourInfoSet::new(ConnectFourPlayer::One), c_a1, agent_policy_1);
         let agent_2 = Agent::new(ConnectFourInfoSet::new(ConnectFourPlayer::Two), c_a2, agent_policy_2);
 

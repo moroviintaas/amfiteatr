@@ -21,12 +21,15 @@ pub struct ConnectFourOptions{
     #[arg(short = 'o', long = "logfile")]
     pub log_file: Option<PathBuf>,
 
+    /*
     #[arg(short = 's', long = "save")]
     pub save_file: Option<PathBuf>,
 
     #[arg(short = 'l', long = "load")]
     pub load_file: Option<PathBuf>,
 
+
+     */
     #[arg(short = 'e', long = "epochs", default_value = "100")]
     pub epochs: usize,
 

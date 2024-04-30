@@ -225,6 +225,21 @@ impl EnvironmentStateSequential<DemoDomain> for DemoState{
     }
 }
 
+impl Renew<DemoDomain, ()> for DemoState{
+    fn renew_from(&mut self, _base: ()) -> Result<(), AmfiteatrError<DemoDomain>> {
+        self.turn_of = if self.max_rounds > 0{
+            Some(0)
+        } else {
+            None
+        };
+        for (_, r) in self.rewards.iter_mut(){
+            r.clear()
+        }
+
+        Ok(())
+    }
+}
+
 
 
 #[derive(Clone, Debug, PartialEq)]

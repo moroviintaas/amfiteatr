@@ -31,6 +31,9 @@ required-features = ["rl-python"]
 name = "connect_four"
 required-features = ["rl-python"]
 
+[[example]]
+name = "communication_choice"
+
 [dependencies]
 
 
