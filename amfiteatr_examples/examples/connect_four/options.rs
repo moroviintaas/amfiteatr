@@ -1,8 +1,9 @@
 use std::path::PathBuf;
 use clap::{Parser, Subcommand};
 use log::LevelFilter;
+use clap::ValueEnum;
 
-#[derive(Subcommand)]
+#[derive(ValueEnum, Copy, Clone, Debug)]
 pub enum Implementation{
     Rust,
     Wrap
@@ -42,7 +43,7 @@ pub struct ConnectFourOptions{
     #[arg(short = 'P', long = "penalty", default_value = "-10")]
     pub penalty_for_illegal: f32,
 
-    #[command(subcommand)]
+    #[arg(short = 'm', long = "mode", default_value = "rust")]
     pub implementation: Implementation,
 
     #[arg( long = "layer_sizes_1", value_delimiter = ',',  value_terminator = "!", num_args = 1.., default_value = "128,256,128")]

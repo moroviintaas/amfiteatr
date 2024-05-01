@@ -36,8 +36,8 @@ def parse_args():
     parser.add_argument('-g', "--games", type=int, default=128, help="Number of games in epochs of training")
     parser.add_argument('-t', "--test_games", type=int, default=100, help="Number of games in epochs of testing")
     parser.add_argument('-p', "--penalty", type=float, default=-10, help="NPenalty for illegal actions")
-    parser.add_argument("layers1", metavar="LAYERS", type=int, nargs="*", default=[128, 256, 128], help = "Sizes of subsequent linear layers")
-    parser.add_argument("layers2", metavar="LAYERS", type=int, nargs="*", default=[128, 256, 128],
+    parser.add_argument("--layer_sizes_1", metavar="LAYERS", type=int, nargs="*", default=[128, 256, 128], help = "Sizes of subsequent linear layers")
+    parser.add_argument("--layer_sizes_2", metavar="LAYERS", type=int, nargs="*", default=[128, 256, 128],
                         help="Sizes of subsequent linear layers")
 
 
@@ -321,10 +321,10 @@ def main():
     #print(args.layers2)
     env = my_env(render_mode=None)
     env.reset()
-    policy0 = ActorCritic(84, 7, args.layers1 )
+    policy0 = ActorCritic(84, 7, args.layer_sizes_1 )
     agent0 = Agent(env.agents[0], policy0, learning_rate=1e-4)
 
-    policy1 = ActorCritic(84, 7, args.layers2)
+    policy1 = ActorCritic(84, 7, args.layer_sizes_2)
     agent1 = Agent(env.agents[1], policy1, learning_rate=1e-4)
 
     agents = {agent0.id: agent0, agent1.id: agent1}
