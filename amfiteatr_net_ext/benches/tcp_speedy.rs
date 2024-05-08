@@ -6,7 +6,7 @@ use amfiteatr_core::agent::{AgentGen, AutomaticAgent, RandomPolicy};
 use amfiteatr_core::comm::{EnvironmentMpscPort, StdEnvironmentEndpoint};
 use amfiteatr_core::demo::{DemoDomain, DemoInfoSet, DemoState};
 use amfiteatr_core::env::{AutoEnvironmentWithScores, BasicEnvironment, HashMapEnvironment, RoundRobinUniversalEnvironment};
-use amfiteatr_net_ext::tcp::{BoundedTcpEnvironmentEndpoint};
+use amfiteatr_net_ext::tcp::{PairedTcpEnvironmentEndpoint};
 
 pub fn bench_demo_game_tcp_speedy_hashmap(c: &mut Criterion){
 
@@ -29,7 +29,7 @@ pub fn bench_demo_game_tcp_speedy_hashmap(c: &mut Criterion){
                     let random_policy = RandomPolicy::<DemoDomain, DemoInfoSet>::new();
                     for id in 0..{
 
-                        let (env_comm, agent_comm) = BoundedTcpEnvironmentEndpoint::<DemoDomain, 512>::create_local_pair(11000+id as u16).unwrap();
+                        let (env_comm, agent_comm) = PairedTcpEnvironmentEndpoint::<DemoDomain, 512>::create_local_pair(11000+id as u16).unwrap();
                         env_comms.insert(id, env_comm);
                         let info_set = DemoInfoSet::new(id, number_of_bandits);
 

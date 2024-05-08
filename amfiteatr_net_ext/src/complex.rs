@@ -6,13 +6,21 @@ use std::{fmt::Debug, sync::mpsc::{RecvError, SendError, TryRecvError}};
 use amfiteatr_core::domain::{AgentMessage, DomainParameters, EnvironmentMessage};
 use amfiteatr_core::error::CommunicationError;
 
-use crate::tcp::{BoundedTcpEndpoint, TcpCommError};
+use crate::tcp::{MappedAgentTcpEndpoints, MappedEnvironmentTcpEndpoints, PairedTcpEndpoint, TcpCommError};
 
 pub enum ComplexComm<OT, IT, E: std::error::Error, const  SIZE: usize>{
     StdSync(StdEndpoint<OT, IT, E>),
-    Tcp(BoundedTcpEndpoint<OT, IT, E, SIZE>)
+    Tcp(PairedTcpEndpoint<OT, IT, E, SIZE>)
 
 }
+/*
+impl<DP: DomainParameters, const  SIZE: usize> ComplexComm<EnvironmentMessage<DP>, AgentMessage<DP>, CommunicationError<DP>, SIZE, > {
+    pub fn create_local_net_on_tcp<'a>(port: u16, ids: impl Iterator<Item=&'a DP::AgentId>) -> Result<(MappedEnvironmentTcpEndpoints<DP, SIZE>, MappedAgentTcpEndpoints<DP, SIZE>), CommunicationError<DP>>{
+        todo!()
+    }
+}
+
+ */
 
 impl <'a, OT, IT, E: std::error::Error, const  SIZE: usize> BidirectionalEndpoint for ComplexComm<OT, IT, E, SIZE>
 where OT: Writable<LittleEndian> + Debug, IT: Readable<'a, LittleEndian> + Debug,

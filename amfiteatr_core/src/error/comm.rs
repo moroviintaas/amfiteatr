@@ -35,8 +35,12 @@ pub enum CommunicationError<DP: DomainParameters>{
     NoSuchConnection,
     #[error("Connection to agent {0} not found")]
     ConnectionToAgentNotFound(DP::AgentId),
-    #[error("Duplicateed Agent: {0}")]
+    #[error("Duplicated Agent: {0}")]
     DuplicatedAgent(DP::AgentId),
+    #[error("Connection initialization error for agent: {description:}")]
+    ConnectionInitialization{
+        description: String
+    }
 
 
 }
