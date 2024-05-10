@@ -114,6 +114,14 @@ impl StrParsed for (){
 
 pub struct TokensBorrowed<'a, T>(pub &'a [T]);
 
+impl<'a, T> TokensBorrowed<'a, T>{
+    pub fn len(&self) -> usize{
+        self.0.len()
+    }
+    pub fn is_empty(&self) -> bool{
+        self.len() == 0
+    }
+}
 impl<'a ,T, Idx> std::ops::Index<Idx> for TokensBorrowed<'a, T>
 where Idx: std::slice::SliceIndex<[T]>{
     type Output = Idx::Output;

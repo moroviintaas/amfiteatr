@@ -23,6 +23,10 @@ pub mod util;
 
 use amfiteatr_proc_macro as macros;
 
+pub mod reexport{
+    pub use nom;
+}
+
 
 //pub mod world;
 
