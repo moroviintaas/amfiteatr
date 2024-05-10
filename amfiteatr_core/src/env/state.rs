@@ -4,7 +4,7 @@ use crate::domain::{DomainParameters};
 
 /// Game state to be used in sequential games (where in single time step
 /// only one player is allowed to play).
-pub trait EnvironmentStateSequential<DP: DomainParameters>: Send + Debug{
+pub trait SequentialGameState<DP: DomainParameters>: Send + Debug{
     type Updates: IntoIterator<Item = (DP::AgentId, DP::UpdateType)>;
 
     fn current_player(&self) -> Option<DP::AgentId>;
@@ -20,7 +20,7 @@ pub trait EnvironmentStateSequential<DP: DomainParameters>: Send + Debug{
 //pub trait EnvStateSimultaneous{}
 
 
-impl<DP: DomainParameters, T: EnvironmentStateSequential<DP>> EnvironmentStateSequential<DP> for Box<T>{
+impl<DP: DomainParameters, T: SequentialGameState<DP>> SequentialGameState<DP> for Box<T>{
     type Updates = T::Updates;
 
     fn current_player(&self) -> Option<DP::AgentId> {
@@ -37,22 +37,22 @@ impl<DP: DomainParameters, T: EnvironmentStateSequential<DP>> EnvironmentStateSe
 }
 
 
-/// Combination of traits [`EnvironmentStateSequential`] and [`From`]
-pub trait ConstructedEnvironmentStateSequential<DP: DomainParameters, B>:
-    EnvironmentStateSequential<DP> + From<B>{}
+/// Combination of traits [`SequentialGameState`] and [`From`]
+pub trait ConstructedSequentialGameState<DP: DomainParameters, B>:
+    SequentialGameState<DP> + From<B>{}
 
 
-impl<DP: DomainParameters, B, T: EnvironmentStateSequential<DP> + From<B>>
-    ConstructedEnvironmentStateSequential<DP, B> for T{}
+impl<DP: DomainParameters, B, T: SequentialGameState<DP> + From<B>>
+    ConstructedSequentialGameState<DP, B> for T{}
 
 
 //impl<DP: DomainParameters, B, T: ConstructedEnvState<DP, B>> ConstructedEnvState<DP, B> for Box<T>{}
 
 
 /// Trait adding interface to get current payoff of selected agent.
-pub trait EnvironmentStateUniScore<DP: DomainParameters>: EnvironmentStateSequential<DP>{
+pub trait GameStateWithPayoffs<DP: DomainParameters>: SequentialGameState<DP>{
 
-    fn state_score_of_player(&self, agent: &DP::AgentId) -> DP::UniversalReward;
+    fn state_payoff_of_player(&self, agent: &DP::AgentId) -> DP::UniversalReward;
 
 }
 

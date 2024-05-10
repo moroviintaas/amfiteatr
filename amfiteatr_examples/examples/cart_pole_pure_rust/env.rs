@@ -5,7 +5,7 @@
 
 use std::fmt::{Debug, Formatter};
 use amfiteatr_core::domain::DomainParameters;
-use amfiteatr_core::env::EnvironmentStateSequential;
+use amfiteatr_core::env::SequentialGameState;
 use crate::common::{CartPoleAction, CartPoleDomain, CartPoleObservation, CartPoleRustError, SINGLE_PLAYER_ID};
 #[derive(Debug, Clone)]
 enum KinematicsIntegrator{
@@ -85,7 +85,7 @@ impl CartPoleEnvStateRust {
 
 
 
-impl EnvironmentStateSequential<CartPoleDomain> for CartPoleEnvStateRust{
+impl SequentialGameState<CartPoleDomain> for CartPoleEnvStateRust{
     type Updates = [(<CartPoleDomain as DomainParameters>::AgentId, <CartPoleDomain as DomainParameters>::UpdateType );1];
 
     fn current_player(&self) -> Option<<CartPoleDomain as DomainParameters>::AgentId> {

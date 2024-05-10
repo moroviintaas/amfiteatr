@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::{error::{AmfiteatrError, CommunicationError}, domain::{DomainParameters, EnvironmentMessage, AgentMessage}, env::EnvironmentStateSequential};
+use crate::{error::{AmfiteatrError, CommunicationError}, domain::{DomainParameters, EnvironmentMessage, AgentMessage}, env::SequentialGameState};
 use crate::env::ListPlayers;
 use crate::domain::Reward;
 use crate::env::ScoreEnvironment;

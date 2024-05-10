@@ -2,7 +2,7 @@
 use std::fmt::{Debug};
 use pyo3::prelude::*;
 use amfiteatr_core::domain::{DomainParameters, RenewWithSideEffect};
-use amfiteatr_core::env::{EnvironmentStateSequential, EnvironmentStateUniScore};
+use amfiteatr_core::env::{SequentialGameState, GameStateWithPayoffs};
 use amfiteatr_core::error::AmfiteatrError;
 use crate::common::{CartPoleDomain, CartPoleObservation, CartPoleError, SINGLE_PLAYER_ID, CartPoleAction};
 
@@ -116,7 +116,7 @@ impl PythonGymnasiumCartPoleState{
     }
 }
 
-impl EnvironmentStateSequential<CartPoleDomain> for PythonGymnasiumCartPoleState{
+impl SequentialGameState<CartPoleDomain> for PythonGymnasiumCartPoleState{
     type Updates = [(<CartPoleDomain as DomainParameters>::AgentId, <CartPoleDomain as DomainParameters>::UpdateType );1];
 
     fn current_player(&self) -> Option<<CartPoleDomain as DomainParameters>::AgentId> {
@@ -183,8 +183,8 @@ impl RenewWithSideEffect<CartPoleDomain, ()> for PythonGymnasiumCartPoleState{
     }
 }
 
-impl EnvironmentStateUniScore<CartPoleDomain> for PythonGymnasiumCartPoleState{
-    fn state_score_of_player(&self, _agent: &<CartPoleDomain as DomainParameters>::AgentId) -> <CartPoleDomain as DomainParameters>::UniversalReward {
+impl GameStateWithPayoffs<CartPoleDomain> for PythonGymnasiumCartPoleState{
+    fn state_payoff_of_player(&self, _agent: &<CartPoleDomain as DomainParameters>::AgentId) -> <CartPoleDomain as DomainParameters>::UniversalReward {
         self.player_reward
     }
 }

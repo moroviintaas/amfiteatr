@@ -3,7 +3,7 @@ use pyo3::{Bound, intern, pyclass, pymethods, PyObject, PyResult, Python, ToPyOb
 use pyo3::prelude::PyAnyMethods;
 use pyo3::types::{PyDict, PyFunction, PyModule};
 use amfiteatr_core::domain::{DomainParameters, Renew};
-use amfiteatr_core::env::{EnvironmentStateSequential, EnvironmentStateUniScore};
+use amfiteatr_core::env::{SequentialGameState, GameStateWithPayoffs};
 use amfiteatr_core::error::AmfiteatrError;
 use crate::common::{ConnectFourAction, ConnectFourBinaryObservation, ConnectFourDomain, ConnectFourError, ConnectFourPlayer};
 
@@ -121,7 +121,7 @@ impl PythonPettingZooStateWrap{
      */
 }
 
-impl EnvironmentStateSequential<ConnectFourDomain> for PythonPettingZooStateWrap{
+impl SequentialGameState<ConnectFourDomain> for PythonPettingZooStateWrap{
     type Updates = [(<ConnectFourDomain as DomainParameters>::AgentId, <ConnectFourDomain as DomainParameters>::UpdateType );1];
 
 
@@ -169,8 +169,8 @@ impl EnvironmentStateSequential<ConnectFourDomain> for PythonPettingZooStateWrap
     }
 }
 
-impl EnvironmentStateUniScore<ConnectFourDomain> for PythonPettingZooStateWrap{
-    fn state_score_of_player(&self, agent: &ConnectFourPlayer) -> <ConnectFourDomain as DomainParameters>::UniversalReward {
+impl GameStateWithPayoffs<ConnectFourDomain> for PythonPettingZooStateWrap{
+    fn state_payoff_of_player(&self, agent: &ConnectFourPlayer) -> <ConnectFourDomain as DomainParameters>::UniversalReward {
         self.rewards[agent.index()]
     }
 }

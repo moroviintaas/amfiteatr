@@ -6,7 +6,7 @@ use log::info;
 use amfiteatr_core::agent::{AutomaticAgent, MultiEpisodeAutoAgent, PolicyAgent, ReseedAgent, TracingAgentGen};
 use amfiteatr_core::comm::{AgentEndpoint, EnvironmentMpscPort, StdAgentEndpoint, StdEndpoint, StdEnvironmentEndpoint};
 use amfiteatr_core::domain::Renew;
-use amfiteatr_core::env::{EnvironmentStateUniScore, HashMapEnvironment, ReseedEnvironment, RoundRobinPenalisingUniversalEnvironment, StatefulEnvironment};
+use amfiteatr_core::env::{GameStateWithPayoffs, HashMapEnvironment, ReseedEnvironment, RoundRobinPenalisingUniversalEnvironment, StatefulEnvironment};
 use amfiteatr_core::error::AmfiteatrError;
 use amfiteatr_rl::error::AmfiteatrRlError;
 use amfiteatr_rl::policy::{ActorCriticPolicy, LearningNetworkPolicy, TrainConfig};
@@ -141,7 +141,7 @@ fn build_a2c_policy(layer_sizes: &[i64], device: Device) -> Result<C4A2CPolicy, 
 type C4A2CPolicy = ActorCriticPolicy<ConnectFourDomain, ConnectFourInfoSet, ConnectFourTensorReprD1>;
 type Environment<S> = HashMapEnvironment<ConnectFourDomain, S, StdEnvironmentEndpoint<ConnectFourDomain>>;
 type Agent = TracingAgentGen<ConnectFourDomain, C4A2CPolicy, StdAgentEndpoint<ConnectFourDomain>>;
-pub struct ConnectFourModelRust<S: EnvironmentStateUniScore<ConnectFourDomain>>{
+pub struct ConnectFourModelRust<S: GameStateWithPayoffs<ConnectFourDomain>>{
 
     env: Environment<S>,
     agent1: Agent,
@@ -150,7 +150,7 @@ pub struct ConnectFourModelRust<S: EnvironmentStateUniScore<ConnectFourDomain>>{
 }
 
 
-impl<S:  EnvironmentStateUniScore<ConnectFourDomain> + Clone + Renew<ConnectFourDomain, ()>> ConnectFourModelRust<S>{
+impl<S:  GameStateWithPayoffs<ConnectFourDomain> + Clone + Renew<ConnectFourDomain, ()>> ConnectFourModelRust<S>{
 
     pub fn new(agent_layers_1: &[i64], agent_layers_2: &[i64]) -> Self
     where S: Default{
@@ -202,8 +202,8 @@ impl<S:  EnvironmentStateUniScore<ConnectFourDomain> + Clone + Renew<ConnectFour
         });
 
         summary.scores = [
-            self.env.state().state_score_of_player(&ConnectFourPlayer::One) as f64,
-            self.env.state().state_score_of_player(&ConnectFourPlayer::Two) as f64,
+            self.env.state().state_payoff_of_player(&ConnectFourPlayer::One) as f64,
+            self.env.state().state_payoff_of_player(&ConnectFourPlayer::Two) as f64,
         ];
 
         summary.games_played = 1.0;

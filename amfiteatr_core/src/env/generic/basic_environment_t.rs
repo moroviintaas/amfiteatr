@@ -16,7 +16,7 @@ use crate::error::AmfiteatrError;
 /// If you don't want tracing consider using [`BasicEnvironment`](crate::env::BasicEnvironment).
 #[derive(Debug)]
 pub struct TracingBasicEnvironment<DP: DomainParameters,
-    S: EnvironmentStateSequential<DP>,
+    S: SequentialGameState<DP>,
     CP: EnvironmentAdapter<DP>>{
 
     base_environment: BasicEnvironment<DP, S, CP>,
@@ -25,7 +25,7 @@ pub struct TracingBasicEnvironment<DP: DomainParameters,
 
 impl <
     DP: DomainParameters,
-    S: EnvironmentStateSequential<DP>,
+    S: SequentialGameState<DP>,
     CP: EnvironmentAdapter<DP>
 > TracingBasicEnvironment<DP, S, CP>{
 
@@ -51,7 +51,7 @@ impl <
 
 impl<
     DP: DomainParameters,
-    S: EnvironmentStateSequential<DP>,
+    S: SequentialGameState<DP>,
     CP: EnvironmentAdapter<DP> + ListPlayers<DP>
 > ListPlayers<DP> for TracingBasicEnvironment<DP, S, CP>{
     type IterType = <Vec<DP::AgentId> as IntoIterator>::IntoIter;
@@ -63,7 +63,7 @@ impl<
 
 impl <
     DP: DomainParameters,
-    S: EnvironmentStateSequential<DP>  + Clone,
+    S: SequentialGameState<DP>  + Clone,
     CP: EnvironmentAdapter<DP>
 > StatefulEnvironment<DP> for TracingBasicEnvironment<DP, S, CP>{
     type State = S;
@@ -73,7 +73,7 @@ impl <
     }
 
     fn process_action(&mut self, agent: &<DP as DomainParameters>::AgentId, action: &<DP as DomainParameters>::ActionType)
-        -> Result<<Self::State as EnvironmentStateSequential<DP>>::Updates, AmfiteatrError<DP>> {
+        -> Result<<Self::State as SequentialGameState<DP>>::Updates, AmfiteatrError<DP>> {
         let state_clone = self.state().clone();
 
         match self.base_environment.process_action(agent, action){
@@ -102,7 +102,7 @@ impl <
 
 impl <
     DP: DomainParameters,
-    S: EnvironmentStateSequential<DP> + Clone,
+    S: SequentialGameState<DP> + Clone,
     CP: BroadcastingEnvironmentAdapter<DP>,
     Seed
 > ReseedEnvironment<DP, Seed> for TracingBasicEnvironment<DP, S, CP>
@@ -115,7 +115,7 @@ where <Self as StatefulEnvironment<DP>>::State: Renew<DP, Seed>{
 }
 impl <
     DP: DomainParameters,
-    S: EnvironmentStateSequential<DP> + Clone + RenewWithSideEffect<DP, Seed>,
+    S: SequentialGameState<DP> + Clone + RenewWithSideEffect<DP, Seed>,
     CP: BroadcastingEnvironmentAdapter<DP>,
     Seed,
     AgentSeed
@@ -134,7 +134,7 @@ impl <
 
 impl <
     DP: DomainParameters,
-    S: EnvironmentStateUniScore<DP> + Clone,
+    S: GameStateWithPayoffs<DP> + Clone,
     CP: EnvironmentAdapter<DP>
 > ScoreEnvironment<DP> for TracingBasicEnvironment<DP, S, CP>{
     fn process_action_penalise_illegal(
@@ -142,7 +142,7 @@ impl <
         agent: &<DP as DomainParameters>::AgentId,
         action: &<DP as DomainParameters>::ActionType,
         penalty_reward: <DP as DomainParameters>::UniversalReward)
-        -> Result<<Self::State as EnvironmentStateSequential<DP>>::Updates, AmfiteatrError<DP>> {
+        -> Result<<Self::State as SequentialGameState<DP>>::Updates, AmfiteatrError<DP>> {
 
         let state_clone = self.state().clone();
         match self.base_environment.process_action_penalise_illegal(agent, action, penalty_reward){
@@ -176,7 +176,7 @@ impl <
 
 impl <
     DP: DomainParameters,
-    S: EnvironmentStateSequential<DP>,
+    S: SequentialGameState<DP>,
     CP: BroadcastingEnvironmentAdapter<DP>
 > CommunicatingAdapterEnvironment<DP> for TracingBasicEnvironment<DP, S, CP>{
     fn send(&mut self, agent_id: &<DP as DomainParameters>::AgentId,  message: crate::domain::EnvironmentMessage<DP>)
@@ -198,7 +198,7 @@ impl <
 
 impl <
     DP: DomainParameters,
-    S: EnvironmentStateSequential<DP>,
+    S: SequentialGameState<DP>,
     CP: BroadcastingEnvironmentAdapter<DP>
 > BroadConnectedEnvironment<DP> for TracingBasicEnvironment<DP, S, CP>{
 
@@ -213,7 +213,7 @@ impl <
 
 impl <
     DP: DomainParameters,
-    S: EnvironmentStateSequential<DP> + Clone,
+    S: SequentialGameState<DP> + Clone,
     CP: BroadcastingEnvironmentAdapter<DP>
 > ReinitEnvironment<DP> for TracingBasicEnvironment<DP, S, CP>{
     fn reinit(&mut self, initial_state: <Self as StatefulEnvironment<DP>>::State) {
@@ -227,7 +227,7 @@ impl <
 
 
 impl<'a, DP: DomainParameters + 'a,
-    S: EnvironmentStateSequential<DP>,
+    S: SequentialGameState<DP>,
     CP: EnvironmentAdapter<DP>>
 TracingEnvironment<DP, S> for TracingBasicEnvironment<DP, S, CP>{
     fn trajectory(&self) -> &GameTrajectory<DP, S> {

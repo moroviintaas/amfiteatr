@@ -1,5 +1,5 @@
 use std::fmt::{Display, Formatter};
-use crate::env::EnvironmentStateSequential;
+use crate::env::SequentialGameState;
 use crate::domain::DomainParameters;
 use crate::error::{AmfiteatrError, TrajectoryError};
 
@@ -13,7 +13,7 @@ use crate::error::{AmfiteatrError, TrajectoryError};
 /// Game step is measured from one state to the next (transaction is made by any agent performing action).
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Clone, Debug)]
-pub struct GameStepView<'a, DP: DomainParameters, S: EnvironmentStateSequential<DP>>{
+pub struct GameStepView<'a, DP: DomainParameters, S: SequentialGameState<DP>>{
     #[cfg_attr(feature = "serde", serde(bound(deserialize = "&'a S: serde::Deserialize<'de>")))]
     #[cfg_attr(feature = "serde", serde(bound(serialize = "&'a S: serde::Serialize")))]
     state_before: &'a S,
@@ -33,7 +33,7 @@ pub struct GameStepView<'a, DP: DomainParameters, S: EnvironmentStateSequential<
 
 }
 
-impl<'a, DP: DomainParameters, S: EnvironmentStateSequential<DP>> Display for GameStepView<'a, DP, S>
+impl<'a, DP: DomainParameters, S: SequentialGameState<DP>> Display for GameStepView<'a, DP, S>
     where &'a S: Display, <DP as DomainParameters>::AgentId: Display,
            &'a <DP as DomainParameters>::ActionType: Display{
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
@@ -46,7 +46,7 @@ impl<'a, DP: DomainParameters, S: EnvironmentStateSequential<DP>> Display for Ga
     }
 }
 
-impl<'a, DP: DomainParameters, S: EnvironmentStateSequential<DP>> GameStepView<'a, DP, S>{
+impl<'a, DP: DomainParameters, S: SequentialGameState<DP>> GameStepView<'a, DP, S>{
 
     pub fn new(state_before: &'a S, agent: &'a DP::AgentId,
                action: &'a DP::ActionType, is_valid: bool, state_after: &'a S) -> Self{
@@ -104,7 +104,7 @@ impl<'a, DP: DomainParameters, S: EnvironmentStateSequential<DP>> GameStepView<'
 /// For trace collected by players refer to [`AgentTrajectory`](crate::agent::AgentTrajectory).
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Clone, Debug)]
-pub struct GameTrajectory<DP: DomainParameters, S: EnvironmentStateSequential<DP>>{
+pub struct GameTrajectory<DP: DomainParameters, S: SequentialGameState<DP>>{
     #[cfg_attr(feature = "serde", serde(bound(deserialize = "S: serde::Deserialize<'de>")))]
     #[cfg_attr(feature = "serde", serde(bound(serialize = "S: serde::Serialize")))]
     states: Vec<S>,
@@ -119,7 +119,7 @@ pub struct GameTrajectory<DP: DomainParameters, S: EnvironmentStateSequential<DP
     #[cfg_attr(feature = "serde", serde(bound(serialize = "S: serde::Serialize")))]
     final_state: Option<S>,
 }
-impl<DP: DomainParameters, S: EnvironmentStateSequential<DP>> Default for GameTrajectory<DP, S>{
+impl<DP: DomainParameters, S: SequentialGameState<DP>> Default for GameTrajectory<DP, S>{
     fn default() -> Self {
         Self{
             states: vec![],
@@ -130,7 +130,7 @@ impl<DP: DomainParameters, S: EnvironmentStateSequential<DP>> Default for GameTr
         }
     }
 }
-impl<DP: DomainParameters, S: EnvironmentStateSequential<DP>> GameTrajectory<DP, S>{
+impl<DP: DomainParameters, S: SequentialGameState<DP>> GameTrajectory<DP, S>{
 
     /// Creates new trajectory. Initializing undergoing vectors with [`default`](Default::default).
     /// If size can be estimated before it will be better to use [`Self::with_capacity`]

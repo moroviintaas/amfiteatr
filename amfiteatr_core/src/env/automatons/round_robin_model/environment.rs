@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use crate::env::{BroadcastingEndpointEnvironment, CommunicatingEndpointEnvironment, EnvironmentStateSequential, EnvironmentWithAgents, ScoreEnvironment, StatefulEnvironment};
+use crate::env::{BroadcastingEndpointEnvironment, CommunicatingEndpointEnvironment, SequentialGameState, EnvironmentWithAgents, ScoreEnvironment, StatefulEnvironment};
 use crate::error::{CommunicationError, AmfiteatrError};
 use crate::error::ProtocolError::PlayerExited;
 use crate::domain::{AgentMessage, EnvironmentMessage, DomainParameters, Reward};

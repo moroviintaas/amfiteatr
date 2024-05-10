@@ -3,8 +3,8 @@ use crate::comm::{EnvironmentEndpoint};
 use crate::env::{
     BroadcastingEndpointEnvironment,
     CommunicatingEndpointEnvironment,
-    EnvironmentStateSequential,
-    EnvironmentStateUniScore,
+    SequentialGameState,
+    GameStateWithPayoffs,
     EnvironmentWithAgents,
     ScoreEnvironment,
     StatefulEnvironment,
@@ -24,7 +24,7 @@ use crate::domain::{AgentMessage, DomainParameters, EnvironmentMessage, Renew, R
 /// [`HashMapEnvironment`](crate::env::HashMapEnvironment).
 pub struct TracingHashMapEnvironment<
     DP: DomainParameters,
-    S: EnvironmentStateSequential<DP>,
+    S: SequentialGameState<DP>,
     C: EnvironmentEndpoint<DP>>{
 
     base_environment: HashMapEnvironment<DP, S,C>,
@@ -33,7 +33,7 @@ pub struct TracingHashMapEnvironment<
 
 impl<
     DP: DomainParameters,
-    S: EnvironmentStateSequential<DP>,
+    S: SequentialGameState<DP>,
     Comm: EnvironmentEndpoint<DP>> TracingHashMapEnvironment<DP, S, Comm>{
 
     pub fn new(
@@ -67,7 +67,7 @@ impl<
 
 impl<
     DP: DomainParameters,
-    S: EnvironmentStateSequential<DP> + Clone,
+    S: SequentialGameState<DP> + Clone,
     C: EnvironmentEndpoint<DP>>
 StatefulEnvironment<DP> for TracingHashMapEnvironment<DP, S,C>{
 
@@ -79,7 +79,7 @@ StatefulEnvironment<DP> for TracingHashMapEnvironment<DP, S,C>{
     }
 
     fn process_action(&mut self, agent: &DP::AgentId, action: &DP::ActionType)
-        -> Result<<Self::State as EnvironmentStateSequential<DP>>::Updates, AmfiteatrError<DP>> {
+        -> Result<<Self::State as SequentialGameState<DP>>::Updates, AmfiteatrError<DP>> {
 
         let state_clone = self.state().clone();
 
@@ -110,12 +110,12 @@ StatefulEnvironment<DP> for TracingHashMapEnvironment<DP, S,C>{
 
 impl<
     DP: DomainParameters,
-    S: EnvironmentStateUniScore<DP> + Clone,
+    S: GameStateWithPayoffs<DP> + Clone,
     C: EnvironmentEndpoint<DP> >
 ScoreEnvironment<DP> for TracingHashMapEnvironment<DP, S, C>{
     fn process_action_penalise_illegal(
         &mut self, agent: &DP::AgentId, action: &DP::ActionType, penalty_reward: DP::UniversalReward)
-        -> Result<<Self::State as EnvironmentStateSequential<DP>>::Updates, AmfiteatrError<DP>> {
+        -> Result<<Self::State as SequentialGameState<DP>>::Updates, AmfiteatrError<DP>> {
 
         let state_clone = self.state().clone();
         match self.base_environment.process_action_penalise_illegal(agent, action, penalty_reward){
@@ -152,7 +152,7 @@ ScoreEnvironment<DP> for TracingHashMapEnvironment<DP, S, C>{
 
 impl<
     DP: DomainParameters,
-    S: EnvironmentStateSequential<DP>,
+    S: SequentialGameState<DP>,
     C: EnvironmentEndpoint<DP>>
 CommunicatingEndpointEnvironment<DP> for TracingHashMapEnvironment<DP, S, C>{
     type CommunicationError = CommunicationError<DP>;
@@ -178,7 +178,7 @@ CommunicatingEndpointEnvironment<DP> for TracingHashMapEnvironment<DP, S, C>{
 
 impl<
     DP: DomainParameters,
-    S: EnvironmentStateSequential<DP>,
+    S: SequentialGameState<DP>,
     C: EnvironmentEndpoint<DP>>
 BroadcastingEndpointEnvironment<DP> for TracingHashMapEnvironment<DP, S, C>{
     fn send_to_all(&mut self, message: EnvironmentMessage<DP>) -> Result<(), Self::CommunicationError> {
@@ -187,7 +187,7 @@ BroadcastingEndpointEnvironment<DP> for TracingHashMapEnvironment<DP, S, C>{
 }
 
 impl<'a, DP: DomainParameters + 'a,
-    S: EnvironmentStateSequential<DP>,
+    S: SequentialGameState<DP>,
     C: EnvironmentEndpoint<DP>>
  EnvironmentWithAgents<DP> for TracingHashMapEnvironment<DP, S, C>{
     type PlayerIterator = Vec<DP::AgentId>;
@@ -199,7 +199,7 @@ impl<'a, DP: DomainParameters + 'a,
 
 
 impl<'a, DP: DomainParameters + 'a,
-    S: EnvironmentStateSequential<DP>,
+    S: SequentialGameState<DP>,
     C: EnvironmentEndpoint<DP>>
 TracingEnvironment<DP, S> for TracingHashMapEnvironment<DP, S, C>{
     fn trajectory(&self) -> &GameTrajectory<DP, S> {
@@ -209,7 +209,7 @@ TracingEnvironment<DP, S> for TracingHashMapEnvironment<DP, S, C>{
 
 impl<
 DP: DomainParameters,
-    S: EnvironmentStateSequential<DP> + Clone,
+    S: SequentialGameState<DP> + Clone,
     C: EnvironmentEndpoint<DP>>
 ReinitEnvironment<DP> for TracingHashMapEnvironment<DP, S, C>{
     fn reinit(&mut self, initial_state: <Self as StatefulEnvironment<DP>>::State) {
@@ -221,7 +221,7 @@ ReinitEnvironment<DP> for TracingHashMapEnvironment<DP, S, C>{
 
 impl <
     DP: DomainParameters,
-    S: EnvironmentStateSequential<DP> + Clone,
+    S: SequentialGameState<DP> + Clone,
     CP: EnvironmentEndpoint<DP>,
     Seed
 > ReseedEnvironment<DP, Seed> for TracingHashMapEnvironment<DP, S, CP>
@@ -234,7 +234,7 @@ impl <
 }
 impl <
     DP: DomainParameters,
-    S: EnvironmentStateSequential<DP> + Clone + RenewWithSideEffect<DP, Seed>,
+    S: SequentialGameState<DP> + Clone + RenewWithSideEffect<DP, Seed>,
     CP: EnvironmentEndpoint<DP>,
     Seed,
     AgentSeed

@@ -50,7 +50,7 @@ use rand::{thread_rng};
 use rand::distributions::Uniform;
 use crate::agent::{AgentIdentifier, Policy, PresentPossibleActions};
 use crate::domain::{Action, DomainParameters, Renew};
-use crate::env::{EnvironmentStateSequential, EnvironmentStateUniScore};
+use crate::env::{SequentialGameState, GameStateWithPayoffs};
 use rand::distributions::Distribution;
 use crate::agent::{InformationSet, EvaluatedInformationSet};
 use crate::error::AmfiteatrError;
@@ -150,7 +150,7 @@ impl DemoState{
 
     }
 }
-impl EnvironmentStateSequential<DemoDomain> for DemoState{
+impl SequentialGameState<DemoDomain> for DemoState{
     type Updates = Vec<(DemoAgentID, (DemoAgentID, DemoAction, f32))>;
 
     fn current_player(&self) -> Option<DemoAgentID> {
@@ -316,8 +316,8 @@ impl EvaluatedInformationSet<DemoDomain, f32> for DemoInfoSet{
     }
 }
 
-impl EnvironmentStateUniScore<DemoDomain> for DemoState{
-    fn state_score_of_player(&self, agent: &DemoAgentID) -> f32 {
+impl GameStateWithPayoffs<DemoDomain> for DemoState{
+    fn state_payoff_of_player(&self, agent: &DemoAgentID) -> f32 {
         /*
         match agent{
             Blue => {

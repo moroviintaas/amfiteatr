@@ -3,7 +3,7 @@ use std::sync::Arc;
 use rand::prelude::SliceRandom;
 use rand::thread_rng;
 use amfiteatr_core::domain::{Renew};
-use amfiteatr_core::env::{EnvironmentStateUniScore, EnvironmentStateSequential};
+use amfiteatr_core::env::{GameStateWithPayoffs, SequentialGameState};
 use log::{debug, trace};
 use std::fmt::{Display, Formatter};
 use std::marker::PhantomData;
@@ -193,7 +193,7 @@ impl<ID: UsizeAgentId> Display for PairingState<ID>{
     }
 }
 
-impl<ID: UsizeAgentId> EnvironmentStateSequential<ClassicGameDomain<ID>> for PairingState<ID> {
+impl<ID: UsizeAgentId> SequentialGameState<ClassicGameDomain<ID>> for PairingState<ID> {
     type Updates = Vec<(ID, ClassicGameUpdate<ID>)>;
 
     fn current_player(&self) -> Option<ID> {
@@ -295,8 +295,8 @@ impl<ID: UsizeAgentId> EnvironmentStateSequential<ClassicGameDomain<ID>> for Pai
     }
 }
 
-impl<ID: UsizeAgentId> EnvironmentStateUniScore<ClassicGameDomain<ID>> for PairingState<ID> {
-    fn state_score_of_player(&self, agent: &ID) -> IntReward {
+impl<ID: UsizeAgentId> GameStateWithPayoffs<ClassicGameDomain<ID>> for PairingState<ID> {
+    fn state_payoff_of_player(&self, agent: &ID) -> IntReward {
         self.score_cache[agent.as_usize()]
     }
 }

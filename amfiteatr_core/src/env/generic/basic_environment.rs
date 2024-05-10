@@ -17,7 +17,7 @@ use crate::error::AmfiteatrError;
 #[derive(Debug, Clone)]
 pub struct BasicEnvironment<
     DP: DomainParameters,
-    S: EnvironmentStateSequential<DP>,
+    S: SequentialGameState<DP>,
     CP: EnvironmentAdapter<DP>
 >{
     adapter: CP,
@@ -28,7 +28,7 @@ pub struct BasicEnvironment<
 
 impl <
     DP: DomainParameters,
-    S: EnvironmentStateSequential<DP>,
+    S: SequentialGameState<DP>,
     CP: EnvironmentAdapter<DP>
 > BasicEnvironment<DP, S, CP>{
 
@@ -51,7 +51,7 @@ impl <
 
 impl<
     DP: DomainParameters,
-    S: EnvironmentStateSequential<DP>,
+    S: SequentialGameState<DP>,
     CP: EnvironmentAdapter<DP> + ListPlayers<DP>
 > ListPlayers<DP> for BasicEnvironment<DP, S, CP>{
     type IterType = <Vec<DP::AgentId> as IntoIterator>::IntoIter;
@@ -63,7 +63,7 @@ impl<
 
 impl <
     DP: DomainParameters,
-    S: EnvironmentStateSequential<DP>,
+    S: SequentialGameState<DP>,
     OneComm: EnvironmentAdapter<DP>
 > StatefulEnvironment<DP> for BasicEnvironment<DP, S, OneComm>{
     type State = S;
@@ -73,7 +73,7 @@ impl <
     }
 
     fn process_action(&mut self, agent: &<DP as DomainParameters>::AgentId, action: &<DP as DomainParameters>::ActionType) 
-        -> Result<<Self::State as EnvironmentStateSequential<DP>>::Updates, AmfiteatrError<DP>> {
+        -> Result<<Self::State as SequentialGameState<DP>>::Updates, AmfiteatrError<DP>> {
         self.game_steps += 1;
         self.game_state.forward(agent.clone(), action.clone())
             .map_err(|e|{
@@ -85,7 +85,7 @@ impl <
 
 impl <
     DP: DomainParameters,
-    S: EnvironmentStateSequential<DP> + Clone,
+    S: SequentialGameState<DP> + Clone,
     CP: BroadcastingEnvironmentAdapter<DP>,
     Seed
 > ReseedEnvironment<DP, Seed> for BasicEnvironment<DP, S, CP>
@@ -98,7 +98,7 @@ where <Self as StatefulEnvironment<DP>>::State: Renew<DP, Seed>{
 
 impl <
     DP: DomainParameters,
-    S: EnvironmentStateSequential<DP> + Clone + RenewWithSideEffect<DP, Seed>,
+    S: SequentialGameState<DP> + Clone + RenewWithSideEffect<DP, Seed>,
     CP: BroadcastingEnvironmentAdapter<DP>,
     Seed,
     AgentSeed
@@ -120,7 +120,7 @@ where <Self as StatefulEnvironment<DP>>::State: RenewWithSideEffect<DP, Seed>,
 
 impl <
     DP: DomainParameters,
-    S: EnvironmentStateUniScore<DP>,
+    S: GameStateWithPayoffs<DP>,
     CP: EnvironmentAdapter<DP>
 > ScoreEnvironment<DP> for BasicEnvironment<DP, S, CP>{
     fn process_action_penalise_illegal(
@@ -128,7 +128,7 @@ impl <
         agent: &<DP as DomainParameters>::AgentId,
         action: &<DP as DomainParameters>::ActionType,
         penalty_reward: <DP as DomainParameters>::UniversalReward)
-        -> Result<<Self::State as EnvironmentStateSequential<DP>>::Updates, AmfiteatrError<DP>> {
+        -> Result<<Self::State as SequentialGameState<DP>>::Updates, AmfiteatrError<DP>> {
             self.game_steps +=1;
         
             self.game_state.forward(agent.clone(), action.clone()).map_err(|e|{
@@ -141,7 +141,7 @@ impl <
     }
 
     fn actual_state_score_of_player(&self, agent: &<DP as DomainParameters>::AgentId) -> <DP as DomainParameters>::UniversalReward {
-        self.game_state.state_score_of_player(agent)
+        self.game_state.state_payoff_of_player(agent)
     }
 
     fn actual_penalty_score_of_player(&self, agent: &<DP as DomainParameters>::AgentId) -> <DP as DomainParameters>::UniversalReward {
@@ -151,7 +151,7 @@ impl <
 
 impl <
     DP: DomainParameters,
-    S: EnvironmentStateSequential<DP>,
+    S: SequentialGameState<DP>,
     CP: BroadcastingEnvironmentAdapter<DP>
 > CommunicatingAdapterEnvironment<DP> for BasicEnvironment<DP, S, CP>{
     fn send(&mut self, agent_id: &<DP as DomainParameters>::AgentId,  message: crate::domain::EnvironmentMessage<DP>)
@@ -173,7 +173,7 @@ impl <
 
 impl <
     DP: DomainParameters,
-    S: EnvironmentStateSequential<DP>,
+    S: SequentialGameState<DP>,
     CP: BroadcastingEnvironmentAdapter<DP>
 > BroadConnectedEnvironment<DP> for BasicEnvironment<DP, S, CP>{
     
@@ -185,7 +185,7 @@ impl <
 
 impl <
     DP: DomainParameters,
-    S: EnvironmentStateSequential<DP>,
+    S: SequentialGameState<DP>,
     CP: BroadcastingEnvironmentAdapter<DP>
 > ReinitEnvironment<DP> for BasicEnvironment<DP, S, CP>{
     fn reinit(&mut self, initial_state: <Self as StatefulEnvironment<DP>>::State) {

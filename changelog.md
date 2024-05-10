@@ -7,6 +7,7 @@
 + Changed trait `TracingAgent`, now does not demand functions `commit_trace` nor `finalize_trajectory`.
 Only trajectory read and reset is needed, maintaining trajectory is now internal responsibility of agent (can and probably should be private logic of agent).
 + Added experimental simple interactive agent with trait `CliAgent` using `TurnCommand`.
++ Renamed `EnvironmentStateSequential` trait to `SequentialGameState` and `EnvironmentStateUniScore` to `GameStateWithPayoffs`
 
 ## Version 0.5.0
 + Rework of tracing - replaced `Trajectory` with `AgentTrajectory` without

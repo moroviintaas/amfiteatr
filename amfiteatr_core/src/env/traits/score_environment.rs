@@ -1,4 +1,4 @@
-use crate::env::{EnvironmentStateSequential, StatefulEnvironment};
+use crate::env::{SequentialGameState, StatefulEnvironment};
 use crate::domain::DomainParameters;
 use crate::error::AmfiteatrError;
 
@@ -16,7 +16,7 @@ pub trait ScoreEnvironment<DP: DomainParameters>: StatefulEnvironment<DP>{
         agent: &DP::AgentId,
         action: &DP::ActionType,
         penalty_reward: DP::UniversalReward)
-        -> Result<<Self::State as EnvironmentStateSequential<DP>>::Updates, AmfiteatrError<DP>>;
+        -> Result<<Self::State as SequentialGameState<DP>>::Updates, AmfiteatrError<DP>>;
 
     /// Return actual payoff of player based on game state
     fn actual_state_score_of_player(&self, agent: &DP::AgentId) -> DP::UniversalReward;
