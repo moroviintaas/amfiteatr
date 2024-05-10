@@ -15,7 +15,7 @@ use crate::agent::{
 use crate::agent::manual_control::{AssistingPolicy, TurnCommand};
 use crate::domain::{AgentMessage, DomainParameters};
 use crate::error::{AmfiteatrError};
-use crate::util::StreamParsed;
+use crate::util::{StrParsed};
 
 pub trait CliAgent<DP: DomainParameters>{
 
@@ -32,9 +32,9 @@ where
     DP: DomainParameters,
     <A as StatefulAgent<DP>>::InfoSetType: InformationSet<DP> + Display,
     <Self as PolicyAgent<DP>>::Policy: AssistingPolicy<DP>,
-    <<Self as PolicyAgent<DP>>::Policy as AssistingPolicy<DP>>::Question: for<'a> StreamParsed<&'a str>,
+    <<Self as PolicyAgent<DP>>::Policy as AssistingPolicy<DP>>::Question: StrParsed,
     //TopCommand<DP, <<Self as PolicyAgent<DP>>::Policy>>: for<'a> NomParsed<'str>,
-    DP::ActionType: for<'a> StreamParsed<&'a str>{
+    DP::ActionType: for<'a> StrParsed{
 
     fn interactive_action_select(&mut self) -> Result<Option<DP::ActionType>, AmfiteatrError<DP>>{
         let mut buffer = String::new();
@@ -49,7 +49,7 @@ where
 
             handle.read_line(&mut buffer).map_err(|e|AmfiteatrError::IO {explanation: format!("{e}")})?;
 
-            match TurnCommand::<DP, <Self as PolicyAgent<DP>>::Policy>::parse_from_stream(&buffer[..]){
+            match TurnCommand::<DP, <Self as PolicyAgent<DP>>::Policy>::parse_from_str(&buffer[..]){
                 Ok((_rest, command)) => match command{
                     TurnCommand::Quit => {
                         self.send(AgentMessage::Quit).unwrap();

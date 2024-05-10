@@ -54,7 +54,7 @@ use crate::env::{SequentialGameState, GameStateWithPayoffs};
 use rand::distributions::Distribution;
 use crate::agent::{InformationSet, EvaluatedInformationSet};
 use crate::error::AmfiteatrError;
-use crate::util::StreamParsed;
+use crate::util::{StrParsed};
 
 pub const DEMO_AGENT_BLUE: DemoAgentID = 0;
 pub const DEMO_AGENT_RED: DemoAgentID = 1;
@@ -68,8 +68,8 @@ impl Display for DemoAction{
     }
 }
 
-impl<'c> StreamParsed<&'c str> for DemoAction{
-    fn parse_from_stream(input: &'c str) -> IResult<&'c str, Self> {
+impl StrParsed for DemoAction{
+    fn parse_from_str(input: & str) -> IResult<&str, Self> {
         nom::character::complete::u8(input).map(|(rest, n)|(rest, Self(n)))
     }
 }

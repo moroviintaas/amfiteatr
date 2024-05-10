@@ -58,8 +58,6 @@ impl<DP: DomainParameters, const SIZE: usize> PairedTcpEnvironmentEndpoint<DP, S
 
     pub fn create_local_net<'a>(port: u16, ids: impl Iterator<Item=&'a DP::AgentId>) -> Result<(MappedEnvironmentTcpEndpoints<DP, SIZE>, MappedAgentTcpEndpoints<DP, SIZE>), CommunicationError<DP>>{
 
-        //let (tx_env, rx_env) = mpsc::channel();
-        //let (tx_agent, rx_agent) = mpsc::channel();
 
         let mut results_environment_connections = HashMap::new();
         let mut results_agent_connections = HashMap::new();

@@ -123,7 +123,7 @@ pub(crate) fn code_for_parse_input_data_from_slice_str(data: &Data) -> TokenStre
     }
 }
 
-pub(crate) fn derive_code_stream_parsed(input: DeriveInput) -> proc_macro::TokenStream{
+pub(crate) fn derive_code_token_parsed(input: DeriveInput) -> proc_macro::TokenStream{
 
 
     let generics = input.generics.clone();
