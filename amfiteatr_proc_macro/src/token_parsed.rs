@@ -13,10 +13,10 @@ fn clone_generic_param_ident(param: &GenericParam) -> proc_macro2::TokenStream{
         GenericParam::Const(c) => c.ident.clone().into_token_stream()
     }
 }
+/*
+fn make_variant_parser(token: &TokenStream) -> proc_macro2::TokenStream{
 
-fn make_variant_parser_str(tags: &Vec<LitStr>) -> proc_macro2::TokenStream{
-
-    let tag_streams: Vec<TokenStream> = tags.iter().map(|tag|{
+    let tag_streams: Vec<TokenStream> = .iter().map(|tag|{
         quote! { nom::sequence::terminated(nom::bytes::complete::tag(#tag), nom::character::complete::space1),}
 
     }).collect();
@@ -29,9 +29,11 @@ fn make_variant_parser_str(tags: &Vec<LitStr>) -> proc_macro2::TokenStream{
 }
 
 
-fn build_parse_variant_stream_str(tags: &Vec<LitStr>, var_ident: &syn::Ident, fields: &Fields) -> proc_macro2::TokenStream{
+ */
 
-    let stream = make_variant_parser_str(tags);
+fn build_parse_variant_stream(token_type: &TokenStream, token_type_variant: &TokenStream, parsed_variant_ident: &syn::Ident, fields: &Fields) -> proc_macro2::TokenStream{
+
+    //let stream = make_variant_parser(token);
     match fields{
         Fields::Named(_) => {
             todo!()
@@ -48,7 +50,7 @@ fn build_parse_variant_stream_str(tags: &Vec<LitStr>, var_ident: &syn::Ident, fi
                     let this_member_tmp_name = format_ident!("result_member_{}",i);
 
                     streams.push(quote! {
-                        let (rest, #this_member_tmp_name) = <#ty as amfiteatr_core::util::StreamParsed<&str>>::parse_from_stream(rest)?;
+                        let (rest, #this_member_tmp_name) = <#ty as amfiteatr_core::util::TokenParsed<&str>>::parse_from_tokens(rest)?;
                     });
                     member_names.push(quote! {#this_member_tmp_name ,});
                 //}
@@ -61,10 +63,10 @@ fn build_parse_variant_stream_str(tags: &Vec<LitStr>, var_ident: &syn::Ident, fi
             //panic!("member_names: {}", member_names);
 
             quote! {
-                let r: nom::IResult<&str, &str> = #stream (input);
+                let r: nom::IResult<amfiteatr_core::util::TokensBorrowed<'input_lifetime, #token_type>, #parsed_variant_ident> = #parsed_variant_ident ::parse_from_tokens(input);
                 if let Ok((rest, _var)) = r{
                     #def_stream
-                    return Ok((rest, Self::#var_ident(#member_names)))
+                    return Ok((rest, Self::#parsed_variant_ident(#member_names)))
                 }
             }
 
@@ -73,9 +75,10 @@ fn build_parse_variant_stream_str(tags: &Vec<LitStr>, var_ident: &syn::Ident, fi
         }
         Fields::Unit => {
             quote!{
-                let r: nom::IResult<&str, &str> = #stream (input);
+                //let r: nom::IResult<&str, &str> = #stream (input);
+                let r: nom::IResult<amfiteatr_core::util::TokensBorrowed<'input_lifetime, #token_type>, #parsed_variant_ident> = #parsed_variant_ident ::parse_from_tokens(input);
                 if let Ok((rest, _var)) = r{
-                    return Ok((rest, Self::#var_ident))
+                    return Ok((rest, Self::#parsed_variant_ident))
                 }
             }
         }
@@ -86,7 +89,7 @@ fn build_parse_variant_stream_str(tags: &Vec<LitStr>, var_ident: &syn::Ident, fi
 
 
 
-pub(crate) fn code_for_parse_input_data_from_slice_str(data: &Data) -> TokenStream{
+pub(crate) fn code_for_parse_input_data_from_slice(data: &Data,  token_type: &TokenStream) -> TokenStream{
     match data{
         Data::Struct(_) => {
             todo!()
@@ -94,19 +97,25 @@ pub(crate) fn code_for_parse_input_data_from_slice_str(data: &Data) -> TokenStre
         Data::Enum(enumeration) => {
             let mut variant_codes = Vec::new();
             for v in enumeration.variants.iter(){
-                let var_ident = &v.ident;
+                let parsed_variant_ident = &v.ident;
                 let attributes = &v.attrs;
                 let fields = &v.fields;
                 //let found_attribute = None;
                 for a in  attributes{
                     if let Meta::List(ml) = &a.meta{
-                        if ml.path.is_ident("keywords"){
+                        if ml.path.is_ident("token"){
                             let keywords = ml.tokens.clone();
+                            /*
                             let parser = Punctuated::<LitStr, Token![,]>::parse_terminated;
                             let punc: Punctuated<LitStr, Token![,]> = parser.parse2(keywords)
-                                .expect(format!("Keyword attributes were expected to be \"#[keywords(\"tag1\", \"tag2\", ...)]\", meanwhile provided: #[keywords({})]", &ml.tokens).as_str());
+                                .expect(format!("Keyword attributes were expected to be \"#[token(PATH)\", meanwhile provided: #[token({})]", &ml.tokens).as_str());
                             let tags: Vec<LitStr> = punc.iter().cloned().collect();
-                            let variant_stream_parser = build_parse_variant_stream_str(&tags, &var_ident, &fields);
+
+
+                             */
+                            let token_type_variant = &ml.tokens;
+                            let variant_stream_parser = build_parse_variant_stream(token_type, token_type_variant, &parsed_variant_ident, &fields);
+
                             variant_codes.push(variant_stream_parser);
                             break;
 
@@ -145,35 +154,54 @@ pub(crate) fn derive_code_token_parsed(input: DeriveInput) -> proc_macro::TokenS
     let ident = input.ident;
     let data = input.data;
 
+    let attrs = input.attrs;
+    let mut token_type_option = None;
+    for attribute in attrs{
+        let meta = attribute.meta;
+        if let Meta::List(attr) = meta{
+            if attr.path.is_ident("token_type"){
+                token_type_option = Some(attr.tokens)
 
-
-
-
-
-
-    let parsing_code = code_for_parse_input_data_from_slice_str(&data);
-
-
-
-    let implementation_str = quote! {
-        impl <'input_lifetime, #generics_params> amfiteatr_core::util::StreamParsed<&'input_lifetime str> for #ident <#generic_params_idents>
-        #where_clause{
-            fn parse_from_stream(input: &str) -> nom::IResult<&str, Self>{
-                #parsing_code
-
-                return Result::Err(nom::Err::Failure(nom::error::Error::new(input, nom::error::ErrorKind::Complete)))
             }
         }
-    };
+    }
+
+    if let Some(token_type) = token_type_option{
+        let parsing_code = code_for_parse_input_data_from_slice(&data, &token_type);
 
 
 
-    let mut ts: TokenStream = TokenStream::new();
-    ts.extend([implementation_str]);
+        let implementation = quote! {
+            impl <'input_lifetime, #generics_params> amfiteatr_core::util::TokenParsed<amfiteatr_core::util::TokensBorrowed<&'input_lifetime, >> for #ident <#generic_params_idents>
+            #where_clause{
+                fn parse_from_stream(input: &str) -> nom::IResult<&str, Self>{
+                    #parsing_code
+
+                    return Result::Err(nom::Err::Failure(nom::error::Error::new(input, nom::error::ErrorKind::Complete)))
+                }
+            }
+        };
 
 
 
-    ts.into()
+        let mut ts: TokenStream = TokenStream::new();
+        ts.extend([implementation]);
+
+
+
+        ts.into()
+
+    } else {
+        panic!( "#[token_type(..) is required")
+    }
+
+
+
+
+
+
+
+
 
 
 }

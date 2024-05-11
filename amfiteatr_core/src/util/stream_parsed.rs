@@ -1,4 +1,5 @@
 use nom::character::complete::space0;
+use nom::error::ErrorKind;
 use nom::IResult;
 use crate as amfiteatr_core;
 
@@ -111,8 +112,45 @@ impl StrParsed for (){
 
 
 */
+/*
+pub trait ParseFromLeafToken<T>{
 
+    fn parse_leaf(input: TokensBorrowed<T>) -> nom::IResult<TokensBorrowed<T>, Self>;
+}
+
+ */
+
+pub trait PrimitiveMarker<Pt>{
+
+    fn primitive(&self) -> Option<Pt>;
+}
+
+impl<'a, T: PrimitiveMarker<Pt>, Pt> TokenParsed<TokensBorrowed<'a, T>> for Pt{
+    fn parse_from_tokens(input: TokensBorrowed<'a, T>) -> IResult<TokensBorrowed<'a, T>, Self> {
+
+        if input.is_empty(){
+            return Err(nom::Err::Failure(nom::error::Error{input, code: ErrorKind::Eof}))
+        }
+        let token = &input[0];
+        match token.primitive(){
+            None => Err(nom::Err::Error(nom::error::Error{input, code: ErrorKind::Tag})),
+            Some(t) => {
+                let rest = TokensBorrowed(&input.0[1..]);
+                Ok((rest, t))
+            }
+        }
+
+    }
+}
+
+
+#[derive(Clone, Debug)]
 pub struct TokensBorrowed<'a, T>(pub &'a [T]);
+impl<'a, T> From<&'a [T]> for TokensBorrowed<'a, T>{
+    fn from(value: &'a [T]) -> Self {
+        Self(value)
+    }
+}
 
 impl<'a, T> TokensBorrowed<'a, T>{
     pub fn len(&self) -> usize{
@@ -136,11 +174,14 @@ pub trait TokenParsed<T>: Sized{
     fn parse_from_tokens(input: T) -> IResult<T, Self>;
 }
 
+/*
 impl<I> TokenParsed<I>  for (){
     fn parse_from_tokens(input: I) -> IResult<I, Self> {
         Ok((input, ()))
     }
 }
+
+ */
 
 impl TokenParsed<&str> for u8{
     fn parse_from_tokens(input: &str) -> IResult<&str, Self> {
