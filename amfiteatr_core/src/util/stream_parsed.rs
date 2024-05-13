@@ -1,6 +1,7 @@
 use nom::character::complete::space0;
 use nom::error::ErrorKind;
 use nom::IResult;
+use amfiteatr_proc_macro::{TokenParsed, TokenVariant};
 use crate as amfiteatr_core;
 
 /// Trait for data that can be constructed with [`nom`] parser.
@@ -52,73 +53,11 @@ impl StrParsed for (){
         Ok((input, ()))
     }
 }
-/*
-/// Trait for data that can be constructed with [`nom`] parser.
-/// It is designed to support  hierarchical construction, typically for action.
-/// # Example 1: Simple 2-level action construction
-/// ```
-/// use nom::InputTake;
-/// use amfiteatr_core::util::{TokenParsed};
-/// use amfiteatr_proc_macro::{TokenParsed};
-///
-///
-/// pub enum AToken{
-///     Up,
-///     Down,
-///     Left,
-///     Right,
-///     Move,
-///     Look,
-///     Wait,
-///     U8(u8)
-/// }
-/// pub struct ATokenSlice<'a>(pub &'a [AToken]);
-/// impl InputTake for ATokenSlice{
-///     fn take(&self, count: usize) -> Self {
-///         Self(&self.0[0..count])
-///     }
-///
-///     fn take_split(&self, count: usize) -> (Self, Self) {
-///         todo!()
-///     }
-///
-/// }
-///
-/// #[derive( TokenParsed, PartialEq, Debug)]
-/// #[token_type(AToken)]
-/// pub enum Direction{
-///     #[keywords("up", "w")]
-///     Up,
-///     #[keywords("down", "s", )]
-///     Down,
-///     #[keywords("right", "d")]
-///     Right,
-///     #[keywords("left", "a")]
-///     Left
-/// }
-/// #[derive(TokenParsed, PartialEq, Debug)]
-/// #[token_type(AToken)]
-/// pub enum Action<T>{
-///     #[token(AToken::Move)]
-///     Move(Direction, T),
-///     #[token(AToken::Look)]
-///     Look(Direction),
-///     #[token(AToken::Wait)]
-///     Wait(T),
-/// }
-/// let tokens_move = vec![AToken::Move, AToken::Left, AToken::U8(5)];
-/// let action = Action::parse_from_tokens(tokens_move).unwrap();
-/// ```
 
 
-*/
-/*
-pub trait ParseFromLeafToken<T>{
 
-    fn parse_leaf(input: TokensBorrowed<T>) -> nom::IResult<TokensBorrowed<T>, Self>;
-}
 
- */
+
 
 pub trait PrimitiveMarker<Pt>{
 
@@ -169,6 +108,67 @@ where Idx: std::slice::SliceIndex<[T]>{
     }
 }
 
+/// Trait for data that can be constructed with [`nom`] parser.
+/// It is designed to support  hierarchical construction, typically for action.
+/// # Example 1: Simple 2-level action construction
+/// ```
+/// use std::fmt::Alignment::Left;
+/// use nom::InputTake;
+/// use amfiteatr_core::util::{PrimitiveMarker, TokenParsed, TokensBorrowed};
+/// use amfiteatr_proc_macro::{TokenParsed, TokenVariant};
+///
+///
+/// #[derive(TokenVariant, PartialEq, Debug)]
+/// pub enum AToken{
+///     Up,
+///     Down,
+///     Left,
+///     Right,
+///     Move,
+///     Look,
+///     Wait,
+///     #[primitive]
+///     U8(u8),
+///     #[primitive]
+///     F32(f32),
+/// }
+///
+/// #[derive( TokenParsed, PartialEq, Debug)]
+/// #[token_type(AToken)]
+/// pub enum Direction{
+///     #[token(Up)]
+///     Up,
+///     #[token(Down)]
+///     Down,
+///     #[token(Right)]
+///     Right,
+///     #[token(Left)]
+///     Left
+/// }
+///
+///
+/// #[derive(TokenParsed, PartialEq, Debug)]
+/// #[token_type(AToken)]
+/// pub enum Action<T>
+///     where AToken: PrimitiveMarker<T>{
+///     #[token(Move)]
+///     Move(Direction, T),
+///     #[token(Look)]
+///     Look(Direction),
+///     #[token(Wait)]
+///     Wait(u8),
+/// }
+///
+/// let tokens_move = vec![AToken::Move, AToken::Left, AToken::U8(5u8), AToken::Look, AToken::Down ];///
+/// let borrowed = TokensBorrowed(&tokens_move[..]);
+/// let (rest, action) = Action::<u8>::parse_from_tokens(borrowed).unwrap();
+/// assert_eq!(action, Action::Move(Direction::Left, 5u8));
+/// assert_eq!(rest.0, &tokens_move[3..]);
+/// let (rest, action2) = Action::<u8>::parse_from_tokens(rest).unwrap();
+/// assert_eq!(action2, Action::Look(Direction::Down));
+///
+///     //let  action: Action<u8> = Action::parse_from_tokens(borrowed).unwrap().1;
+/// ```
 pub trait TokenParsed<T>: Sized{
 
     fn parse_from_tokens(input: T) -> IResult<T, Self>;
