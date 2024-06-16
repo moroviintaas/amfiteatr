@@ -1,5 +1,5 @@
 use nom::character::complete::space0;
-use nom::error::ErrorKind;
+use nom::error::{Error, ErrorKind};
 use nom::IResult;
 use amfiteatr_proc_macro::{TokenParsed, TokenVariant};
 use crate as amfiteatr_core;
@@ -58,7 +58,21 @@ impl StrParsed for (){
 
 
 
-
+/// Helper trait to allow derived parsed from tokens like U8(u8).
+/// > When in different crate `TokenParsed` macro would fail if for something like:
+/// ```should_panic
+/// /// #[derive(TokenVariant, PartialEq, Debug)]
+/// pub enum AToken{
+///     Up,
+///     Down,
+///     Left,
+///     Right,
+///     Wait(u8),
+/// }
+/// ```
+/// will panic because it tires to parse `u8` which is not defined in this system.
+/// To work around we define additional `[primitive]U8(u8)` that and in tree use `Wait(u8)` (refer to [`AToken` example](AToken)).
+/// It may be changed in the future, when I figure out how to do it better. For now, it works.
 pub trait PrimitiveMarker<Pt>{
 
     fn primitive(&self) -> Option<Pt>;
@@ -91,12 +105,33 @@ impl<'a, T> From<&'a [T]> for TokensBorrowed<'a, T>{
     }
 }
 
+impl<'a, T> From<&'a Vec<T>> for TokensBorrowed<'a, T>{
+    fn from(value: &'a Vec<T>) -> Self {
+        Self(&value[..])
+    }
+}
+
+
 impl<'a, T> TokensBorrowed<'a, T>{
     pub fn len(&self) -> usize{
         self.0.len()
     }
     pub fn is_empty(&self) -> bool{
         self.len() == 0
+    }
+
+    pub(crate) fn transform_error(error: nom::error::Error<Self>) -> nom::error::Error<&'a[T]>{
+        nom::error::Error{
+            input: error.input.0,
+            code: error.code,
+        }
+    }
+    pub(crate) fn transform_err(err: nom::Err<nom::error::Error<Self>>) -> nom::Err<nom::error::Error<&'a[T]>>{
+        match err{
+            nom::Err::Incomplete(needed) => nom::Err::Incomplete(needed),
+            nom::Err::Error(error) => nom::Err::Error(Self::transform_error(error)),
+            nom::Err::Failure(fail) => nom::Err::Failure(Self::transform_error(fail))
+        }
     }
 }
 impl<'a ,T, Idx> std::ops::Index<Idx> for TokensBorrowed<'a, T>
@@ -174,6 +209,19 @@ pub trait TokenParsed<T>: Sized{
     fn parse_from_tokens(input: T) -> IResult<T, Self>;
 }
 
+
+
+impl<'a, T: Sized> TokenParsed<&'a [T]> for T
+where T: TokenParsed<TokensBorrowed<'a, T>>{
+    fn parse_from_tokens(input: &'a [T]) -> IResult<&'a [T], Self> {
+        let tb = TokensBorrowed::from(&input[..]);
+        T::parse_from_tokens(tb)
+            .map(|(rest, element)|{
+                (rest.0, element)
+            }).map_err(|e| TokensBorrowed::transform_err(e))
+    }
+}
+
 /*
 impl<I> TokenParsed<I>  for (){
     fn parse_from_tokens(input: I) -> IResult<I, Self> {
@@ -182,13 +230,15 @@ impl<I> TokenParsed<I>  for (){
 }
 
  */
-
+/*
 impl TokenParsed<&str> for u8{
     fn parse_from_tokens(input: &str) -> IResult<&str, Self> {
         nom::sequence::terminated(nom::character::complete::u8, space0)(input)
     }
 }
 
+
+ */
 
 #[cfg(test)]
 mod tests{
