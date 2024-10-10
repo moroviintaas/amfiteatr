@@ -9,6 +9,12 @@ pub enum Implementation{
     Wrap
 }
 
+#[derive(ValueEnum, Copy, Clone, Debug)]
+pub enum ComputeDevice{
+    Cpu,
+    Cuda,
+}
+
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]
 pub struct ConnectFourOptions{
@@ -31,6 +37,10 @@ pub struct ConnectFourOptions{
 
 
      */
+
+    #[arg(short = 'd', long = "device", default_value = "cpu")]
+    pub device: ComputeDevice,
+
     #[arg(short = 'e', long = "epochs", default_value = "100")]
     pub epochs: usize,
 

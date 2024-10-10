@@ -152,7 +152,7 @@ pub struct ConnectFourModelRust<S: GameStateWithPayoffs<ConnectFourDomain>>{
 
 impl<S:  GameStateWithPayoffs<ConnectFourDomain> + Clone + Renew<ConnectFourDomain, ()>> ConnectFourModelRust<S>{
 
-    pub fn new(agent_layers_1: &[i64], agent_layers_2: &[i64]) -> Self
+    pub fn new(agent_layers_1: &[i64], agent_layers_2: &[i64], device: Device) -> Self
     where S: Default{
 
         let (c_env1, c_a1) = StdEnvironmentEndpoint::new_pair();
@@ -164,8 +164,8 @@ impl<S:  GameStateWithPayoffs<ConnectFourDomain> + Clone + Renew<ConnectFourDoma
 
 
         let env = Environment::new(S::default(), hm, );
-        let agent_policy_1 = build_a2c_policy(agent_layers_1, Device::Cpu).unwrap();
-        let agent_policy_2 = build_a2c_policy(agent_layers_2, Device::Cpu).unwrap();
+        let agent_policy_1 = build_a2c_policy(agent_layers_1, device).unwrap();
+        let agent_policy_2 = build_a2c_policy(agent_layers_2, device).unwrap();
         let agent_1 = Agent::new(ConnectFourInfoSet::new(ConnectFourPlayer::One), c_a1, agent_policy_1);
         let agent_2 = Agent::new(ConnectFourInfoSet::new(ConnectFourPlayer::Two), c_a2, agent_policy_2);
 

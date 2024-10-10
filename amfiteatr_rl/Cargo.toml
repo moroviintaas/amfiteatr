@@ -13,7 +13,7 @@ description = "Extensions providing reinforcement learning implementations for `
 
 [dependencies]
 
-tch = "0.15.0"
+tch = "0.17.0"
 log = { version = "0.4.21", optional = true }
 thiserror = "1.0.58"
 rand = "0.8.5"

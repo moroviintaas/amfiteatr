@@ -57,10 +57,11 @@ impl StrParsed for (){
 
 
 
-
+/*
 /// Helper trait to allow derived parsed from tokens like U8(u8).
 /// > When in different crate `TokenParsed` macro would fail if for something like:
-/// ```should_panic
+/// //should_panic
+/// ```
 /// /// #[derive(TokenVariant, PartialEq, Debug)]
 /// pub enum AToken{
 ///     Up,
@@ -73,7 +74,11 @@ impl StrParsed for (){
 /// will panic because it tires to parse `u8` which is not defined in this system.
 /// To work around we define additional `[primitive]U8(u8)` that and in tree use `Wait(u8)` (refer to [`AToken` example](AToken)).
 /// It may be changed in the future, when I figure out how to do it better. For now, it works.
+
+
+ */
 pub trait PrimitiveMarker<Pt>{
+
 
     fn primitive(&self) -> Option<Pt>;
 }

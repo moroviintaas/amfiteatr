@@ -57,7 +57,7 @@ amfiteatr_proc_macro = {version = "0.6.0", path = "../amfiteatr_proc_macro"}
 amfiteatr_rl = {version = "0.6.0", path = "../amfiteatr_rl", features = []}
 amfiteatr_classic = { version = "0.6.0", path = "../amfiteatr_classic" }
 amfiteatr_net_ext = {version = "0.6.0", path = "../amfiteatr_net_ext" }
-ndarray = "0.15.6"
+ndarray = "0.16.1"
 numpy = "0.21.0"
 
 [features]

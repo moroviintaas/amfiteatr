@@ -21,6 +21,7 @@ global gamma
 gamma = 0.9
 
 global logger
+global device
 
 env_logger.EnvLogger.suppress_output()
 
@@ -39,14 +40,16 @@ def parse_args():
     parser.add_argument("--layer_sizes_1", metavar="LAYERS", type=int, nargs="*", default=[128, 256, 128], help = "Sizes of subsequent linear layers")
     parser.add_argument("--layer_sizes_2", metavar="LAYERS", type=int, nargs="*", default=[128, 256, 128],
                         help="Sizes of subsequent linear layers")
+    parser.add_argument("--cuda",  action="store_true", help="enable cuda")
 
 
     return parser.parse_args()
 
 class Agent:
-    def __init__(self, id, policy, learning_rate = 1e-4):
+    def __init__(self, id, policy, learning_rate, dev):
         self.id = id
         self.policy = policy
+        self.dev = dev
 
         #self.observation = None
 
@@ -57,7 +60,8 @@ class Agent:
 
     def select_action_based_on_observation(self, observation, score_pre_action):
 
-        state_tensor =  Variable(torch.from_numpy(observation.flatten()).float())
+        #state_tensor =  Variable(torch.from_numpy(observation.flatten()).float())
+        state_tensor =  torch.from_numpy(observation.flatten()).float().to(self.dev)
         #distr, _critic = self.policy.forward(observation.flatten(), False)
         distr, _critic = self.policy.forward(state_tensor, False)
 
@@ -110,9 +114,9 @@ class Agent:
             discounted_rewards.extend(trajectory_discounted_rewards)
             actions.extend(actions_chosen)
 
-        t_states = torch.stack(states, dim=0)
-        t_discounted_rewards = torch.stack(discounted_rewards, dim=0)
-        t_actions = torch.stack(actions, dim=0)
+        t_states = torch.stack(states, dim=0).to(self.dev)
+        t_discounted_rewards = torch.stack(discounted_rewards, dim=0).to(self.dev)
+        t_actions = torch.stack(actions, dim=0).to(self.dev)
 
         t_actor, t_critic = self.policy.forward(t_states, True)
 
@@ -151,7 +155,7 @@ class ActorCritic(nn.Module):
 
         self.num_actions = num_actions
 
-        self.layers = []
+        self.layers = nn.ModuleList()
 
        # i = 1
 
@@ -159,7 +163,8 @@ class ActorCritic(nn.Module):
         for layer_size in hidden_layers:
             #lin =
             self.layers.append(nn.Linear(last_dim, layer_size))
-            self.layers.append(F.tanh)
+            #self.layers.append(F.tanh)
+            self.layers += [nn.Tanh()]
             last_dim = layer_size
 
         if len(self.layers) > 0:
@@ -319,14 +324,27 @@ def main():
     args = parse_args()
     #print(args.layers1)
     #print(args.layers2)
+
+    if args.cuda:
+        dev = "cuda:0"
+        device = dev
+    else:
+        dev = "cpu"
+        device = dev
+
     env = my_env(render_mode=None)
     env.reset()
     policy0 = ActorCritic(84, 7, args.layer_sizes_1 )
-    agent0 = Agent(env.agents[0], policy0, learning_rate=1e-4)
+    agent0 = Agent(env.agents[0], policy0, learning_rate=1e-4, dev = device)
 
     policy1 = ActorCritic(84, 7, args.layer_sizes_2)
-    agent1 = Agent(env.agents[1], policy1, learning_rate=1e-4)
 
+
+    agent1 = Agent(env.agents[1], policy1, learning_rate=1e-4, dev = device)
+
+    if args.cuda:
+        policy1.cuda()
+        policy0.cuda()
     agents = {agent0.id: agent0, agent1.id: agent1}
     model = Model(env, agent0, agent1)
 
