@@ -1,15 +1,15 @@
 
-//const GRAVITY: f64 = 9.8;
-//const MASS_CART: f64 = 1.0;
-//const MASSPOLE: f64
 
-use std::fmt::{Debug, Formatter};
+
+use std::fmt::Debug;
 use amfiteatr_core::domain::DomainParameters;
 use amfiteatr_core::env::SequentialGameState;
 use crate::common::{CartPoleAction, CartPoleDomain, CartPoleObservation, CartPoleRustError, SINGLE_PLAYER_ID};
 #[derive(Debug, Clone)]
 enum KinematicsIntegrator{
+    #[warn(dead_code)]
     Euler,
+    #[warn(dead_code)]
     SemiImplicitEuler
 }
 #[derive(Debug, Clone)]
@@ -46,6 +46,7 @@ impl CartPoleEnvStateRust {
     pub fn new() -> Self{
         let x_threshold = 2.4f32;
         let theta_threshold_radians = 12.0 * 2.0 * std::f64::consts::PI / 360.0;
+
 
         let high = CartPoleObservation{
             position: x_threshold as f32* 2.0,
@@ -104,12 +105,12 @@ impl SequentialGameState<CartPoleDomain> for CartPoleEnvStateRust{
 
         let s = self.state.as_ref().ok_or(CartPoleRustError::GameStateNotInitialized)?;
         //let CartPoleObservation{position: x, velocity: x_dot, angle: theta, angular_velocity: theta_dot} = s;
-        let (mut x, mut x_dot, mut theta, mut theta_dot) = (s.position, s.velocity, s.angle, s.angular_velocity);
+        let (_x, _x_dot, theta, theta_dot) = (s.position, s.velocity, s.angle, s.angular_velocity);
         let force = match action {
             CartPoleAction::Left => -self.force_mag,
             CartPoleAction::Right => self.force_mag,
         };
-        let costheta = f32::cos(theta);
+        let _costheta = f32::cos(theta);
         let sintheta = f32::sin(theta);
 
         let temp = ( force + (self.pole_mass_length * theta_dot * theta_dot * sintheta))/self.total_mass();

@@ -5,7 +5,7 @@ use amfiteatr_rl::tch::Tensor;
 use amfiteatr_rl::tensor_data::TryIntoTensor;
 
 
-pub const SINGLE_PLAYER_ID: u64 = 1;
+pub const _SINGLE_PLAYER_ID: u64 = 1;
 #[derive(Debug, Clone)]
 pub struct CartPoleDomain{}
 

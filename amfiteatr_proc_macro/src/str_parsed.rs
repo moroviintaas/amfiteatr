@@ -1,10 +1,9 @@
 
 use proc_macro2::TokenStream;
 use quote::{format_ident, quote, ToTokens};
-use syn::{Data, DeriveInput, Fields, GenericParam, LitStr, Meta, parse_macro_input, Token};
+use syn::{Data, DeriveInput, Fields, GenericParam, LitStr, Meta,  Token};
 use syn::parse::Parser;
 use syn::punctuated::Punctuated;
-use syn::token::{Comma, Slash};
 
 fn clone_generic_param_ident(param: &GenericParam) -> proc_macro2::TokenStream{
     match param{
@@ -126,7 +125,6 @@ pub(crate) fn code_for_parse_input_data_from_slice_str(data: &Data) -> TokenStre
 pub(crate) fn derive_code_str_parsed(input: DeriveInput) -> proc_macro::TokenStream{
 
 
-    let generics = input.generics.clone();
     let generics_params = input.generics.params;
     let generic_params_ident_vec: Vec<proc_macro2::TokenStream> = generics_params.iter().map(|g|{
         let mut ident = clone_generic_param_ident(g);

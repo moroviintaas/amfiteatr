@@ -3,24 +3,22 @@
 use speedy::{Writable, Readable, LittleEndian};
 use amfiteatr_core::comm::{BidirectionalEndpoint, StdEndpoint};
 use std::{fmt::Debug, sync::mpsc::{RecvError, SendError, TryRecvError}};
-use amfiteatr_core::domain::{AgentMessage, DomainParameters, EnvironmentMessage};
+use amfiteatr_core::domain::{
+    AgentMessage, EnvironmentMessage
+};
 use amfiteatr_core::error::CommunicationError;
 
-use crate::tcp::{MappedAgentTcpEndpoints, MappedEnvironmentTcpEndpoints, PairedTcpEndpoint, TcpCommError};
+use crate::tcp::{
+    PairedTcpEndpoint,
+    TcpCommError
+};
 
 pub enum ComplexComm<OT, IT, E: std::error::Error, const  SIZE: usize>{
     StdSync(StdEndpoint<OT, IT, E>),
     Tcp(PairedTcpEndpoint<OT, IT, E, SIZE>)
 
 }
-/*
-impl<DP: DomainParameters, const  SIZE: usize> ComplexComm<EnvironmentMessage<DP>, AgentMessage<DP>, CommunicationError<DP>, SIZE, > {
-    pub fn create_local_net_on_tcp<'a>(port: u16, ids: impl Iterator<Item=&'a DP::AgentId>) -> Result<(MappedEnvironmentTcpEndpoints<DP, SIZE>, MappedAgentTcpEndpoints<DP, SIZE>), CommunicationError<DP>>{
-        todo!()
-    }
-}
 
- */
 
 impl <'a, OT, IT, E: std::error::Error, const  SIZE: usize> BidirectionalEndpoint for ComplexComm<OT, IT, E, SIZE>
 where OT: Writable<LittleEndian> + Debug, IT: Readable<'a, LittleEndian> + Debug,
@@ -59,5 +57,5 @@ pub type ComplexComm128<OT, IT, E> = ComplexComm<OT, IT, E, 128>;
 pub type ComplexComm256<OT, IT, E> = ComplexComm<OT, IT, E, 256>;
 pub type ComplexComm512<OT, IT, E> = ComplexComm<OT, IT, E, 512>;
 
-pub type DomainCommE512<DP: DomainParameters> = ComplexComm<EnvironmentMessage<DP>, AgentMessage<DP>, CommunicationError<DP>, 512>;
-pub type DomainCommA512<DP: DomainParameters> = ComplexComm<AgentMessage<DP>, EnvironmentMessage<DP>,  CommunicationError<DP>, 512>;
+pub type DomainCommE512<DP> = ComplexComm<EnvironmentMessage<DP>, AgentMessage<DP>, CommunicationError<DP>, 512>;
+pub type DomainCommA512<DP> = ComplexComm<AgentMessage<DP>, EnvironmentMessage<DP>,  CommunicationError<DP>, 512>;

@@ -129,7 +129,8 @@ fn main() -> Result<(), AmfiteatrError<ClassicGameDomain<AgentNum>>>{
         args.coop_versus_coop,
         args.coop_versus_defect,
         args.defect_versus_coop,
-        args.defect_versus_defect);
+        args.defect_versus_defect
+    );
 
 
     let net_template = NeuralNetTemplate::new(|path|{
@@ -181,7 +182,7 @@ fn main() -> Result<(), AmfiteatrError<ClassicGameDomain<AgentNum>>>{
     let mut scores = [Vec::new(), Vec::new()];
     let mut actions = [Vec::new(), Vec::new()];
     for i in 0..100{
-        debug!("Plaing round: {i:} of initial simulation");
+        debug!("Playing round: {i:} of initial simulation");
         //let mut agent_1_guard = agent_1.lock().unwrap();
         run_game(&mut environment, &mut agent_0, &mut agent_1)?;
         scores[0].push(agent_0.current_universal_score()) ;

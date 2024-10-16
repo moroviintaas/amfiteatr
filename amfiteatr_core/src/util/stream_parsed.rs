@@ -1,8 +1,6 @@
 use nom::character::complete::space0;
-use nom::error::{Error, ErrorKind};
+use nom::error::ErrorKind;
 use nom::IResult;
-use amfiteatr_proc_macro::{TokenParsed, TokenVariant};
-use crate as amfiteatr_core;
 
 /// Trait for data that can be constructed with [`nom`] parser.
 /// It is designed to support  hierarchical construction, typically for action.
@@ -247,8 +245,5 @@ impl TokenParsed<&str> for u8{
 
 #[cfg(test)]
 mod tests{
-    //use crate::util::TokenParsed;
-    use crate::macros;
-    use crate::util;
 
 }

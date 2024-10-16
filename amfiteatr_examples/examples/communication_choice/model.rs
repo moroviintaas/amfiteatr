@@ -5,8 +5,8 @@ use amfiteatr_core::comm::StdEnvironmentEndpoint;
 use amfiteatr_core::demo::{DemoDomain, DemoInfoSet, DemoState};
 use amfiteatr_core::env::{HashMapEnvironment, ReseedEnvironment, RoundRobinUniversalEnvironment};
 use amfiteatr_core::error::AmfiteatrError;
-use amfiteatr_net_ext::{ComplexComm512, DomainCommA512, DomainCommE512};
-use amfiteatr_net_ext::tcp::{PairedTcpAgentEndpoint, PairedTcpEnvironmentEndpoint};
+use amfiteatr_net_ext::{DomainCommA512, DomainCommE512};
+use amfiteatr_net_ext::tcp::PairedTcpEnvironmentEndpoint;
 use crate::options::{CCOptions, CommunicationMedium};
 
 pub type ErrorAmfi = AmfiteatrError<DemoDomain>;

@@ -1,5 +1,5 @@
 use std::path::PathBuf;
-use clap::{Parser, Subcommand};
+use clap::Parser;
 use log::LevelFilter;
 use clap::ValueEnum;
 

@@ -1,6 +1,8 @@
 use proc_macro2::TokenStream;
 use quote::quote;
-use syn::{Data, DeriveInput, Fields, Meta, parse_macro_input};
+use syn::{
+    DeriveInput, Fields, Meta
+};
 use syn::Data::Enum;
 
 pub(crate) fn derive_code_token_variant(input: DeriveInput) -> proc_macro::TokenStream{
@@ -75,19 +77,12 @@ pub(crate) fn derive_code_token_variant(input: DeriveInput) -> proc_macro::Token
 
 
                         }};
-                            let mut stream = vec![header_1, body];
+                            let stream = vec![header_1, body];
                             let mut ts = TokenStream::new();
                             ts.extend(stream);
                             impl_streams.push(ts);
 
                         }
-                        //let tokens = ml.tokens;
-                        //let tokens = ml.tokens.into();
-                        //let tp = parse_macro_input!(tokens as syn::Path);
-                        //let for_what = tokens.clone();
-
-
-
 
                     }
                 }

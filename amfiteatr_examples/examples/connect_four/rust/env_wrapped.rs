@@ -1,32 +1,27 @@
-use ndarray::Array3;
 use pyo3::{Bound, intern, pyclass, pymethods, PyObject, PyResult, Python, ToPyObject};
 use pyo3::prelude::PyAnyMethods;
-use pyo3::types::{PyDict, PyFunction, PyModule};
+use pyo3::types::PyDict;
 use amfiteatr_core::domain::{DomainParameters, Renew};
 use amfiteatr_core::env::{SequentialGameState, GameStateWithPayoffs};
 use amfiteatr_core::error::AmfiteatrError;
-use crate::common::{ConnectFourAction, ConnectFourBinaryObservation, ConnectFourDomain, ConnectFourError, ConnectFourPlayer};
+use crate::common::{
+    ConnectFourBinaryObservation,
+    ConnectFourDomain,
+    ConnectFourError,
+    ConnectFourPlayer
+};
 
-#[derive(Debug, Clone)]
-pub struct ConnectFourObservationOutput{
-    pub observation: ConnectFourBinaryObservation,
-    pub reward: f32,
-    pub termination: bool,
-    pub truncation: bool
-}
+
 
 #[derive(Debug, Clone)]
 #[pyclass]
 pub struct PythonPettingZooStateWrap {
     internal: PyObject,
     #[allow(unused_variables)]
-    //terminated: [bool;2],
-    //truncated: [bool;2],
     terminated: bool,
     truncated: bool,
     current_agent: ConnectFourPlayer,
     rewards: [f32;2],
-    //state_vec: Vec<u8>,
 }
 
 #[pymethods]
@@ -44,17 +39,13 @@ impl PythonPettingZooStateWrap{
 
             let internal_obj: PyObject = env_obj.to_object(py);
 
-            //let mut state_vec = Vec::with_capacity(84);
-            //state_vec.resize(84, 0);
             Ok(Self{
                 internal: internal_obj,
-                //terminated: [false, false],
-                //truncated: [false, false],
+
                 terminated: false,
                 truncated: false,
                 current_agent: ConnectFourPlayer::One,
                 rewards: [0.0, 0.0],
-                //state_vec
             })
         })
 

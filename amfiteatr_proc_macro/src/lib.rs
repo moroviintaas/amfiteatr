@@ -2,7 +2,6 @@ mod token_parsed;
 mod str_parsed;
 mod token_variant;
 
-use proc_macro2::TokenStream;
 use quote::quote;
 
 use syn::{DeriveInput, ItemStruct, parse_macro_input};

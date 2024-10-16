@@ -1,4 +1,4 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 use std::error::Error;
 use std::fmt::Debug;
 use std::io::{Read, Write};
@@ -50,8 +50,8 @@ impl<OT, IT, E: Error, const  SIZE: usize> PairedTcpEndpoint<OT, IT, E, SIZE>{
 pub type PairedTcpEnvironmentEndpoint<DP, const SIZE: usize> = PairedTcpEndpoint<EnvironmentMessage<DP>, AgentMessage<DP>, CommunicationError<DP>, SIZE>;
 pub type PairedTcpAgentEndpoint<DP, const SIZE: usize> = PairedTcpEndpoint<AgentMessage<DP>, EnvironmentMessage<DP>, CommunicationError<DP>, SIZE>;
 
-pub type MappedEnvironmentTcpEndpoints<DP: DomainParameters, const SIZE: usize> = HashMap<DP::AgentId, PairedTcpEnvironmentEndpoint<DP, SIZE>>;
-pub type MappedAgentTcpEndpoints<DP: DomainParameters, const SIZE: usize> = HashMap<DP::AgentId, PairedTcpAgentEndpoint<DP, SIZE>>;
+pub type MappedEnvironmentTcpEndpoints<DP, const SIZE: usize> = HashMap<<DP as DomainParameters>::AgentId, PairedTcpEnvironmentEndpoint<DP, SIZE>>;
+pub type MappedAgentTcpEndpoints<DP, const SIZE: usize> = HashMap<<DP as DomainParameters>::AgentId, PairedTcpAgentEndpoint<DP, SIZE>>;
 
 impl<DP: DomainParameters, const SIZE: usize> PairedTcpEnvironmentEndpoint<DP, SIZE>{
 

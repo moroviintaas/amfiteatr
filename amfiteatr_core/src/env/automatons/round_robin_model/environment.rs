@@ -26,9 +26,10 @@ pub trait RoundRobinPenalisingUniversalEnvironment<DP: DomainParameters>: RoundR
 pub(crate) trait EnvironmentRRInternal<DP: DomainParameters>{
     fn notify_error(&mut self, error: AmfiteatrError<DP>) -> Result<(), CommunicationError<DP>>;
     fn send_message(&mut self, agent: &DP::AgentId, message: EnvironmentMessage<DP>) -> Result<(), CommunicationError<DP>>;
-    fn process_action_and_inform(&mut self, player: DP::AgentId, action: &DP::ActionType) -> Result<(), AmfiteatrError<DP>>;
 
-    //fn broadcast_message(&mut self ,message: EnvMessage<Spec>) -> Result<(), CommError>;
+
+    //fn process_action_and_inform(&mut self, player: DP::AgentId, action: &DP::ActionType) -> Result<(), AmfiteatrError<DP>>;
+
 }
 
 impl<'a, Env, DP: DomainParameters + 'a> EnvironmentRRInternal<DP> for Env
@@ -52,21 +53,21 @@ DP: DomainParameters
             })
     }
 
-    fn process_action_and_inform(&mut self, player: DP::AgentId, action: &DP::ActionType) -> Result<(), AmfiteatrError<DP>> {
-        match self.process_action(&player, action){
-            Ok(iter) => {
-                //let mut n=0;
-                for (ag, update) in iter{
-                    //debug!("{}", n);
-                    //n+= 1;
-                    //self.send_message(&ag, EnvMessage::ActionNotify(AgentActionPair::new(player.clone(), action.clone())))?;
-                    self.send_message(&ag, EnvironmentMessage::UpdateState(update))?;
-                }
-                Ok(())
-            }
-            Err(e) => {Err(e)}
-        }
-    }
+    // fn process_action_and_inform(&mut self, player: DP::AgentId, action: &DP::ActionType) -> Result<(), AmfiteatrError<DP>> {
+    //     match self.process_action(&player, action){
+    //         Ok(iter) => {
+    //             //let mut n=0;
+    //             for (ag, update) in iter{
+    //                 //debug!("{}", n);
+    //                 //n+= 1;
+    //                 //self.send_message(&ag, EnvMessage::ActionNotify(AgentActionPair::new(player.clone(), action.clone())))?;
+    //                 self.send_message(&ag, EnvironmentMessage::UpdateState(update))?;
+    //             }
+    //             Ok(())
+    //         }
+    //         Err(e) => {Err(e)}
+    //     }
+    // }
 
 
 }

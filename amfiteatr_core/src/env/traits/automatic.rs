@@ -36,7 +36,7 @@ pub trait AutoEnvironmentWithScoresAndPenalties<DP: DomainParameters>: StatefulE
 pub(crate) trait AutoEnvInternals<DP: DomainParameters>{
     fn notify_error(&mut self, error: AmfiteatrError<DP>) -> Result<(), CommunicationError<DP>>;
     fn send_message(&mut self, agent: &DP::AgentId, message: EnvironmentMessage<DP>) -> Result<(), CommunicationError<DP>>;
-    fn process_action_and_inform(&mut self, player: DP::AgentId, action: &DP::ActionType) -> Result<(), AmfiteatrError<DP>>;
+    //fn process_action_and_inform(&mut self, player: DP::AgentId, action: &DP::ActionType) -> Result<(), AmfiteatrError<DP>>;
 }
 
 impl <
@@ -58,17 +58,17 @@ impl <
             })
     }
 
-    fn process_action_and_inform(&mut self, player: <DP as DomainParameters>::AgentId, action: &<DP as DomainParameters>::ActionType) -> Result<(), AmfiteatrError<DP>> {
-        match self.process_action(&player, action){
-            Ok(iter) => {
-                for (ag, update) in iter{
-                    self.send_message(&ag, EnvironmentMessage::UpdateState(update))?;
-                }
-                Ok(())
-            }
-            Err(e) => Err(e)
-        }
-    }
+    // fn process_action_and_inform(&mut self, player: <DP as DomainParameters>::AgentId, action: &<DP as DomainParameters>::ActionType) -> Result<(), AmfiteatrError<DP>> {
+    //     match self.process_action(&player, action){
+    //         Ok(iter) => {
+    //             for (ag, update) in iter{
+    //                 self.send_message(&ag, EnvironmentMessage::UpdateState(update))?;
+    //             }
+    //             Ok(())
+    //         }
+    //         Err(e) => Err(e)
+    //     }
+    // }
 }
 
 impl <

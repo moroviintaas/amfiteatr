@@ -1,5 +1,5 @@
 use clap::Parser;
-use crate::model::{BANDITS, CCModel, ErrorAmfi};
+use crate::model::{CCModel, ErrorAmfi};
 use crate::options::CCOptions;
 
 mod options;

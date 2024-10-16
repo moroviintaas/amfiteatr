@@ -1,10 +1,11 @@
 use std::collections::HashMap;
-use std::fmt::{Display, Formatter};
 use std::ops::{Add, Div};
-use std::thread::scope;
 use log::info;
 use amfiteatr_core::agent::{AutomaticAgent, MultiEpisodeAutoAgent, PolicyAgent, ReseedAgent, TracingAgentGen};
-use amfiteatr_core::comm::{AgentEndpoint, EnvironmentMpscPort, StdAgentEndpoint, StdEndpoint, StdEnvironmentEndpoint};
+use amfiteatr_core::comm::{
+    StdAgentEndpoint,
+    StdEnvironmentEndpoint
+};
 use amfiteatr_core::domain::Renew;
 use amfiteatr_core::env::{GameStateWithPayoffs, HashMapEnvironment, ReseedEnvironment, RoundRobinPenalisingUniversalEnvironment, StatefulEnvironment};
 use amfiteatr_core::error::AmfiteatrError;
@@ -15,7 +16,6 @@ use amfiteatr_rl::tch::nn::{Adam, OptimizerConfig, VarStore};
 use amfiteatr_rl::tensor_data::ConversionToTensor;
 use amfiteatr_rl::torch_net::{A2CNet, NeuralNetTemplate, TensorA2C};
 use crate::common::{ConnectFourDomain, ConnectFourPlayer, ErrorRL};
-use crate::options::ConnectFourOptions;
 use crate::rust::agent::{ConnectFourInfoSet, ConnectFourTensorReprD1};
 
 

@@ -1,4 +1,3 @@
-use log::Level::Debug;
 use amfiteatr_core::agent::InformationSet;
 use amfiteatr_core::domain::{DomainParameters, Renew};
 use amfiteatr_core::error::AmfiteatrError;

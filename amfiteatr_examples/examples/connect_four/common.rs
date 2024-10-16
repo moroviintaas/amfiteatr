@@ -67,7 +67,8 @@ impl ConnectFourAction{
     }
 }
 
-const ALL_ACTIONS: [ConnectFourAction;7] = [
+
+pub const ALL_ACTIONS: [ConnectFourAction;7] = [
     ConnectFourAction{id:0},
     ConnectFourAction{id:1},
     ConnectFourAction{id:2},
