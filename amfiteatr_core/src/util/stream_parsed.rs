@@ -137,7 +137,7 @@ impl<'a, T> TokensBorrowed<'a, T>{
         }
     }
 }
-impl<'a ,T, Idx> std::ops::Index<Idx> for TokensBorrowed<'a, T>
+impl<'a, T, Idx> std::ops::Index<Idx> for TokensBorrowed<'a, T>
 where Idx: std::slice::SliceIndex<[T]>{
     type Output = Idx::Output;
 

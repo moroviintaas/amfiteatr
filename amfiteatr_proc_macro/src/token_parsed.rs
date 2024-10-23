@@ -106,9 +106,51 @@ fn build_parse_variant_stream(token_type: &TokenStream, token_type_variant: &Tok
 
 pub(crate) fn code_for_parse_input_data_from_slice(data: &Data,  token_type: &TokenStream) -> TokenStream{
     match data{
-        Data::Struct(_) => {
+
+        Data::Struct(st) => match &st.fields{
+            Fields::Named(_) => {todo!()}
+            Fields::Unnamed(unnamed) => {
+                let mut codes = Vec::new();
+                let mut names = Vec::new();
+                codes.push(quote!{
+                    //let rest = &input[..];
+                    let rest = amfiteatr_core::util::TokensBorrowed(&input.0[..]);
+                });
+
+                for (i, field) in unnamed.unnamed.iter().enumerate(){
+                    let ref ty = field.ty;
+                    let subname = format_ident!("_member_{}",i);
+                    codes.push(quote! {
+                        let (rest, #subname) = <#ty as amfiteatr_core::util::TokenParsed<amfiteatr_core::util::TokensBorrowed<'input_lifetime, #token_type>>>::parse_from_tokens(rest)?;
+
+                    });
+                    names.push(quote!{#subname, });
+                }
+                codes.push(quote! {
+                    Ok((
+                        rest,
+                        Self(
+                        #(#names)*
+                        )
+                    ))
+                });
+
+                codes.iter().cloned().collect()
+
+
+            },
+            Fields::Unit => {todo!()}
+        }
+
+
+        /*
+        Data::Struct(st)  => {
             todo!()
         }
+
+         */
+
+
         Data::Enum(enumeration) => {
             let mut variant_codes = Vec::new();
             variant_codes.push(quote!{
