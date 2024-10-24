@@ -34,8 +34,40 @@ fn build_parse_variant_stream(token_type: &TokenStream, token_type_variant: &Tok
 
     //let stream = make_variant_parser(token);
     match fields{
-        Fields::Named(_) => {
-            todo!()
+        Fields::Named(fields_named) => {
+            let ref fields = fields_named.named;
+
+            let mut member_idents = Vec::new();
+            let mut codes = Vec::new();
+
+            for field in fields.iter(){
+
+
+                let ref ty  = field.ty;
+                let field_name = &field.ident.clone().unwrap();
+
+                codes.push(quote! {
+                   let (rest, #field_name) =  <#ty as amfiteatr_core::util::TokenParsed<amfiteatr_core::util::TokensBorrowed<'input_lifetime, #token_type>>>::parse_from_tokens(rest)?;
+                });
+                member_idents.push(quote!{#field_name ,});
+
+
+
+            }
+
+            let code_stream: TokenStream = codes.into_iter().collect();
+            let member_names: TokenStream = member_idents.into_iter().collect();
+
+            quote!{
+
+                if input[0] == #token_type :: #token_type_variant{
+                    let rest = amfiteatr_core::util::TokensBorrowed(&input.0[1..]);
+                    #code_stream
+                    return Ok((rest, Self::#parsed_variant_ident{#member_names}))
+
+                }
+            }
+
         }
         Fields::Unnamed(fields_unnamed) => {
             let ref fields = fields_unnamed.unnamed;
@@ -180,7 +212,6 @@ pub(crate) fn code_for_parse_input_data_from_slice(data: &Data,  token_type: &To
             }
             variant_codes.push(quote!{
                 return Err(amfiteatr_core::reexport::nom::Err::Failure(amfiteatr_core::reexport::nom::error::Error{input, code: amfiteatr_core::reexport::nom::error::ErrorKind::Tag}));
-                //todo!()
             });
             variant_codes.iter().cloned().collect()
         }

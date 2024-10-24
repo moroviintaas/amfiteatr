@@ -167,7 +167,7 @@ impl GameStateWithPayoffs<ConnectFourDomain> for PythonPettingZooStateWrap{
 }
 
 impl Renew<ConnectFourDomain, ()> for PythonPettingZooStateWrap{
-    fn renew_from(&mut self, base: ()) -> Result<(), AmfiteatrError<ConnectFourDomain>> {
+    fn renew_from(&mut self, _base: ()) -> Result<(), AmfiteatrError<ConnectFourDomain>> {
         self.__reset().map_err(|e| AmfiteatrError::Game { source: e.into() })?;
         self.rewards = [0.0, 0.0];
         self.terminated = false;

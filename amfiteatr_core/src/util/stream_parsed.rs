@@ -190,7 +190,10 @@ where Idx: std::slice::SliceIndex<[T]>{
 /// pub enum Action<T>
 ///     where AToken: PrimitiveMarker<T>{
 ///     #[token(Move)]
-///     Move(Direction, T),
+///     Move{
+///         direction: Direction,
+///         distance: T
+///     },
 ///     #[token(Look)]
 ///     Look(Direction),
 ///     #[token(Wait)]
@@ -200,7 +203,7 @@ where Idx: std::slice::SliceIndex<[T]>{
 /// let tokens_move = vec![AToken::Move, AToken::Left, AToken::U8(5u8), AToken::Look, AToken::Down ];///
 /// let borrowed = TokensBorrowed(&tokens_move[..]);
 /// let (rest, action) = Action::<u8>::parse_from_tokens(borrowed).unwrap();
-/// assert_eq!(action, Action::Move(Direction::Left, 5u8));
+/// assert_eq!(action, Action::Move{direction: Direction::Left, distance: 5u8});
 /// assert_eq!(rest.0, &tokens_move[3..]);
 /// let (rest, action2) = Action::<u8>::parse_from_tokens(rest).unwrap();
 /// assert_eq!(action2, Action::Look(Direction::Down));

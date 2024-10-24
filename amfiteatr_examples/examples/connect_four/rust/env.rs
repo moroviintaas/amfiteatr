@@ -172,7 +172,7 @@ impl SequentialGameState<ConnectFourDomain> for ConnectFourRustEnvState{
 
 
         if self.render{
-            #[no_mangle]
+            //#[no_mangle]
             warn!("Rendering is not suppoerted, this is operation placeholder")
         }
 
