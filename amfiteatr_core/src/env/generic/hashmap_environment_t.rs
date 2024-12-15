@@ -1,18 +1,6 @@
 use std::collections::HashMap;
 use crate::comm::{EnvironmentEndpoint};
-use crate::env::{
-    BroadcastingEndpointEnvironment,
-    CommunicatingEndpointEnvironment,
-    SequentialGameState,
-    GameStateWithPayoffs,
-    EnvironmentWithAgents,
-    ScoreEnvironment,
-    StatefulEnvironment,
-    ReinitEnvironment,
-    TracingEnvironment,
-    ReseedEnvironment,
-    DirtyReseedEnvironment,
-    GameTrajectory};
+use crate::env::{BroadcastingEndpointEnvironment, CommunicatingEndpointEnvironment, SequentialGameState, GameStateWithPayoffs, EnvironmentWithAgents, ScoreEnvironment, StatefulEnvironment, ReinitEnvironment, TracingEnvironment, ReseedEnvironment, DirtyReseedEnvironment, GameTrajectory, AutoEnvironment, RoundRobinEnvironment, AutoEnvironmentWithScores, RoundRobinUniversalEnvironment};
 use crate::env::generic::{HashMapEnvironment};
 use crate::error::{AmfiteatrError, CommunicationError};
 use crate::domain::{AgentMessage, DomainParameters, EnvironmentMessage, Renew, RenewWithSideEffect};
@@ -248,5 +236,29 @@ impl <
 
     fn dirty_reseed(&mut self, seed: Seed) -> Result<Self::InitialObservations, AmfiteatrError<DP>>{
         self.base_environment.dirty_reseed(seed)
+    }
+}
+
+
+impl<DP: DomainParameters,
+    S: SequentialGameState<DP>,
+    C: EnvironmentEndpoint<DP>>
+AutoEnvironment<DP> for TracingHashMapEnvironment<DP, S, C>
+where  HashMapEnvironment<DP, S, C>: AutoEnvironment<DP>{
+    fn run(&mut self) -> Result<(), AmfiteatrError<DP>> {
+        self.base_environment.run_round_robin()
+    }
+}
+
+impl<DP: DomainParameters,
+    S: SequentialGameState<DP>,
+    C: EnvironmentEndpoint<DP>>
+AutoEnvironmentWithScores<DP> for TracingHashMapEnvironment<DP, S, C>
+    where HashMapEnvironment<DP, S, C>:AutoEnvironmentWithScores<DP> + ScoreEnvironment<DP>,
+Self: ScoreEnvironment<DP>
+
+{
+    fn run_with_scores(&mut self) -> Result<(), AmfiteatrError<DP>> {
+        self.base_environment.run_round_robin_with_rewards()
     }
 }

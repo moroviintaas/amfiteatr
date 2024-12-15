@@ -234,3 +234,39 @@ TracingEnvironment<DP, S> for TracingBasicEnvironment<DP, S, CP>{
         &self.history
     }
 }
+
+impl <
+    DP: DomainParameters,
+    S: SequentialGameState<DP>,
+    CP: BroadcastingEnvironmentAdapter<DP>
+> AutoEnvironment<DP> for TracingBasicEnvironment<DP, S, CP>{
+
+    #[inline]
+    fn run(&mut self) -> Result<(), AmfiteatrError<DP>> {
+        self.base_environment.run()
+    }
+}
+
+
+impl <
+    DP: DomainParameters,
+    S: GameStateWithPayoffs<DP>,
+    CP: EnvironmentAdapter<DP> + ListPlayers<DP> + BroadcastingEnvironmentAdapter<DP>
+> AutoEnvironmentWithScores<DP> for TracingBasicEnvironment<DP, S, CP>{
+    #[inline]
+    fn run_with_scores(&mut self) -> Result<(), AmfiteatrError<DP>> {
+        self.base_environment.run_with_scores()
+    }
+}
+
+impl <
+    DP: DomainParameters,
+    S: GameStateWithPayoffs<DP> + SequentialGameState<DP> + Clone,
+    CP: EnvironmentAdapter<DP> + ListPlayers<DP> + BroadcastingEnvironmentAdapter<DP>
+> AutoEnvironmentWithScoresAndPenalties<DP> for TracingBasicEnvironment<DP, S, CP>
+where {
+    #[inline]
+    fn run_with_scores_and_penalties<P: Fn(&<Self as StatefulEnvironment<DP>>::State, &DP::AgentId) -> DP::UniversalReward>(&mut self, penalty: P) -> Result<(), AmfiteatrError<DP>> {
+        self.base_environment.run_with_scores_and_penalties(penalty)
+    }
+}

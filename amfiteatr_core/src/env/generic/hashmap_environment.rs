@@ -1,7 +1,14 @@
 use std::collections::{HashMap};
 use log::{trace, warn};
 
-use crate::env::{BroadcastingEndpointEnvironment, CommunicatingEndpointEnvironment, DirtyReseedEnvironment, EnvironmentBuilderTrait, SequentialGameState, GameStateWithPayoffs, EnvironmentWithAgents, ReinitEnvironment, ReseedEnvironment, ScoreEnvironment, StatefulEnvironment};
+use crate::env::{
+    BroadcastingEndpointEnvironment,
+    CommunicatingEndpointEnvironment, DirtyReseedEnvironment, EnvironmentBuilderTrait,
+    SequentialGameState, GameStateWithPayoffs, EnvironmentWithAgents, ReinitEnvironment,
+    ReseedEnvironment, ScoreEnvironment, StatefulEnvironment, ListPlayers, AutoEnvironment,
+    RoundRobinEnvironment,
+    RoundRobinUniversalEnvironment,
+    AutoEnvironmentWithScores};
 use crate::{comm::EnvironmentEndpoint};
 
 use crate::error::{AmfiteatrError, CommunicationError, WorldError};
@@ -196,6 +203,22 @@ impl<'a, DP: DomainParameters + 'a,
 
 }
 
+impl<DP: DomainParameters,
+    S: SequentialGameState<DP>,
+    C: EnvironmentEndpoint<DP>>
+ListPlayers<DP> for HashMapEnvironment<DP, S, C>{
+    type IterType = <Vec<DP::AgentId> as IntoIterator>::IntoIter;
+
+    fn players(&self) -> Self::IterType {
+        self.comm_endpoints.keys().cloned().collect::<Vec<DP::AgentId>>().into_iter()
+    }
+
+
+}
+
+
+
+
 /// __(Experimental)__ builder for [`HashMapEnvironment`]
 pub struct HashMapEnvironmentBuilder<
     DP: DomainParameters,
@@ -307,5 +330,33 @@ impl <
         self.game_state.renew_with_side_effect_from(seed)
             .map(|agent_observation_iter|
                 agent_observation_iter.into_iter().collect())
+    }
+}
+
+impl<DP: DomainParameters,
+    S: SequentialGameState<DP>,
+    C: EnvironmentEndpoint<DP>>
+AutoEnvironment<DP> for HashMapEnvironment<DP, S, C>
+where Self: CommunicatingEndpointEnvironment<DP, CommunicationError=CommunicationError<DP>>
++ StatefulEnvironment<DP>
++ EnvironmentWithAgents<DP>
++ BroadcastingEndpointEnvironment<DP>, DP: DomainParameters {
+    fn run(&mut self) -> Result<(), AmfiteatrError<DP>> {
+        self.run_round_robin()
+    }
+}
+
+impl<DP: DomainParameters,
+    S: SequentialGameState<DP> ,
+    C: EnvironmentEndpoint<DP>>
+AutoEnvironmentWithScores<DP> for HashMapEnvironment<DP, S, C>
+    where HashMapEnvironment<DP, S, C>:
+    CommunicatingEndpointEnvironment<DP, CommunicationError=CommunicationError<DP>>
+    + ScoreEnvironment<DP>
+    + EnvironmentWithAgents<DP>
+    + BroadcastingEndpointEnvironment<DP>
+{
+    fn run_with_scores(&mut self) -> Result<(), AmfiteatrError<DP>> {
+        self.run_round_robin_with_rewards()
     }
 }
