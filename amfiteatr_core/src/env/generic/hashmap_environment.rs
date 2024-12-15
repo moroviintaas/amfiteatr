@@ -1,4 +1,5 @@
 use std::collections::{HashMap};
+use log::{trace, warn};
 
 use crate::env::{BroadcastingEndpointEnvironment, CommunicatingEndpointEnvironment, DirtyReseedEnvironment, EnvironmentBuilderTrait, SequentialGameState, GameStateWithPayoffs, EnvironmentWithAgents, ReinitEnvironment, ReseedEnvironment, ScoreEnvironment, StatefulEnvironment};
 use crate::{comm::EnvironmentEndpoint};
@@ -165,8 +166,12 @@ BroadcastingEndpointEnvironment<DP> for HashMapEnvironment<DP, S, C>{
     fn send_to_all(&mut self, message: EnvironmentMessage<DP>) -> Result<(), Self::CommunicationError> {
         let mut result:Option<Self::CommunicationError> = None;
 
-        for comm in self.comm_endpoints.values_mut(){
+        for (_id, comm) in self.comm_endpoints.iter_mut(){
+            #[cfg(feature = "log_trace")]
+            log::trace!("While broadcasting. Sending to {_id} message: {message:?}");
             if let Err(sending_err) = comm.send(message.clone()){
+                #[cfg(feature = "log_warn")]
+                log::warn!("While broadcasting. Error sending to {_id}: {sending_err}");
                 result = Some(sending_err)
             }
         }

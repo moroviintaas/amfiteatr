@@ -140,7 +140,8 @@ impl <
                         AgentMessage::NotifyError(e) => {
                             #[cfg(feature = "log_error")]
                             log::error!("Player {} informed about error: {}", player, &e);
-                            self.notify_error(e.clone())?;
+                            let _r = self.notify_error(e.clone());
+                            let _r = self.send_all(EnvironmentMessage::GameFinished);
                             return Err(e);
                         }
                         AgentMessage::Quit => {
@@ -253,7 +254,8 @@ impl <
                         AgentMessage::NotifyError(e) => {
                             #[cfg(feature = "log_error")]
                             log::error!("Player {} informed about error: {}", player, &e);
-                            self.notify_error(e.clone())?;
+                            let _r = self.notify_error(e.clone());
+                            let _r = self.send_all(EnvironmentMessage::GameFinished);
                             return Err(e);
                         }
                         AgentMessage::Quit => {
@@ -374,7 +376,8 @@ impl <
                         AgentMessage::NotifyError(e) => {
                             #[cfg(feature = "log_error")]
                             log::error!("Player {} informed about error: {}", player, &e);
-                            self.notify_error(e.clone())?;
+                            let _r = self.notify_error(e.clone());
+                            let _r = self.send_all(EnvironmentMessage::GameFinished);
                             return Err(e);
                         }
                         AgentMessage::Quit => {

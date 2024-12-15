@@ -241,14 +241,20 @@ impl<DP: DomainParameters> BroadcastingEnvironmentAdapter<DP> for EnvironmentMps
     fn send_all(&mut self, message: EnvironmentMessage<DP>) ->  Result<(), CommunicationError<DP>> {
         let mut result = Ok(());
         for (_agent, tx) in self.senders.iter_mut(){
+            #[cfg(feature = "log_trace")]
+            log::trace!("While broadcasting. Sending to {_agent} message: {message:?}");
             let r = tx.send(message.clone());
             if let Err(e) = r{
+                #[cfg(feature = "log_warn")]
+                log::warn!("While broadcasting. Error sending to {_agent}: {e}");
                 if result.is_ok(){
                     result = Err(CommunicationError::from(e));
                 }
             }
                
         }
+        #[cfg(feature = "log_trace")]
+        log::trace!("Ending broadcast sending.");
         result
     }
 }
