@@ -17,8 +17,11 @@ pub trait RoundRobinUniversalEnvironment<DP: DomainParameters> : RoundRobinEnvir
 /// Similar interface to [`RoundRobinEnvironment`] and [`RoundRobinUniversalEnvironment`],
 /// in addition to rewards based on current game state, penalties for illegal actions are sent.
 /// This is __experimental__ interface.
-pub trait RoundRobinPenalisingUniversalEnvironment<DP: DomainParameters>: RoundRobinUniversalEnvironment<DP>{
-    fn run_round_robin_with_rewards_penalise(&mut self, penalty: DP::UniversalReward) -> Result<(), AmfiteatrError<DP>>;
+pub trait RoundRobinPenalisingUniversalEnvironment<
+    DP: DomainParameters,
+    P: Fn(&<Self as StatefulEnvironment<DP>>::State, &DP::AgentId) -> DP::UniversalReward
+>: RoundRobinUniversalEnvironment<DP> + StatefulEnvironment<DP>{
+    fn run_round_robin_with_rewards_penalise(&mut self, penalty_f: P) -> Result<(), AmfiteatrError<DP>>;
 }
 
 
@@ -26,9 +29,6 @@ pub trait RoundRobinPenalisingUniversalEnvironment<DP: DomainParameters>: RoundR
 pub(crate) trait EnvironmentRRInternal<DP: DomainParameters>{
     fn notify_error(&mut self, error: AmfiteatrError<DP>) -> Result<(), CommunicationError<DP>>;
     fn send_message(&mut self, agent: &DP::AgentId, message: EnvironmentMessage<DP>) -> Result<(), CommunicationError<DP>>;
-
-
-    //fn process_action_and_inform(&mut self, player: DP::AgentId, action: &DP::ActionType) -> Result<(), AmfiteatrError<DP>>;
 
 }
 
@@ -53,24 +53,16 @@ DP: DomainParameters
             })
     }
 
-    // fn process_action_and_inform(&mut self, player: DP::AgentId, action: &DP::ActionType) -> Result<(), AmfiteatrError<DP>> {
-    //     match self.process_action(&player, action){
-    //         Ok(iter) => {
-    //             //let mut n=0;
-    //             for (ag, update) in iter{
-    //                 //debug!("{}", n);
-    //                 //n+= 1;
-    //                 //self.send_message(&ag, EnvMessage::ActionNotify(AgentActionPair::new(player.clone(), action.clone())))?;
-    //                 self.send_message(&ag, EnvironmentMessage::UpdateState(update))?;
-    //             }
-    //             Ok(())
-    //         }
-    //         Err(e) => {Err(e)}
-    //     }
-    // }
 
 
 }
+
+/*
+Generic implementations of RoundRobinEnvironment, RoundRobinUniversalEnvironment and
+RoundRobinPenalisingUniversalEnvironment are very similar, thus in future it will be rewritten
+as some macro.
+
+ */
 
 
 impl<'a, Env, DP: DomainParameters + 'a> RoundRobinEnvironment<DP> for Env
@@ -171,6 +163,7 @@ where Env: CommunicatingEndpointEnvironment<DP, CommunicationError=Communication
         }
     }
 }
+
 
 impl<'a, Env, DP: DomainParameters + 'a> RoundRobinUniversalEnvironment<DP> for Env
 where Env: CommunicatingEndpointEnvironment<DP, CommunicationError=CommunicationError<DP>>
@@ -286,12 +279,13 @@ where Env: CommunicatingEndpointEnvironment<DP, CommunicationError=Communication
     }
 }
 
-impl<'a, Env, DP: DomainParameters + 'a> RoundRobinPenalisingUniversalEnvironment<DP> for Env
+impl<'a, Env, DP: DomainParameters + 'a, P> RoundRobinPenalisingUniversalEnvironment<DP, P> for Env
 where Env: CommunicatingEndpointEnvironment<DP, CommunicationError=CommunicationError<DP>>
  + ScoreEnvironment<DP> + 'a
  + EnvironmentWithAgents<DP>
- + BroadcastingEndpointEnvironment<DP>, DP: DomainParameters{
-    fn run_round_robin_with_rewards_penalise(&mut self, penalty: DP::UniversalReward) -> Result<(), AmfiteatrError<DP>> {
+ + BroadcastingEndpointEnvironment<DP>, DP: DomainParameters,
+P: Fn(&<Self as StatefulEnvironment<DP>>::State, &DP::AgentId) -> DP::UniversalReward{
+    fn run_round_robin_with_rewards_penalise(&mut self, penalty_fn: P) -> Result<(), AmfiteatrError<DP>> {
         let mut actual_universal_scores: HashMap<DP::AgentId, DP::UniversalReward> = self.players().into_iter()
             .map(|id|{
                 (id, DP::UniversalReward::neutral())
@@ -334,7 +328,7 @@ where Env: CommunicatingEndpointEnvironment<DP, CommunicationError=Communication
                                     #[cfg(feature = "log_error")]
                                     log::error!("Player {player:} performed illegal action: {action:}, detailed error: {e}");
                                     let _ = self.send_to(&player, EnvironmentMessage::MoveRefused);
-                                    let _ = self.send_to(&player, EnvironmentMessage::RewardFragment(penalty));
+                                    let _ = self.send_to(&player, EnvironmentMessage::RewardFragment(penalty_fn(&self.state(), &player)));
                                     for (player, score) in actual_universal_scores.iter_mut(){
 
                                         let reward = self.actual_score_of_player(player) - score.clone();
