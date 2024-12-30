@@ -1,12 +1,17 @@
-use std::collections::HashMap;
 
-use crate::{error::{AmfiteatrError, CommunicationError}, domain::{DomainParameters, EnvironmentMessage, AgentMessage}, env::SequentialGameState};
-use crate::env::ListPlayers;
-use crate::domain::Reward;
-use crate::env::ScoreEnvironment;
+
+use crate::{
+    error::{
+        AmfiteatrError,
+        CommunicationError
+    },
+    domain::{
+        DomainParameters,
+        EnvironmentMessage,
+    },
+};
 
 use super::{StatefulEnvironment, CommunicatingAdapterEnvironment, BroadConnectedEnvironment};
-use crate::error::ProtocolError::PlayerExited;
 
 /// Trait for environment automatically running a game.
 pub trait AutoEnvironment<DP: DomainParameters>{
@@ -58,46 +63,5 @@ impl <
             })
     }
 
-    // fn process_action_and_inform(&mut self, player: <DP as DomainParameters>::AgentId, action: &<DP as DomainParameters>::ActionType) -> Result<(), AmfiteatrError<DP>> {
-    //     match self.process_action(&player, action){
-    //         Ok(iter) => {
-    //             for (ag, update) in iter{
-    //                 self.send_message(&ag, EnvironmentMessage::UpdateState(update))?;
-    //             }
-    //             Ok(())
-    //         }
-    //         Err(e) => Err(e)
-    //     }
-    // }
 }
 
-
-/*
-
-impl <
-    DP: DomainParameters,
-    E: ScoreEnvironment<DP>
-        + CommunicatingAdapterEnvironment<DP>
-        + BroadConnectedEnvironment<DP>
-        + ListPlayers<DP>
-> AutoEnvironmentWithScores<DP> for E{
-
-
-
-}
-
- */
-
-/*
-impl <
-    DP: DomainParameters,
-    E: ScoreEnvironment<DP>
-        + CommunicatingAdapterEnvironment<DP>
-        + BroadConnectedEnvironment<DP>
-        + ListPlayers<DP>
-> AutoEnvironmentWithScoresAndPenalties<DP> for E{
-
-
-}
-
- */

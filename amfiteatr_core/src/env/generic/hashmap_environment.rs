@@ -1,6 +1,4 @@
 use std::collections::{HashMap};
-use log::{trace, warn};
-
 use crate::env::{
     BroadcastingEndpointEnvironment,
     CommunicatingEndpointEnvironment, DirtyReseedEnvironment, EnvironmentBuilderTrait,
