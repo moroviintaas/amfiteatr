@@ -15,7 +15,7 @@ description = "A framework to model and simulate game theory problems with many 
 
 [dependencies]
 
-thiserror = "1.0.58"
+thiserror = "2.0.11"
 speedy = {version = "0.8.7", optional = true}
 log = { version = "0.4.21", optional =  true }
 rand = "0.8.5"
