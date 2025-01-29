@@ -22,7 +22,12 @@ pub enum TensorRepresentationError{
     ConversionToTensor{
         comment: String,
 
-    }
+    },
+    #[error("Vector normalisation error: {comment:}")]
+    VectorNormalisation{
+        comment: String
+    },
+
 
 }
 
