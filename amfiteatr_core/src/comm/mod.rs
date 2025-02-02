@@ -29,7 +29,7 @@
 //!
 //! The keynote is: To receive on environment select endpoint and then receive message
 //! (wrapped as Result) from this endpoint:
-//! ``` no_run, compile_fail
+//! ```no_run, compile_fail
 //! let selected_player = your_method_to_select();
 //! let mut endpoint = endpoints.get_mut(&selected_player);
 //! //receiving

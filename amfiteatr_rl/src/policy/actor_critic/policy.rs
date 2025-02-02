@@ -25,7 +25,7 @@ pub struct ActorCriticPolicy<
    // ActionConversionContext: ConversionFromTensor,
 > {
     network: A2CNet,
-    #[allow(dead_code)]
+    //#[allow(dead_code)]
     optimizer: Optimizer,
     _dp: PhantomData<DP>,
     _is: PhantomData<InfoSet>,

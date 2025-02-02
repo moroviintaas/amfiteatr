@@ -103,7 +103,20 @@ pub trait TryFromTensor: for<'a> TryFrom<&'a Tensor, Error=ConvertError> + Sized
     }
 }
 
+
+
 impl<T: for<'a> TryFrom<&'a Tensor, Error=ConvertError> + Sized> TryFromTensor for T{
+
+}
+
+
+pub trait TryFromMultiTensors: for<'a> TryFrom<&'a [Tensor], Error=ConvertError> + Sized{
+    fn try_from_multi_tensors(tensors: &[Tensor]) -> Result<Self, ConvertError> where Self: Sized{
+        Self::try_from(tensors)
+    }
+}
+
+impl<T: for<'a> TryFrom<&'a [Tensor], Error=ConvertError> + Sized> TryFromMultiTensors for T{
 
 }
 
