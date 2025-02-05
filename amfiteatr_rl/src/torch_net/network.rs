@@ -1,7 +1,7 @@
 use std::marker::PhantomData;
 use tch::{Device, TchError, Tensor};
 use tch::nn::{Optimizer, OptimizerConfig, Path,  VarStore};
-use crate::torch_net::{MultiDiscreteTensor, NetOutput, TensorA2C};
+use crate::torch_net::{MultiDiscreteTensor, NetOutput, TensorA2C, TensorCriticMultiActor};
 
 /// Structure wrapping [`VarStore`] and network closure used to build neural network based function.
 /// Examples in [`tch`](https://github.com/LaurentMazare/tch-rs) show how neural networks are used.
@@ -22,6 +22,8 @@ pub type NeuralNet2 = NeuralNet<(Tensor, Tensor)>;
 pub type A2CNet = NeuralNet<TensorA2C>;
 /// [`NeuralNet`] with single `Tensor` as output. Same as [`NeuralNet1`].
 pub type QValueNet = NeuralNet<Tensor>;
+
+pub type NeuralNetCriticMultiActor = NeuralNet<TensorCriticMultiActor>;
 
 pub type MultiDiscreteNet = NeuralNet<MultiDiscreteTensor>;
 

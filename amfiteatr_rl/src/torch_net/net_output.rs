@@ -12,6 +12,12 @@ pub struct TensorA2C{
     pub actor: Tensor
 }
 
+/// Struct to aggregate output for actor-critic networks with multi parameter actor
+pub struct TensorCriticMultiActor{
+    pub critic: Tensor,
+    pub actor: Vec<Tensor>
+}
+
 pub type MultiDiscreteTensor = Vec<Tensor>;
 
 impl NetOutput for MultiDiscreteTensor{}
@@ -19,6 +25,8 @@ impl NetOutput for MultiDiscreteTensor{}
 impl NetOutput for Tensor{}
 impl NetOutput for (Tensor, Tensor){}
 impl NetOutput for TensorA2C{}
+
+impl NetOutput for TensorCriticMultiActor{}
 
 
 /// Converts tensor of shape (1,) and type i64 to i64. Technically it will work
@@ -40,7 +48,7 @@ impl NetOutput for TensorA2C{}
 /// let t = Tensor::from_slice(&[0.3f64, 0.5, 0.1, 0.1]);
 /// let index_tensor = t.multinomial(1, true).softmax(-1, Double);
 /// assert_eq!(index_tensor.size(), vec![1]);
-/// let index = index_tensor_to_i64(&index_tensor).unwrap();
+/// let index = index_tensor_to_i64(&index_tensor, "context message if error").unwrap();
 /// assert!(index >=0 && index <= 3);
 /// ```
 #[inline]

@@ -13,6 +13,8 @@ pub trait Policy<DP: DomainParameters>: Send{
 
     /// Selects action based on information set.
     /// If at least one action is possible result should be `Some()` otherwise `None`.
+    ///
+    /// __WARN__ in future version it will probably change to `-> Result<Option<DP::ActionType>, DP::GameErrorType>`
     fn select_action(&self, state: &Self::InfoSetType) -> Option<DP::ActionType>;
 }
 
