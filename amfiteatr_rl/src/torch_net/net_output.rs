@@ -44,11 +44,11 @@ impl NetOutput for TensorA2C{}
 /// assert!(index >=0 && index <= 3);
 /// ```
 #[inline]
-pub fn index_tensor_to_i64(tensor: &Tensor) -> Result<i64, ConvertError>{
+pub fn index_tensor_to_i64(tensor: &Tensor, additional_context: &str) -> Result<i64, ConvertError>{
     let v: Vec<i64> = match Vec::try_from(tensor){
         Ok(v) => v,
         Err(_) => {
-            return Err(ConvertError::ActionDeserialize(format!("{}", tensor)))
+            return Err(ConvertError::ActionDeserialize(format!("From tensor {} in context \"{}\"", tensor, additional_context)))
         }
     };
     Ok(v[0])

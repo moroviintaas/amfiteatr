@@ -29,19 +29,7 @@ where <T as PolicyAgent<DP>>::Policy: LearningNetworkPolicy<DP>,
 {
 }
 
-/*
-pub trait TestingAgent<DP: DomainParameters>: AutomaticAgent<DP>  + PolicyAgent<DP>
- + TracingAgent<DP, <Self as StatefulAgent<DP>>::InfoSetType>
-where <Self as StatefulAgent<DP>>::InfoSetType: EvaluatedInformationSet<DP>{}
 
-impl <DP: DomainParameters, T: AutomaticAgent<DP>  + PolicyAgent<DP>
-+ TracingAgent<DP, <Self as StatefulAgent<DP>>::InfoSetType>>
-
-TestingAgent<DP> for T
-where <T as StatefulAgent<DP>>::InfoSetType: EvaluatedInformationSet<DP>
-{}
-
- */
 
 
 /// Trait representing agent that run automatically (with reward collection) and cam be reseeded
@@ -130,13 +118,5 @@ impl<
     }
 
 
-
-    /*
-    fn clear_experience(&mut self) -> Result<(), AmfiteatrError<DP>> {
-        self.clear_episodes();
-        Ok(())
-    }
-
-         */
 }
 

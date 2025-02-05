@@ -7,10 +7,10 @@ use amfiteatr_core::error::{ConvertError};
 use crate::error::TensorRepresentationError;
 
 
-/// Extension for [`ConversionToTensor`] to actually produce tensor. However implementing this trait
+/// Extension for [`ConversionToTensor`] to actually produce tensor. However, implementing this trait
 /// is optional, because generic implementations require [`CtxTryIntoTensor`] on type converted,
 /// and it is probably what you need to implement.
-/// However it may be sometimes convenient to implement this trait for converter and then use it on
+/// However, it may be sometimes convenient to implement this trait for converter and then use it on
 /// converted types.
 pub trait SimpleConvertToTensor<T>: Send + ConversionToTensor{
     /// Take reference to associated type and output tensor
@@ -120,6 +120,20 @@ impl<T: for<'a> TryFrom<&'a [Tensor], Error=ConvertError> + Sized> TryFromMultiT
 
 }
 
+
+/// Trait representing structs (maybe 0-sized) that tell what is expected size of tensor to be
+/// used to create data struct using [`crate::tensor_data::CtxTryFromMultipleTensors`].
+pub trait ConversionFromMultipleTensors: Send{
+    fn expected_inputs_shape(&self) -> &[Vec<i64>];
+}
+
+/// Implemented by structs that can be converted from tensors.
+/// Certain data type can have different tensor representation, then it is needed to specify
+/// what particular contextual representation is used (done by using correct [`crate::tensor_data::ConversionFromTensor`]).
+pub trait CtxTryFromMultipleTensors<W: crate::tensor_data::ConversionFromMultipleTensors>{
+    type ConvertError: Error;
+    fn try_from_tensors(tensors: &[Tensor], way: &W) -> Result<Self, Self::ConvertError> where Self: Sized;
+}
 
 
 
