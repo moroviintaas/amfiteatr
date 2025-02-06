@@ -57,7 +57,7 @@ impl TryFrom<i64> for ConnectFourAction{
     fn try_from(value: i64) -> Result<Self, Self::Error> {
         match value{
             a @ 0..=6 => Ok(Self{id: a as u8}),
-            different => Err(ConvertError::ActionDeserialize(format!("Failed converting number {different:} to ConnectFourAction")))
+            different => Err(ConvertError::ConvertFromTensor(format!("Failed converting number {different:} to ConnectFourAction")))
         }
     }
 }
@@ -97,7 +97,7 @@ impl TryFrom<&Tensor> for ConnectFourAction{
         let v: Vec<i64> = match Vec::try_from(value){
             Ok(v) => v,
             Err(e) => {
-                return Err(ConvertError::ActionDeserialize(format!("{}: {e:}", value)))
+                return Err(ConvertError::ConvertFromTensor(format!("{}: {e:}", value)))
             }
         };
         let action_index = v[0];

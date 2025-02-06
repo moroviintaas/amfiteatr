@@ -7,7 +7,7 @@
 + Changed trait `TracingAgent`, now does not demand functions `commit_trace` nor `finalize_trajectory`.
 Only trajectory read and reset is needed, maintaining trajectory is now internal responsibility of agent (can and probably should be private logic of agent)
 + Renamed `EnvironmentStateSequential` trait to `SequentialGameState` and `EnvironmentStateUniScore` to `GameStateWithPayoffs`
-+ Added traits for shaping network having actor selecting from multi-parameter, e.g `TensorCriticMultiActor`; 
++ Added traits for shaping network having actor selecting from multi-parameter, e.g `TensorCriticMultiActor`rfgk 
 + Removed generic implementation `AutoEnvironment<_> for E`, but added `AutoEnvironment<_> for BasicEnvironment<_>`,
 previously it would block custom implementation. In the future I want to provide derive macro implementation to choose
 if one want to use provided implementation. Similar with `AutoEnvironmentWithScores` and `AutoEnvironmentWithScoresAndPenalties`.

@@ -53,6 +53,7 @@ impl NetOutput for TensorCriticMultiActor{}
 /// ```
 #[inline]
 pub fn index_tensor_to_i64(tensor: &Tensor, additional_context: &str) -> Result<i64, ConvertError>{
+    /*
     let v: Vec<i64> = match Vec::try_from(tensor){
         Ok(v) => v,
         Err(_) => {
@@ -60,4 +61,12 @@ pub fn index_tensor_to_i64(tensor: &Tensor, additional_context: &str) -> Result<
         }
     };
     Ok(v[0])
+
+     */
+
+    tensor.f_int64_value(&[0]).map_err(|e|{
+        ConvertError::ConvertFromTensor(
+            format!("From tensor {} in context \"{}\". The error itself: {}",
+                    tensor, additional_context, e))
+    })
 }

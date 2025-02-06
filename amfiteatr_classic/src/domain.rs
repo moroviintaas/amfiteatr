@@ -163,13 +163,13 @@ impl TryFrom<&Tensor> for ClassicAction{
         let v: Vec<i64> = match Vec::try_from(tensor){
             Ok(v) => v,
             Err(_) =>{
-                return Err(ConvertError::ActionDeserialize(format!("{}", tensor)))
+                return Err(ConvertError::ConvertFromTensor(format!("{}", tensor)))
             }
         };
         match v[0]{
             0 => Ok(Defect),
             1 => Ok(Down),
-            _ => Err(ConvertError::ActionDeserialize(format!("{}", tensor)))
+            _ => Err(ConvertError::ConvertFromTensor(format!("{}", tensor)))
         }
     }
 }
