@@ -11,6 +11,7 @@ Only trajectory read and reset is needed, maintaining trajectory is now internal
 + Removed generic implementation `AutoEnvironment<_> for E`, but added `AutoEnvironment<_> for BasicEnvironment<_>`,
 previously it would block custom implementation. In the future I want to provide derive macro implementation to choose
 if one want to use provided implementation. Similar with `AutoEnvironmentWithScores` and `AutoEnvironmentWithScoresAndPenalties`.
++ Updated `LearningNetworkPolicy` trait, to not require specification of config and network. Removed getters method for them from network.
 + Added **Experimental** traits `ProcedureAgent`, `CliAgent`, `AssistingPolicy` and  simple interactive agent with trait `CliAgent` using `TurnCommand`.
 ## Version 0.5.0
 + Rework of tracing - replaced `Trajectory` with `AgentTrajectory` without

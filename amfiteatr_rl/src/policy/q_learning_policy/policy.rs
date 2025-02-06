@@ -157,6 +157,7 @@ impl
 where <<InfoSet as PresentPossibleActions<DP>>::ActionIteratorType as IntoIterator>::Item: CtxTryIntoTensor<A2T>,
 //<DP as DomainParameters>::UniversalReward: FloatTensorReward,
 <DP as DomainParameters>::ActionType: CtxTryIntoTensor<A2T> {
+    /*
     type Network = NeuralNet1;
     type TrainConfig = TrainConfig;
 
@@ -167,6 +168,8 @@ where <<InfoSet as PresentPossibleActions<DP>>::ActionIteratorType as IntoIterat
     fn network_mut(&mut self) -> &mut Self::Network {
         &mut self.network
     }
+
+     */
 
     fn var_store(&self) -> &VarStore {
         self.network.var_store()
@@ -181,10 +184,12 @@ where <<InfoSet as PresentPossibleActions<DP>>::ActionIteratorType as IntoIterat
     }
 
 
-
+    /*
     fn config(&self) -> &Self::TrainConfig {
         &self.training_config
     }
+
+     */
 
     fn train_on_trajectories<
         R: Fn(&AgentStepView<DP, <Self as Policy<DP>>::InfoSetType>) -> Tensor>(

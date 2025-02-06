@@ -20,13 +20,16 @@ pub trait DiscountFactor {
 pub trait LearningNetworkPolicy<DP: DomainParameters> : Policy<DP>
 where <Self as Policy<DP>>::InfoSetType: InformationSet<DP>
 {
-    type Network;
-    type TrainConfig;
+    //type Network;
+    //type TrainConfig;
 
+    /*
     /// Returns reference to underlying neural network
     fn network(&self) -> &Self::Network;
     /// Returns mutable reference to underlying neural network
     fn network_mut(&mut self) -> &mut Self::Network;
+
+     */
     /// Returns reference to underlying [`VarStore`]
     fn var_store(&self) -> &VarStore;
     /// Returns mutable reference to underlying [`VarStore`]
@@ -42,8 +45,8 @@ where <Self as Policy<DP>>::InfoSetType: InformationSet<DP>
 
 
      */
-    /// Returns reference to current config of policy
-    fn config(&self) -> &Self::TrainConfig;
+    ///// Returns reference to current config of policy
+    //fn config(&self) -> &Self::TrainConfig;
     /// This is generic training function. Generic type `R` must produce reward tensor that
     /// agent got in this step. In traditional RL model it will be vectorised reward calculated
     /// by environment. This is in fact implemented by [`train_on_trajectories_env_reward`](LearningNetworkPolicy::train_on_trajectories_env_reward).

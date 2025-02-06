@@ -184,7 +184,7 @@ impl<S:  GameStateWithPayoffs<ConnectFourDomain> + Clone + Renew<ConnectFourDoma
 
         std::thread::scope(|s|{
             s.spawn(|| {
-                let r = self.env.run_round_robin_with_rewards_penalise(-10.0);
+                let r = self.env.run_round_robin_with_rewards_penalise(|_,_| -10.0);
                 if let Err(e) = r{
                     if let AmfiteatrError::Game {source: game_error} = e{
                         if let Some(fauler) = game_error.fault_of_player(){

@@ -160,6 +160,7 @@ impl<
     where <DP as DomainParameters>::ActionType: TryFromTensor + TryIntoTensor,
 //<InfoSet as ScoringInformationSet<DP>>::RewardType: FloatTensorReward
 {
+    /*
     type Network = A2CNet;
     type TrainConfig = TrainConfig;
 
@@ -172,6 +173,8 @@ impl<
     fn network_mut(&mut self) -> &mut A2CNet{
         &mut self.network
     }
+
+     */
 
     /// Returns reference to underlying [`VarStore`]
     fn var_store(&self) -> &VarStore{
@@ -197,9 +200,12 @@ impl<
      */
 
 
+    /*
     fn config(&self) -> &Self::TrainConfig {
         &self.training_config
     }
+
+     */
 
     fn train_on_trajectories<R: Fn(&AgentStepView<DP, InfoSet>) -> Tensor>(
 
