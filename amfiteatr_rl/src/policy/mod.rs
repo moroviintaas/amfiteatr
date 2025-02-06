@@ -4,6 +4,7 @@ mod q_learning_policy;
 mod learning_policy;
 mod train_config;
 mod ppo;
+mod common;
 //mod network_layer;
 
 pub use actor_critic::*;

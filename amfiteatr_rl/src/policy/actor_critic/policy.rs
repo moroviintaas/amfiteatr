@@ -12,6 +12,7 @@ use amfiteatr_core::agent::{
 use amfiteatr_core::domain::DomainParameters;
 
 use crate::error::{AmfiteatrRlError, TensorRepresentationError};
+use crate::policy::common::categorical_dist_entropy;
 use crate::policy::LearningNetworkPolicy;
 use crate::tensor_data::{CtxTryIntoTensor, ConversionToTensor, TryIntoTensor, TryFromTensor};
 use crate::torch_net::{A2CNet, TensorA2C};
@@ -158,23 +159,9 @@ impl<
     //StateConverter: ConvStateToTensor<InfoSet>>
     > LearningNetworkPolicy<DP> for ActorCriticPolicy<DP, InfoSet, InfoSetWay>
     where <DP as DomainParameters>::ActionType: TryFromTensor + TryIntoTensor,
-//<InfoSet as ScoringInformationSet<DP>>::RewardType: FloatTensorReward
+
 {
-    /*
-    type Network = A2CNet;
-    type TrainConfig = TrainConfig;
 
-
-    fn network(&self) -> &A2CNet{
-        &self.network
-    }
-
-
-    fn network_mut(&mut self) -> &mut A2CNet{
-        &mut self.network
-    }
-
-     */
 
     /// Returns reference to underlying [`VarStore`]
     fn var_store(&self) -> &VarStore{
@@ -192,27 +179,14 @@ impl<
 
     }
 
-    /*
-    fn enable_exploration(&mut self, enable: bool) {
-        self.exploration = enable
-    }
 
-     */
-
-
-    /*
-    fn config(&self) -> &Self::TrainConfig {
-        &self.training_config
-    }
-
-     */
 
     fn train_on_trajectories<R: Fn(&AgentStepView<DP, InfoSet>) -> Tensor>(
 
         &mut self,
         trajectories: &[AgentTrajectory<DP, InfoSet>],
         reward_f: R,
-        ) -> Result<(), AmfiteatrRlError<DP>>{
+    ) -> Result<(), AmfiteatrRlError<DP>>{
 
 
         let device = self.network.device();
@@ -315,7 +289,8 @@ impl<
         #[cfg(feature = "log_trace")]
         log::trace!("Probs size: {:?}", probs.size());
 
-        let dist_entropy = (-log_probs * probs).sum_dim_intlist(-1, false, Float).mean(Float);
+        //let dist_entropy = (-log_probs * probs).sum_dim_intlist(-1, false, Float).mean(Float);
+        let dist_entropy = categorical_dist_entropy(&probs, &log_probs, Kind::Float).mean(Float);
         let advantages = results_batch.to_device(device) - critic;
         let value_loss = (&advantages * &advantages).mean(Float);
         let action_loss = (-advantages.detach() * action_log_probs).mean(Float);

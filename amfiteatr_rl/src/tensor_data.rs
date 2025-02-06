@@ -12,7 +12,7 @@ use crate::error::TensorRepresentationError;
 /// and it is probably what you need to implement.
 /// However, it may be sometimes convenient to implement this trait for converter and then use it on
 /// converted types.
-pub trait SimpleConvertToTensor<T>: Send + ConversionToTensor{
+pub trait SimpleConvertToTensor<T>: Send + ConversionToTensor {
     /// Take reference to associated type and output tensor
     fn make_tensor(&self, t: &T) -> Tensor;
 }
@@ -70,6 +70,31 @@ pub trait CtxTryIntoTensor<W: ConversionToTensor> : Debug{
         way.desired_shape().iter().product()
     }
 }
+
+/// Represents format for converting element to set of Tensors
+pub trait ConversionToMultipleTensors: Send{
+    fn expected_outputs_shape(&self) -> &[Vec<i64>];
+}
+
+pub trait CtxTryIntoMultipleTensors<W: ConversionToMultipleTensors> : Debug{
+    fn try_to_multiple_tensors(&self, form: &W) -> Result<Vec<Tensor>, TensorRepresentationError>;
+    fn to_multiple_tensors(&self, form: &W) -> Vec<Tensor>{
+        self.try_to_multiple_tensors(form).unwrap()
+    }
+    /*
+    fn shapes(&self, form: &W) -> &[Vec<i64>]{
+        form.expected_outputs_shape()
+    }
+
+     */
+}
+
+pub trait TensorFormat: ConversionToTensor + ConversionFromTensor{}
+impl<T> TensorFormat for T where T: ConversionToTensor + ConversionFromTensor{}
+pub trait MultipleTensorFormat: ConversionToMultipleTensors + ConversionFromMultipleTensors{}
+impl<T> MultipleTensorFormat for T where T: ConversionToMultipleTensors + ConversionFromMultipleTensors{}
+
+
 
 pub trait TryIntoTensor: Debug{
     fn try_to_tensor(&self) -> Result<Tensor, TensorRepresentationError>;
