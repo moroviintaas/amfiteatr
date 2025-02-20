@@ -298,37 +298,7 @@ where <P as Policy<DP>>::InfoSetType: InformationSet<DP> + Clone,
     fn trajectory(&self) -> &AgentTrajectory<DP, <P as Policy<DP>>::InfoSetType> {
         &self.game_trajectory
     }
-    /*
-    fn commit_trace(&mut self) -> Result<(), AmfiteatrError<DP>> {
-        if let Some(prev_action) = self.last_action.take(){
 
-            let universal_score_before_update = self.committed_universal_score.clone();
-            self.commit_partial_rewards();
-            let initial_state = self.state_before_last_action.take().unwrap();
-
-            self.game_trajectory.register_step_point(initial_state, prev_action, universal_score_before_update)
-
-        } else {
-            Ok(())
-        }
-
-    }
-
-    fn finalize_trajectory(&mut self) -> Result<(), AmfiteatrError<DP>> {
-        if let (Some(action), Some(info_set_before)) = (&self.last_action, &self.state_before_last_action){
-            self.game_trajectory.register_step_point(info_set_before.clone(), action.clone(), self.committed_universal_score.clone())?;
-            self.commit_partial_rewards();
-            self.game_trajectory.finish(self.information_set.clone(), self.committed_universal_score.clone())
-        } else {
-            #[cfg(feature = "log_warn")]
-            log::warn!("Finalizing trajectory with no previous step");
-            Ok(())
-        }
-
-
-    }
-
-     */
 }
 
 
@@ -451,31 +421,3 @@ where <P as Policy<DP>>::InfoSetType: InformationSet<DP>{
 
     }
 }
-
-/*
-impl<
-    DP: DomainParameters,
-    P: Policy<DP>,
-    Comm: BidirectionalEndpoint<
-        OutwardType=AgentMessage<DP>,
-        InwardType=EnvironmentMessage<DP>,
-        Error=CommunicationError<DP>>>
-SelfEvaluatingAgent<DP> for TracingAgentGen<DP, P, Comm>
-where <Self as StatefulAgent<DP>>::InfoSetType: EvaluatedInformationSet<DP>,
-<P as Policy<DP>>::InfoSetType: EvaluatedInformationSet<DP>{
-    type Assessment = <<Self as StatefulAgent<DP>>::InfoSetType as EvaluatedInformationSet<DP>>::RewardType;
-    fn current_assessment_total(&self) ->  Self::Assessment {
-        self.information_set.current_subjective_score() + &self.explicit_subjective_reward_component
-    }
-
-    fn add_explicit_assessment(&mut self, explicit_reward: &Self::Assessment) {
-        self.explicit_subjective_reward_component += explicit_reward
-    }
-    fn penalty_for_illegal_action(&self) -> Self::Assessment {
-        self.information_set.penalty_for_illegal()
-    }
-}
-
-
-
- */

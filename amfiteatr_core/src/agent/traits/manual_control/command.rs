@@ -7,6 +7,7 @@ use crate::agent::{Policy, PresentPossibleActions, RandomPolicy};
 use crate::domain::DomainParameters;
 use crate::error::AmfiteatrError;
 use crate::util::{StrParsed};
+use nom::Parser;
 
 
 pub trait AssistingPolicy<DP: DomainParameters>: Policy<DP>{
@@ -47,13 +48,13 @@ impl<DP: DomainParameters, P: AssistingPolicy<DP>> StrParsed for TurnCommand<DP,
         if let Ok((action_str, (_, _))) = pair(
             alt((tag("do"), tag("action"), tag("play"), tag::<&str, &str, nom::error::Error<&str>>("a"))),
             space1
-        )(input){
+        ).parse(input){
             <DP::ActionType as StrParsed>::parse_from_str(action_str)
                 .map(|(rest, action)| (rest, Self::Play(action)))
         } else if let Ok((question_str, _)) = pair(
             alt((tag("hint"), tag("policy"), tag("Kowalski analysis"), tag("analysis"), tag("p"), tag::<&str, &str, nom::error::Error<&str>>("Kowalski"))),
             space1
-        )(input){
+        ).parse(input){
             <P::Question as StrParsed>::parse_from_str(question_str)
                 .map(|(rest, question)| (rest, Self::AskPolicy(question)))
         }
@@ -61,14 +62,14 @@ impl<DP: DomainParameters, P: AssistingPolicy<DP>> StrParsed for TurnCommand<DP,
         else if let Ok((rest, _)) = pair(
             alt((tag("show"), tag("state"), tag("information"), tag::<&str, &str, nom::error::Error<&str>>("info"))),
             space1
-        )(input){
+        ).parse(input){
             Ok((rest, Self::Show))
         }
 
         else if let Ok((rest, _)) = pair(
             alt((tag("exit"), tag::<&str, &str, nom::error::Error<&str>>("quit"))),
             space1
-        )(input){
+        ).parse(input){
             Ok((rest, Self::Quit))
         }
         else {

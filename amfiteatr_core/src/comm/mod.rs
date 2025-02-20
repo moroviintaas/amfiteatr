@@ -29,15 +29,15 @@
 //!
 //! The keynote is: To receive on environment select endpoint and then receive message
 //! (wrapped as Result) from this endpoint:
-//! ```no_run, compile_fail
-//! let selected_player = your_method_to_select();
-//! let mut endpoint = endpoints.get_mut(&selected_player);
-//! //receiving
-//! if let Some(message) = endpoint.receive_non_blocking().unwrap(){
-//!     //do something
-//! }
-//! //sending
-//! endpoint.send(some_message).unwrap();
+//! ```no_run
+//! // let selected_player = your_method_to_select();
+//! // let mut endpoint = endpoints.get_mut(&selected_player);
+//! // //receiving
+//! // if let Some(message) = endpoint.receive_non_blocking().unwrap(){
+//! //     //do something
+//! // }
+//! // //sending
+//! // endpoint.send(some_message).unwrap();
 //! ```
 //!
 //! Choice of api objects to use this model:

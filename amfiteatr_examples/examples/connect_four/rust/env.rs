@@ -38,10 +38,12 @@ impl ConnectFourRustEnvState{
             render: false
         }
     }
+    #[allow(dead_code)]
     pub fn steps_completed(&self) -> u32{
         self.step
     }
 
+    #[allow(dead_code)]
     pub fn winner(&self) -> Option<ConnectFourPlayer>{
         if self.winner[0] {
             return Some(ConnectFourPlayer::One);

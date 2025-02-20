@@ -1,4 +1,3 @@
-use tch::Kind::Float;
 use tch::Tensor;
 use amfiteatr_core::agent::{AgentTrajectory, InformationSet};
 use amfiteatr_core::domain::DomainParameters;

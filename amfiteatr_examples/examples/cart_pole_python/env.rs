@@ -30,7 +30,7 @@ impl PythonGymnasiumCartPoleState {
     pub fn new() -> PyResult<Self>{
         Python::with_gil(|py|{
 
-            let gymnasium = py.import_bound("gymnasium")?;
+            let gymnasium = py.import("gymnasium")?;
 
 
             let fn_make = gymnasium.getattr("make")?;
@@ -45,7 +45,7 @@ impl PythonGymnasiumCartPoleState {
 
             let observation_space = env_obj.getattr("observation_space")?;
             let observation_space = observation_space.getattr("shape")?.extract()?;
-            let internal_obj: PyObject = env_obj.to_object(py);
+            let internal_obj: PyObject = env_obj.into_pyobject(py)?.into();
             let step0 = internal_obj.call_method0(py, "reset")?;
             let step0_t = step0.downcast_bound::<pyo3::types::PyTuple>(py)?;
             //let step0 = PyTuple::from

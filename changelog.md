@@ -3,9 +3,10 @@
 ---
 ## Version 0.6.0
 + Added step legality validation note in `AgentTrajectory` and `AgentStepView`
-+ Renamed `PolicyAgent::take_action` to `PolicyAgent::do_action`, as _take_ is conventionally used in Rust to move out field
++ Renamed `PolicyAgent::take_action` to `PolicyAgent::select_action`, as _take_ is conventionally used in Rust to move out field
 + Changed trait `TracingAgent`, now does not demand functions `commit_trace` nor `finalize_trajectory`.
 Only trajectory read and reset is needed, maintaining trajectory is now internal responsibility of agent (can and probably should be private logic of agent)
++ Changed trait `CommunicatingAgent`, now without associated type `CommunicationError`, error type is now fixed.
 + Renamed `EnvironmentStateSequential` trait to `SequentialGameState` and `EnvironmentStateUniScore` to `GameStateWithPayoffs`
 + Added traits for shaping network having actor selecting from multi-parameter, e.g `TensorCriticMultiActor`rfgk 
 + Removed generic implementation `AutoEnvironment<_> for E`, but added `AutoEnvironment<_> for BasicEnvironment<_>`,

@@ -1,4 +1,4 @@
-use pyo3::{Bound, intern, pyclass, pymethods, PyObject, PyResult, Python, ToPyObject};
+use pyo3::{Bound, intern, pyclass, pymethods, PyObject, PyResult, Python,  IntoPyObject};
 use pyo3::prelude::PyAnyMethods;
 use pyo3::types::PyDict;
 use amfiteatr_core::domain::{DomainParameters, Renew};
@@ -30,14 +30,14 @@ impl PythonPettingZooStateWrap{
     #[new]
     pub fn new() -> PyResult<Self>{
         Python::with_gil(|py|{
-            let pettingzoo = py.import_bound("pettingzoo.classic")?;
+            let pettingzoo = py.import("pettingzoo.classic")?;
             let fn_env = pettingzoo.getattr("connect_four_v3")?.getattr("env")?;
-            let kwargs = PyDict::new_bound(py);
+            let kwargs = PyDict::new(py);
             kwargs.set_item(intern!(py, "render_mode"), "None")?;
             let env_obj = fn_env.call((), Some(&kwargs))?;
             env_obj.call_method0("reset")?;
 
-            let internal_obj: PyObject = env_obj.to_object(py);
+            let internal_obj: PyObject = env_obj.into_pyobject(py)?.into();
 
             Ok(Self{
                 internal: internal_obj,
@@ -52,15 +52,15 @@ impl PythonPettingZooStateWrap{
     }
     pub fn __reset(&mut self) -> PyResult<()>{
         Python::with_gil(|py|{
-            let pettingzoo = py.import_bound("pettingzoo.classic")?;
+            let pettingzoo = py.import("pettingzoo.classic")?;
             let fn_env = pettingzoo.getattr("connect_four_v3")?.getattr("env")?;
-            let kwargs = PyDict::new_bound(py);
+            let kwargs = PyDict::new(py);
             kwargs.set_item(intern!(py, "render_mode"), "None")?;
             let env_obj = fn_env.call((), Some(&kwargs))?;
             env_obj.call_method0("reset")?;
 
 
-            let internal_obj: PyObject = env_obj.to_object(py);
+            let internal_obj: PyObject = env_obj.into_pyobject(py)?.into();
             self.internal = internal_obj;
 
             Ok(())

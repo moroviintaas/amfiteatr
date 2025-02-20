@@ -61,7 +61,7 @@ fn main() -> Result<(), ErrorRL>{
                 &cli.layer_sizes_1[..], &cli.layer_sizes_2[..], device
             );
             Python::with_gil(|py|{
-                let pylogger = py.import_bound("pettingzoo.utils.env_logger").unwrap();
+                let pylogger = py.import("pettingzoo.utils.env_logger").unwrap();
                 pylogger.getattr("EnvLogger").unwrap()
                    .call_method0("suppress_output").unwrap();
 

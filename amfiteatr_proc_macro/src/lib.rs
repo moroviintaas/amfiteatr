@@ -1,11 +1,11 @@
 mod token_parsed;
-mod str_parsed;
+//mod str_parsed;
 mod token_variant;
 
 use quote::quote;
 
 use syn::{DeriveInput, ItemStruct, parse_macro_input};
-use crate::str_parsed::{derive_code_str_parsed};
+//use crate::str_parsed::{derive_code_str_parsed};
 use crate::token_parsed::{derive_code_token_parsed};
 use crate::token_variant::derive_code_token_variant;
 
@@ -57,13 +57,13 @@ pub fn no_assessment_info_set(attr: proc_macro::TokenStream, item: proc_macro::T
 
 }
 
-
+/*
 #[proc_macro_derive(StrParsed, attributes(keywords))]
 pub fn derive_str_parsed(item: proc_macro::TokenStream) -> proc_macro::TokenStream{
     let input = parse_macro_input!(item as DeriveInput);
     derive_code_str_parsed(input)
 }
-
+*/
 
 
 
