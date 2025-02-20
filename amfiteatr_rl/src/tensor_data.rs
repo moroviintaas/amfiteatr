@@ -89,6 +89,39 @@ pub trait CtxTryIntoMultipleTensors<W: ConversionToMultipleTensors> : Debug{
      */
 }
 
+pub trait ConversionToIndexI64: Send{
+    fn min(&self) -> i64;
+    fn limit(&self) -> i64;
+}
+
+pub trait CtxTryIntoIndexI64<W: ConversionToIndexI64> : Debug{
+    fn try_to_index(&self, way: &W) -> Result<i64, TensorRepresentationError>;
+}
+
+pub trait ConversionToMultiIndexI64{
+    fn mins(&self) -> Vec<i64>;
+    fn limits(&self) -> Vec<i64>;
+
+    fn number_of_params(&self) -> i64;
+
+    fn min(&self, index: usize) -> Option<i64>{
+        self.mins().get(index).cloned()
+    }
+    fn max(&self, index: usize) -> Option<i64>{
+        self.limits().get(index).cloned()
+    }
+}
+
+pub trait CtxTryConvertIntoMultiIndexI64<W: ConversionToMultiIndexI64>{
+    fn try_to_multi_index(&self, ctx: &W) -> Result<Vec<Option<i64>>, TensorRepresentationError>;
+    fn try_multi_index_tensor(&self, ctx: &W) -> Result<Vec<Option<Tensor>>, TensorRepresentationError>{
+        self.try_to_multi_index(ctx).map(|r|{
+            r.iter().map(|option| option.and_then(|i| Some(Tensor::from(i)))).collect()
+        })
+    }
+
+}
+
 pub trait TensorFormat: ConversionToTensor + ConversionFromTensor{}
 impl<T> TensorFormat for T where T: ConversionToTensor + ConversionFromTensor{}
 pub trait MultipleTensorFormat: ConversionToMultipleTensors + ConversionFromMultipleTensors{}
