@@ -1,5 +1,7 @@
 # Changelog
 
+## Version 0.7.0
+
 ---
 ## Version 0.6.0
 + Added step legality validation note in `AgentTrajectory` and `AgentStepView`
