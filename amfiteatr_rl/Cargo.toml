@@ -9,7 +9,8 @@ categories =  ["games", "simulation",  "development-tools", "science"]
 description = "Extensions providing reinforcement learning implementations for `amfiteatr`"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
-
+[[example]]
+name = "multi_actor_entropy"
 
 [dependencies]
 

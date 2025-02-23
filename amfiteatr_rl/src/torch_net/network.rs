@@ -25,6 +25,11 @@ pub type QValueNet = NeuralNet<Tensor>;
 
 pub type NeuralNetCriticMultiActor = NeuralNet<TensorCriticMultiActor>;
 
+impl NeuralNetCriticMultiActor{
+
+
+}
+
 pub type MultiDiscreteNet = NeuralNet<MultiDiscreteTensor>;
 
 /// To construct network you need `VarStore` and function (closure) taking `nn::Path` as argument

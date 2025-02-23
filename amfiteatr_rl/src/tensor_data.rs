@@ -99,26 +99,71 @@ pub trait CtxTryIntoIndexI64<W: ConversionToIndexI64> : Debug{
 }
 
 pub trait ConversionToMultiIndexI64{
-    fn mins(&self) -> Vec<i64>;
-    fn limits(&self) -> Vec<i64>;
+    fn min(&self, param_index: usize) -> Option<i64>;
+    fn limit(&self, param_index: usize) -> Option<i64>;
 
-    fn number_of_params(&self) -> i64;
+    fn number_of_params() -> usize;
 
-    fn min(&self, index: usize) -> Option<i64>{
-        self.mins().get(index).cloned()
-    }
-    fn max(&self, index: usize) -> Option<i64>{
-        self.limits().get(index).cloned()
-    }
+
 }
 
 pub trait CtxTryConvertIntoMultiIndexI64<W: ConversionToMultiIndexI64>{
+    fn param_value(&self, context: &W, param_index: usize) -> Option<i64>;
+    fn default_value(&self, _context: &W, param_index: usize) -> i64{
+        0
+    }
+
+
+
+
+
+    fn action_indexes(&self, context: &W) -> Vec<Option<i64>>{
+
+        (0..W::number_of_params()).map(|i|{
+            self.param_value(context, i)
+        }).collect()
+    }
+
+    fn action_index_tensor_vec_with_mask(&self,  context: &W, ) -> Vec<(Tensor, Tensor)>{
+
+        (0..W::number_of_params()).map(|i|{
+            match self.param_value(context, i){
+                Some(p) => (Tensor::from(p), Tensor::from(true)),
+                None => (Tensor::from(self.default_value(context, i)), Tensor::from(false))
+            }
+        }).collect()
+
+    }
+
+    fn action_index_tensor_with_mask(&self, context: &W) -> (Tensor, Tensor){
+        let mut params = Vec::new();
+        let mut usage_masks = Vec::new();
+
+        for i in 0..W::number_of_params(){
+            match self.param_value(context, i){
+                Some(p) => {
+                    params.push(p);
+                    usage_masks.push(true);
+                },
+                None => {
+                    params.push(self.default_value(context, i));
+                    usage_masks.push(false);
+                }
+            }
+
+        }
+        (Tensor::from_slice(&params), Tensor::from_slice(&usage_masks))
+    }
+    /*
     fn try_to_multi_index(&self, ctx: &W) -> Result<Vec<Option<i64>>, TensorRepresentationError>;
     fn try_multi_index_tensor(&self, ctx: &W) -> Result<Vec<Option<Tensor>>, TensorRepresentationError>{
         self.try_to_multi_index(ctx).map(|r|{
             r.iter().map(|option| option.and_then(|i| Some(Tensor::from(i)))).collect()
         })
     }
+
+     */
+
 
 }
 

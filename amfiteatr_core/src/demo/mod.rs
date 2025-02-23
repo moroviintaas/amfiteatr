@@ -59,6 +59,8 @@ use crate::util::{StrParsed};
 pub const DEMO_AGENT_BLUE: DemoAgentID = 0;
 pub const DEMO_AGENT_RED: DemoAgentID = 1;
 
+
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 #[cfg_attr(feature = "speedy", derive(speedy::Writable, speedy::Readable))]
 pub struct DemoAction(pub u8);
@@ -346,3 +348,11 @@ impl Policy<DemoDomain> for DemoPolicySelectFirst{
         state.available_actions().first().cloned()
     }
 }
+
+
+/*
+#[derive(Clone, Debug, PartialEq, Eq)]
+#[cfg_attr(feature = "speedy", derive(speedy::Writable, speedy::Readable))]
+pub struct DemoComplexAction(pub u8);
+
+ */
