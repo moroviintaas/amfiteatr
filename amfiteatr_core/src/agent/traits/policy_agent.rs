@@ -15,7 +15,7 @@ pub trait ActingAgent<DP: DomainParameters>{
     /// [`AgentGenT`](crate::agent::TracingAgentGen) uses it also to add new step entry to his/her game trajectory.
     /// __Note__ that this method should not affect agents _information set_, as the way of changing it is through [`DomainParameters::UpdateType`](crate::domain::DomainParameters::UpdateType)
     /// provided by _environment_.
-    fn select_action(&mut self) -> Result<Option<DP::ActionType>, AmfiteatrError<DP>>;
+    fn select_action(&mut self) -> Result<DP::ActionType, AmfiteatrError<DP>>;
 
     /// This method is meant to do optional actions of [`take_action`](crate::agent::ActingAgent::select_action)
     /// without selecting new action. Usually to be invoked at the end of game to commit last step to trace.
@@ -38,7 +38,7 @@ pub trait PolicyAgent<DP: DomainParameters>: StatefulAgent<DP>{
     /// For example agent may want to log this event or store selected action
     /// (self reference is not mutable, however it can be cheated for example with [Cell](::std::cell::Cell))
     fn policy_select_action(&self)
-        -> Option<DP::ActionType>{
+        -> Result<DP::ActionType, AmfiteatrError<DP>>{
         self.policy().select_action(self.info_set())
     }
 }

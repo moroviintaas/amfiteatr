@@ -56,6 +56,10 @@ pub enum AmfiteatrError<DP: DomainParameters>{
     IO{
         explanation: String
     },
+    #[error("Impossible action")]
+    NoActionAvailable{
+        context: String
+    }
     //#[error("External: {0}")]
     //External(String)
 }

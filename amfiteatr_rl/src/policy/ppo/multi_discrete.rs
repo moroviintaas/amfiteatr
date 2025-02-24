@@ -5,6 +5,7 @@ use tch::{kind, Kind};
 use tch::nn::VarStore;
 use amfiteatr_core::agent::{AgentStepView, AgentTrajectory, InformationSet, Policy};
 use amfiteatr_core::domain::DomainParameters;
+use amfiteatr_core::error::AmfiteatrError;
 use crate::error::{AmfiteatrRlError, TensorRepresentationError};
 use crate::policy::common::{find_max_trajectory_len, sum_trajectories_steps};
 use crate::policy::LearningNetworkPolicy;
@@ -106,11 +107,11 @@ impl<
     ActionBuildContext: ConversionFromMultipleTensors,
 >
 Policy<DP> for PolicyPPOMultiDiscrete<DP, InfoSet, InfoSetConversionContext, ActionBuildContext>
-where <DP as DomainParameters>::ActionType: CtxTryFromMultipleTensors<ActionBuildContext>
+where <DP as DomainParameters>::ActionType: CtxTryFromMultipleTensors<ActionBuildContext, ConvertError: Into<AmfiteatrError<DP>>>
 {
     type InfoSetType = InfoSet;
 
-    fn select_action(&self, state: &Self::InfoSetType) -> Option<DP::ActionType> {
+    fn select_action(&self, state: &Self::InfoSetType) -> Result<DP::ActionType, AmfiteatrError<DP>> {
         let state_tensor = state.to_tensor(&self.info_set_conversion_context);
         //log::debug!("Info set tensor kind: {:?}", state_tensor.kind());
         let out = tch::no_grad(|| (self.network.net())(&state_tensor));
@@ -123,15 +124,23 @@ where <DP as DomainParameters>::ActionType: CtxTryFromMultipleTensors<ActionBuil
             false => probs.map(|t| t.argmax(None, false).unsqueeze(-1)).collect()
         };
 
-        <DP::ActionType>::try_from_tensors(&choices, &self.action_build_context)
+        <DP::ActionType>::try_from_tensors(&choices, &self.action_build_context).map_err(|err| {
+            #[cfg(feature = "log_error")]
+            log::error!("Failed creating action from choices tensor. Error: {}. Tensor: {:?}", err, choices);
+            err.into()
+        })
+        /*
+        Ok(<DP::ActionType>::try_from_tensors(&choices, &self.action_build_context)
             .map_or_else(
                 |e| {
                     #[cfg(feature = "log_error")]
                     log::error!("Failed creating action from choices tensor. Error: {}. Tensor: {:?}", e, choices);
                     None
                 },
-                |a| Some(a)
-            )
+                |a| a
+            ))
+
+         */
 
     }
 }
@@ -142,7 +151,7 @@ impl<
     InfoSetConversionContext: ConversionToTensor,
     ActionBuildContext: ConversionFromMultipleTensors + ConversionToMultiIndexI64,
 > LearningNetworkPolicy<DP> for PolicyPPOMultiDiscrete<DP, InfoSet, InfoSetConversionContext, ActionBuildContext>
-where <DP as DomainParameters>::ActionType: CtxTryFromMultipleTensors<ActionBuildContext>
+where <DP as DomainParameters>::ActionType: CtxTryFromMultipleTensors<ActionBuildContext, ConvertError: Into<AmfiteatrError<DP>>>
     + CtxTryConvertIntoMultiIndexI64<ActionBuildContext>
 {
     fn var_store(&self) -> &VarStore {

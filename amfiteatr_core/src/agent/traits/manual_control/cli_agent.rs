@@ -19,7 +19,7 @@ use crate::util::{StrParsed};
 
 pub trait CliAgent<DP: DomainParameters>{
 
-    fn interactive_action_select(&mut self) -> Result<Option<DP::ActionType>, AmfiteatrError<DP>>;
+    fn interactive_action_select(&mut self) -> Result<DP::ActionType, AmfiteatrError<DP>>;
     fn run_interactive(&mut self) -> Result<(), AmfiteatrError<DP>>;
 }
 
@@ -36,7 +36,7 @@ where
     //TopCommand<DP, <<Self as PolicyAgent<DP>>::Policy>>: for<'a> NomParsed<'str>,
     DP::ActionType: for<'a> StrParsed{
 
-    fn interactive_action_select(&mut self) -> Result<Option<DP::ActionType>, AmfiteatrError<DP>>{
+    fn interactive_action_select(&mut self) -> Result<DP::ActionType, AmfiteatrError<DP>>{
         let mut buffer = String::new();
         let stdin = io::stdin();
         #[cfg(feature = "log_debug")]

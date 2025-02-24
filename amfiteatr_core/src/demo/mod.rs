@@ -344,8 +344,10 @@ pub struct DemoPolicySelectFirst{
 impl Policy<DemoDomain> for DemoPolicySelectFirst{
     type InfoSetType = DemoInfoSet;
 
-    fn select_action(&self, state: &Self::InfoSetType) -> Option<DemoAction> {
-        state.available_actions().first().cloned()
+    fn select_action(&self, state: &Self::InfoSetType) -> Result<DemoAction, AmfiteatrError<DemoDomain>> {
+        state.available_actions().first().cloned().ok_or(AmfiteatrError::NoActionAvailable {
+            context: "Demo Policy".into()
+        })
     }
 }
 

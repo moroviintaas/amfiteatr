@@ -228,22 +228,22 @@ where <P as Policy<DP>>::InfoSetType: InformationSet<DP> + Clone{
 
 
     /// Firstly, agent commits last step to stack.
-    fn select_action(&mut self) -> Result<Option<DP::ActionType>, AmfiteatrError<DP>> {
+    fn select_action(&mut self) -> Result<DP::ActionType, AmfiteatrError<DP>> {
         //self.commit_trace()?;
         //self.merge_partial_rewards();
         self.commit_partial_rewards();
 
-        let opt_action = self.policy.select_action(&self.information_set);
+        let r_action = self.policy.select_action(&self.information_set);
         //self.last_action = action.clone();
         //self.state_before_last_action = Some(self.information_set.clone());
-        if let Some(ref action) = opt_action{
+        if let Ok(ref action) = r_action {
             self.game_trajectory.register_step_point(self.information_set.clone(), action.clone(), self.committed_universal_score.clone())?;
         } else {
             #[cfg(feature = "log_warn")]
             log::warn!("Agent {} does not select any action, therefore nothing is registered in trajectory", self.information_set.agent_id());
         }
 
-        Ok(opt_action)
+        r_action
     }
 
     fn finalize(&mut self) -> Result<(), AmfiteatrError<DP>>{

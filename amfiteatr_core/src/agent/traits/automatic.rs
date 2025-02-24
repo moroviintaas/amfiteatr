@@ -20,7 +20,7 @@ pub trait ProcedureAgent<DP: DomainParameters>: RewardedAgent<DP> + IdAgent<DP>
     /// Runs automatic agent provided with function selecting action.
     /// This is meant to be backend implementation for [`AutomaticAgent::run`] and [`CliAgent`](crate::agent::manual_control::CliAgent).
     fn run_protocol<
-        P: Fn(&mut Self) -> Result<Option<DP::ActionType>, AmfiteatrError<DP>>,
+        P: Fn(&mut Self) -> Result<DP::ActionType, AmfiteatrError<DP>>,
     >(&mut self, action_selector: P) -> Result<(), AmfiteatrError<DP>>{
         #[cfg(feature = "log_info")]
         log::info!("Agent {} starts", self.id());
@@ -31,18 +31,10 @@ pub trait ProcedureAgent<DP: DomainParameters>: RewardedAgent<DP> + IdAgent<DP>
                         #[cfg(feature = "log_debug")]
                         log::debug!("Agent {} received 'YourMove' signal.", self.id());
                         match action_selector(self){
-                            Ok(act_opt) => match act_opt{
-                                None => {
-                                    #[cfg(feature = "log_error")]
-                                    log::error!("Agent {} has no possible action", self.id());
-                                    self.send(AgentMessage::NotifyError(NoPossibleAction(self.id().clone()).into()))?;
-                                }
-
-                                Some(a) => {
-                                    #[cfg(feature = "log_debug")]
-                                    log::debug!("Agent {} selects action {:#}", self.id(), &a);
-                                    self.send(AgentMessage::TakeAction(a))?;
-                                }
+                            Ok(act) => {
+                                #[cfg(feature = "log_debug")]
+                                log::debug!("Agent {} selects action {:#}", self.id(), &act);
+                                self.send(AgentMessage::TakeAction(act))?;
                             }
                             Err(e) => {
                                 self.and_send_error(e);

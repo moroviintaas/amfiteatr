@@ -1,5 +1,6 @@
 use std::fmt::{Debug, Formatter};
 use amfiteatr_core::agent::Policy;
+use amfiteatr_core::error::AmfiteatrError;
 use crate::agent::LocalHistoryInfoSet;
 use crate::domain::ClassicAction::{Down, Up};
 use crate::domain::{ClassicAction, ClassicGameDomain, UsizeAgentId};
@@ -13,20 +14,20 @@ pub struct SwitchAfterTwo{
 impl<ID: UsizeAgentId> Policy<ClassicGameDomain<ID>> for SwitchAfterTwo{
     type InfoSetType = LocalHistoryInfoSet<ID>;
 
-    fn select_action(&self, state: &Self::InfoSetType) -> Option<ClassicAction> {
+    fn select_action(&self, state: &Self::InfoSetType) -> Result<ClassicAction, AmfiteatrError<ClassicGameDomain<ID>>> {
 
         if let Some(last_report) = state.previous_encounters().last(){
             let mut other_action = last_report.other_player_action;
             for i in (0..state.previous_encounters().len()).rev(){
                 if state.previous_encounters()[i].other_player_action == other_action{
-                    return Some(other_action)
+                    return Ok(other_action)
                 } else {
                     other_action = state.previous_encounters()[i].other_player_action;
                 }
             }
-            Some(Down)
+            Ok(Down)
         } else {
-            Some(Down)
+            Ok(Down)
         }
     }
 }
@@ -39,23 +40,23 @@ pub struct ForgiveAfterTwo{
 impl<ID: UsizeAgentId> Policy<ClassicGameDomain<ID>> for ForgiveAfterTwo{
     type InfoSetType = LocalHistoryInfoSet<ID>;
 
-    fn select_action(&self, state: &Self::InfoSetType) -> Option<ClassicAction> {
+    fn select_action(&self, state: &Self::InfoSetType) -> Result<ClassicAction, AmfiteatrError<ClassicGameDomain<ID>>> {
 
         if let Some(_last_report) = state.previous_encounters().last(){
             let mut subsequent_coops = 0;
             for i in (0..state.previous_encounters().len()).rev(){
                 if state.previous_encounters()[i].other_player_action == Up {
-                    return Some(Up)
+                    return Ok(Up)
                 } else {
                     subsequent_coops += 1;
                     if subsequent_coops >= 2{
-                        return Some(Down)
+                        return Ok(Down)
                     }
                 }
             }
-            Some(Down)
+            Ok(Down)
         } else {
-            Some(Down)
+            Ok(Down)
         }
     }
 }
@@ -102,16 +103,16 @@ fn fibonacci(index: u64) -> u64{
 impl<ID: UsizeAgentId> Policy<ClassicGameDomain<ID>> for FibonacciForgiveStrategy{
     type InfoSetType = LocalHistoryInfoSet<ID>;
 
-    fn select_action(&self, state: &Self::InfoSetType) -> Option<ClassicAction> {
+    fn select_action(&self, state: &Self::InfoSetType) -> Result<ClassicAction, AmfiteatrError<ClassicGameDomain<ID>>> {
 
         let enemy_defects = state.count_actions_other(Up) as u64;
         let enemy_coops = state.count_actions_other(Down) as u64;
 
         let penalty = fibonacci(enemy_defects);
         if penalty > enemy_coops{
-            Some(Up)
+            Ok(Up)
         } else {
-            Some(Down)
+            Ok(Down)
         }
 
 

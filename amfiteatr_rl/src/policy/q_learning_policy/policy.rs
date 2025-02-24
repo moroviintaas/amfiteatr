@@ -18,7 +18,7 @@ use crate::error::AmfiteatrRlError;
 use crate::tensor_data::{CtxTryIntoTensor, ConversionToTensor};
 use crate::torch_net::NeuralNet1;
 use rand::thread_rng;
-
+use amfiteatr_core::error::AmfiteatrError;
 use crate::policy::LearningNetworkPolicy;
 pub use crate::policy::TrainConfig;
 
@@ -308,7 +308,7 @@ impl<
 where <<InfoSet as PresentPossibleActions<DP>>::ActionIteratorType as IntoIterator>::Item: CtxTryIntoTensor<A2T>{
     type InfoSetType = InfoSet;
 
-    fn select_action(&self, state: &Self::InfoSetType) -> Option<DP::ActionType> {
+    fn select_action(&self, state: &Self::InfoSetType) -> Result<DP::ActionType, AmfiteatrError<DP>> {
 
         let mut actions = Vec::new();
         let q_predictions : Vec<_>/*<Tensor>*/ = state.available_actions().into_iter().map(|a|{
@@ -322,7 +322,9 @@ where <<InfoSet as PresentPossibleActions<DP>>::ActionIteratorType as IntoIterat
 
         let index = self.q_selector.select_q_value_index(&q_pred, self.explore_enabled);
 
-        index.and_then(|i| actions.get(i)).cloned()
+        index.and_then(|i| actions.get(i)).cloned().ok_or(AmfiteatrError::NoActionAvailable {
+            context: "Q learning".into()
+        })
 
     }
 }

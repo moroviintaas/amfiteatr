@@ -242,10 +242,10 @@ impl<
 ActingAgent<DP> for AgentGen<DP, P, Comm>
 where <P as Policy<DP>>::InfoSetType: InformationSet<DP>{
 
-    fn select_action(&mut self) -> Result<Option<DP::ActionType>, AmfiteatrError<DP>> {
+    fn select_action(&mut self) -> Result<DP::ActionType, AmfiteatrError<DP>> {
         //self.commit_reward_to_score();
         self.commit_partial_rewards();
-        Ok(self.policy.select_action(&self.information_set))
+        self.policy.select_action(&self.information_set)
 
     }
 

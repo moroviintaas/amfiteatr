@@ -3,7 +3,7 @@ use rand::seq::IteratorRandom;
 use crate::agent::info_set::InformationSet;
 use crate::agent::PresentPossibleActions;
 use crate::domain::DomainParameters;
-
+use crate::error::AmfiteatrError;
 
 /// Trait meant for structures working as action selectors. Policy based on information set
 /// must select one action if possible.
@@ -12,10 +12,14 @@ pub trait Policy<DP: DomainParameters>: Send{
     type InfoSetType: InformationSet<DP>;
 
     /// Selects action based on information set.
-    /// If at least one action is possible result should be `Some()` otherwise `None`.
+    /// If at least one action is possible result should be `Ok(action)` otherwise `Err`.
+    /// In special case where no action is possible or from the agent's point of view game is finished
+    /// suggested error is [`AmfiteatrError::NoActionAvailable`](AmfiteatrError::NoActionAvailable).
     ///
-    /// __WARN__ in future version it will probably change to `-> Result<Option<DP::ActionType>, DP::GameErrorType>`
-    fn select_action(&self, state: &Self::InfoSetType) -> Option<DP::ActionType>;
+    /// Migration from previous version: use `ok_or`
+
+
+    fn select_action(&self, state: &Self::InfoSetType) -> Result<DP::ActionType, AmfiteatrError<DP>>;
 }
 
 
@@ -40,16 +44,17 @@ impl<DP: DomainParameters, InfoSet: PresentPossibleActions<DP>> Policy<DP> for R
 where <<InfoSet as PresentPossibleActions<DP>>::ActionIteratorType as IntoIterator>::IntoIter : ExactSizeIterator{
     type InfoSetType = InfoSet;
 
-    fn select_action(&self, state: &Self::InfoSetType) -> Option<DP::ActionType> {
+    fn select_action(&self, state: &Self::InfoSetType) -> Result<DP::ActionType, AmfiteatrError<DP>> {
         let mut rng = rand::thread_rng();
-        state.available_actions().into_iter().choose(&mut rng)
+        state.available_actions().into_iter().choose(&mut rng).ok_or(AmfiteatrError::NoActionAvailable {
+            context: "Random policy".into()})
     }
 }
 
 impl<DP: DomainParameters, P: Policy<DP>> Policy<DP> for Box<P>{
     type InfoSetType = P::InfoSetType;
 
-    fn select_action(&self, state: &Self::InfoSetType) -> Option<DP::ActionType> {
+    fn select_action(&self, state: &Self::InfoSetType) -> Result<DP::ActionType, AmfiteatrError<DP>> {
         self.as_ref().select_action(state)
     }
 }

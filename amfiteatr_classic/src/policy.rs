@@ -2,7 +2,7 @@ use std::cmp::Ordering;
 use std::marker::PhantomData;
 use rand::{Rng, thread_rng};
 use amfiteatr_core::agent::{InformationSet, Policy};
-
+use amfiteatr_core::error::AmfiteatrError;
 use crate::domain::{ClassicAction, ClassicGameDomain, ClassicGameError, UsizeAgentId};
 use crate::domain::ClassicAction::{Down, Up};
 
@@ -28,8 +28,8 @@ impl<ID: UsizeAgentId, IS: InformationSet<ClassicGameDomain<ID>>> ClassicPureStr
 impl<ID: UsizeAgentId, IS: InformationSet<ClassicGameDomain<ID>>> Policy<ClassicGameDomain<ID>> for ClassicPureStrategy<ID, IS>{
     type InfoSetType = IS ;
 
-    fn select_action(&self, _state: &Self::InfoSetType) -> Option<ClassicAction> {
-        Some(self.action)
+    fn select_action(&self, _state: &Self::InfoSetType) -> Result<ClassicAction, AmfiteatrError<ClassicGameDomain<ID>>> {
+        Ok(self.action)
     }
 }
 /// Selects action [`Up`] with given probability, otherwise [`Down`].
@@ -59,7 +59,7 @@ impl<ID: UsizeAgentId, IS: InformationSet<ClassicGameDomain<ID>>> ClassicMixedSt
 impl<ID: UsizeAgentId, IS: InformationSet<ClassicGameDomain<ID>>> Policy<ClassicGameDomain<ID>> for ClassicMixedStrategy<ID, IS>{
     type InfoSetType = IS ;
 
-    fn select_action(&self, _state: &Self::InfoSetType) -> Option<ClassicAction> {
+    fn select_action(&self, _state: &Self::InfoSetType) -> Result<ClassicAction, AmfiteatrError<ClassicGameDomain<ID>>> {
         let mut rng = thread_rng();
         let sample = rng.gen_range(0.0..1.0);
         sample.partial_cmp(&self.probability_up).map(|o|{
@@ -68,6 +68,8 @@ impl<ID: UsizeAgentId, IS: InformationSet<ClassicGameDomain<ID>>> Policy<Classic
               Ordering::Equal => Down,
               Ordering::Greater => Down,
           }
+        }).ok_or(AmfiteatrError::NoActionAvailable {
+            context: "ClassicMixedStrategy".to_string(),
         })
 
     }

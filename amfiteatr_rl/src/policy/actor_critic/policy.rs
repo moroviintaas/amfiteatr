@@ -10,7 +10,7 @@ use amfiteatr_core::agent::{
     AgentTrajectory
 };
 use amfiteatr_core::domain::DomainParameters;
-
+use amfiteatr_core::error::AmfiteatrError;
 use crate::error::{AmfiteatrRlError, TensorRepresentationError};
 use crate::policy::common::categorical_dist_entropy;
 use crate::policy::LearningNetworkPolicy;
@@ -122,7 +122,7 @@ impl<DP: DomainParameters,
 where <DP as DomainParameters>::ActionType: TryFromTensor{
     type InfoSetType = InfoSet;
 
-    fn select_action(&self, state: &Self::InfoSetType) -> Option<DP::ActionType> {
+    fn select_action(&self, state: &Self::InfoSetType) -> Result<DP::ActionType, AmfiteatrError<DP>> {
         //let state_tensor = self.state_converter.build_tensor(state)
         //    .unwrap_or_else(|_| panic!("Failed converting state to Tensor: {:?}", state));
         //let state_tensor = self.state_converter.make_tensor(state);
@@ -138,11 +138,11 @@ where <DP as DomainParameters>::ActionType: TryFromTensor{
             #[cfg(feature = "log_trace")]
             log::trace!("After selecting action, before converting from tensor to action form");
             //self.action_interpreter.interpret_tensor(&atensor)
-            Some(DP::ActionType::try_from_tensor(&atensor)
+            Ok(DP::ActionType::try_from_tensor(&atensor)
                 .expect("Failed converting tensor to action"))
         } else {
             let atensor = probs.argmax(None, false).unsqueeze(-1);
-            Some(DP::ActionType::try_from_tensor(&atensor)
+            Ok(DP::ActionType::try_from_tensor(&atensor)
                 .expect("Failed converting tensor to action (no explore)"))
         }
 
