@@ -25,6 +25,9 @@ pub struct TensorCriticMultiActor{
 
 impl TensorCriticMultiActor{
 
+    /// # Input
+    /// `forward_masks: Option<&[Tensor]>`, where `Tensor` has shape `[BATCH_SIZE, CATEGORY_SIZE`] (works for single param sample probability), and `Vec::len` is the number of categories.
+    /// `reverse_masks: Option<&[Tensor]>` where `Tensor` has shape `[BATCH_SIZE]`, (enables/disables whole category), and `Vec::len` is the number of categories.
     /// # Output
     ///  `Result<Tensor, TchError>`
     ///  Tensor ha size BATCH_SIZE * NUMBER_OF_CATEGORIES
@@ -182,8 +185,8 @@ impl TensorCriticMultiActor{
     }
 
     /// # Input
-    /// `param_indices`: `Vec<Tensor>`, where `Tensor` is in shape `[BATCH_SIZE,1]
-    /// `param_masks`: `Option<Vec<Tensor>>`, where `Tensor` is in shape `[BATCH_SIZE]
+    /// `param_indices`: `Vec<Tensor>`, where `Tensor` is in shape `[BATCH_SIZE]` and `Vec::len` is the number of categories.
+    /// `param_masks`: `Option<Vec<Tensor>>`, where `Tensor` is in shape `[BATCH_SIZE]` and `Vec::len` is the number of categories.
     /// # Output
     ///  `Result<Tensor, TchError>`
     ///  Tensor ha size BATCH_SIZE * NUMBER_OF_CATEGORIES
@@ -248,23 +251,28 @@ impl TensorCriticMultiActor{
     ///
     /// ];
     /// let action_params_selected_tensors = vec![
+    ///     Tensor::from_slice(&[0i64, 2i64]),
+    ///     Tensor::from_slice(&[2i64, 1i64]),
+    ///     Tensor::from_slice(&[0i64, 1i64]),
+    /// /*
     ///     {
-    ///         let s1 = Tensor::from_slice(&[0i64]);
-    ///         let s2 = Tensor::from_slice(&[2i64]);
+    ///         let s1 = Tensor::from(0i64);
+    ///         let s2 = Tensor::from(2i64);
     ///         Tensor::vstack(&[s1, s2])
     ///     },
     ///     {
-    ///         let s1 = Tensor::from_slice(&[2i64]);
-    ///         let s2 = Tensor::from_slice(&[1i64]);
+    ///         let s1 = Tensor::from(2i64);
+    ///         let s2 = Tensor::from(1i64);
     ///         //Tensor::from_slice(&[2i64, 1])
     ///         Tensor::vstack(&[s1, s2])
     ///     },
     ///     {
-    ///         let s1 = Tensor::from_slice(&[0i64]);
-    ///         let s2 = Tensor::from_slice(&[1i64]);
+    ///         let s1 = Tensor::from(0i64);
+    ///         let s2 = Tensor::from(1i64);
     ///         //Tensor::from_slice(&[0i64, 1])
     ///         Tensor::vstack(&[s1, s2])
     ///     },
+    /// */
     ///
     /// ];
     /// let probs_unmasked = mca.batch_log_probability_of_action::<DemoDomain>(&action_params_selected_tensors, None).unwrap();
@@ -277,6 +285,7 @@ impl TensorCriticMultiActor{
     pub fn batch_log_probability_of_action<DP: DomainParameters>(&self, param_indices: &[Tensor], param_masks: Option<&[Tensor]>)
         -> Result<Tensor, AmfiteatrRlError<DP>>{
 
+
         if param_indices.len() != self.actor.len(){
             return Err(AmfiteatrRlError::MismatchedLengthsOfData {
                 shape1: param_indices.len(),
@@ -286,8 +295,9 @@ impl TensorCriticMultiActor{
         }
 
         let probs: Vec<Tensor> = self.actor.iter().enumerate().map(|(i, a)|{
-            a.f_log_softmax(-1, Kind::Float)?
-                .f_gather(1, &param_indices[i], false)?
+
+                a.f_log_softmax(-1, Kind::Float)?
+                .f_gather(1, &param_indices[i].f_unsqueeze(1)?, false)?
                 .f_flatten(0, -1)
         }).collect::<Result<Vec<Tensor>, TchError>>()?;
 
@@ -320,24 +330,13 @@ impl TensorCriticMultiActor{
                 source: tch,
                 context: "batch_log_probability_of_action (zero tensor)".into()
             })?;
-        assert_eq!(&sum.size(), &[2]);
-        //assert_eq!(&log_probs_vec[0].size(), &[2]);
+
 
         for t in log_probs_vec{
             sum = sum.f_add(&t)?;
         }
 
-        //let r = sum.squeeze_dim(0);
-        //Ok(r)
 
-        /*
-        sum.f_squeeze().map_err(|t| AmfiteatrRlError::<DP>::Torch {
-            source: t,
-            context: "batch_log_probability_of_action: Squeezing to only batch dimension".to_string(),
-        }))
-
-
-         */
 
 
         Ok(sum)
