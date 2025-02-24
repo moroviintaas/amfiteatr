@@ -27,6 +27,10 @@ pub enum TensorRepresentationError{
     VectorNormalisation{
         comment: String
     },
+    #[error("Bad parameter index {index:}")]
+    BadParameterIndex{
+        index: usize,
+    },
 
 
 }

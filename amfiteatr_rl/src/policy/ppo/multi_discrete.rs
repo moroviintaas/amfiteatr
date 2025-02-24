@@ -11,7 +11,7 @@ use crate::policy::LearningNetworkPolicy;
 use crate::tch;
 use crate::tch::nn::Optimizer;
 use crate::tch::Tensor;
-use crate::tensor_data::{ConversionFromMultipleTensors, ConversionFromTensor, ConversionToTensor, CtxTryFromMultipleTensors, CtxTryIntoTensor};
+use crate::tensor_data::{ConversionFromMultipleTensors, ConversionFromTensor, ConversionToMultiIndexI64, ConversionToTensor, CtxTryConvertIntoMultiIndexI64, CtxTryFromMultipleTensors, CtxTryIntoTensor};
 use crate::torch_net::{A2CNet, MultiDiscreteNet, NeuralNetCriticMultiActor};
 
 ///! Based on [cleanrl PPO](https://github.com/vwxyzjn/cleanrl/blob/master/cleanrl/ppo.py)
@@ -140,9 +140,10 @@ impl<
     DP: DomainParameters,
     InfoSet: InformationSet<DP> + Debug + CtxTryIntoTensor<InfoSetConversionContext>,
     InfoSetConversionContext: ConversionToTensor,
-    ActionBuildContext: ConversionFromMultipleTensors,
+    ActionBuildContext: ConversionFromMultipleTensors + ConversionToMultiIndexI64,
 > LearningNetworkPolicy<DP> for PolicyPPOMultiDiscrete<DP, InfoSet, InfoSetConversionContext, ActionBuildContext>
 where <DP as DomainParameters>::ActionType: CtxTryFromMultipleTensors<ActionBuildContext>
+    + CtxTryConvertIntoMultiIndexI64<ActionBuildContext>
 {
     fn var_store(&self) -> &VarStore {
         &self.network.var_store()
@@ -178,8 +179,11 @@ where <DP as DomainParameters>::ActionType: CtxTryFromMultipleTensors<ActionBuil
         let mut multi_action_tensor_vec: Vec<Vec<Tensor>> = self.action_build_context.expected_inputs_shape()
             .iter().map(|_a|Vec::<Tensor>::with_capacity(capacity_estimate)).collect();
 
-        let mut discounted_payoff_tensor_vec: Vec<Tensor> = Vec::with_capacity(tmp_capacity_estimate);
-
+        let mut tmp_discounted_payoff_tensor_vec: Vec<Tensor> = Vec::with_capacity(tmp_capacity_estimate);
+        let mut tmp_trajectory_state_tensor_vec = Vec::with_capacity(tmp_capacity_estimate);
+        let mut tmp_trajectory_action_tensor_vecs = Vec::with_capacity(tmp_capacity_estimate);
+        let mut tmp_trajectory_action_category_mask_vecs = Vec::with_capacity(tmp_capacity_estimate);
+        //let mut tmp_trajectory_reward_vec = Vec::with_capacity(tmp_capacity_estimate);
 
         for t in trajectories{
 
@@ -195,9 +199,53 @@ where <DP as DomainParameters>::ActionType: CtxTryFromMultipleTensors<ActionBuil
             }
             let steps_in_trajectory = t.number_of_steps();
 
-            let mut state_tensor_vec_t: Vec<Tensor> = t.iter().map(|step|{
+
+            //
+
+            tmp_trajectory_action_category_mask_vecs.clear();
+            tmp_trajectory_state_tensor_vec.clear();
+            tmp_trajectory_action_category_mask_vecs.clear();
+            //tmp_trajectory_reward_vec.clear();
+            for step in t.iter(){
+                tmp_trajectory_state_tensor_vec.push(step.information_set().try_to_tensor(&self.info_set_conversion_context)?);
+                let (act_t, cat_mask_t) = step.action().action_index_and_mask_tensor_vecs(&self.action_build_context)?;
+                tmp_trajectory_action_tensor_vecs.push(act_t);
+                tmp_trajectory_action_category_mask_vecs.push(cat_mask_t);
+                //trajectory_reward_vec.push(step.reward().)
+            }
+
+
+            /*
+            let state_tensor_vec_t: Vec<Tensor> = t.iter().map(|step|{
                 step.information_set().to_tensor(&self.info_set_conversion_context)
             }).collect();
+            */
+            /*
+            let (
+                trajectory_state_tensor_vec,
+                trajectory_action_tensor_vecs,
+                trajectory_action_category_mask_vecs,
+                trajectory_reward_vec,
+            ): (Vec<Tensor>, Vec<Vec<Tensor>>, Vec<Vec<Tensor>>, Vec<Tensor>) = t.iter().map(|step|{
+
+                let (action_tensor, category_mask_tensor) = step.action().action_index_and_mask_tensor_vecs()?;
+                (
+                    step.information_set().try_to_tensor(&self.info_set_conversion_context),
+                )
+
+
+
+            }).collect();
+
+
+
+            let trajectory_state_tensor = Tensor::f_stack(state_tensor_vec_t.as_mut_slice(), 0)?
+                .f_to_device(self.network.device())?;
+
+
+
+             */
+
 
 
             /*
