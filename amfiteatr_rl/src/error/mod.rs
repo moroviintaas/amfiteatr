@@ -30,6 +30,16 @@ pub enum AmfiteatrRlError<DP: DomainParameters>{
         #[source]
         source:TensorRepresentationError
     },
+    #[error("Mismatched length {shape1:?} and {shape2:?} in {context:}.")]
+    MismatchedLengthsOfData{
+        shape1: usize,
+        shape2: usize,
+        context: String
+    },
+    #[error("Batch size is 0 with context {context:}")]
+    ZeroBatchSize{
+        context: String
+    },
     #[error("Input/Output Error")]
     IO(String),
     #[error("Empty training data")]
