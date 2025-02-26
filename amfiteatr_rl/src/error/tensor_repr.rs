@@ -1,3 +1,4 @@
+use std::sync::Arc;
 use tch::TchError;
 use amfiteatr_core::domain::DomainParameters;
 use crate::error::AmfiteatrRlError;
@@ -30,6 +31,11 @@ pub enum TensorRepresentationError{
     #[error("Bad parameter index {index:}")]
     BadParameterIndex{
         index: usize,
+    },
+    #[error("Entity: {entity:}, conversion to Tensor with context {context} is illegal")]
+    IllegalConversion{
+        entity: String,
+        context: String,
     },
 
 

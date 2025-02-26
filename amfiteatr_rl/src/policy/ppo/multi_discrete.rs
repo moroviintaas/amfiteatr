@@ -1,7 +1,7 @@
 use std::fmt::Debug;
 use std::marker::PhantomData;
 use getset::{Getters, Setters};
-use tch::{kind, Kind};
+use tch::{kind, Device, Kind, TchError};
 use tch::nn::VarStore;
 use amfiteatr_core::agent::{AgentStepView, AgentTrajectory, InformationSet, Policy};
 use amfiteatr_core::domain::DomainParameters;
@@ -67,6 +67,23 @@ where <DP as DomainParameters>::ActionType: CtxTryFromMultipleTensors<ActionBuil
 
 
 
+}
+
+fn vec_2d_clear_second_dim<T>(v: &mut Vec<Vec<T>>){
+    for c in v.iter_mut(){
+        c.clear()
+    }
+}
+
+fn vec_2d_append_second_dim<T>(v: &mut Vec<Vec<T>>, append: &mut Vec<Vec<T>>){
+    for (c_append, c_base) in append.iter_mut().zip(v.iter_mut()){
+        c_base.append(c_append)
+    }
+}
+fn vec_2d_push_second_dim<T>(v: &mut Vec<Vec<T>>, append: Vec<T>){
+    for (c_push, c_base) in append.into_iter().zip(v.iter_mut()){
+        c_base.push(c_push)
+    }
 }
 
 impl<
@@ -177,6 +194,8 @@ where <DP as DomainParameters>::ActionType: CtxTryFromMultipleTensors<ActionBuil
         <Self as Policy<DP>>::InfoSetType>],
         reward_f: R
     ) -> Result<(), AmfiteatrRlError<DP>> {
+        #[cfg(feature = "log_debug")]
+        log::debug!("Beginning training with {} trajectories.", trajectories.len());
 
         let device = self.network.device();
         let capacity_estimate = sum_trajectories_steps(&trajectories);
@@ -185,118 +204,129 @@ where <DP as DomainParameters>::ActionType: CtxTryFromMultipleTensors<ActionBuil
 
         let mut state_tensor_vec = Vec::<Tensor>::with_capacity(capacity_estimate);
         let mut reward_tensor_vec = Vec::<Tensor>::with_capacity(capacity_estimate);
+        let mut advantage_tensor_vec = Vec::<Tensor>::with_capacity(capacity_estimate);
+        // batch dimenstion x param dimension
         let mut multi_action_tensor_vec: Vec<Vec<Tensor>> = self.action_build_context.expected_inputs_shape()
+            .iter().map(|_a|Vec::<Tensor>::with_capacity(capacity_estimate)).collect();
+
+        let mut multi_action_cat_mask_tensor_vec = self.action_build_context.expected_inputs_shape()
             .iter().map(|_a|Vec::<Tensor>::with_capacity(capacity_estimate)).collect();
 
         let mut tmp_discounted_payoff_tensor_vec: Vec<Tensor> = Vec::with_capacity(tmp_capacity_estimate);
         let mut tmp_trajectory_state_tensor_vec = Vec::with_capacity(tmp_capacity_estimate);
-        let mut tmp_trajectory_action_tensor_vecs = Vec::with_capacity(tmp_capacity_estimate);
-        let mut tmp_trajectory_action_category_mask_vecs = Vec::with_capacity(tmp_capacity_estimate);
-        //let mut tmp_trajectory_reward_vec = Vec::with_capacity(tmp_capacity_estimate);
+        let mut tmp_trajectory_action_tensor_vecs: Vec<Vec<Tensor>> = Vec::new();
 
+        let mut tmp_trajectory_action_category_mask_vecs: Vec<Vec<Tensor>> = Vec::new();
+        for i in 0..ActionBuildContext::number_of_params(){
+            tmp_trajectory_action_tensor_vecs.push(Vec::new());
+            tmp_trajectory_action_category_mask_vecs.push(Vec::new());
+        }
+        let mut tmp_trajectory_reward_vec = Vec::with_capacity(tmp_capacity_estimate);
+
+        #[cfg(feature = "log_debug")]
+        log::debug!("Starting operations on trajectories.",);
         for t in trajectories{
 
-            if let Some(_trace_step) = t.view_step(0){
+
+            if let Some(last_step) = t.last_view_step(){
+                let steps_in_trajectory = t.number_of_steps();
+
+                //tmp_trajectory_action_category_mask_vecs.clear();
+                tmp_trajectory_state_tensor_vec.clear();
+                vec_2d_clear_second_dim(&mut tmp_trajectory_action_tensor_vecs);
+                vec_2d_clear_second_dim(&mut tmp_trajectory_action_category_mask_vecs);
+                //tmp_trajectory_action_category_mask_vecs.clear();
+                let final_reward_t = reward_f(&last_step);
+                let critic_shape =
+
+                /*
+                let reward_shape = final_reward_t.size();
+                let state_shape = last_step.information_set()
+                    .try_to_tensor(&self.info_set_conversion_context)?.size();
+
+
+
+                 */
+                tmp_trajectory_reward_vec.clear();
+                for step in t.iter(){
+                    #[cfg(feature = "log_trace")]
+                    log::trace!("Adding information set tensor to single trajectory vec.",);
+                    tmp_trajectory_state_tensor_vec.push(step.information_set().try_to_tensor(&self.info_set_conversion_context)?);
+                    #[cfg(feature = "log_trace")]
+                    log::trace!("Added information set tensor to single trajectory vec.",);
+                    let (act_t, cat_mask_t) = step.action().action_index_and_mask_tensor_vecs(&self.action_build_context)?;
+
+                    vec_2d_push_second_dim(&mut tmp_trajectory_action_tensor_vecs, act_t);
+                    vec_2d_push_second_dim(&mut tmp_trajectory_action_category_mask_vecs, cat_mask_t);
+                    //tmp_trajectory_action_tensor_vecs.push(act_t);
+                    //tmp_trajectory_action_category_mask_vecs.push(cat_mask_t);
+                    tmp_trajectory_reward_vec.push(reward_f(&step))
+                }
+
+
+                let information_set_t = Tensor::f_stack(&tmp_trajectory_state_tensor_vec[..],0)?.f_to_device(device)?;
                 #[cfg(feature = "log_trace")]
-                log::trace!("Training neural-network for agent {} (from first trace step entry).", _trace_step.information_set().agent_id());
-            }
+                log::trace!("Tmp infoset shape = {:?}", information_set_t.size());
+                let values_t = tch::no_grad(|| (self.network.net())(&information_set_t)).critic;
 
+                let rewards_t = Tensor::f_stack(&tmp_trajectory_reward_vec[..],0)?.f_to_device(device)?;
 
-            if t.is_empty(){
-                //no steps in this trajectory
-                continue;
-            }
-            let steps_in_trajectory = t.number_of_steps();
+                let advantages_t = Tensor::zeros(values_t.size(), (Kind::Float, device));
+                //let mut next_is_final = 1f32;
+                for index in (0..t.number_of_steps())
+                    .map(|i, | i as i64,){
+                    //chgeck if last step
+                    let (next_nonterminal, next_value) = match index == t.number_of_steps() as i64 -1{
+                        true => (0.0, Tensor::zeros(values_t.f_get(0)?.size(), (Kind::Float, device))),
+                        false => (1.0, values_t.f_get(index as i64+1)?)
+                    };
+                    let delta   = rewards_t.f_get(index)? + (next_value.f_mul_scalar(self.config.gamma)?.f_mul_scalar(next_nonterminal)?) - values_t.f_get(index)?;
+                    let last_gae_lambda = delta + (self.config.gamma * self.config.gae_lambda * next_nonterminal);
+                    advantages_t.f_get(index)?.f_copy_(&last_gae_lambda)?
+                }
+                let returns = advantages_t.f_add(&values_t)?;
 
-
-            //
-
-            tmp_trajectory_action_category_mask_vecs.clear();
-            tmp_trajectory_state_tensor_vec.clear();
-            tmp_trajectory_action_category_mask_vecs.clear();
-            //tmp_trajectory_reward_vec.clear();
-            for step in t.iter(){
-                tmp_trajectory_state_tensor_vec.push(step.information_set().try_to_tensor(&self.info_set_conversion_context)?);
-                let (act_t, cat_mask_t) = step.action().action_index_and_mask_tensor_vecs(&self.action_build_context)?;
-                tmp_trajectory_action_tensor_vecs.push(act_t);
-                tmp_trajectory_action_category_mask_vecs.push(cat_mask_t);
-                //trajectory_reward_vec.push(step.reward().)
-            }
-
-
-            /*
-            let state_tensor_vec_t: Vec<Tensor> = t.iter().map(|step|{
-                step.information_set().to_tensor(&self.info_set_conversion_context)
-            }).collect();
-            */
-            /*
-            let (
-                trajectory_state_tensor_vec,
-                trajectory_action_tensor_vecs,
-                trajectory_action_category_mask_vecs,
-                trajectory_reward_vec,
-            ): (Vec<Tensor>, Vec<Vec<Tensor>>, Vec<Vec<Tensor>>, Vec<Tensor>) = t.iter().map(|step|{
-
-                let (action_tensor, category_mask_tensor) = step.action().action_index_and_mask_tensor_vecs()?;
-                (
-                    step.information_set().try_to_tensor(&self.info_set_conversion_context),
-                )
-
-
-
-            }).collect();
-
-
-
-            let trajectory_state_tensor = Tensor::f_stack(state_tensor_vec_t.as_mut_slice(), 0)?
-                .f_to_device(self.network.device())?;
-
-
-
-             */
-
-
-
-            /*
-            // HERE
-            let mut action_tensor_vec_t: Vec<Tensor> = t.iter().map(|step|{
-                step.action().try_to_tensor().map(|t| t.to_kind(kind::Kind::Int64))
-            }).collect::<Result<Vec<Tensor>, TensorRepresentationError>>()?;
-
-            //let final_score_t: Tensor =  t.list().last().unwrap().subjective_score_after().to_tensor();
-            let final_score_t: Tensor =   reward_f(&t.last_view_step().unwrap());
-
-            discounted_payoff_tensor_vec.clear();
-            for _ in 0..=steps_in_trajectory{
-                discounted_payoff_tensor_vec.push(Tensor::zeros(final_score_t.size(), (self.config.tensor_kind, self.network.device())));
-            }
-            #[cfg(feature = "log_trace")]
-            log::trace!("Discounted_rewards_tensor_vec len before inserting: {}", discounted_payoff_tensor_vec.len());
-            //let mut discounted_rewards_tensor_vec: Vec<Tensor> = vec![Tensor::zeros(DP::UniversalReward::total_size(), (Kind::Float, self.network.device())); steps_in_trajectory+1];
-            #[cfg(feature = "log_trace")]
-            log::trace!("Reward stream: {:?}", t.iter().map(|x| reward_f(&x)).collect::<Vec<Tensor>>());
-            //discounted_payoff_tensor_vec.last_mut().unwrap().copy_(&final_score_t);
-            for s in (0..discounted_payoff_tensor_vec.len()-1).rev(){
-                //println!("{}", s);
-                let this_reward = reward_f(&t.view_step(s).unwrap()).to_device(device);
-                let r_s = &this_reward + (&discounted_payoff_tensor_vec[s+1] * self.config.gamma);
-                discounted_payoff_tensor_vec[s].copy_(&r_s);
+                state_tensor_vec.push(information_set_t);
+                advantage_tensor_vec.push(advantages_t);
                 #[cfg(feature = "log_trace")]
-                log::trace!("Calculating discounted payoffs for {} step. This step reward {}, following payoff: {}, result: {}.",
-                    s, this_reward, discounted_payoff_tensor_vec[s+1], r_s);
+                log::trace!("tmp_trajectory_action_tensor_vecs[0] = {:?}", tmp_trajectory_action_tensor_vecs[0].len());
+                vec_2d_append_second_dim(&mut multi_action_tensor_vec, &mut tmp_trajectory_action_tensor_vecs);
+                vec_2d_append_second_dim(&mut multi_action_cat_mask_tensor_vec, &mut tmp_trajectory_action_category_mask_vecs);
+
+
+            } else {
+                #[cfg(feature = "log_debug")]
+                log::debug!("Slipping empty trajectory.")
             }
-            discounted_payoff_tensor_vec.pop();
+
+            let batch_info_sets_t = Tensor::f_vstack(&state_tensor_vec)?;
             #[cfg(feature = "log_trace")]
-            log::trace!("Discounted future payoffs tensor: {:?}", discounted_payoff_tensor_vec);
+            log::trace!("Batch infoset shape = {:?}", batch_info_sets_t.size());
+            let batch_advantage_t = Tensor::f_vstack(&advantage_tensor_vec)?;
             #[cfg(feature = "log_trace")]
-            log::trace!("Discounted rewards_tensor_vec after inserting");
+            log::trace!("Batch afvantage shape = {:?}", batch_advantage_t.size());
+            let batch_actions_t= multi_action_tensor_vec.iter().map(|cat|{
+                #[cfg(feature = "log_trace")]
+                log::trace!("Cat  len = {}", cat.len());
+                Tensor::f_vstack(cat)
+            }).collect::<Result<Vec<_>, TchError>>()?;
+            let batch_action_masks_t= multi_action_cat_mask_tensor_vec.iter().map(|cat|{
+                Tensor::f_vstack(cat)
+            }).collect::<Result<Vec<_>, TchError>>()?;
 
-            state_tensor_vec.append(&mut state_tensor_vec_t);
-            action_tensor_vec.append(&mut action_tensor_vec_t);
-            reward_tensor_vec.append(&mut discounted_payoff_tensor_vec);
 
 
-             */
+
+            println!("info_sets: {:?}", batch_info_sets_t.size());
+            println!("advantages: {:?}", batch_advantage_t.size());
+            println!("actions: {:?}", batch_info_sets_t.size());
+
+            for (index, cat) in batch_actions_t.iter().enumerate(){
+                println!("Category: {index:}, {:?}", cat.size());
+            }
+
+
+
         }
         todo!()
 

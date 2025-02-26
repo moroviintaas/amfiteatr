@@ -355,8 +355,9 @@ impl<DP: DomainParameters, S: InformationSet<DP>> AgentTrajectory<DP, S>{
 /// Iterator for step views in agent trajectory
 pub struct AgentStepIterator<'a, DP: DomainParameters, S: InformationSet<DP>>{
     trajectory: &'a AgentTrajectory<DP, S>,
-    index: usize
+    index: usize,
 }
+
 
 impl<'a, DP: DomainParameters, S: InformationSet<DP>> Iterator for AgentStepIterator<'a, DP, S>{
     type Item = AgentStepView<'a, DP, S>;
@@ -369,6 +370,17 @@ impl<'a, DP: DomainParameters, S: InformationSet<DP>> Iterator for AgentStepIter
         })
     }
 }
+
+impl<'a, DP: DomainParameters, S: InformationSet<DP>> ExactSizeIterator for AgentStepIterator<'a, DP, S>{
+    fn len(&self) -> usize{
+        match self.trajectory.final_info_set{
+            Some(_) => self.trajectory.information_sets.len(),
+            None => self.trajectory.information_sets.len().saturating_sub(1)
+        }
+    }
+}
+
+
 #[cfg(test)]
 mod tests{
     use std::collections::HashMap;
@@ -420,8 +432,11 @@ mod tests{
         assert_eq!(agent_red.trajectory().view_step(2).unwrap().late_payoff(), &15.0);
 
 
+
         assert!(agent_blue.trajectory().view_step(0).unwrap().payoff() < agent_blue.trajectory().view_step(0).unwrap().late_payoff());
         assert_eq!(agent_blue.trajectory().view_step(0).unwrap().late_payoff(), agent_blue.trajectory().view_step(1).unwrap().payoff());
         assert!(agent_blue.trajectory().view_step(1).unwrap().late_payoff() < agent_blue.trajectory().view_step(2).unwrap().late_payoff());
+
+        assert_eq!(agent_blue.trajectory().iter().len(), 3);
     }
 }
