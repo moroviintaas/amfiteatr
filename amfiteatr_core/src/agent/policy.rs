@@ -46,7 +46,7 @@ where <<InfoSet as PresentPossibleActions<DP>>::ActionIteratorType as IntoIterat
 
     fn select_action(&self, state: &Self::InfoSetType) -> Result<DP::ActionType, AmfiteatrError<DP>> {
         let mut rng = rand::thread_rng();
-        state.available_actions().into_iter().choose(&mut rng).ok_or(AmfiteatrError::NoActionAvailable {
+        state.available_actions().into_iter().choose(&mut rng).ok_or_else(|| AmfiteatrError::NoActionAvailable {
             context: "Random policy".into()})
     }
 }

@@ -1,6 +1,18 @@
 # Changelog
 
 ## Version 0.7.0
++ Changed `select_action` method from `Policy` trait signature. From returning `Option<Action>` it now forces to return `Result<Action, AmfiteatrError<_>>`.
+The change is made because some policy algorithms may actually fail.
+Especially encountered during implementation of neural network policies.
+This obviously breaks code. For use case when previously policy returned `Option::None`. because no action was possible - 
+the suggested quick fix is transforming `Option` to proper `Result` by
+```
+.ok_or_else(|| AmfiteatrError::NoActionAvailable {
+       context: "Random policy".into()})
+}
+```
++ Added special error variant `AmfiteatrError::NoActionAvailable` to indicate that agents believes that no action can be played.
+
 
 ---
 ## Version 0.6.0

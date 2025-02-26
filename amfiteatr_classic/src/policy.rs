@@ -68,7 +68,7 @@ impl<ID: UsizeAgentId, IS: InformationSet<ClassicGameDomain<ID>>> Policy<Classic
               Ordering::Equal => Down,
               Ordering::Greater => Down,
           }
-        }).ok_or(AmfiteatrError::NoActionAvailable {
+        }).ok_or_else(||AmfiteatrError::NoActionAvailable {
             context: "ClassicMixedStrategy".to_string(),
         })
 

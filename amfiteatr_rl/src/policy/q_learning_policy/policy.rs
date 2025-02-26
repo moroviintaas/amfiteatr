@@ -322,7 +322,7 @@ where <<InfoSet as PresentPossibleActions<DP>>::ActionIteratorType as IntoIterat
 
         let index = self.q_selector.select_q_value_index(&q_pred, self.explore_enabled);
 
-        index.and_then(|i| actions.get(i)).cloned().ok_or(AmfiteatrError::NoActionAvailable {
+        index.and_then(|i| actions.get(i)).cloned().ok_or_else( || AmfiteatrError::NoActionAvailable {
             context: "Q learning".into()
         })
 
