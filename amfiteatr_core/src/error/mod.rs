@@ -6,6 +6,8 @@ mod internal_error;
 mod convert;
 mod world;
 mod trajectory;
+mod tensor;
+mod data;
 
 pub use comm::*;
 pub use self::amfiteatr::*;
@@ -15,3 +17,5 @@ pub use internal_error::*;
 pub use convert::*;
 pub use world::*;
 pub use trajectory::*;
+pub use tensor::*;
+pub use data::*;

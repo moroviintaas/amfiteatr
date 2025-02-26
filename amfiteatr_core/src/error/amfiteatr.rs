@@ -1,6 +1,7 @@
 use thiserror::Error;
-use crate::error::{CommunicationError, ProtocolError, TrajectoryError, WorldError};
+use crate::error::{CommunicationError, DataError, ProtocolError, TrajectoryError, WorldError};
 use crate::domain::{DomainParameters};
+use crate::error::tensor::TensorError;
 
 #[derive(Debug, Clone, Error)]
 #[cfg_attr(feature = "speedy", derive(speedy::Writable, speedy::Readable))]
@@ -59,7 +60,17 @@ pub enum AmfiteatrError<DP: DomainParameters>{
     #[error("Impossible action")]
     NoActionAvailable{
         context: String
-    }
+    },
+    #[error("Tensor operation error: {error}")]
+    Tensor{
+        #[source]
+        error: TensorError,
+    },
+    #[error("Tensor operation error: {error}")]
+    Data{
+        #[source]
+        error: DataError,
+    },
     //#[error("External: {0}")]
     //External(String)
 }

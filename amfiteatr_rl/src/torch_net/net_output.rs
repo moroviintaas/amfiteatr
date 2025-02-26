@@ -1,7 +1,7 @@
 use tch::{Device, Kind, TchError, Tensor};
 use tch::Kind::Float;
 use amfiteatr_core::domain::DomainParameters;
-use amfiteatr_core::error::ConvertError;
+use amfiteatr_core::error::{AmfiteatrError, ConvertError, DataError, TensorError};
 use amfiteatr_core::reexport::nom::Parser;
 use crate::error::AmfiteatrRlError;
 use crate::error::AmfiteatrRlError::ZeroBatchSize;
@@ -276,16 +276,16 @@ impl TensorCriticMultiActor{
     /// assert!(masked[1] > unmasked[1]);
     /// ```
     pub fn batch_log_probability_of_action<DP: DomainParameters>(&self, param_indices: &[Tensor], param_masks: Option<&[Tensor]>)
-        -> Result<Tensor, AmfiteatrRlError<DP>>{
+        -> Result<Tensor, AmfiteatrError<DP>>{
 
 
 
         if param_indices.len() != self.actor.len(){
-            return Err(AmfiteatrRlError::MismatchedLengthsOfData {
-                shape1: param_indices.len(),
-                shape2: self.actor.len(),
+            return Err(DataError::LengthMismatch {
+                left: param_indices.len(),
+                right: self.actor.len(),
                 context: "batch_log_probability_of_action: number of actor parameters is different than provided param indices".into()
-            })
+            }.into())
         }
 
         let probs: Vec<Tensor> = self.actor.iter().enumerate().map(|(i, a)|{
@@ -294,7 +294,9 @@ impl TensorCriticMultiActor{
                 a.f_log_softmax(-1, Kind::Float)?
                 .f_gather(1, &param_indices[i].f_unsqueeze(1)?, false)?
                 .f_flatten(0, -1)
-        }).collect::<Result<Vec<Tensor>, TchError>>()?;
+        }).collect::<Result<Vec<Tensor>, TchError>>().map_err(|e|{
+            TensorError::Torch {context: format!("Torch error while calculating log probabilities of parameters{}", e)}
+        })?;
 
         let log_probs_vec = match param_masks{
             None => {
@@ -305,7 +307,9 @@ impl TensorCriticMultiActor{
                     .map(|(logp, mask)|{
                         let masked_log_probs = Tensor::f_einsum("i,i -> i", &[logp, mask], Option::<i64>::None);
                         masked_log_probs
-                    }).collect::<Result<Vec<Tensor>, TchError>>()?;
+                    }).collect::<Result<Vec<Tensor>, TchError>>().map_err(|e|{
+                    TensorError::Torch {context: format!("Torch error while masking unused parameters {}", e)}
+                })?;
                 masked_param_log_probs
             }
         };
@@ -328,7 +332,9 @@ impl TensorCriticMultiActor{
 
 
         for t in log_probs_vec{
-            sum = sum.f_add(&t)?;
+            sum = sum.f_add(&t).map_err(|e|{
+                TensorError::Torch {context: format!("Torch error while summing log probabilities in categories {}", e)}
+            })?;
         }
 
 

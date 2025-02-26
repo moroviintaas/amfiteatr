@@ -12,7 +12,7 @@ the suggested quick fix is transforming `Option` to proper `Result` by
 }
 ```
 + Added special error variant `AmfiteatrError::NoActionAvailable` to indicate that agents believes that no action can be played.
-
++ Added new variants for `AmfiteatrError` (`Tensor` and `Data`), while removing `DataConvert`.
 
 ---
 ## Version 0.6.0
