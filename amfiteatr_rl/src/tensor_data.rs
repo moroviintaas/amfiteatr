@@ -178,6 +178,8 @@ pub trait CtxTryConvertIntoMultiIndexI64<W: ConversionToMultiIndexI64>{
             }
 
         }
+        #[cfg(feature = "log_trace")]
+        log::trace!("Action param[0] = {:?}", params[0]);
         Ok((params, usage_masks))
 
     }

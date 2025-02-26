@@ -100,22 +100,14 @@ impl TensorCriticMultiActor{
     ///
     /// ```
     pub fn batch_entropy_masked(&self, forward_masks: Option<&[Tensor]>, reverse_masks: Option<&[Tensor]>) -> Result<Tensor, TchError>{
-        
-        /* first assume that we have criric -> [c0, c1, c2, ...] (1 dim) and 
-            actor is vec![Tensor(a11, a12, ...), Tensor(a21, a22, ...), ...]
-            many steps
-            
-        
-         */
-        /*
-        let p_log_p: Vec<Tensor> = self.actor.iter().map(|ac|{
-            Tensor::einsum("ij, jk -> ik", &[ac.f_softmax(-1, Float)?, ac.f_log_softmax(-1, Float)?], None);
-        }).collect();
 
 
-         */
+
+
         let mut p_log_p = Vec::new();
         for a in self.actor.iter(){
+
+
             p_log_p.push(Tensor::f_einsum("ij, ij -> ij", &[a.f_softmax(-1, Float)?, a.f_log_softmax(-1, Float)?], None::<i64>)?)
         }
 
@@ -130,6 +122,7 @@ impl TensorCriticMultiActor{
                 let mut v = Vec::new();
                 for (i,e) in elements.into_iter().enumerate(){
                     let t = [&e, &rm[i]];
+
                     v.push(Tensor::f_einsum("ij,i->ij", &t, Option::<i64>::None)?);
                 }
                 v
@@ -286,6 +279,7 @@ impl TensorCriticMultiActor{
         -> Result<Tensor, AmfiteatrRlError<DP>>{
 
 
+
         if param_indices.len() != self.actor.len(){
             return Err(AmfiteatrRlError::MismatchedLengthsOfData {
                 shape1: param_indices.len(),
@@ -295,7 +289,8 @@ impl TensorCriticMultiActor{
         }
 
         let probs: Vec<Tensor> = self.actor.iter().enumerate().map(|(i, a)|{
-
+            #[cfg(feature = "log_trace")]
+            log::trace!("Sizes of actor category batch {:?} and param_indices{:?}", a.size(), param_indices[i].size());
                 a.f_log_softmax(-1, Kind::Float)?
                 .f_gather(1, &param_indices[i].f_unsqueeze(1)?, false)?
                 .f_flatten(0, -1)

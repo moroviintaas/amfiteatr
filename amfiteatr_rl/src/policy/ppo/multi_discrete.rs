@@ -1,6 +1,8 @@
+use std::cmp::min;
 use std::fmt::Debug;
 use std::marker::PhantomData;
 use getset::{Getters, Setters};
+use rand::seq::SliceRandom;
 use tch::{kind, Device, Kind, TchError};
 use tch::nn::VarStore;
 use amfiteatr_core::agent::{AgentStepView, AgentTrajectory, InformationSet, Policy};
@@ -13,7 +15,7 @@ use crate::tch;
 use crate::tch::nn::Optimizer;
 use crate::tch::Tensor;
 use crate::tensor_data::{ConversionFromMultipleTensors, ConversionFromTensor, ConversionToMultiIndexI64, ConversionToTensor, CtxTryConvertIntoMultiIndexI64, CtxTryFromMultipleTensors, CtxTryIntoTensor};
-use crate::torch_net::{A2CNet, MultiDiscreteNet, NeuralNetCriticMultiActor};
+use crate::torch_net::{A2CNet, MultiDiscreteNet, NeuralNetCriticMultiActor, TensorCriticMultiActor};
 
 ///! Based on [cleanrl PPO](https://github.com/vwxyzjn/cleanrl/blob/master/cleanrl/ppo.py)
 #[derive(Copy, Clone, Debug, Getters, Setters)]
@@ -27,6 +29,7 @@ pub struct ConfigPPOMultiDiscrete{
     pub gae_lambda: f64,
     pub mini_batch_size: usize,
     pub tensor_kind: tch::kind::Kind,
+    pub update_epochs: usize,
     //pub
 }
 
@@ -42,6 +45,7 @@ impl Default for ConfigPPOMultiDiscrete{
             gae_lambda: 0.95,
             mini_batch_size: 16,
             tensor_kind: tch::kind::Kind::Float,
+            update_epochs: 4,
         }
     }
 }
@@ -66,6 +70,47 @@ where <DP as DomainParameters>::ActionType: CtxTryFromMultipleTensors<ActionBuil
 
 
 
+
+}
+
+impl<
+    DP: DomainParameters,
+    InfoSet: InformationSet<DP> + Debug + CtxTryIntoTensor<InfoSetConversionContext>,
+    InfoSetConversionContext: ConversionToTensor,
+    ActionBuildContext: ConversionFromMultipleTensors,
+> PolicyPPOMultiDiscrete<DP, InfoSet, InfoSetConversionContext, ActionBuildContext>
+where <DP as DomainParameters>::ActionType: CtxTryFromMultipleTensors<ActionBuildContext>{
+
+    fn batch_get_actor_critic_with_logprob_and_entropy(
+        &self,
+        info_set_batch: &Tensor,
+        action_param_batches: &[Tensor],
+        action_category_mask_batches: Option<&[Tensor]>,
+        action_forward_mask_batches: Option<&[Tensor]>,
+    ) -> Result<(Tensor, Tensor, Tensor), TensorRepresentationError>{
+
+        let critic_actor= (&self.network.net())(info_set_batch);
+
+        let batch_logprob = critic_actor.batch_log_probability_of_action::<DP>(
+            action_param_batches,
+            action_category_mask_batches
+        ).unwrap();
+        let batch_entropy = critic_actor.batch_entropy_masked(
+            action_forward_mask_batches,
+            action_category_mask_batches
+
+        )?;
+
+        let batch_entropy_avg = batch_entropy.f_sum_dim_intlist(
+            Some(1),
+            false,
+            Kind::Float
+        )?.f_div_scalar(batch_entropy.size()[1])?;
+        //println!("batch entropy: {}", batch_entropy);
+        //println!("batch entropy avg: {}", batch_entropy_avg);
+
+        Ok((batch_logprob, batch_entropy_avg, critic_actor.critic))
+    }
 
 }
 
@@ -200,6 +245,8 @@ where <DP as DomainParameters>::ActionType: CtxTryFromMultipleTensors<ActionBuil
         let device = self.network.device();
         let capacity_estimate = sum_trajectories_steps(&trajectories);
 
+        let mut rng = rand::thread_rng();
+
         let tmp_capacity_estimate = find_max_trajectory_len(&trajectories);
 
         let mut state_tensor_vec = Vec::<Tensor>::with_capacity(capacity_estimate);
@@ -294,40 +341,90 @@ where <DP as DomainParameters>::ActionType: CtxTryFromMultipleTensors<ActionBuil
                 vec_2d_append_second_dim(&mut multi_action_cat_mask_tensor_vec, &mut tmp_trajectory_action_category_mask_vecs);
 
 
+
             } else {
                 #[cfg(feature = "log_debug")]
                 log::debug!("Slipping empty trajectory.")
             }
 
-            let batch_info_sets_t = Tensor::f_vstack(&state_tensor_vec)?;
-            #[cfg(feature = "log_trace")]
-            log::trace!("Batch infoset shape = {:?}", batch_info_sets_t.size());
-            let batch_advantage_t = Tensor::f_vstack(&advantage_tensor_vec)?;
-            #[cfg(feature = "log_trace")]
-            log::trace!("Batch afvantage shape = {:?}", batch_advantage_t.size());
-            let batch_actions_t= multi_action_tensor_vec.iter().map(|cat|{
-                #[cfg(feature = "log_trace")]
-                log::trace!("Cat  len = {}", cat.len());
-                Tensor::f_vstack(cat)
-            }).collect::<Result<Vec<_>, TchError>>()?;
-            let batch_action_masks_t= multi_action_cat_mask_tensor_vec.iter().map(|cat|{
-                Tensor::f_vstack(cat)
-            }).collect::<Result<Vec<_>, TchError>>()?;
 
 
 
 
-            println!("info_sets: {:?}", batch_info_sets_t.size());
-            println!("advantages: {:?}", batch_advantage_t.size());
-            println!("actions: {:?}", batch_info_sets_t.size());
 
-            for (index, cat) in batch_actions_t.iter().enumerate(){
-                println!("Category: {index:}, {:?}", cat.size());
-            }
+
 
 
 
         }
+        let batch_info_sets_t = Tensor::f_vstack(&state_tensor_vec)?;
+        #[cfg(feature = "log_trace")]
+        log::trace!("Batch infoset shape = {:?}", batch_info_sets_t.size());
+        let batch_advantage_t = Tensor::f_vstack(&advantage_tensor_vec)?;
+        #[cfg(feature = "log_trace")]
+        log::trace!("Batch afvantage shape = {:?}", batch_advantage_t.size());
+        let batch_actions_t= multi_action_tensor_vec.iter().map(|cat|{
+            #[cfg(feature = "log_trace")]
+            log::trace!("Cat[0] = {}, size = {:?}", cat[0], cat[0].size());
+            Tensor::f_stack(cat, 0)
+        }).collect::<Result<Vec<_>, TchError>>()?;
+        #[cfg(feature = "log_trace")]
+        log::trace!("BCat[0] = {}", batch_actions_t[0]);
+        let batch_action_masks_t= multi_action_cat_mask_tensor_vec.iter().map(|cat|{
+
+            Tensor::f_stack(cat, 0)
+        }).collect::<Result<Vec<_>, TchError>>()?;
+
+        println!("info_sets: {:?}", batch_info_sets_t.size());
+        println!("advantages: {:?}", batch_advantage_t.size());
+        println!("actions: {:?}", batch_actions_t[0].size());
+
+        for (index, cat) in batch_actions_t.iter().enumerate(){
+            println!("Category: {index:}, {:?}", cat.size());
+        }
+
+        let batch_size = batch_info_sets_t.size()[0];
+        let mut indices: Vec<i64> = (0..batch_size).collect();
+
+
+
+
+        for epoch in 0..self.config.update_epochs{
+            #[cfg(feature = "log_debug")]
+            log::debug!("PPO Update Epoch: {epoch}");
+
+            indices.shuffle(&mut rng);
+            //println!("{indices:?}")
+
+            for minibatch_start in (0..batch_size).step_by(self.config.mini_batch_size){
+                let minibatch_end = min(minibatch_start + self.config.mini_batch_size as i64, batch_size);
+                let minibatch_indices = Tensor::from(&indices[minibatch_start as usize..minibatch_end as usize]);
+
+                println!("batch_actions_t[] size = {:?}", batch_actions_t[0].size());
+                let mini_batch_action: Vec<Tensor> = batch_actions_t.iter().map(|c|{
+                    c.f_index_select(0, &minibatch_indices)
+                }).collect::<Result<Vec<_>, TchError>>()?;
+
+                let mini_batch_action_cat_mask: Vec<Tensor> = batch_action_masks_t.iter().map(|c|{
+                    c.f_index_select(0, &minibatch_indices)
+                }).collect::<Result<Vec<_>, TchError>>()?;
+
+                let (new_logprob, entropy, newvalue) = self.batch_get_actor_critic_with_logprob_and_entropy(
+                    &batch_info_sets_t.f_index_select(0, &minibatch_indices)?,
+                    &mini_batch_action,
+                    Some(&mini_batch_action_cat_mask),
+                    None, //to add it some day
+                )?;
+                println!("Advantages: {:?}", batch_advantage_t.f_index_select(0, &minibatch_indices)?);
+
+                println!("Entropy: {:}", entropy);
+
+
+
+            }
+
+        }
+
         todo!()
 
 
