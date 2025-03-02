@@ -4,6 +4,7 @@ use std::marker::PhantomData;
 use getset::{Getters, Setters};
 use rand::seq::SliceRandom;
 use tch::{kind, Device, Kind, TchError};
+use tch::Kind::Float;
 use tch::nn::VarStore;
 use amfiteatr_core::agent::{AgentStepView, AgentTrajectory, InformationSet, Policy};
 use amfiteatr_core::domain::DomainParameters;
@@ -386,9 +387,28 @@ where <DP as DomainParameters>::ActionType: CtxTryFromMultipleTensors<ActionBuil
         let batch_size = batch_info_sets_t.size()[0];
         let mut indices: Vec<i64> = (0..batch_size).collect();
 
+        /*
+        let (batch_logprob_t, _entropy, _batch_value) = self.batch_get_actor_critic_with_logprob_and_entropy(
+            &batch_info_sets_t,
+            &batch_actions_t,
+            Some(&batch_action_masks_t),
+            None, //to add it some day
+        )?;
+        
+         */
+
+        let (batch_logprob_t, _entropy, _batch_value) = tch::no_grad(||{
+            self.batch_get_actor_critic_with_logprob_and_entropy(
+                &batch_info_sets_t,
+                &batch_actions_t,
+                Some(&batch_action_masks_t),
+                None, //to add it some day
+            )
+
+        })?;
 
 
-
+        //let mut clip_fracs = vec![];
         for epoch in 0..self.config.update_epochs{
             #[cfg(feature = "log_debug")]
             log::debug!("PPO Update Epoch: {epoch}");
@@ -409,15 +429,59 @@ where <DP as DomainParameters>::ActionType: CtxTryFromMultipleTensors<ActionBuil
                     c.f_index_select(0, &minibatch_indices)
                 }).collect::<Result<Vec<_>, TchError>>()?;
 
+                let mini_batch_base_logprobs = batch_logprob_t.f_index_select(0, &minibatch_indices)?;
+
                 let (new_logprob, entropy, newvalue) = self.batch_get_actor_critic_with_logprob_and_entropy(
                     &batch_info_sets_t.f_index_select(0, &minibatch_indices)?,
                     &mini_batch_action,
                     Some(&mini_batch_action_cat_mask),
                     None, //to add it some day
                 )?;
-                println!("Advantages: {:?}", batch_advantage_t.f_index_select(0, &minibatch_indices)?);
+                #[cfg(feature = "log_debug")]
+                log::debug!("Advantages: {:?}", batch_advantage_t.f_index_select(0, &minibatch_indices)?);
+                #[cfg(feature = "log_debug")]
+                log::debug!("Entropy: {:}", entropy);
 
-                println!("Entropy: {:}", entropy);
+                #[cfg(feature = "log_debug")]
+                log::debug!("Base logbprob: {:}", mini_batch_base_logprobs);
+
+                #[cfg(feature = "log_debug")]
+                log::debug!("New logprob: {:}", new_logprob);
+
+                let logratio = new_logprob.f_sub(&mini_batch_base_logprobs)?;
+                let ratio  = logratio.f_exp()?;
+
+                #[cfg(feature = "log_debug")]
+                log::debug!("Log ratio: {:}", logratio);
+
+                //Approximate KL
+
+                let (r_old_approx_kl, r_approx_kl) = tch::no_grad(|| {
+                    let old_approx_kl = (-&logratio).f_mean(Float);
+                    let approx_kl = ((&ratio -1.0) - &logratio).f_mean(Float);
+                    //let clip_frac = ((&ratio -1.0).abs().f_is_g)
+
+                    (old_approx_kl, approx_kl)
+
+                });
+
+                let old_approx_kl = r_old_approx_kl?;
+                let approx_kl = r_approx_kl?;
+
+                let minibatch_advantages_t = batch_advantage_t.f_index_select(0, &minibatch_indices)?;
+
+                #[cfg(feature = "log_debug")]
+                log::debug!("Old Approximate KL: {:}", old_approx_kl);
+
+                #[cfg(feature = "log_debug")]
+                log::debug!("Approximate KL: {:}", approx_kl);
+
+                let pg_loss1 = -&minibatch_advantages_t.f_mul(&ratio)?;
+                let pg_loss2 = -&minibatch_advantages_t.f_mul(&ratio.f_clamp(1.0 - self.config.clip_coef, 1.0 + self.config.clip_coef)?)?;
+                let pg_loss = pg_loss1.f_max_other(&pg_loss2)?.f_mean(Float)?;
+
+                #[cfg(feature = "log_debug")]
+                log::debug!("PG loss : {}", pg_loss);
 
 
 
