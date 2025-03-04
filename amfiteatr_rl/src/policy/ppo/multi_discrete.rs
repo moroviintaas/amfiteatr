@@ -271,6 +271,8 @@ where <DP as DomainParameters>::ActionType: CtxTryFromMultipleTensors<ActionBuil
         }
         let mut tmp_trajectory_reward_vec = Vec::with_capacity(tmp_capacity_estimate);
 
+        let mut returns_v = Vec::new();
+
         #[cfg(feature = "log_debug")]
         log::debug!("Starting operations on trajectories.",);
         for t in trajectories{
@@ -332,7 +334,7 @@ where <DP as DomainParameters>::ActionType: CtxTryFromMultipleTensors<ActionBuil
                     let last_gae_lambda = delta + (self.config.gamma * self.config.gae_lambda * next_nonterminal);
                     advantages_t.f_get(index)?.f_copy_(&last_gae_lambda)?
                 }
-                let returns = advantages_t.f_add(&values_t)?;
+                returns_v.push(advantages_t.f_add(&values_t)?);
 
                 state_tensor_vec.push(information_set_t);
                 advantage_tensor_vec.push(advantages_t);
@@ -362,8 +364,11 @@ where <DP as DomainParameters>::ActionType: CtxTryFromMultipleTensors<ActionBuil
         #[cfg(feature = "log_trace")]
         log::trace!("Batch infoset shape = {:?}", batch_info_sets_t.size());
         let batch_advantage_t = Tensor::f_vstack(&advantage_tensor_vec)?;
+        let batch_returns_t = Tensor::f_vstack(&returns_v)?;
         #[cfg(feature = "log_trace")]
-        log::trace!("Batch afvantage shape = {:?}", batch_advantage_t.size());
+        log::trace!("Batch returns shape = {:?}", batch_returns_t.size());
+        #[cfg(feature = "log_trace")]
+        log::trace!("Batch advantage shape = {:?}", batch_advantage_t.size());
         let batch_actions_t= multi_action_tensor_vec.iter().map(|cat|{
             #[cfg(feature = "log_trace")]
             log::trace!("Cat[0] = {}, size = {:?}", cat[0], cat[0].size());
@@ -397,7 +402,7 @@ where <DP as DomainParameters>::ActionType: CtxTryFromMultipleTensors<ActionBuil
         
          */
 
-        let (batch_logprob_t, _entropy, _batch_value) = tch::no_grad(||{
+        let (batch_logprob_t, _entropy, batch_values_t) = tch::no_grad(||{
             self.batch_get_actor_critic_with_logprob_and_entropy(
                 &batch_info_sets_t,
                 &batch_actions_t,
@@ -469,7 +474,8 @@ where <DP as DomainParameters>::ActionType: CtxTryFromMultipleTensors<ActionBuil
                 let approx_kl = r_approx_kl?;
 
                 let minibatch_advantages_t = batch_advantage_t.f_index_select(0, &minibatch_indices)?;
-
+                let minibatch_returns_t = batch_returns_t.f_index_select(0, &minibatch_indices)?;
+                let minibatch_values_t = batch_values_t.f_index_select(0, &minibatch_indices)?;
                 #[cfg(feature = "log_debug")]
                 log::debug!("Old Approximate KL: {:}", old_approx_kl);
 
@@ -485,11 +491,38 @@ where <DP as DomainParameters>::ActionType: CtxTryFromMultipleTensors<ActionBuil
 
 
 
+                let v_loss = if self.config.clip_vloss{
+                    let v_loss_unclipped = (newvalue.f_sub(&minibatch_returns_t)?).f_square()?;
+                    let v_clipped =minibatch_values_t.f_add(
+                       &newvalue.f_sub(&minibatch_values_t)?
+                           .f_clamp(
+                               - self.config.clip_coef,
+                               self.config.clip_coef
+                           )?
+                    )?;
+                    let v_loss_clipped = (v_clipped.f_sub(&minibatch_returns_t)?).f_square()?;
+                    let v_loss_max = v_loss_unclipped.f_max_other(&v_loss_clipped)?;
+                    v_loss_max.f_mean(Float)? * 0.5
+                } else {
+                    newvalue.f_sub(&minibatch_returns_t)?.f_square()?.f_mean(Float)? *0.5
+                };
+
+                let entropy_loss = entropy.f_mean(Float)?;
+                let loss = pg_loss
+                    .f_sub(&(entropy_loss * self.config.ent_coef))?
+                    .f_add(&(v_loss * self.config.vf_coef))?;
+
+                self.optimizer.zero_grad();
+
+                self.optimizer.backward_step(&loss);
+
+
+
             }
 
         }
 
-        todo!()
+        Ok(())
 
 
 
