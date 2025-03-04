@@ -18,3 +18,22 @@ impl<DP: DomainParameters> From<TensorError> for AmfiteatrError<DP>{
         }
     }
 }
+#[cfg(feature = "torch")]
+impl From<tch::TchError> for TensorError{
+    fn from(source: tch::TchError) -> TensorError{
+        TensorError::Torch {
+            context: format!("{}", source)
+        }
+    }
+}
+
+#[cfg(feature = "torch")]
+impl<DP: DomainParameters>  From<tch::TchError> for AmfiteatrError<DP>{
+    fn from(source: tch::TchError) -> AmfiteatrError<DP>{
+        AmfiteatrError::Tensor {
+            error: TensorError::Torch {
+                context: format!("{}", source)
+            },
+        }
+    }
+}

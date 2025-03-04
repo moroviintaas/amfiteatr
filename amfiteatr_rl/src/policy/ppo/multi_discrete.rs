@@ -12,7 +12,7 @@ use amfiteatr_core::error::AmfiteatrError;
 use crate::error::{AmfiteatrRlError, TensorRepresentationError};
 use crate::policy::common::{find_max_trajectory_len, sum_trajectories_steps};
 use crate::policy::LearningNetworkPolicy;
-use crate::tch;
+use crate::{tch, MaskingInformationSetActionMultiParameter};
 use crate::tch::nn::Optimizer;
 use crate::tch::Tensor;
 use crate::tensor_data::{ConversionFromMultipleTensors, ConversionFromTensor, ConversionToMultiIndexI64, ConversionToTensor, ContextTryConvertIntoMultiIndexI64, ContextTryFromMultipleTensors, ContextTryIntoTensor};
@@ -165,12 +165,16 @@ where <DP as DomainParameters>::ActionType: ContextTryFromMultipleTensors<Action
 
 impl<
     DP: DomainParameters,
-    InfoSet: InformationSet<DP> + Debug + ContextTryIntoTensor<InfoSetConversionContext>,
-    InfoSetConversionContext: ConversionToTensor,
-    ActionBuildContext: ConversionFromMultipleTensors,
+    InfoSet: InformationSet<DP> + Debug + ContextTryIntoTensor<InfoSetConversionContext> + MaskingInformationSetActionMultiParameter<ActionBuildContext>,
+    InfoSetConversionContext: ConversionToTensor ,
+    ActionBuildContext: ConversionFromMultipleTensors + ConversionToMultiIndexI64,
 >
 Policy<DP> for PolicyPPOMultiDiscrete<DP, InfoSet, InfoSetConversionContext, ActionBuildContext>
-where <DP as DomainParameters>::ActionType: ContextTryFromMultipleTensors<ActionBuildContext, ConvertError: Into<AmfiteatrError<DP>>>
+where
+    <DP as DomainParameters>::ActionType:
+        ContextTryFromMultipleTensors<ActionBuildContext, ConvertError: Into<AmfiteatrError<DP>>>,
+    AmfiteatrError<DP>: From<<InfoSet as MaskingInformationSetActionMultiParameter<ActionBuildContext>>::Error>
+
 {
     type InfoSetType = InfoSet;
 
@@ -179,12 +183,33 @@ where <DP as DomainParameters>::ActionType: ContextTryFromMultipleTensors<Action
         //log::debug!("Info set tensor kind: {:?}", state_tensor.kind());
         let out = tch::no_grad(|| (self.network.net())(&state_tensor));
         let actor = out.actor;
-        let probs = actor.iter()
-            .map(|t| t.softmax(-1, self.config.tensor_kind));
-        let choices: Vec<Tensor> = match self.exploration{
-            true => probs.map(|t| t.multinomial(1, true)).collect(),
+        let masks_option = state.try_build_masks(&self.action_build_context)?;
+        let probs: Vec<Tensor> =  match masks_option {
+            Some(masks) => {
+                actor.iter().zip(masks.iter()).map(|(t, m)|{
+                    Tensor::f_einsum("i,i -> i", &[t, m], Option::<i64>::None).map(|prob_masked|{
+                        prob_masked.softmax(-1, self.config.tensor_kind)
+                    })
 
-            false => probs.map(|t| t.argmax(None, false).unsqueeze(-1)).collect()
+                }).collect::<Result<Vec<Tensor>, _>>()?
+
+
+            },
+            None => {
+                actor.iter()
+                    .map(|t|
+
+                    t.softmax(-1, self.config.tensor_kind)
+
+                ).collect()
+
+            }
+        };
+
+        let choices: Vec<Tensor> = match self.exploration{
+            true => probs.into_iter().map(|t| t.multinomial(1, true)).collect(),
+
+            false => probs.into_iter().map(|t| t.argmax(None, false).unsqueeze(-1)).collect()
         };
 
         <DP::ActionType>::try_from_tensors(&choices, &self.action_build_context).map_err(|err| {
@@ -210,12 +235,13 @@ where <DP as DomainParameters>::ActionType: ContextTryFromMultipleTensors<Action
 
 impl<
     DP: DomainParameters,
-    InfoSet: InformationSet<DP> + Debug + ContextTryIntoTensor<InfoSetConversionContext>,
+    InfoSet: InformationSet<DP> + Debug + ContextTryIntoTensor<InfoSetConversionContext> + MaskingInformationSetActionMultiParameter<ActionBuildContext>,
     InfoSetConversionContext: ConversionToTensor,
     ActionBuildContext: ConversionFromMultipleTensors + ConversionToMultiIndexI64,
 > LearningNetworkPolicy<DP> for PolicyPPOMultiDiscrete<DP, InfoSet, InfoSetConversionContext, ActionBuildContext>
 where <DP as DomainParameters>::ActionType: ContextTryFromMultipleTensors<ActionBuildContext, ConvertError: Into<AmfiteatrError<DP>>>
-    + ContextTryConvertIntoMultiIndexI64<ActionBuildContext>
+    + ContextTryConvertIntoMultiIndexI64<ActionBuildContext>,
+      AmfiteatrError<DP>: From<<InfoSet as MaskingInformationSetActionMultiParameter<ActionBuildContext>>::Error>,
 {
     fn var_store(&self) -> &VarStore {
         &self.network.var_store()
@@ -260,7 +286,7 @@ where <DP as DomainParameters>::ActionType: ContextTryFromMultipleTensors<Action
         let mut multi_action_cat_mask_tensor_vec = self.action_build_context.expected_inputs_shape()
             .iter().map(|_a|Vec::<Tensor>::with_capacity(capacity_estimate)).collect();
 
-        let mut tmp_discounted_payoff_tensor_vec: Vec<Tensor> = Vec::with_capacity(tmp_capacity_estimate);
+        //let mut tmp_discounted_payoff_tensor_vec: Vec<Tensor> = Vec::with_capacity(tmp_capacity_estimate);
         let mut tmp_trajectory_state_tensor_vec = Vec::with_capacity(tmp_capacity_estimate);
         let mut tmp_trajectory_action_tensor_vecs: Vec<Vec<Tensor>> = Vec::new();
 

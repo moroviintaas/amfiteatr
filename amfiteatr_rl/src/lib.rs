@@ -19,6 +19,8 @@ pub mod agent;
 pub mod demo;
 /// Module dedicated to learning policies
 pub mod policy;
+mod masking;
+pub use masking::*;
 
 /// Reexports compatible [`tch`]
 pub use tch;

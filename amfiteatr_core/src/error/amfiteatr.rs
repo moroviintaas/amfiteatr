@@ -66,7 +66,7 @@ pub enum AmfiteatrError<DP: DomainParameters>{
         #[source]
         error: TensorError,
     },
-    #[error("Tensor operation error: {error}")]
+    #[error("Data error: {error}")]
     Data{
         #[source]
         error: DataError,
