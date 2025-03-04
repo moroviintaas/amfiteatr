@@ -15,7 +15,7 @@ use amfiteatr_core::domain::DomainParameters;
 
 
 use crate::error::AmfiteatrRlError;
-use crate::tensor_data::{CtxTryIntoTensor, ConversionToTensor};
+use crate::tensor_data::{ContextTryIntoTensor, ConversionToTensor};
 use crate::torch_net::NeuralNet1;
 use rand::thread_rng;
 use amfiteatr_core::error::AmfiteatrError;
@@ -98,7 +98,7 @@ impl QSelector{
 /// Generic implementation of Advantage Q-function policy
 pub struct QLearningPolicy<
     DP: DomainParameters,
-    InfoSet: InformationSet<DP> + Debug + CtxTryIntoTensor<IS2T>,
+    InfoSet: InformationSet<DP> + Debug + ContextTryIntoTensor<IS2T>,
     IS2T: ConversionToTensor,
     A2T: ConversionToTensor,
 
@@ -119,11 +119,11 @@ pub struct QLearningPolicy<
 impl
 <
     DP: DomainParameters,
-    InfoSet: InformationSet<DP> + Debug + CtxTryIntoTensor<IS2T> + PresentPossibleActions<DP>,
+    InfoSet: InformationSet<DP> + Debug + ContextTryIntoTensor<IS2T> + PresentPossibleActions<DP>,
     IS2T: ConversionToTensor,
     A2T: ConversionToTensor
 > QLearningPolicy<DP, InfoSet, IS2T, A2T>
-where <<InfoSet as PresentPossibleActions<DP>>::ActionIteratorType as IntoIterator>::Item: CtxTryIntoTensor<A2T>, {
+where <<InfoSet as PresentPossibleActions<DP>>::ActionIteratorType as IntoIterator>::Item: ContextTryIntoTensor<A2T>, {
 
     pub fn new(
         network: NeuralNet1,
@@ -150,13 +150,13 @@ where <<InfoSet as PresentPossibleActions<DP>>::ActionIteratorType as IntoIterat
 impl
 <
     DP: DomainParameters,
-    InfoSet: InformationSet<DP> + Debug + CtxTryIntoTensor<IS2T> + PresentPossibleActions<DP>,
+    InfoSet: InformationSet<DP> + Debug + ContextTryIntoTensor<IS2T> + PresentPossibleActions<DP>,
     IS2T: ConversionToTensor,
     A2T: ConversionToTensor
 > LearningNetworkPolicy<DP> for QLearningPolicy<DP, InfoSet, IS2T, A2T>
-where <<InfoSet as PresentPossibleActions<DP>>::ActionIteratorType as IntoIterator>::Item: CtxTryIntoTensor<A2T>,
+where <<InfoSet as PresentPossibleActions<DP>>::ActionIteratorType as IntoIterator>::Item: ContextTryIntoTensor<A2T>,
 //<DP as DomainParameters>::UniversalReward: FloatTensorReward,
-<DP as DomainParameters>::ActionType: CtxTryIntoTensor<A2T> {
+<DP as DomainParameters>::ActionType: ContextTryIntoTensor<A2T> {
     /*
     type Network = NeuralNet1;
     type TrainConfig = TrainConfig;
@@ -301,11 +301,11 @@ where <<InfoSet as PresentPossibleActions<DP>>::ActionIteratorType as IntoIterat
 
 impl<
     DP: DomainParameters,
-    InfoSet: InformationSet<DP> + Debug + CtxTryIntoTensor<IS2T> + PresentPossibleActions<DP>,
+    InfoSet: InformationSet<DP> + Debug + ContextTryIntoTensor<IS2T> + PresentPossibleActions<DP>,
     IS2T: ConversionToTensor,
     A2T: ConversionToTensor
 > Policy<DP> for QLearningPolicy<DP, InfoSet, IS2T, A2T>
-where <<InfoSet as PresentPossibleActions<DP>>::ActionIteratorType as IntoIterator>::Item: CtxTryIntoTensor<A2T>{
+where <<InfoSet as PresentPossibleActions<DP>>::ActionIteratorType as IntoIterator>::Item: ContextTryIntoTensor<A2T>{
     type InfoSetType = InfoSet;
 
     fn select_action(&self, state: &Self::InfoSetType) -> Result<DP::ActionType, AmfiteatrError<DP>> {

@@ -3,7 +3,7 @@ use amfiteatr_core::domain::{DomainParameters, Renew};
 use amfiteatr_core::error::AmfiteatrError;
 use amfiteatr_rl::error::TensorRepresentationError;
 use amfiteatr_rl::tch::Tensor;
-use amfiteatr_rl::tensor_data::{ConversionToTensor, CtxTryIntoTensor};
+use amfiteatr_rl::tensor_data::{ConversionToTensor, ContextTryIntoTensor};
 use crate::common::{ConnectFourAction, ConnectFourBinaryObservation, ConnectFourDomain, ConnectFourPlayer};
 
 #[derive(Clone, Debug)]
@@ -53,7 +53,7 @@ impl ConversionToTensor for ConnectFourTensorReprD1{
     }
 }
 
-impl CtxTryIntoTensor<ConnectFourTensorReprD1> for ConnectFourInfoSet{
+impl ContextTryIntoTensor<ConnectFourTensorReprD1> for ConnectFourInfoSet{
     fn try_to_tensor(&self, way: &ConnectFourTensorReprD1) -> Result<Tensor, TensorRepresentationError> {
 
         let mut vec = Vec::with_capacity(way.desired_shape()[0] as usize);

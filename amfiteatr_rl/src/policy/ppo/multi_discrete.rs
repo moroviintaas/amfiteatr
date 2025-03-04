@@ -15,7 +15,7 @@ use crate::policy::LearningNetworkPolicy;
 use crate::tch;
 use crate::tch::nn::Optimizer;
 use crate::tch::Tensor;
-use crate::tensor_data::{ConversionFromMultipleTensors, ConversionFromTensor, ConversionToMultiIndexI64, ConversionToTensor, CtxTryConvertIntoMultiIndexI64, CtxTryFromMultipleTensors, CtxTryIntoTensor};
+use crate::tensor_data::{ConversionFromMultipleTensors, ConversionFromTensor, ConversionToMultiIndexI64, ConversionToTensor, ContextTryConvertIntoMultiIndexI64, ContextTryFromMultipleTensors, ContextTryIntoTensor};
 use crate::torch_net::{A2CNet, MultiDiscreteNet, NeuralNetCriticMultiActor, TensorCriticMultiActor};
 
 ///! Based on [cleanrl PPO](https://github.com/vwxyzjn/cleanrl/blob/master/cleanrl/ppo.py)
@@ -53,11 +53,11 @@ impl Default for ConfigPPOMultiDiscrete{
 
 pub struct PolicyPPOMultiDiscrete<
     DP: DomainParameters,
-    InfoSet: InformationSet<DP> + Debug + CtxTryIntoTensor<InfoSetConversionContext>,
+    InfoSet: InformationSet<DP> + Debug + ContextTryIntoTensor<InfoSetConversionContext>,
     InfoSetConversionContext: ConversionToTensor,
     ActionBuildContext: ConversionFromMultipleTensors,
 >
-where <DP as DomainParameters>::ActionType: CtxTryFromMultipleTensors<ActionBuildContext>
+where <DP as DomainParameters>::ActionType: ContextTryFromMultipleTensors<ActionBuildContext>
 {
     config: ConfigPPOMultiDiscrete,
     network: NeuralNetCriticMultiActor,
@@ -76,11 +76,11 @@ where <DP as DomainParameters>::ActionType: CtxTryFromMultipleTensors<ActionBuil
 
 impl<
     DP: DomainParameters,
-    InfoSet: InformationSet<DP> + Debug + CtxTryIntoTensor<InfoSetConversionContext>,
+    InfoSet: InformationSet<DP> + Debug + ContextTryIntoTensor<InfoSetConversionContext>,
     InfoSetConversionContext: ConversionToTensor,
     ActionBuildContext: ConversionFromMultipleTensors,
 > PolicyPPOMultiDiscrete<DP, InfoSet, InfoSetConversionContext, ActionBuildContext>
-where <DP as DomainParameters>::ActionType: CtxTryFromMultipleTensors<ActionBuildContext>{
+where <DP as DomainParameters>::ActionType: ContextTryFromMultipleTensors<ActionBuildContext>{
 
     fn batch_get_actor_critic_with_logprob_and_entropy(
         &self,
@@ -134,12 +134,12 @@ fn vec_2d_push_second_dim<T>(v: &mut Vec<Vec<T>>, append: Vec<T>){
 
 impl<
     DP: DomainParameters,
-    InfoSet: InformationSet<DP> + Debug + CtxTryIntoTensor<InfoSetConversionContext>,
+    InfoSet: InformationSet<DP> + Debug + ContextTryIntoTensor<InfoSetConversionContext>,
     InfoSetConversionContext: ConversionToTensor,
     ActionBuildContext: ConversionFromMultipleTensors,
 >
 PolicyPPOMultiDiscrete<DP, InfoSet, InfoSetConversionContext, ActionBuildContext>
-where <DP as DomainParameters>::ActionType: CtxTryFromMultipleTensors<ActionBuildContext>
+where <DP as DomainParameters>::ActionType: ContextTryFromMultipleTensors<ActionBuildContext>
 {
     pub fn new(
         config: ConfigPPOMultiDiscrete,
@@ -165,12 +165,12 @@ where <DP as DomainParameters>::ActionType: CtxTryFromMultipleTensors<ActionBuil
 
 impl<
     DP: DomainParameters,
-    InfoSet: InformationSet<DP> + Debug + CtxTryIntoTensor<InfoSetConversionContext>,
+    InfoSet: InformationSet<DP> + Debug + ContextTryIntoTensor<InfoSetConversionContext>,
     InfoSetConversionContext: ConversionToTensor,
     ActionBuildContext: ConversionFromMultipleTensors,
 >
 Policy<DP> for PolicyPPOMultiDiscrete<DP, InfoSet, InfoSetConversionContext, ActionBuildContext>
-where <DP as DomainParameters>::ActionType: CtxTryFromMultipleTensors<ActionBuildContext, ConvertError: Into<AmfiteatrError<DP>>>
+where <DP as DomainParameters>::ActionType: ContextTryFromMultipleTensors<ActionBuildContext, ConvertError: Into<AmfiteatrError<DP>>>
 {
     type InfoSetType = InfoSet;
 
@@ -210,12 +210,12 @@ where <DP as DomainParameters>::ActionType: CtxTryFromMultipleTensors<ActionBuil
 
 impl<
     DP: DomainParameters,
-    InfoSet: InformationSet<DP> + Debug + CtxTryIntoTensor<InfoSetConversionContext>,
+    InfoSet: InformationSet<DP> + Debug + ContextTryIntoTensor<InfoSetConversionContext>,
     InfoSetConversionContext: ConversionToTensor,
     ActionBuildContext: ConversionFromMultipleTensors + ConversionToMultiIndexI64,
 > LearningNetworkPolicy<DP> for PolicyPPOMultiDiscrete<DP, InfoSet, InfoSetConversionContext, ActionBuildContext>
-where <DP as DomainParameters>::ActionType: CtxTryFromMultipleTensors<ActionBuildContext, ConvertError: Into<AmfiteatrError<DP>>>
-    + CtxTryConvertIntoMultiIndexI64<ActionBuildContext>
+where <DP as DomainParameters>::ActionType: ContextTryFromMultipleTensors<ActionBuildContext, ConvertError: Into<AmfiteatrError<DP>>>
+    + ContextTryConvertIntoMultiIndexI64<ActionBuildContext>
 {
     fn var_store(&self) -> &VarStore {
         &self.network.var_store()

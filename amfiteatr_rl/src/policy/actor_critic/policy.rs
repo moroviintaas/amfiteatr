@@ -14,14 +14,14 @@ use amfiteatr_core::error::AmfiteatrError;
 use crate::error::{AmfiteatrRlError, TensorRepresentationError};
 use crate::policy::common::categorical_dist_entropy;
 use crate::policy::LearningNetworkPolicy;
-use crate::tensor_data::{CtxTryIntoTensor, ConversionToTensor, TryIntoTensor, TryFromTensor};
+use crate::tensor_data::{ContextTryIntoTensor, ConversionToTensor, TryIntoTensor, TryFromTensor};
 use crate::torch_net::{A2CNet, TensorA2C};
 use crate::policy::TrainConfig;
 
 /// Generic implementation of Advantage Actor Critic policy
 pub struct ActorCriticPolicy<
     DP: DomainParameters,
-    InfoSet: InformationSet<DP> + Debug + CtxTryIntoTensor<InfoSetConversionContext>,
+    InfoSet: InformationSet<DP> + Debug + ContextTryIntoTensor<InfoSetConversionContext>,
     InfoSetConversionContext: ConversionToTensor,
    // ActionConversionContext: ConversionFromTensor,
 > {
@@ -41,7 +41,7 @@ pub struct ActorCriticPolicy<
 
 impl<
     DP: DomainParameters,
-    InfoSet: InformationSet<DP>  + Debug + CtxTryIntoTensor<InfoSetConversionContext>,
+    InfoSet: InformationSet<DP>  + Debug + ContextTryIntoTensor<InfoSetConversionContext>,
     InfoSetConversionContext: ConversionToTensor,
     //ActionConversionContext: ConversionFromTensor,
     >
@@ -109,7 +109,7 @@ ActorCriticPolicy<
 impl<DP: DomainParameters,
     //InfoSet: InformationSet<DP> + Debug,
     //TB: ConvStateToTensor<InfoSet>,
-    InfoSet: InformationSet<DP> + Debug + CtxTryIntoTensor<InfoSetConversionContext>,
+    InfoSet: InformationSet<DP> + Debug + ContextTryIntoTensor<InfoSetConversionContext>,
     InfoSetConversionContext: ConversionToTensor,
     //ActionConversionContext: ConversionFromTensor,
 > Policy<DP> for ActorCriticPolicy<
@@ -153,7 +153,7 @@ where <DP as DomainParameters>::ActionType: TryFromTensor{
 
 impl<
     DP: DomainParameters,
-    InfoSet: InformationSet<DP>  + Debug + CtxTryIntoTensor<InfoSetWay>,
+    InfoSet: InformationSet<DP>  + Debug + ContextTryIntoTensor<InfoSetWay>,
     InfoSetWay: ConversionToTensor,
     //InfoSet: ScoringInformationSet<DP> + Debug,
     //StateConverter: ConvStateToTensor<InfoSet>>

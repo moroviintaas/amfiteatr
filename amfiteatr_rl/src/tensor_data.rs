@@ -8,7 +8,7 @@ use crate::error::TensorRepresentationError;
 
 
 /// Extension for [`ConversionToTensor`] to actually produce tensor. However, implementing this trait
-/// is optional, because generic implementations require [`CtxTryIntoTensor`] on type converted,
+/// is optional, because generic implementations require [`ContextTryIntoTensor`] on type converted,
 /// and it is probably what you need to implement.
 /// However, it may be sometimes convenient to implement this trait for converter and then use it on
 /// converted types.
@@ -21,7 +21,7 @@ pub trait SimpleConvertToTensor<T>: Send + ConversionToTensor {
 
 
 /// Trait representing structs (maybe 0-sized) that tell what is desired shape of tensor produced
-/// by conversion to tensor when using [`CtxTryIntoTensor`].
+/// by conversion to tensor when using [`ContextTryIntoTensor`].
 pub trait ConversionToTensor: Send{
     /// Returns shape (slice of i64 numbers) of shape that must be produced for network
     fn desired_shape(&self) -> &[i64];
@@ -42,13 +42,13 @@ pub trait ConversionToTensor: Send{
 /// _"enemy has king of hearts with probability of 40%"_.
 /// In this case you can implement one [`InformationSet`](amfiteatr_core::agent::InformationSet) and two ways
 /// of converting it.
-pub trait CtxTryIntoTensor<W: ConversionToTensor> : Debug{
-    fn try_to_tensor(&self, way: &W) -> Result<Tensor, TensorRepresentationError>;
+pub trait ContextTryIntoTensor<Ctx: ConversionToTensor> : Debug{
+    fn try_to_tensor(&self, way: &Ctx) -> Result<Tensor, TensorRepresentationError>;
 
-    fn to_tensor(&self, way: &W) -> Tensor{
+    fn to_tensor(&self, way: &Ctx) -> Tensor{
         self.try_to_tensor(way).unwrap()
     }
-    fn try_to_tensor_flat(&self, way: &W) -> Result<Tensor, TensorRepresentationError>{
+    fn try_to_tensor_flat(&self, way: &Ctx) -> Result<Tensor, TensorRepresentationError>{
         let t1 = self.try_to_tensor(way)?;
         t1.f_flatten(0, -1).map_err(|e|{
             TensorRepresentationError::Torch {
@@ -58,15 +58,15 @@ pub trait CtxTryIntoTensor<W: ConversionToTensor> : Debug{
         })
     }
 
-    fn to_tensor_flat(&self, way: &W) -> Tensor{
+    fn to_tensor_flat(&self, way: &Ctx) -> Tensor{
         let t1 = self.to_tensor(way);
         //let dim = t1.dim() as i64;
         t1.flatten(0, -1)
     }
-    fn tensor_shape(way: &W) -> &[i64]{
+    fn tensor_shape(way: &Ctx) -> &[i64]{
         way.desired_shape()
     }
-    fn tensor_length_flatten(way: &W) -> i64{
+    fn tensor_length_flatten(way: &Ctx) -> i64{
         way.desired_shape().iter().product()
     }
 }
@@ -76,9 +76,9 @@ pub trait ConversionToMultipleTensors: Send{
     fn expected_outputs_shape(&self) -> &[Vec<i64>];
 }
 
-pub trait CtxTryIntoMultipleTensors<W: ConversionToMultipleTensors> : Debug{
-    fn try_to_multiple_tensors(&self, form: &W) -> Result<Vec<Tensor>, TensorRepresentationError>;
-    fn to_multiple_tensors(&self, form: &W) -> Vec<Tensor>{
+pub trait ContextTryIntoMultipleTensors<Ctx: ConversionToMultipleTensors> : Debug{
+    fn try_to_multiple_tensors(&self, form: &Ctx) -> Result<Vec<Tensor>, TensorRepresentationError>;
+    fn to_multiple_tensors(&self, form: &Ctx) -> Vec<Tensor>{
         self.try_to_multiple_tensors(form).unwrap()
     }
     /*
@@ -94,8 +94,8 @@ pub trait ConversionToIndexI64: Send{
     fn limit(&self) -> i64;
 }
 
-pub trait CtxTryIntoIndexI64<W: ConversionToIndexI64> : Debug{
-    fn try_to_index(&self, way: &W) -> Result<i64, TensorRepresentationError>;
+pub trait ContextTryIntoIndexI64<Ctx: ConversionToIndexI64> : Debug{
+    fn try_to_index(&self, way: &Ctx) -> Result<i64, TensorRepresentationError>;
 }
 
 pub trait ConversionToMultiIndexI64{
@@ -107,9 +107,9 @@ pub trait ConversionToMultiIndexI64{
 
 }
 
-pub trait CtxTryConvertIntoMultiIndexI64<W: ConversionToMultiIndexI64>{
-    fn param_value(&self, context: &W, param_index: usize) -> Result<Option<i64>, TensorRepresentationError>;
-    fn default_value(&self, _context: &W, _param_index: usize) -> i64{
+pub trait ContextTryConvertIntoMultiIndexI64<Ctx: ConversionToMultiIndexI64>{
+    fn param_value(&self, context: &Ctx, param_index: usize) -> Result<Option<i64>, TensorRepresentationError>;
+    fn default_value(&self, _context: &Ctx, _param_index: usize) -> i64{
         0
     }
 
@@ -117,9 +117,9 @@ pub trait CtxTryConvertIntoMultiIndexI64<W: ConversionToMultiIndexI64>{
 
 
 
-    fn action_indexes(&self, context: &W) -> Result<Vec<Option<i64>>, TensorRepresentationError>{
+    fn action_indexes(&self, context: &Ctx) -> Result<Vec<Option<i64>>, TensorRepresentationError>{
 
-        Ok((0..W::number_of_params()).map(|i|{
+        Ok((0..Ctx::number_of_params()).map(|i|{
             self.param_value(context, i)
         }).collect::<Result<Vec<Option<i64>>, _>>()?)
     }
@@ -161,11 +161,11 @@ pub trait CtxTryConvertIntoMultiIndexI64<W: ConversionToMultiIndexI64>{
 
      */
 
-    fn action_index_and_mask_tensor_vecs(&self,  context: &W) -> Result<(Vec<Tensor>, Vec<Tensor>),TensorRepresentationError>{
+    fn action_index_and_mask_tensor_vecs(&self, context: &Ctx) -> Result<(Vec<Tensor>, Vec<Tensor>),TensorRepresentationError>{
         let mut params = Vec::new();
         let mut usage_masks = Vec::new();
 
-        for i in 0..W::number_of_params(){
+        for i in 0..Ctx::number_of_params(){
             match self.param_value(context, i)?{
                 Some(p) => {
                     params.push(Tensor::from(p));
@@ -184,12 +184,12 @@ pub trait CtxTryConvertIntoMultiIndexI64<W: ConversionToMultiIndexI64>{
 
     }
 
-    fn batch_index_and_mask_tensor_vecs(actions: &[&Self],  context: &W) -> Result<(Vec<Tensor>, Vec<Tensor>), TensorRepresentationError>
+    fn batch_index_and_mask_tensor_vecs(actions: &[&Self], context: &Ctx) -> Result<(Vec<Tensor>, Vec<Tensor>), TensorRepresentationError>
     {
         let mut params = Vec::new();
         let mut usage_masks = Vec::new();
 
-        for i in 0..W::number_of_params(){
+        for i in 0..Ctx::number_of_params(){
 
             let mut action_params = Vec::new();
             let mut action_usage_masks = Vec::new();
@@ -237,14 +237,14 @@ pub trait TryIntoTensor: Debug{
     fn try_to_tensor(&self) -> Result<Tensor, TensorRepresentationError>;
 }
 
-impl<W: ConversionToTensor, T: CtxTryIntoTensor<W>> CtxTryIntoTensor<W> for Box<T>{
+impl<W: ConversionToTensor, T: ContextTryIntoTensor<W>> ContextTryIntoTensor<W> for Box<T>{
     fn try_to_tensor(&self, way: &W) -> Result<Tensor, TensorRepresentationError> {
         self.as_ref().try_to_tensor(way)
     }
 }
 
 /// Trait representing structs (maybe 0-sized) that tell what is expected size of tensor to be
-/// used to create data struct using [`CtxTryFromTensor`].
+/// used to create data struct using [`ContextTryFromTensor`].
 pub trait ConversionFromTensor: Send{
     fn expected_input_shape(&self) -> &[i64];
 }
@@ -252,9 +252,9 @@ pub trait ConversionFromTensor: Send{
 /// Implemented by structs that can be converted from tensors.
 /// Certain data type can have different tensor representation, then it is needed to specify
 /// what particular contextual representation is used (done by using correct [`ConversionFromTensor`]).
-pub trait CtxTryFromTensor<W: ConversionFromTensor>{
+pub trait ContextTryFromTensor<Ctx: ConversionFromTensor>{
     type ConvertError: Error;
-    fn try_from_tensor(tensor: &Tensor, way: &W) -> Result<Self, Self::ConvertError> where Self: Sized;
+    fn try_from_tensor(tensor: &Tensor, way: &Ctx) -> Result<Self, Self::ConvertError> where Self: Sized;
 }
 
 
@@ -284,7 +284,7 @@ impl<T: for<'a> TryFrom<&'a [Tensor], Error=ConvertError> + Sized> TryFromMultiT
 
 
 /// Trait representing structs (maybe 0-sized) that tell what is expected size of tensor to be
-/// used to create data struct using [`crate::tensor_data::CtxTryFromMultipleTensors`].
+/// used to create data struct using [`crate::tensor_data::ContextTryFromMultipleTensors`].
 pub trait ConversionFromMultipleTensors: Send{
     fn expected_inputs_shape(&self) -> &[Vec<i64>];
 }
@@ -292,9 +292,9 @@ pub trait ConversionFromMultipleTensors: Send{
 /// Implemented by structs that can be converted from tensors.
 /// Certain data type can have different tensor representation, then it is needed to specify
 /// what particular contextual representation is used (done by using correct [`crate::tensor_data::ConversionFromTensor`]).
-pub trait CtxTryFromMultipleTensors<W: crate::tensor_data::ConversionFromMultipleTensors>{
+pub trait ContextTryFromMultipleTensors<Ctx: crate::tensor_data::ConversionFromMultipleTensors>{
     type ConvertError: Error;
-    fn try_from_tensors(tensors: &[Tensor], way: &W) -> Result<Self, Self::ConvertError> where Self: Sized;
+    fn try_from_tensors(tensors: &[Tensor], way: &Ctx) -> Result<Self, Self::ConvertError> where Self: Sized;
 }
 
 
