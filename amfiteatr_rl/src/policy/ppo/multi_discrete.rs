@@ -318,7 +318,8 @@ where <DP as DomainParameters>::ActionType: CtxTryFromMultipleTensors<ActionBuil
                 #[cfg(feature = "log_trace")]
                 log::trace!("Tmp infoset shape = {:?}", information_set_t.size());
                 let values_t = tch::no_grad(|| (self.network.net())(&information_set_t)).critic;
-
+                #[cfg(feature = "log_trace")]
+                log::trace!("Tmp values_t shape = {:?}", values_t.size());
                 let rewards_t = Tensor::f_stack(&tmp_trajectory_reward_vec[..],0)?.f_to_device(device)?;
 
                 let advantages_t = Tensor::zeros(values_t.size(), (Kind::Float, device));
@@ -338,8 +339,6 @@ where <DP as DomainParameters>::ActionType: CtxTryFromMultipleTensors<ActionBuil
 
                 state_tensor_vec.push(information_set_t);
                 advantage_tensor_vec.push(advantages_t);
-                #[cfg(feature = "log_trace")]
-                log::trace!("tmp_trajectory_action_tensor_vecs[0] = {:?}", tmp_trajectory_action_tensor_vecs[0].len());
                 vec_2d_append_second_dim(&mut multi_action_tensor_vec, &mut tmp_trajectory_action_tensor_vecs);
                 vec_2d_append_second_dim(&mut multi_action_cat_mask_tensor_vec, &mut tmp_trajectory_action_category_mask_vecs);
 
@@ -363,31 +362,21 @@ where <DP as DomainParameters>::ActionType: CtxTryFromMultipleTensors<ActionBuil
         let batch_info_sets_t = Tensor::f_vstack(&state_tensor_vec)?;
         #[cfg(feature = "log_trace")]
         log::trace!("Batch infoset shape = {:?}", batch_info_sets_t.size());
-        let batch_advantage_t = Tensor::f_vstack(&advantage_tensor_vec)?;
+        let batch_advantage_t = Tensor::f_vstack(&advantage_tensor_vec,)?;
         let batch_returns_t = Tensor::f_vstack(&returns_v)?;
         #[cfg(feature = "log_trace")]
         log::trace!("Batch returns shape = {:?}", batch_returns_t.size());
+
         #[cfg(feature = "log_trace")]
         log::trace!("Batch advantage shape = {:?}", batch_advantage_t.size());
         let batch_actions_t= multi_action_tensor_vec.iter().map(|cat|{
-            #[cfg(feature = "log_trace")]
-            log::trace!("Cat[0] = {}, size = {:?}", cat[0], cat[0].size());
             Tensor::f_stack(cat, 0)
         }).collect::<Result<Vec<_>, TchError>>()?;
-        #[cfg(feature = "log_trace")]
-        log::trace!("BCat[0] = {}", batch_actions_t[0]);
         let batch_action_masks_t= multi_action_cat_mask_tensor_vec.iter().map(|cat|{
 
             Tensor::f_stack(cat, 0)
         }).collect::<Result<Vec<_>, TchError>>()?;
 
-        println!("info_sets: {:?}", batch_info_sets_t.size());
-        println!("advantages: {:?}", batch_advantage_t.size());
-        println!("actions: {:?}", batch_actions_t[0].size());
-
-        for (index, cat) in batch_actions_t.iter().enumerate(){
-            println!("Category: {index:}, {:?}", cat.size());
-        }
 
         let batch_size = batch_info_sets_t.size()[0];
         let mut indices: Vec<i64> = (0..batch_size).collect();
@@ -425,7 +414,6 @@ where <DP as DomainParameters>::ActionType: CtxTryFromMultipleTensors<ActionBuil
                 let minibatch_end = min(minibatch_start + self.config.mini_batch_size as i64, batch_size);
                 let minibatch_indices = Tensor::from(&indices[minibatch_start as usize..minibatch_end as usize]);
 
-                println!("batch_actions_t[] size = {:?}", batch_actions_t[0].size());
                 let mini_batch_action: Vec<Tensor> = batch_actions_t.iter().map(|c|{
                     c.f_index_select(0, &minibatch_indices)
                 }).collect::<Result<Vec<_>, TchError>>()?;
