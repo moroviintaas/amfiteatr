@@ -1,7 +1,7 @@
 use std::marker::PhantomData;
 use tch::{Device, TchError, Tensor};
 use tch::nn::{Optimizer, OptimizerConfig, Path,  VarStore};
-use crate::torch_net::{MultiDiscreteTensor, NetOutput, TensorA2C, TensorCriticMultiActor};
+use crate::torch_net::{MultiDiscreteTensor, NetOutput, TensorCriticActor, TensorCriticMultiActor};
 
 /// Structure wrapping [`VarStore`] and network closure used to build neural network based function.
 /// Examples in [`tch`](https://github.com/LaurentMazare/tch-rs) show how neural networks are used.
@@ -18,8 +18,8 @@ pub struct NeuralNet<Output: NetOutput>{
 pub type NeuralNet1 = NeuralNet<Tensor>;
 /// [`NeuralNet`] with tuple `(Tensor, Tensor)` as output.
 pub type NeuralNet2 = NeuralNet<(Tensor, Tensor)>;
-/// [`NeuralNet`] with [`TensorA2C`] as output.
-pub type A2CNet = NeuralNet<TensorA2C>;
+/// [`NeuralNet`] with [`TensorCriticActor`] as output.
+pub type A2CNet = NeuralNet<TensorCriticActor>;
 /// [`NeuralNet`] with single `Tensor` as output. Same as [`NeuralNet1`].
 pub type QValueNet = NeuralNet<Tensor>;
 
@@ -39,7 +39,7 @@ pub type MultiDiscreteNet = NeuralNet<MultiDiscreteTensor>;
 /// ```
 /// use tch::{Device, nn, Tensor};
 /// use tch::nn::{Adam, VarStore};
-/// use amfiteatr_rl::torch_net::{A2CNet, NeuralNet2, TensorA2C};
+/// use amfiteatr_rl::torch_net::{A2CNet, NeuralNet2, TensorCriticActor};
 /// let device = Device::cuda_if_available();
 /// let var_store = VarStore::new(device);
 /// let number_of_actions = 33_i64;
@@ -53,7 +53,7 @@ pub type MultiDiscreteNet = NeuralNet<MultiDiscreteTensor>;
 ///     {move |xs: &Tensor|{
 ///         let xs = xs.to_device(device).apply(&seq);
 ///         //(xs.apply(&critic), xs.apply(&actor))
-///         TensorA2C{critic: xs.apply(&critic), actor: xs.apply(&actor)}
+///         TensorCriticActor{critic: xs.apply(&critic), actor: xs.apply(&actor)}
 ///     }}
 ///
 /// });

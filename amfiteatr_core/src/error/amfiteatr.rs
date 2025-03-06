@@ -1,5 +1,5 @@
 use thiserror::Error;
-use crate::error::{CommunicationError, DataError, ProtocolError, TrajectoryError, WorldError};
+use crate::error::{CommunicationError, ConvertError, DataError, ProtocolError, TrajectoryError, WorldError};
 use crate::domain::{DomainParameters};
 use crate::error::tensor::TensorError;
 
@@ -30,8 +30,8 @@ pub enum AmfiteatrError<DP: DomainParameters>{
 
     //#[error("Setup error: {0}")]
     //Setup(SetupError<DP>),
-    #[error("Data convert")]
-    DataConvert(),
+    #[error("Data convert - {0}")]
+    DataConvert(ConvertError),
     #[error("World maintenance error: {source}")]
     World{
         #[source]

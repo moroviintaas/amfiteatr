@@ -37,7 +37,7 @@ use amfiteatr_examples::plots::{plot_many_series, PlotSeries};
 use amfiteatr_examples::series::PayoffGroupSeries;
 use amfiteatr_rl::policy::{ActorCriticPolicy, LearningNetworkPolicy, TrainConfig};
 use amfiteatr_rl::tensor_data::ConversionToTensor;
-use amfiteatr_rl::torch_net::{A2CNet, NeuralNetTemplate, TensorA2C};
+use amfiteatr_rl::torch_net::{A2CNet, NeuralNetTemplate, TensorCriticActor};
 use crate::options::ReplicatorOptions;
 
 
@@ -355,7 +355,7 @@ fn main() -> Result<(), AmfiteatrError<D>>{
         let critic =  nn::linear(path / "ac", 512, 1, Default::default());
         {move |input: &Tensor|{
             let xs = input.to_device(device).apply(&seq);
-            TensorA2C{critic: xs.apply(&critic), actor: xs.apply(&actor)}
+            TensorCriticActor {critic: xs.apply(&critic), actor: xs.apply(&actor)}
         }}
     });
 

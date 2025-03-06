@@ -2,8 +2,8 @@ use std::error::Error;
 use std::fmt::{Debug};
 use generic_array::{ArrayLength, GenericArray};
 use tch::{Tensor};
-use amfiteatr_core::domain::{Action, Reward};
-use amfiteatr_core::error::{ConvertError};
+use amfiteatr_core::domain::{Action, DomainParameters, Reward};
+use amfiteatr_core::error::{AmfiteatrError, ConvertError};
 use crate::error::TensorRepresentationError;
 
 
@@ -293,8 +293,9 @@ pub trait ConversionFromMultipleTensors: Send{
 /// Certain data type can have different tensor representation, then it is needed to specify
 /// what particular contextual representation is used (done by using correct [`crate::tensor_data::ConversionFromTensor`]).
 pub trait ContextTryFromMultipleTensors<Ctx: crate::tensor_data::ConversionFromMultipleTensors>{
-    type ConvertError: Error;
-    fn try_from_tensors(tensors: &[Tensor], way: &Ctx) -> Result<Self, Self::ConvertError> where Self: Sized;
+    type Error: Error + Into<ConvertError>;
+    fn try_from_tensors(tensors: &[Tensor], way: &Ctx)
+        -> Result<Self, Self::Error> where Self: Sized;
 }
 
 

@@ -14,7 +14,7 @@ use amfiteatr_rl::policy::{ActorCriticPolicy, LearningNetworkPolicy, TrainConfig
 use amfiteatr_rl::tch::{Device, nn, Tensor};
 use amfiteatr_rl::tch::nn::{Adam, OptimizerConfig, VarStore};
 use amfiteatr_rl::tensor_data::ConversionToTensor;
-use amfiteatr_rl::torch_net::{A2CNet, NeuralNetTemplate, TensorA2C};
+use amfiteatr_rl::torch_net::{A2CNet, NeuralNetTemplate, TensorCriticActor};
 use crate::common::{ConnectFourDomain, ConnectFourPlayer, ErrorRL};
 use crate::rust::agent::{ConnectFourInfoSet, ConnectFourTensorReprD1};
 
@@ -118,10 +118,10 @@ fn build_a2c_policy(layer_sizes: &[i64], device: Device) -> Result<C4A2CPolicy, 
         let device = path.device();
         {move |xs: &Tensor|{
             if seq.is_empty(){
-                TensorA2C{critic: xs.apply(&critic), actor: xs.apply(&actor)}
+                TensorCriticActor {critic: xs.apply(&critic), actor: xs.apply(&actor)}
             } else {
                 let xs = xs.to_device(device).apply(&seq);
-                TensorA2C{critic: xs.apply(&critic), actor: xs.apply(&actor)}
+                TensorCriticActor {critic: xs.apply(&critic), actor: xs.apply(&actor)}
             }
         }}
     });
