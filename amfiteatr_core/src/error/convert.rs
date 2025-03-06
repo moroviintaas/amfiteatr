@@ -3,6 +3,7 @@ use crate::domain::DomainParameters;
 use crate::error::AmfiteatrError;
 
 #[derive(Debug, Clone, Error)]
+#[cfg_attr(feature = "speedy", derive(speedy::Writable, speedy::Readable))]
 pub enum ConvertError{
     #[error("Action convert from {0}")]
     ConvertFromTensor(String)

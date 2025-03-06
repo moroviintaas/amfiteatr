@@ -60,7 +60,7 @@ impl ActorCriticOutput for TensorCriticMultiActor {
     /// ```
     ///
     /// use tch::{Device, Kind, Tensor};
-    /// use amfiteatr_rl::torch_net::TensorCriticMultiActor;
+    /// use amfiteatr_rl::torch_net::{ActorCriticOutput, TensorCriticMultiActor};
     /// let critic = Tensor::from_slice(&[0.7, 0.21]); //first critic calculation, second criric calculation
     /// let actor = vec![
     ///     {
@@ -193,7 +193,7 @@ impl ActorCriticOutput for TensorCriticMultiActor {
     ///
     /// use tch::{Device, Kind, Tensor};
     /// use amfiteatr_core::demo::DemoDomain;
-    /// use amfiteatr_rl::torch_net::TensorCriticMultiActor;
+    /// use amfiteatr_rl::torch_net::{ActorCriticOutput, TensorCriticMultiActor};
     /// let critic = Tensor::from_slice(&[0.7, 0.21]); //first critic calculation, second criric calculation
     /// let actor = vec![
     ///     {

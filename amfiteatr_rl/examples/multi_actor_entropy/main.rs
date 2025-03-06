@@ -1,5 +1,6 @@
 use tch::{Device, Kind, Tensor};
 use amfiteatr_rl::torch_net::TensorCriticMultiActor;
+use amfiteatr_rl::torch_net::ActorCriticOutput;
 
 fn main() {
     // Assume we have 2 game steps by actor critic
