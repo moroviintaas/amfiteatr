@@ -7,6 +7,7 @@ use thiserror::Error;
 
 /// Error in vectorisation of data to tensor
 #[derive(Error, Debug)]
+#[deprecated(since = "0.7.0", note = "Migrating to [`ConvertError`] in [`AmfiteatrError`]")]
 pub enum TensorRepresentationError{
     #[error("Information set {info_set:?} cannot be fit into tensor of shape {shape:?}.")]
     InfoSetNotFit{
@@ -32,6 +33,7 @@ pub enum TensorRepresentationError{
     BadParameterIndex{
         index: usize,
     },
+
     #[error("Entity: {entity:}, conversion to Tensor with context {context} is illegal")]
     IllegalConversion{
         entity: String,

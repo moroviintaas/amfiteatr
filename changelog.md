@@ -14,6 +14,7 @@ the suggested quick fix is transforming `Option` to proper `Result` by
 + Added special error variant `AmfiteatrError::NoActionAvailable` to indicate that agents believes that no action can be played.
 + Added new variants for `AmfiteatrError` (`Tensor` and `Data`), while removing `DataConvert`.
 + Renamed traits `CtxTryFromTensor`, `CtxTryToTensor`, `CtxTryFromMultipleTensors`, `CtxTryIntoMultipleTensors` to more verbose names `ContextTryFromTensor`, `ContextTryToTensor`, `ContextTryFromMultipleTensors`, `ContextTryIntoMultipleTensors`.
++ Changing `ContextTryConvert...` traits that functions return `Result<_,ConvertError` (from `AmfiteatrError`) instead of `TensorRepresentation` from `AmfiteatrRlError`
 ---
 ## Version 0.6.0
 + Added step legality validation note in `AgentTrajectory` and `AgentStepView`

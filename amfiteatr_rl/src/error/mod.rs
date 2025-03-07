@@ -4,8 +4,9 @@ pub use tensor_repr::*;
 
 use tch::TchError;
 use thiserror::Error;
-use amfiteatr_core::error::AmfiteatrError;
+use amfiteatr_core::error::{AmfiteatrError, ConvertError};
 use amfiteatr_core::domain::DomainParameters;
+use amfiteatr_core::reexport::nom::Parser;
 
 
 /// Error trait that wraps standard [`AmfiteatrError`]
@@ -25,6 +26,7 @@ pub enum AmfiteatrRlError<DP: DomainParameters>{
         context: String
     },
     /// Error with tensor representation
+    #[deprecated(since = "0.7.0", note = "Migrating to [`ConvertError`] in [`AmfiteatrError`]")]
     #[error("Tensor representation: {source}")]
     TensorRepresentation{
         #[source]
@@ -69,5 +71,12 @@ impl<DP: DomainParameters> From<AmfiteatrRlError<DP>> for AmfiteatrError<DP>{
             AmfiteatrRlError::Amfiteatr{source: n} => n,
             any => AmfiteatrError::Custom(format!("{:?}", any))
         }
+    }
+}
+
+impl<DP: DomainParameters> From<ConvertError> for AmfiteatrRlError<DP>{
+    fn from(value: ConvertError) -> Self {
+        let ae = AmfiteatrError::from(value);
+        ae.into()
     }
 }

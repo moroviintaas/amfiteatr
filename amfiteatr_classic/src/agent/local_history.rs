@@ -4,7 +4,7 @@ use serde::Serialize;
 use amfiteatr_rl::tch::Tensor;
 use amfiteatr_core::agent::{InformationSet, PresentPossibleActions, EvaluatedInformationSet};
 use amfiteatr_core::domain::{Renew};
-use amfiteatr_core::error::AmfiteatrError;
+use amfiteatr_core::error::{AmfiteatrError, ConvertError};
 use amfiteatr_rl::error::TensorRepresentationError;
 use amfiteatr_rl::tensor_data::{ContextTryIntoTensor, ConversionToTensor};
 use crate::agent::{ActionPairMapper, AgentAssessmentClassic};
@@ -176,10 +176,10 @@ impl ConversionToTensor for LocalHistoryConversionToTensor {
 pub type LocalHistoryInfoSetNumbered = LocalHistoryInfoSet<AgentNum>;
 
 impl<ID: UsizeAgentId> ContextTryIntoTensor<LocalHistoryConversionToTensor> for LocalHistoryInfoSet<ID>{
-    fn try_to_tensor(&self, way: &LocalHistoryConversionToTensor) -> Result<Tensor, TensorRepresentationError> {
+    fn try_to_tensor(&self, way: &LocalHistoryConversionToTensor) -> Result<Tensor, ConvertError> {
         let max_number_of_actions = way.shape()[1];
         if self.previous_encounters.len() > max_number_of_actions as usize{
-            return Err(TensorRepresentationError::InfoSetNotFit {
+            return Err(ConvertError::InfoSetNotFit {
                 info_set: format!("Own encounter history information set with history of length {}", self.previous_encounters.len()),
                 shape: Vec::from(way.shape()),
             });

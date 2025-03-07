@@ -1,5 +1,6 @@
 use tch::Tensor;
 use amfiteatr_core::demo::{DemoInfoSet};
+use amfiteatr_core::error::ConvertError;
 use crate::error::TensorRepresentationError;
 use crate::tensor_data::{ContextTryIntoTensor, ConversionToTensor};
 
@@ -18,7 +19,8 @@ impl ConversionToTensor for DemoConversionToTensor {
 }
 
 impl ContextTryIntoTensor<DemoConversionToTensor> for DemoInfoSet{
-    fn try_to_tensor(&self, _way: &DemoConversionToTensor) -> Result<Tensor, TensorRepresentationError> {
+
+    fn try_to_tensor(&self, _way: &DemoConversionToTensor) -> Result<Tensor, ConvertError> {
         Ok(Tensor::from_slice(&[1.0]))
     }
 }

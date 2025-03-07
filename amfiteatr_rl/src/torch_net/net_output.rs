@@ -1,3 +1,4 @@
+use std::fmt::Debug;
 use tch::{Device, Kind, TchError, Tensor};
 use tch::Kind::Float;
 use amfiteatr_core::domain::DomainParameters;
@@ -12,13 +13,15 @@ use crate::error::AmfiteatrRlError::ZeroBatchSize;
 pub trait NetOutput{}
 
 
-pub trait ActorCriticOutput {
-    type ActionTensorType;
+pub trait ActorCriticOutput : NetOutput + Debug{
+    type ActionTensorType: Debug;
     fn batch_entropy_masked(&self, forward_masks: Option<&Self::ActionTensorType>, reverse_masks: Option<&Self::ActionTensorType>)
         -> Result<Tensor, TchError>;
 
     fn batch_log_probability_of_action<DP: DomainParameters>(&self, param_indices: &Self::ActionTensorType, param_masks: Option<&Self::ActionTensorType>)
         -> Result<Tensor, AmfiteatrError<DP>>;
+
+    fn critic(&self) -> &Tensor;
 
 }
 
@@ -29,6 +32,7 @@ pub struct TensorCriticActor {
 }
 
 /// Struct to aggregate output for actor-critic networks with multi parameter actor
+#[derive(Debug)]
 pub struct TensorCriticMultiActor{
     pub critic: Tensor,
     pub actor: Vec<Tensor>
@@ -314,6 +318,10 @@ impl ActorCriticOutput for TensorCriticMultiActor {
 
 
         Ok(sum)
+    }
+
+    fn critic(&self) -> &Tensor {
+        &self.critic
     }
 }
 /*
@@ -658,8 +666,9 @@ pub fn index_tensor_to_i64(tensor: &Tensor, additional_context: &str) -> Result<
      */
 
     tensor.f_int64_value(&[0]).map_err(|e|{
-        ConvertError::ConvertFromTensor(
-            format!("From tensor {} in context \"{}\". The error itself: {}",
-                    tensor, additional_context, e))
+        ConvertError::ConvertFromTensor{
+            origin: e.to_string(),
+            context: "Converting index tensor to i64".to_string(),
+        }
     })
 }
