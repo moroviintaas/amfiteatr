@@ -15,6 +15,11 @@ pub trait NetOutput{}
 
 pub trait ActorCriticOutput : NetOutput + Debug{
     type ActionTensorType: Debug;
+    /// Vec type to construct Tensor batch, it will be typically `Vec<Tensor>` and `Vec<Vec<Tensor>>`,
+    /// however this is not just `Vec<Self:TensorForm>` because on `Vec<Vec<_>>` it mess with dimensions.
+    /// Outer is Param dimenstion Inner is Batch dimension. We later create param batches from continuous slice.
+    type ActionBatchTensorType: Debug;
+
     fn batch_entropy_masked(&self, forward_masks: Option<&Self::ActionTensorType>, reverse_masks: Option<&Self::ActionTensorType>)
         -> Result<Tensor, TchError>;
 
@@ -23,6 +28,34 @@ pub trait ActorCriticOutput : NetOutput + Debug{
 
     fn critic(&self) -> &Tensor;
 
+
+    fn push_to_vec_batch(vec_batch: &mut Self::ActionBatchTensorType, data: Self::ActionTensorType);
+
+    fn append_vec_batch(dst: &mut Self::ActionBatchTensorType, source: &mut Self::ActionBatchTensorType);
+    /*{
+
+        for (c_src, c_dst) in source.iter_mut().zip(dst.iter_mut()){
+            c_dst.append(c_src)
+        }
+    }*/
+    fn clear_batch_dim_in_batch(vector: &mut Self::ActionBatchTensorType);
+    /*{
+        for v in vector.iter_mut(){
+            v.clear()
+        }
+    }
+
+     */
+    fn param_dimension_size(&self) -> i64;
+    fn stack_tensor_batch(batch: &Self::ActionBatchTensorType) -> Result<Self::ActionTensorType, ConvertError>;
+
+    fn new_batch_with_capacity(number_of_params: usize, capacity: usize) -> Self::ActionBatchTensorType;
+
+    fn perform_choice(dist: &Self::ActionTensorType,
+                      apply: impl Fn(&Tensor) -> Result<Tensor, TchError> )
+                      -> Result<Self::ActionTensorType, TensorError>;
+
+    fn index_select(data: &Self::ActionTensorType, indices: &Tensor) -> Result<Self::ActionTensorType, TchError>;
 }
 
 /// Struct to aggregate both actor and critic output tensors from network.
@@ -41,6 +74,7 @@ pub struct TensorCriticMultiActor{
 
 impl ActorCriticOutput for TensorCriticMultiActor {
     type ActionTensorType = Vec<Tensor>;
+    type ActionBatchTensorType = Vec<Vec<Tensor>>;
 
     /// # Input
     /// `forward_masks: Option<&[Tensor]>`, where `Tensor` has shape `[BATCH_SIZE, CATEGORY_SIZE`] (works for single param sample probability), and `Vec::len` is the number of categories.
@@ -322,6 +356,50 @@ impl ActorCriticOutput for TensorCriticMultiActor {
 
     fn critic(&self) -> &Tensor {
         &self.critic
+    }
+
+
+
+    fn push_to_vec_batch(vec_batch: &mut Self::ActionBatchTensorType, data: Self::ActionTensorType) {
+        for (b_param, d_param) in vec_batch.iter_mut().zip(data.into_iter()){
+            b_param.push(d_param);
+        }
+    }
+
+    fn append_vec_batch(dst: &mut Self::ActionBatchTensorType, source: &mut Self::ActionBatchTensorType) {
+        for (b_param, d_param) in dst.iter_mut().zip(source.iter_mut()){
+            b_param.append(d_param);
+        }
+    }
+
+    fn clear_batch_dim_in_batch(vector: &mut Self::ActionBatchTensorType) {
+        for v in vector.iter_mut(){
+            v.clear()
+        }
+    }
+
+    fn param_dimension_size(&self) -> i64 {
+        self.actor.len() as i64
+    }
+
+    fn stack_tensor_batch(batch: &Self::ActionBatchTensorType) -> Result<Self::ActionTensorType, ConvertError> {
+        batch.iter().map(|param|{
+            Tensor::f_vstack(param).map_err(|e| ConvertError::TorchStr { origin: format!("{e}") })
+        }).collect::<Result<Vec<Tensor>, _>>()
+    }
+
+    fn new_batch_with_capacity(number_of_params: usize, capacity: usize) -> Self::ActionBatchTensorType {
+        (0..number_of_params).map(|_i| Vec::<Tensor>::with_capacity(capacity)).collect()
+    }
+
+    fn perform_choice(dist: &Self::ActionTensorType, apply: impl Fn(&Tensor) -> Result<Tensor, TchError>) -> Result<Self::ActionTensorType, TensorError> {
+        dist.iter().map(|d|apply(d).map_err(|e| TensorError::Torch { context: format!("{e}") })).collect::<Result<Vec<Tensor>,_>>()
+    }
+
+    fn index_select(data: &Self::ActionTensorType, indices: &Tensor) -> Result<Self::ActionTensorType, TchError>{
+        data.iter().map(|c|{
+            c.f_index_select(0, &indices)
+        }).collect::<Result<Vec<_>, TchError>>()
     }
 }
 /*

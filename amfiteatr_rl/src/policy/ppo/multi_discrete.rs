@@ -230,7 +230,7 @@ where <DP as DomainParameters>::ActionType:
 
                 let advantages_t = Tensor::zeros(values_t.size(), (Kind::Float, device));
                 //let mut next_is_final = 1f32;
-                for index in (0..t.number_of_steps())
+                for index in (0..t.number_of_steps()).rev()
                     .map(|i, | i as i64,){
                     //chgeck if last step
                     let (next_nonterminal, next_value) = match index == t.number_of_steps() as i64 -1{
@@ -728,7 +728,7 @@ where <DP as DomainParameters>::ActionType: ContextTryFromMultipleTensors<Action
 
                 let advantages_t = Tensor::zeros(values_t.size(), (Kind::Float, device));
                 //let mut next_is_final = 1f32;
-                for index in (0..t.number_of_steps())
+                for index in (0..t.number_of_steps()).rev()
                     .map(|i, | i as i64,){
                     //chgeck if last step
                     let (next_nonterminal, next_value) = match index == t.number_of_steps() as i64 -1{
@@ -936,6 +936,10 @@ PolicyPPO<DP> for PolicyPPOMultiDiscrete<DP, InfoSet, InfoSetConversionContext, 
         self.config()
     }
 
+    fn optimizer_mut(&mut self) -> &mut Optimizer {
+        &mut self.base.optimizer
+    }
+
     fn ppo_network(&self) -> &NeuralNet<Self::NetworkOutput> {
         &self.base().network
     }
@@ -954,6 +958,15 @@ PolicyPPO<DP> for PolicyPPOMultiDiscrete<DP, InfoSet, InfoSetConversionContext, 
             ).collect::<Result<Vec<Tensor>, _>>().map_err(|e|
             e.into())
     }
+
+    fn is_action_masking_supported(&self) -> bool {
+        false
+    }
+
+    fn generate_action_masks(&self, _information_sets: &Self::InfoSet) -> Result<Vec<Tensor>, AmfiteatrError<DP>> {
+        Err(AmfiteatrError::Custom("Action masking is not supported.".into()))
+    }
+
 
     fn ppo_exploration(&self) -> bool {
         self.base.exploration

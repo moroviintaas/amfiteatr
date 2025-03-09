@@ -308,34 +308,19 @@ pub trait ActionTensorFormat {
     /// Typically it will be just `Tensor` or `Vec<Tensor>`
     type TensorForm;
 
-    /*
-    /// Vec type to construct Tensor batch, it will be typically `Vec<Tensor>` and `Vec<Vec<Tensor>>`,
-    /// however this is not just `Vec<Self:TensorForm>` because on `Vec<Vec<_>>` it mess with dimensions.
-    /// Outer is Param dimenstion Inner is Batch dimension. We later create param batches from continuous slice.
-    type BatchVecTensorForm;
 
 
-     */
-    fn perform_choice(dist: &Self::TensorForm,
-                      apply: impl Fn(Tensor) -> Result<Tensor, TchError> )
-        -> Result<Self::TensorForm, TensorError>;
+    //type BatchVecTensorForm;
+
+
+
 
 
     /// Set to 1 for `TensorForm` being `Tensor`, and `v.len()` for `Vec<Tensor>`
     fn param_dimension_size(&self) -> i64;
 
-    fn push_to_vec_batch(vec_batch: &mut Vec<Vec<Tensor>>, data: Self::TensorForm);
 
-    fn append_vec_batch(dst: &mut Vec<Vec<Tensor>>, source: &mut Vec<Vec<Tensor>>){
-        for (c_src, c_dst) in source.iter_mut().zip(dst.iter_mut()){
-            c_dst.append(c_src)
-        }
-    }
-    fn clear_batch_dim_in_batch(vector: &mut Vec<Vec<Tensor>>){
-        for v in vector.iter_mut(){
-            v.clear()
-        }
-    }
+
 
 
 }
