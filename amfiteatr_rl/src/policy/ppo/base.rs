@@ -11,7 +11,7 @@ use crate::policy::{ConfigPPO, find_max_trajectory_len, sum_trajectories_steps};
 use crate::tensor_data::{ActionTensorFormat, ContextTryIntoTensor, ConversionToTensor};
 use crate::torch_net::{ActorCriticOutput, NetOutput, NeuralNet};
 
-pub trait PolicyPPO<DP: DomainParameters>
+pub trait PolicyHelperPPO<DP: DomainParameters>
 {
     type InfoSet: InformationSet<DP> + ContextTryIntoTensor<Self::InfoSetConversionContext>;
     type InfoSetConversionContext: ConversionToTensor;

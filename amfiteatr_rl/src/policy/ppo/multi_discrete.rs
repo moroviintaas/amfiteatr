@@ -11,7 +11,7 @@ use amfiteatr_core::domain::DomainParameters;
 use amfiteatr_core::error::{AmfiteatrError, ConvertError};
 use crate::error::{AmfiteatrRlError, TensorRepresentationError};
 use crate::policy::common::{find_max_trajectory_len, sum_trajectories_steps};
-use crate::policy::{LearningNetworkPolicy, PolicyPPO};
+use crate::policy::{LearningNetworkPolicy, PolicyHelperPPO};
 use crate::{tch, MaskingInformationSetActionMultiParameter, tensor_data};
 use crate::tch::nn::Optimizer;
 use crate::tch::Tensor;
@@ -563,32 +563,7 @@ where
         //log::debug!("Info set tensor kind: {:?}", state_tensor.kind());
         let out = tch::no_grad(|| (self.network.net())(&state_tensor));
         let actor = out.actor;
-        /*
-        let masks_option = state.try_build_masks(&self.action_build_context)?;
 
-        let probs: Vec<Tensor> =  match masks_option {
-            Some(masks) => {
-                actor.iter().zip(masks.iter()).map(|(t, m)|{
-                    Tensor::f_einsum("i,i -> i", &[t, m], Option::<i64>::None).map(|prob_masked|{
-                        prob_masked.softmax(-1, self.config.tensor_kind)
-                    })
-
-                }).collect::<Result<Vec<Tensor>, _>>()?
-
-
-            },
-            None => {
-                actor.iter()
-                    .map(|t|
-
-                    t.softmax(-1, self.config.tensor_kind)
-
-                ).collect()
-
-            }
-        };
-
-         */
 
         let probs = actor.iter()
             .map(|t|
@@ -693,14 +668,6 @@ where <DP as DomainParameters>::ActionType: ContextTryFromMultipleTensors<Action
                 let final_reward_t = reward_f(&last_step);
                 let critic_shape =
 
-                /*
-                let reward_shape = final_reward_t.size();
-                let state_shape = last_step.information_set()
-                    .try_to_tensor(&self.info_set_conversion_context)?.size();
-
-
-
-                 */
                 tmp_trajectory_reward_vec.clear();
                 for step in t.iter(){
                     #[cfg(feature = "log_trace")]
@@ -777,15 +744,7 @@ where <DP as DomainParameters>::ActionType: ContextTryFromMultipleTensors<Action
         let batch_size = batch_info_sets_t.size()[0];
         let mut indices: Vec<i64> = (0..batch_size).collect();
 
-        /*
-        let (batch_logprob_t, _entropy, _batch_value) = self.batch_get_actor_critic_with_logprob_and_entropy(
-            &batch_info_sets_t,
-            &batch_actions_t,
-            Some(&batch_action_masks_t),
-            None, //to add it some day
-        )?;
-        
-         */
+
 
         let (batch_logprob_t, _entropy, batch_values_t) = tch::no_grad(||{
             self.batch_get_actor_critic_with_logprob_and_entropy(
@@ -921,7 +880,7 @@ impl<
     InfoSetConversionContext: ConversionToTensor ,
     ActionBuildContext: ConversionFromMultipleTensors + ConversionToMultiIndexI64 + tensor_data::ActionTensorFormat<TensorForm = Vec<tch::Tensor>>,
 >
-PolicyPPO<DP> for PolicyPPOMultiDiscrete<DP, InfoSet, InfoSetConversionContext, ActionBuildContext>
+PolicyHelperPPO<DP> for PolicyPPOMultiDiscrete<DP, InfoSet, InfoSetConversionContext, ActionBuildContext>
     where
         <DP as DomainParameters>::ActionType:
         ContextTryFromMultipleTensors<ActionBuildContext, > + ContextTryConvertIntoMultiIndexI64<ActionBuildContext>,
