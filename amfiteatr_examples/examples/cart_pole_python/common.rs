@@ -74,14 +74,14 @@ impl TryFrom<&Tensor> for CartPoleAction{
     fn try_from(tensor: &Tensor) -> Result<Self, Self::Error> {
         let v: Vec<i64> = match Vec::try_from(tensor){
             Ok(v) => v,
-            Err(_) =>{
-                return Err(ConvertError::ConvertFromTensor(format!("{}", tensor)))
+            Err(e) =>{
+                return Err(ConvertError::ConvertFromTensor { origin: format!("{e}"), context: "Cart Pole Action".into()})
             }
         };
         match v[0]{
             0 => Ok(CartPoleAction::Left),
             1 => Ok(CartPoleAction::Right),
-            _ => Err(ConvertError::ConvertFromTensor(format!("{}", tensor)))
+            e => Err(ConvertError::ConvertFromTensor{ origin: "".into(), context: "Bad action index {e}".into()})
         }
     }
 }

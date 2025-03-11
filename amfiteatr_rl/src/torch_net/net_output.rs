@@ -306,7 +306,7 @@ impl ActorCriticOutput for TensorCriticMultiActor {
                 .f_gather(1, &param_indices[i].f_unsqueeze(1)?, false)?
                 .f_flatten(0, -1)
         }).collect::<Result<Vec<Tensor>, TchError>>().map_err(|e|{
-            TensorError::Torch {context: format!("Torch error while calculating log probabilities of parameters{}", e)}
+            TensorError::Torch {context: format!("Torch error while calculating log probabilities of parameters. {}", e)}
         })?;
 
         let log_probs_vec = match param_masks{
@@ -384,7 +384,9 @@ impl ActorCriticOutput for TensorCriticMultiActor {
 
     fn stack_tensor_batch(batch: &Self::ActionBatchTensorType) -> Result<Self::ActionTensorType, ConvertError> {
         batch.iter().map(|param|{
-            Tensor::f_vstack(param).map_err(|e| ConvertError::TorchStr { origin: format!("{e}") })
+            Tensor::f_vstack(param)
+                .and_then(|stacked| stacked.f_squeeze())
+                .map_err(|e| ConvertError::TorchStr { origin: format!("{e}") })
         }).collect::<Result<Vec<Tensor>, _>>()
     }
 

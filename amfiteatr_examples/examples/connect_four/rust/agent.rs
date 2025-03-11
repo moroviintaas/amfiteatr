@@ -1,6 +1,6 @@
 use amfiteatr_core::agent::InformationSet;
 use amfiteatr_core::domain::{DomainParameters, Renew};
-use amfiteatr_core::error::AmfiteatrError;
+use amfiteatr_core::error::{AmfiteatrError, ConvertError};
 use amfiteatr_rl::error::TensorRepresentationError;
 use amfiteatr_rl::tch::Tensor;
 use amfiteatr_rl::tensor_data::{ConversionToTensor, ContextTryIntoTensor};
@@ -54,7 +54,7 @@ impl ConversionToTensor for ConnectFourTensorReprD1{
 }
 
 impl ContextTryIntoTensor<ConnectFourTensorReprD1> for ConnectFourInfoSet{
-    fn try_to_tensor(&self, way: &ConnectFourTensorReprD1) -> Result<Tensor, TensorRepresentationError> {
+    fn try_to_tensor(&self, way: &ConnectFourTensorReprD1) -> Result<Tensor, ConvertError> {
 
         let mut vec = Vec::with_capacity(way.desired_shape()[0] as usize);
         for r in 0..self.latest_observation.board.len(){
@@ -62,7 +62,7 @@ impl ContextTryIntoTensor<ConnectFourTensorReprD1> for ConnectFourInfoSet{
                 vec.extend(self.latest_observation.board[r][c].map(|u| u as f32));
             }
         }
-        Tensor::f_from_slice(&vec[..]).map_err(|e| TensorRepresentationError::Torch { source: e, context: format!("Converting information set: {:?}", &self) })
+        Tensor::f_from_slice(&vec[..]).map_err(|e| ConvertError::TorchStr { origin: format!("Converting information set: {:?} ({e})", &self) })
 
     }
 }

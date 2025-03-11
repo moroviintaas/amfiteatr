@@ -63,8 +63,9 @@ pub trait PolicyHelperPPO<DP: DomainParameters>
         let state_tensor = info_set.to_tensor(self.info_set_conversion_context());
         let out = tch::no_grad(|| (self.ppo_network().net())(&state_tensor));
         //let actor = out.actor;
-
+        println!("out: {:?}", out);
         let probs = self.ppo_dist(&info_set, &out)?;
+        println!("probs: {:?}", probs);
         let choices = match self.ppo_exploration(){
             true => Self::NetworkOutput::perform_choice(&probs, |t| t.f_multinomial(1, true))?,
               //  probs.into_iter().map(|t| t.multinomial(1, true)).collect(),
@@ -178,7 +179,12 @@ pub trait PolicyHelperPPO<DP: DomainParameters>
                     log::trace!("Added information set tensor to single trajectory vec.",);
                     //let (act_t, cat_mask_t) = step.action().action_index_and_mask_tensor_vecs(&self.action_conversion_context())?;
                     let (act_t, cat_mask_t) = self.ppo_vectorise_action_and_create_category_mask(step.action())?;
+                    #[cfg(feature = "log_trace")]
+                    log::trace!("act_t: {:?}", act_t);
                     Self::NetworkOutput::push_to_vec_batch(&mut tmp_trajectory_action_tensor_vecs, act_t);
+
+                    #[cfg(feature = "log_trace")]
+                    log::trace!("tmp_trajectory_action_tensor_vecs: {:?}", tmp_trajectory_action_tensor_vecs);
                     Self::NetworkOutput::push_to_vec_batch(&mut tmp_trajectory_action_category_mask_vecs, cat_mask_t);
 
                     tmp_trajectory_reward_vec.push(reward_f(&step));
@@ -215,7 +221,12 @@ pub trait PolicyHelperPPO<DP: DomainParameters>
 
                 state_tensor_vec.push(information_set_t);
                 advantage_tensor_vec.push(advantages_t);
+                #[cfg(feature = "log_trace")]
+                log::trace!("tmp_trajectory_action_tensor_vecs: {:?}", tmp_trajectory_action_tensor_vecs);
+                #[cfg(feature = "log_trace")]
+                log::trace!("multi_action_tensor_vec: {:?}", multi_action_tensor_vec);
                 Self::NetworkOutput::append_vec_batch(&mut multi_action_tensor_vec, &mut tmp_trajectory_action_tensor_vecs );
+
                 Self::NetworkOutput::append_vec_batch(&mut multi_action_cat_mask_tensor_vec, &mut tmp_trajectory_action_category_mask_vecs );
 
                 /*
@@ -272,6 +283,9 @@ pub trait PolicyHelperPPO<DP: DomainParameters>
         }
 
          */
+
+        #[cfg(feature = "log_trace")]
+        log::trace!("batch_actions_t: {:?}", batch_actions_t);
 
         let (batch_logprob_t, _entropy, batch_values_t) = tch::no_grad(||{
             self.ppo_batch_get_actor_critic_with_logprob_and_entropy(

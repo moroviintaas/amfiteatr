@@ -108,6 +108,14 @@ pub trait ConversionToMultiIndexI64{
 
 }
 
+impl<T: ConversionToMultiIndexI64 + ConversionFromMultipleTensors> ActionTensorFormat for T{
+    type TensorForm = Vec<Tensor>;
+
+    fn param_dimension_size(&self) -> i64 {
+        Self::number_of_params() as i64
+    }
+}
+
 pub trait ContextTryConvertIntoMultiIndexI64<Ctx: ConversionToMultiIndexI64>{
     fn param_value(&self, context: &Ctx, param_index: usize) -> Result<Option<i64>, ConvertError>;
     fn default_value(&self, _context: &Ctx, _param_index: usize) -> i64{
@@ -179,6 +187,7 @@ pub trait ContextTryConvertIntoMultiIndexI64<Ctx: ConversionToMultiIndexI64>{
             }
 
         }
+
         #[cfg(feature = "log_trace")]
         log::trace!("Action param[0] = {:?}", params[0]);
         Ok((params, usage_masks))

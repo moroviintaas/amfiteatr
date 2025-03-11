@@ -1,6 +1,6 @@
 use amfiteatr_core::agent::{InformationSet, PresentPossibleActions};
 use amfiteatr_core::domain::{DomainParameters, Renew};
-use amfiteatr_core::error::AmfiteatrError;
+use amfiteatr_core::error::{AmfiteatrError, ConvertError};
 use amfiteatr_proc_macro::no_assessment_info_set;
 use amfiteatr_rl::error::TensorRepresentationError;
 use amfiteatr_rl::tch::Tensor;
@@ -63,7 +63,7 @@ impl ConversionToTensor for CartPoleInformationSetConversion{
 }
 
 impl ContextTryIntoTensor<CartPoleInformationSetConversion> for PythonGymnasiumCartPoleInformationSet{
-    fn try_to_tensor(&self, _way: &CartPoleInformationSetConversion) -> Result<Tensor, TensorRepresentationError> {
+    fn try_to_tensor(&self, _way: &CartPoleInformationSetConversion) -> Result<Tensor, ConvertError> {
         let v = vec![
             self.latest_observation.position,
             self.latest_observation.velocity,
@@ -71,9 +71,8 @@ impl ContextTryIntoTensor<CartPoleInformationSetConversion> for PythonGymnasiumC
             self.latest_observation.angular_velocity];
 
         Tensor::f_from_slice(&v)
-            .map_err(|e| TensorRepresentationError::Torch {
-                source: e,
-                context: "Failed to convert observation to tensor".to_string()
+            .map_err(|e| ConvertError::TorchStr {
+                origin: format!("Failed to convert observation to tensor: {e}"),
             })
 
     }
