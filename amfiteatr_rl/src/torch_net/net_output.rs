@@ -3,6 +3,7 @@ use tch::{Device, Kind, TchError, Tensor};
 use tch::Kind::Float;
 use amfiteatr_core::domain::DomainParameters;
 use amfiteatr_core::error::{AmfiteatrError, ConvertError, DataError, TensorError};
+use amfiteatr_core::error::DataError::LengthMismatch;
 use amfiteatr_core::reexport::nom::Parser;
 use crate::error::AmfiteatrRlError;
 use crate::error::AmfiteatrRlError::ZeroBatchSize;
@@ -20,11 +21,11 @@ pub trait ActorCriticOutput : NetOutput + Debug{
     /// Outer is Param dimenstion Inner is Batch dimension. We later create param batches from continuous slice.
     type ActionBatchTensorType: Debug;
 
-    fn batch_entropy_masked(&self, forward_masks: Option<&Self::ActionTensorType>, reverse_masks: Option<&Self::ActionTensorType>)
-        -> Result<Tensor, TchError>;
+    fn batch_entropy_masked(&self, action_masks: Option<&Self::ActionTensorType>, parameter_masks: Option<&Self::ActionTensorType>)
+                            -> Result<Tensor, TchError>;
 
-    fn batch_log_probability_of_action<DP: DomainParameters>(&self, param_indices: &Self::ActionTensorType, param_masks: Option<&Self::ActionTensorType>)
-        -> Result<Tensor, AmfiteatrError<DP>>;
+    fn batch_log_probability_of_action<DP: DomainParameters>(&self, param_indices: &Self::ActionTensorType, action_masks: Option<&Self::ActionTensorType>, parameter_masks: Option<&Self::ActionTensorType>)
+                                                             -> Result<Tensor, AmfiteatrError<DP>>;
 
     fn critic(&self) -> &Tensor;
 
@@ -59,20 +60,108 @@ pub trait ActorCriticOutput : NetOutput + Debug{
 }
 
 /// Struct to aggregate both actor and critic output tensors from network.
-pub struct TensorCriticActor {
+#[derive(Debug)]
+pub struct TensorActorCritic {
     pub critic: Tensor,
     pub actor: Tensor
 }
 
+impl ActorCriticOutput for TensorActorCritic{
+    type ActionTensorType = Tensor;
+    type ActionBatchTensorType = Vec<Tensor>;
+
+    fn batch_entropy_masked(&self, forward_masks: Option<&Self::ActionTensorType>, reverse_masks: Option<&Self::ActionTensorType>) -> Result<Tensor, TchError> {
+        let p_log_p = Tensor::f_einsum("ij, ij -> ij", &[self.actor.f_softmax(-1, Float)?, self.actor.f_log_softmax(-1, Float)?], None::<i64>)?;
+        let mut element = p_log_p;
+        if let Some(fm) = forward_masks{
+            element = element.f_where_self(&fm, &Tensor::from(0.0))?
+        }
+        let elem = match reverse_masks{
+            Some(mut rev_mask) => {
+                let t = [&element, &rev_mask];
+
+                Tensor::f_einsum("ij, ij -> ij", &t, None::<i64>)?
+            },
+            None => element
+        };
+
+        let sum = elem.f_sum_dim_intlist(Some(-1), false, Kind::Float)?;
+
+        Ok(sum * tch::Tensor::from(-1.0))
+    }
+
+    fn batch_log_probability_of_action<DP: DomainParameters>(&self, param_indices: &Self::ActionTensorType, action_masks: Option<&Self::ActionTensorType>, _param_masks: Option<&Self::ActionTensorType>) -> Result<Tensor, AmfiteatrError<DP>> {
+
+        let log_probs = match action_masks{
+            None => self.actor.f_log_softmax(-1, Float)?,
+            Some(mask) => {
+                self.actor.f_log_softmax(-1, Float)?.f_where_self(&mask, &Tensor::from(1.0))?
+            }
+        };
+
+        let choice = log_probs.f_gather(1, &param_indices, false)?
+            .f_flatten(0, -1)?;
+
+        match choice.size().get(0){
+            None => Err(ZeroBatchSize {
+                context: format!("Batch log probability error. Indexes tensor: {param_indices}, choice tensor: {choice}")
+            }.into()),
+            Some(i) if i <= &0 => Err(ZeroBatchSize {
+                context: format!("Batch log probability error. Indexes tensor: {param_indices}, choice tensor: {choice}")
+            }.into()),
+            Some(_) => Ok(choice)
+        }
+
+    }
+
+    fn critic(&self) -> &Tensor {
+        &self.critic
+    }
+
+    fn push_to_vec_batch(vec_batch: &mut Self::ActionBatchTensorType, data: Self::ActionTensorType) {
+        vec_batch.push(data);
+    }
+
+    fn append_vec_batch(dst: &mut Self::ActionBatchTensorType, source: &mut Self::ActionBatchTensorType) {
+        dst.append(source);
+    }
+
+    fn clear_batch_dim_in_batch(vector: &mut Self::ActionBatchTensorType) {
+
+        vector.clear()
+    }
+
+    fn param_dimension_size(&self) -> i64 {
+        1
+    }
+
+    fn stack_tensor_batch(batch: &Self::ActionBatchTensorType) -> Result<Self::ActionTensorType, ConvertError> {
+        Tensor::f_vstack(batch)
+            .map_err(|e| ConvertError::TorchStr {origin: format!("{e}")})
+    }
+
+    fn new_batch_with_capacity(_number_of_params: usize, capacity: usize) -> Self::ActionBatchTensorType {
+        Vec::with_capacity(capacity)
+    }
+
+    fn perform_choice(dist: &Self::ActionTensorType, apply: impl Fn(&Tensor) -> Result<Tensor, TchError>) -> Result<Self::ActionTensorType, TensorError> {
+        apply(dist).map_err(|e| TensorError::Torch { context: format!("{e}") })
+    }
+
+    fn index_select(data: &Self::ActionTensorType, indices: &Tensor) -> Result<Self::ActionTensorType, TchError> {
+        data.f_index_select(0, &indices)
+    }
+}
+
 /// Struct to aggregate output for actor-critic networks with multi parameter actor
 #[derive(Debug)]
-pub struct TensorCriticMultiActor{
+pub struct TensorMultiParamActorCritic {
     pub critic: Tensor,
     pub actor: Vec<Tensor>
 }
 
 
-impl ActorCriticOutput for TensorCriticMultiActor {
+impl ActorCriticOutput for TensorMultiParamActorCritic {
     type ActionTensorType = Vec<Tensor>;
     type ActionBatchTensorType = Vec<Vec<Tensor>>;
 
@@ -98,7 +187,7 @@ impl ActorCriticOutput for TensorCriticMultiActor {
     /// ```
     ///
     /// use tch::{Device, Kind, Tensor};
-    /// use amfiteatr_rl::torch_net::{ActorCriticOutput, TensorCriticMultiActor};
+    /// use amfiteatr_rl::torch_net::{ActorCriticOutput, TensorMultiParamActorCritic};
     /// let critic = Tensor::from_slice(&[0.7, 0.21]); //first critic calculation, second criric calculation
     /// let actor = vec![
     ///     {
@@ -117,7 +206,7 @@ impl ActorCriticOutput for TensorCriticMultiActor {
     ///         Tensor::vstack(&[state1_dist2, state2_dist2])
     ///     },
     /// ];
-    /// let mca = TensorCriticMultiActor{critic,actor,};
+    /// let mca = TensorMultiParamActorCritic{critic,actor,};
     /// let reverse_masks = vec![
     ///     Tensor::from_slice(&[true, true]),
     ///     Tensor::from_slice(&[true, false]),
@@ -231,7 +320,7 @@ impl ActorCriticOutput for TensorCriticMultiActor {
     ///
     /// use tch::{Device, Kind, Tensor};
     /// use amfiteatr_core::demo::DemoDomain;
-    /// use amfiteatr_rl::torch_net::{ActorCriticOutput, TensorCriticMultiActor};
+    /// use amfiteatr_rl::torch_net::{ActorCriticOutput, TensorMultiParamActorCritic};
     /// let critic = Tensor::from_slice(&[0.7, 0.21]); //first critic calculation, second criric calculation
     /// let actor = vec![
     ///     {
@@ -250,7 +339,7 @@ impl ActorCriticOutput for TensorCriticMultiActor {
     ///         Tensor::vstack(&[state1_dist2, state2_dist2])
     ///     },
     /// ];
-    /// let mca = TensorCriticMultiActor{critic,actor,};
+    /// let mca = TensorMultiParamActorCritic{critic,actor,};
     /// let reverse_masks = vec![
     ///     Tensor::from_slice(&[true, true]),
     ///     Tensor::from_slice(&[true, false]),
@@ -282,15 +371,15 @@ impl ActorCriticOutput for TensorCriticMultiActor {
     /// */
     ///
     /// ];
-    /// let probs_unmasked = mca.batch_log_probability_of_action::<DemoDomain>(&action_params_selected_tensors, None).unwrap();
-    /// let probs_masked= mca.batch_log_probability_of_action::<DemoDomain>(&action_params_selected_tensors, Some(&reverse_masks)).unwrap();
+    /// let probs_unmasked = mca.batch_log_probability_of_action::<DemoDomain>(&action_params_selected_tensors, None, None).unwrap();
+    /// let probs_masked= mca.batch_log_probability_of_action::<DemoDomain>(&action_params_selected_tensors, None, Some(&reverse_masks)).unwrap();
     /// assert_eq!(&probs_unmasked.size(), &[2]);
     /// let unmasked: Vec<f32> = probs_unmasked.try_into().unwrap();
     /// let masked: Vec<f32> = probs_masked.try_into().unwrap();
     /// assert!(masked[1] > unmasked[1]);
     /// ```
 
-    fn batch_log_probability_of_action<DP: DomainParameters>(&self, param_indices: &Self::ActionTensorType, param_masks: Option<&Self::ActionTensorType>) -> Result<Tensor, AmfiteatrError<DP>> {
+    fn batch_log_probability_of_action<DP: DomainParameters>(&self, param_indices: &Self::ActionTensorType, action_masks: Option<&Self::ActionTensorType> , param_masks: Option<&Self::ActionTensorType>) -> Result<Tensor, AmfiteatrError<DP>> {
         if param_indices.len() != self.actor.len(){
             return Err(DataError::LengthMismatch {
                 left: param_indices.len(),
@@ -299,22 +388,71 @@ impl ActorCriticOutput for TensorCriticMultiActor {
             }.into())
         }
 
-        let probs: Vec<Tensor> = self.actor.iter().enumerate().map(|(i, a)|{
+
+
+        let mut choices: Vec<Tensor> = match action_masks{
+            None => {
+                self.actor.iter().enumerate().map(|(i, a)|{
+                    a.f_log_softmax(-1, Kind::Float)?
+
+                        .f_gather(1, &param_indices[i].f_unsqueeze(1)?, false)?
+                        .f_flatten(0, -1)
+                }).collect::<Result<Vec<Tensor>, TchError>>().map_err(|e|{
+                    TensorError::Torch {context: format!("Torch error while calculating log probabilities of parameters. {}", e)}
+                })?
+            },
+            Some(masks) => {
+
+                if masks.len() != self.actor.len(){
+                    return Err(LengthMismatch {
+                        left: self.actor.len(),
+                        right: masks.len(),
+                        context: "Number of parameter tensors in actor and masks".to_string(),
+                    }.into())
+                }
+
+                self.actor.iter().zip(masks).enumerate().map(|(i, (a, m))|{
+                    //let Tensor::f_einsum("i,i->i", &[a,m], None::<i64>)
+                    let log_softmax = a.f_log_softmax(-1, Kind::Float)?;
+                    let masked = log_softmax.f_where_self(m, &Tensor::from(1.0))?;
+                    masked.f_gather(1, &param_indices[i].f_unsqueeze(1)?, false)?
+                        .f_flatten(0, -1)
+
+                }).collect::<Result<Vec<Tensor>, TchError>>().map_err(|e|{
+                    TensorError::Torch {context: format!("Torch error while calculating log probabilities of parameters. {}", e)}
+                })?
+            }
+        };
+        /*
+        let mut choices: Vec<Tensor> = self.actor.iter().enumerate().map(|(i, a)|{
             #[cfg(feature = "log_trace")]
             log::trace!("Sizes of actor category batch {:?} and param_indices{:?}", a.size(), param_indices[i].size());
+
             a.f_log_softmax(-1, Kind::Float)?
+
                 .f_gather(1, &param_indices[i].f_unsqueeze(1)?, false)?
                 .f_flatten(0, -1)
         }).collect::<Result<Vec<Tensor>, TchError>>().map_err(|e|{
             TensorError::Torch {context: format!("Torch error while calculating log probabilities of parameters. {}", e)}
         })?;
 
+
+         */
+        if let Some(action_masks) = action_masks{
+            todo!();
+            //Need to move it before choice
+            for (logprob, mask) in choices.iter_mut().zip(action_masks){
+                //set logprob to 1 (prob to 0) when mask is false
+                *logprob =  logprob.f_where_self(mask, &tch::Tensor::from(1.0))?;
+            }
+        }
+
         let log_probs_vec = match param_masks{
             None => {
-                probs
+                choices
             }
             Some(masks) => {
-                let masked_param_log_probs = probs.iter().zip(masks.iter())
+                let masked_param_log_probs = choices.iter().zip(masks.iter())
                     .map(|(logp, mask)|{
                         let masked_log_probs = Tensor::f_einsum("i,i -> i", &[logp, mask], Option::<i64>::None);
                         masked_log_probs
@@ -324,6 +462,8 @@ impl ActorCriticOutput for TensorCriticMultiActor {
                 masked_param_log_probs
             }
         };
+
+
 
         let batch_size = log_probs_vec.get(0)
             .ok_or_else(|| ZeroBatchSize {
@@ -705,9 +845,9 @@ impl NetOutput for MultiDiscreteTensor{}
 
 impl NetOutput for Tensor{}
 impl NetOutput for (Tensor, Tensor){}
-impl NetOutput for TensorCriticActor {}
+impl NetOutput for TensorActorCritic {}
 
-impl NetOutput for TensorCriticMultiActor{}
+impl NetOutput for TensorMultiParamActorCritic {}
 
 
 /// Converts tensor of shape (1,) and type i64 to i64. Technically it will work

@@ -116,7 +116,7 @@ impl<T: ConversionToMultiIndexI64 + ConversionFromMultipleTensors> ActionTensorF
     }
 }
 
-pub trait ContextTryConvertIntoMultiIndexI64<Ctx: ConversionToMultiIndexI64>{
+pub trait ContextTryIntoMultiIndexI64<Ctx: ConversionToMultiIndexI64>{
     fn param_value(&self, context: &Ctx, param_index: usize) -> Result<Option<i64>, ConvertError>;
     fn default_value(&self, _context: &Ctx, _param_index: usize) -> i64{
         0
@@ -133,42 +133,7 @@ pub trait ContextTryConvertIntoMultiIndexI64<Ctx: ConversionToMultiIndexI64>{
         }).collect::<Result<Vec<Option<i64>>, _>>()?)
     }
 
-    /*
-    fn action_index_tensor_vec_with_mask(&self,  context: &W, ) -> Result<Vec<(Tensor, Tensor)>,  TensorRepresentationError>{
 
-        (0..W::number_of_params()).map(|i|{
-            match self.param_value(context, i){
-                Some(p) => (Tensor::from(p), Tensor::from(true)),
-                None => (Tensor::from(self.default_value(context, i)), Tensor::from(false))
-            }
-        }).collect::<Result<Vec<(Tensor, Tensor)>, _>>()
-
-    }
-
-
-
-    fn action_index_tensor_with_mask(&self, context: &W) -> Result<(Tensor, Tensor), TensorRepresentationError>{
-        let mut params = Vec::new();
-        let mut usage_masks = Vec::new();
-
-        for i in 0..W::number_of_params(){
-            match self.param_value(context, i)?{
-                Some(p) => {
-                    params.push(p);
-                    usage_masks.push(true);
-                },
-                None => {
-                    params.push(self.default_value(context, i));
-                    usage_masks.push(false);
-                }
-            }
-
-        }
-        Ok((Tensor::from_slice(&params), Tensor::from_slice(&usage_masks)))
-    }
-
-
-     */
 
     fn action_index_and_mask_tensor_vecs(&self, context: &Ctx) -> Result<(Vec<Tensor>, Vec<Tensor>),ConvertError>{
         let mut params = Vec::new();

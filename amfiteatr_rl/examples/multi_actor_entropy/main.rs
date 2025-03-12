@@ -1,5 +1,5 @@
 use tch::{Device, Kind, Tensor};
-use amfiteatr_rl::torch_net::TensorCriticMultiActor;
+use amfiteatr_rl::torch_net::TensorMultiParamActorCritic;
 use amfiteatr_rl::torch_net::ActorCriticOutput;
 
 fn main() {
@@ -33,7 +33,7 @@ fn main() {
             Tensor::vstack(&[state1_dist2, state2_dist2])
         },
     ];
-    let mca = TensorCriticMultiActor { critic, actor, };
+    let mca = TensorMultiParamActorCritic { critic, actor, };
     let reverse_masks = vec![
         Tensor::from_slice(&[true, true]),
         Tensor::from_slice(&[true, false]),

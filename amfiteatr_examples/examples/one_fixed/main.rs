@@ -7,7 +7,7 @@ use log::{debug, info};
 use amfiteatr_rl::tch::{Device, nn, Tensor};
 use amfiteatr_rl::tch::nn::{Adam, VarStore};
 use amfiteatr_rl::tensor_data::{ConversionToTensor};
-use amfiteatr_rl::torch_net::{A2CNet, NeuralNetTemplate, TensorCriticActor};
+use amfiteatr_rl::torch_net::{A2CNet, NeuralNetTemplate, TensorActorCritic};
 use clap::{Parser};
 use plotters::style::colors;
 use amfiteatr_core::agent::*;
@@ -145,7 +145,7 @@ fn main() -> Result<(), AmfiteatrError<ClassicGameDomain<AgentNum>>>{
         let critic =  nn::linear(path / "ac", 512, 1, Default::default());
         {move |input: &Tensor|{
             let xs = input.to_device(device).apply(&seq);
-            TensorCriticActor {critic: xs.apply(&critic), actor: xs.apply(&actor)}
+            TensorActorCritic {critic: xs.apply(&critic), actor: xs.apply(&actor)}
         }}
     });
 

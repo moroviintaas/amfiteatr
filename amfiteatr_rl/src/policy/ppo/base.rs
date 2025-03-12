@@ -1,4 +1,5 @@
 use std::cmp::min;
+use getset::{Getters, Setters};
 use rand::prelude::SliceRandom;
 use tch::{Kind, TchError, Tensor};
 use tch::Kind::Float;
@@ -7,10 +8,42 @@ use amfiteatr_core::agent::{AgentStepView, AgentTrajectory, InformationSet, Poli
 use amfiteatr_core::domain::DomainParameters;
 use amfiteatr_core::error::AmfiteatrError;
 use crate::error::AmfiteatrRlError;
-use crate::policy::{ConfigPPO, find_max_trajectory_len, sum_trajectories_steps};
+use crate::policy::{find_max_trajectory_len, sum_trajectories_steps};
 use crate::tensor_data::{ActionTensorFormat, ContextTryIntoTensor, ConversionToTensor};
 use crate::torch_net::{ActorCriticOutput, NetOutput, NeuralNet};
 
+///! Based on [cleanrl PPO](https://github.com/vwxyzjn/cleanrl/blob/master/cleanrl/ppo.py)
+#[derive(Copy, Clone, Debug, Getters, Setters)]
+pub struct ConfigPPO {
+    pub gamma: f64,
+    pub clip_vloss: bool,
+    pub clip_coef: f64,
+    pub ent_coef: f64,
+    pub vf_coef: f64,
+    pub max_grad_norm: f64,
+    pub gae_lambda: f64,
+    pub mini_batch_size: usize,
+    pub tensor_kind: tch::kind::Kind,
+    pub update_epochs: usize,
+    //pub
+}
+
+impl Default for ConfigPPO {
+    fn default() -> ConfigPPO {
+        Self{
+            gamma: 0.99,
+            clip_vloss: true,
+            clip_coef: 0.2,
+            ent_coef: 0.01,
+            vf_coef: 0.5,
+            max_grad_norm: 0.5,
+            gae_lambda: 0.95,
+            mini_batch_size: 16,
+            tensor_kind: tch::kind::Kind::Float,
+            update_epochs: 4,
+        }
+    }
+}
 pub trait PolicyHelperPPO<DP: DomainParameters>
 {
     type InfoSet: InformationSet<DP> + ContextTryIntoTensor<Self::InfoSetConversionContext>;

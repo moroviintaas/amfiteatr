@@ -15,7 +15,7 @@ use crate::error::{AmfiteatrRlError, TensorRepresentationError};
 use crate::policy::common::categorical_dist_entropy;
 use crate::policy::LearningNetworkPolicy;
 use crate::tensor_data::{ContextTryIntoTensor, ConversionToTensor, TryIntoTensor, TryFromTensor};
-use crate::torch_net::{A2CNet, TensorCriticActor};
+use crate::torch_net::{A2CNet, TensorActorCritic};
 use crate::policy::TrainConfig;
 
 /// Generic implementation of Advantage Actor Critic policy
@@ -57,7 +57,7 @@ ActorCriticPolicy<
     /// use amfiteatr_core::demo::{DemoDomain, DemoInfoSet};
     /// use amfiteatr_rl::policy::ActorCriticPolicy;
     /// use amfiteatr_rl::demo::DemoConversionToTensor;
-    /// use amfiteatr_rl::torch_net::{A2CNet, TensorCriticActor};
+    /// use amfiteatr_rl::torch_net::{A2CNet, TensorActorCritic};
     /// use amfiteatr_rl::policy::TrainConfig;
     /// let var_store = VarStore::new(Device::Cpu);
     /// let neural_net = A2CNet::new(var_store, |path|{
@@ -69,7 +69,7 @@ ActorCriticPolicy<
     ///     let device = path.device();
     ///     {move |xs: &Tensor|{
     ///         let xs = xs.to_device(device).apply(&seq);
-    ///         TensorCriticActor{critic: xs.apply(&critic), actor: xs.apply(&actor)}
+    ///         TensorActorCritic{critic: xs.apply(&critic), actor: xs.apply(&actor)}
     ///     }}
     ///
     /// });
@@ -275,7 +275,7 @@ impl<
         log::trace!("Result batch: {:?}", results_batch);
         #[cfg(feature = "log_trace")]
         log::trace!("Action batch: {:?}", action_batch);
-        let TensorCriticActor {actor, critic} = (self.network.net())(&states_batch);
+        let TensorActorCritic {actor, critic} = (self.network.net())(&states_batch);
         let log_probs = actor.log_softmax(-1, Kind::Float);
         let probs = actor.softmax(-1, Float);
         let action_log_probs = {

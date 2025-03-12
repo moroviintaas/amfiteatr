@@ -11,47 +11,16 @@ use amfiteatr_core::domain::DomainParameters;
 use amfiteatr_core::error::{AmfiteatrError, ConvertError};
 use crate::error::{AmfiteatrRlError, TensorRepresentationError};
 use crate::policy::common::{find_max_trajectory_len, sum_trajectories_steps};
-use crate::policy::{LearningNetworkPolicy, PolicyHelperPPO};
+use crate::policy::{ConfigPPO, LearningNetworkPolicy, PolicyHelperPPO};
 use crate::{tch, MaskingInformationSetActionMultiParameter, tensor_data};
 use crate::tch::nn::Optimizer;
 use crate::tch::Tensor;
-use crate::tensor_data::{ConversionFromMultipleTensors, ConversionFromTensor, ConversionToMultiIndexI64, ConversionToTensor, ContextTryConvertIntoMultiIndexI64, ContextTryFromMultipleTensors, ContextTryIntoTensor};
-use crate::torch_net::{A2CNet, ActorCriticOutput, MultiDiscreteNet, NeuralNet, NeuralNetCriticMultiActor, TensorCriticMultiActor};
+use crate::tensor_data::{ConversionFromMultipleTensors, ConversionFromTensor, ConversionToMultiIndexI64, ConversionToTensor, ContextTryIntoMultiIndexI64, ContextTryFromMultipleTensors, ContextTryIntoTensor};
+use crate::torch_net::{A2CNet, ActorCriticOutput, MultiDiscreteNet, NeuralNet, NeuralNetMultiActorCritic, TensorMultiParamActorCritic};
 
-///! Based on [cleanrl PPO](https://github.com/vwxyzjn/cleanrl/blob/master/cleanrl/ppo.py)
-#[derive(Copy, Clone, Debug, Getters, Setters)]
-pub struct ConfigPPO {
-    pub gamma: f64,
-    pub clip_vloss: bool,
-    pub clip_coef: f64,
-    pub ent_coef: f64,
-    pub vf_coef: f64,
-    pub max_grad_norm: f64,
-    pub gae_lambda: f64,
-    pub mini_batch_size: usize,
-    pub tensor_kind: tch::kind::Kind,
-    pub update_epochs: usize,
-    //pub
-}
 
-impl Default for ConfigPPO {
-    fn default() -> ConfigPPO {
-        Self{
-            gamma: 0.99,
-            clip_vloss: true,
-            clip_coef: 0.2,
-            ent_coef: 0.01,
-            vf_coef: 0.5,
-            max_grad_norm: 0.5,
-            gae_lambda: 0.95,
-            mini_batch_size: 16,
-            tensor_kind: tch::kind::Kind::Float,
-            update_epochs: 4,
-        }
-    }
-}
 
-pub struct PolicyBasePPOMultiDiscrete<
+pub struct PolicyPpoMultiDiscrete<
     DP: DomainParameters,
     InfoSet: InformationSet<DP> + Debug + ContextTryIntoTensor<InfoSetConversionContext>,
     InfoSetConversionContext: ConversionToTensor,
@@ -60,7 +29,7 @@ pub struct PolicyBasePPOMultiDiscrete<
 //where <DP as DomainParameters>::ActionType: ContextTryFromMultipleTensors<ActionBuildContext>
 {
     config: ConfigPPO,
-    network: NeuralNetCriticMultiActor,
+    network: NeuralNetMultiActorCritic,
     optimizer: Optimizer,
     _dp: PhantomData<DP>,
     _is: PhantomData<InfoSet>,
@@ -79,12 +48,13 @@ impl<
     InfoSet: InformationSet<DP> + Debug + ContextTryIntoTensor<InfoSetConversionContext>,
     InfoSetConversionContext: ConversionToTensor,
     ActionBuildContext: ConversionFromMultipleTensors + ConversionToMultiIndexI64,
-> PolicyBasePPOMultiDiscrete<DP, InfoSet, InfoSetConversionContext, ActionBuildContext>
+> PolicyPpoMultiDiscrete<DP, InfoSet, InfoSetConversionContext, ActionBuildContext>
 where <DP as DomainParameters>::ActionType:
     ContextTryFromMultipleTensors<ActionBuildContext>
-    + ContextTryConvertIntoMultiIndexI64<ActionBuildContext>
+    + ContextTryIntoMultiIndexI64<ActionBuildContext>
 
 {
+
 
 
 
@@ -100,6 +70,7 @@ where <DP as DomainParameters>::ActionType:
 
         let batch_logprob = critic_actor.batch_log_probability_of_action::<DP>(
             action_param_batches,
+            action_forward_mask_batches,
             action_category_mask_batches
         )?;
         let batch_entropy = critic_actor.batch_entropy_masked(
@@ -118,6 +89,8 @@ where <DP as DomainParameters>::ActionType:
 
         Ok((batch_logprob, batch_entropy_avg, critic_actor.critic))
     }
+
+
 
     /*
     pub(crate) fn _select_action<
@@ -289,15 +262,7 @@ where <DP as DomainParameters>::ActionType:
         let batch_size = batch_info_sets_t.size()[0];
         let mut indices: Vec<i64> = (0..batch_size).collect();
 
-        /*
-        let (batch_logprob_t, _entropy, _batch_value) = self.batch_get_actor_critic_with_logprob_and_entropy(
-            &batch_info_sets_t,
-            &batch_actions_t,
-            Some(&batch_action_masks_t),
-            None, //to add it some day
-        )?;
 
-         */
 
         let (batch_logprob_t, _entropy, batch_values_t) = tch::no_grad(||{
             self.batch_get_actor_critic_with_logprob_and_entropy(
@@ -453,12 +418,12 @@ impl<
     InfoSetConversionContext: ConversionToTensor,
     ActionBuildContext: ConversionFromMultipleTensors,
 >
-PolicyBasePPOMultiDiscrete<DP, InfoSet, InfoSetConversionContext, ActionBuildContext>
+PolicyPpoMultiDiscrete<DP, InfoSet, InfoSetConversionContext, ActionBuildContext>
 where <DP as DomainParameters>::ActionType: ContextTryFromMultipleTensors<ActionBuildContext>
 {
     pub fn new(
         config: ConfigPPO,
-        network: NeuralNetCriticMultiActor,
+        network: NeuralNetMultiActorCritic,
         optimizer: Optimizer,
         info_set_conversion_context: InfoSetConversionContext,
         action_build_context: ActionBuildContext,
@@ -478,7 +443,7 @@ where <DP as DomainParameters>::ActionType: ContextTryFromMultipleTensors<Action
     }
 }
 
-pub struct PolicyPPOMultiDiscrete<
+pub struct PolicyPPOMultiDiscreteMasking<
     DP: DomainParameters,
     InfoSet: InformationSet<DP> + Debug + ContextTryIntoTensor<InfoSetConversionContext>,
     InfoSetConversionContext: ConversionToTensor,
@@ -486,7 +451,7 @@ pub struct PolicyPPOMultiDiscrete<
 >
 //where <DP as DomainParameters>::ActionType: ContextTryFromMultipleTensors<ActionBuildContext>
 {
-    base: PolicyBasePPOMultiDiscrete<DP, InfoSet, InfoSetConversionContext, ActionBuildContext>,
+    base: PolicyPpoMultiDiscrete<DP, InfoSet, InfoSetConversionContext, ActionBuildContext>,
 
 }
 impl<
@@ -494,11 +459,11 @@ impl<
     InfoSet: InformationSet<DP> + Debug + ContextTryIntoTensor<InfoSetConversionContext>,
     InfoSetConversionContext: ConversionToTensor,
     ActionBuildContext: ConversionFromMultipleTensors,
-> PolicyPPOMultiDiscrete<DP, InfoSet, InfoSetConversionContext, ActionBuildContext>
+> PolicyPPOMultiDiscreteMasking<DP, InfoSet, InfoSetConversionContext, ActionBuildContext>
 where <DP as DomainParameters>::ActionType: ContextTryFromMultipleTensors<ActionBuildContext>{
     pub fn new(
         config: ConfigPPO,
-        network: NeuralNetCriticMultiActor,
+        network: NeuralNetMultiActorCritic,
         optimizer: Optimizer,
         info_set_conversion_context: InfoSetConversionContext,
         action_build_context: ActionBuildContext,
@@ -506,7 +471,7 @@ where <DP as DomainParameters>::ActionType: ContextTryFromMultipleTensors<Action
 
     ) -> Self{
         Self{
-            base: PolicyBasePPOMultiDiscrete::new(
+            base: PolicyPpoMultiDiscrete::new(
                 config,
                 network,
                 optimizer,
@@ -516,7 +481,7 @@ where <DP as DomainParameters>::ActionType: ContextTryFromMultipleTensors<Action
         }
     }
 
-    pub fn base(&self) -> &PolicyBasePPOMultiDiscrete<DP, InfoSet, InfoSetConversionContext, ActionBuildContext>{
+    pub fn base(&self) -> &PolicyPpoMultiDiscrete<DP, InfoSet, InfoSetConversionContext, ActionBuildContext>{
         &self.base
     }
 
@@ -529,10 +494,10 @@ impl<
     InfoSetConversionContext: ConversionToTensor ,
     ActionBuildContext: ConversionFromMultipleTensors + ConversionToMultiIndexI64 + tensor_data::ActionTensorFormat<TensorForm = Vec<tch::Tensor>>,
 >
-Policy<DP> for PolicyPPOMultiDiscrete<DP, InfoSet, InfoSetConversionContext, ActionBuildContext>
+Policy<DP> for PolicyPpoMultiDiscrete<DP, InfoSet, InfoSetConversionContext, ActionBuildContext>
 where
     <DP as DomainParameters>::ActionType:
-        ContextTryFromMultipleTensors<ActionBuildContext, > + ContextTryConvertIntoMultiIndexI64<ActionBuildContext>,
+        ContextTryFromMultipleTensors<ActionBuildContext, > + ContextTryIntoMultiIndexI64<ActionBuildContext>,
 
 {
     type InfoSetType = InfoSet;
@@ -549,20 +514,20 @@ impl<
     InfoSet: InformationSet<DP> + Debug + ContextTryIntoTensor<InfoSetConversionContext> + MaskingInformationSetActionMultiParameter<ActionBuildContext>,
     InfoSetConversionContext: ConversionToTensor,
     ActionBuildContext: ConversionFromMultipleTensors + ConversionToMultiIndexI64 + tensor_data::ActionTensorFormat<TensorForm = Vec<tch::Tensor>>,
-> LearningNetworkPolicy<DP> for PolicyPPOMultiDiscrete<DP, InfoSet, InfoSetConversionContext, ActionBuildContext>
+> LearningNetworkPolicy<DP> for PolicyPpoMultiDiscrete<DP, InfoSet, InfoSetConversionContext, ActionBuildContext>
 where <DP as DomainParameters>::ActionType: ContextTryFromMultipleTensors<ActionBuildContext>
-    + ContextTryConvertIntoMultiIndexI64<ActionBuildContext>,
+    + ContextTryIntoMultiIndexI64<ActionBuildContext>,
 {
     fn var_store(&self) -> &VarStore {
-        &self.base.network.var_store()
+        &self.network.var_store()
     }
 
     fn var_store_mut(&mut self) -> &mut VarStore {
-        self.base.network.var_store_mut()
+        self.network.var_store_mut()
     }
 
     fn switch_explore(&mut self, enabled: bool) {
-        self.base.exploration = enabled;
+        self.exploration = enabled;
     }
 
     fn train_on_trajectories<
@@ -580,41 +545,43 @@ where <DP as DomainParameters>::ActionType: ContextTryFromMultipleTensors<Action
     }
 }
 
+
+
 impl<
     DP: DomainParameters,
     InfoSet: InformationSet<DP> + Debug + ContextTryIntoTensor<InfoSetConversionContext> ,
     InfoSetConversionContext: ConversionToTensor ,
     ActionBuildContext: ConversionFromMultipleTensors + ConversionToMultiIndexI64 + tensor_data::ActionTensorFormat<TensorForm = Vec<tch::Tensor>>,
 >
-PolicyHelperPPO<DP> for PolicyPPOMultiDiscrete<DP, InfoSet, InfoSetConversionContext, ActionBuildContext>
+PolicyHelperPPO<DP> for PolicyPpoMultiDiscrete<DP, InfoSet, InfoSetConversionContext, ActionBuildContext>
     where
         <DP as DomainParameters>::ActionType:
-        ContextTryFromMultipleTensors<ActionBuildContext, > + ContextTryConvertIntoMultiIndexI64<ActionBuildContext>,
+        ContextTryFromMultipleTensors<ActionBuildContext, > + ContextTryIntoMultiIndexI64<ActionBuildContext>,
 
 {
     type InfoSet = InfoSet;
     type InfoSetConversionContext = InfoSetConversionContext;
     type ActionConversionContext = ActionBuildContext;
-    type NetworkOutput = TensorCriticMultiActor;
+    type NetworkOutput = TensorMultiParamActorCritic;
 
     fn config(&self) -> &ConfigPPO {
-        &self.base.config
+        &self.config
     }
 
     fn optimizer_mut(&mut self) -> &mut Optimizer {
-        &mut self.base.optimizer
+        &mut self.optimizer
     }
 
     fn ppo_network(&self) -> &NeuralNet<Self::NetworkOutput> {
-        &self.base().network
+        &self.network
     }
 
     fn info_set_conversion_context(&self) -> &Self::InfoSetConversionContext {
-        &self.base.info_set_conversion_context
+        &self.info_set_conversion_context
     }
 
     fn action_conversion_context(&self) -> &Self::ActionConversionContext {
-        &self.base().action_build_context
+        &self.action_build_context
     }
 
     fn ppo_dist(&self, _info_set: &Self::InfoSet, network_output: &Self::NetworkOutput) -> Result<<Self::NetworkOutput as ActorCriticOutput>::ActionTensorType, AmfiteatrError<DP>> {
@@ -635,11 +602,11 @@ PolicyHelperPPO<DP> for PolicyPPOMultiDiscrete<DP, InfoSet, InfoSetConversionCon
 
 
     fn ppo_exploration(&self) -> bool {
-        self.base.exploration
+        self.exploration
     }
 
     fn ppo_try_action_from_choice_tensor(&self, choice_tensor: &<Self::NetworkOutput as ActorCriticOutput>::ActionTensorType) -> Result<DP::ActionType, AmfiteatrError<DP>> {
-        Ok(<DP::ActionType>::try_from_tensors(choice_tensor, &self.base.action_build_context)?)
+        Ok(<DP::ActionType>::try_from_tensors(choice_tensor, &self.action_build_context)?)
     }
 
     fn ppo_vectorise_action_and_create_category_mask(&self, action: &DP::ActionType) -> Result<(<Self::NetworkOutput as ActorCriticOutput>::ActionTensorType, <Self::NetworkOutput as ActorCriticOutput>::ActionTensorType), AmfiteatrError<DP>> {
@@ -653,7 +620,7 @@ PolicyHelperPPO<DP> for PolicyPPOMultiDiscrete<DP, InfoSet, InfoSetConversionCon
     fn ppo_batch_get_actor_critic_with_logprob_and_entropy(&self, info_set_batch: &Tensor, action_param_batches: &Vec<Tensor>, action_category_mask_batches: Option<&Vec<Tensor>>, action_forward_mask_batches: Option<&Vec<Tensor>>) -> Result<(Tensor, Tensor, Tensor), AmfiteatrError<DP>> {
         #[cfg(feature = "log_trace")]
         log::trace!("action_category_mask_batches: {:?}", action_category_mask_batches);
-        self.base.batch_get_actor_critic_with_logprob_and_entropy(
+        self.batch_get_actor_critic_with_logprob_and_entropy(
             info_set_batch,
             action_param_batches,
             action_category_mask_batches,
