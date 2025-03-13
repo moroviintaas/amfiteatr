@@ -74,7 +74,7 @@ impl ActorCriticOutput for TensorActorCritic{
         let p_log_p = Tensor::f_einsum("ij, ij -> ij", &[self.actor.f_softmax(-1, Float)?, self.actor.f_log_softmax(-1, Float)?], None::<i64>)?;
         let mut element = p_log_p;
         if let Some(fm) = forward_masks{
-            element = element.f_where_self(&fm, &Tensor::from(0.0))?
+            element = element.f_where_self(&fm.ne(0.0), &Tensor::from(0.0))?
         }
         let elem = match reverse_masks{
             Some(mut rev_mask) => {
@@ -95,7 +95,7 @@ impl ActorCriticOutput for TensorActorCritic{
         let log_probs = match action_masks{
             None => self.actor.f_log_softmax(-1, Float)?,
             Some(mask) => {
-                self.actor.f_log_softmax(-1, Float)?.f_where_self(&mask, &Tensor::from(1.0))?
+                self.actor.f_log_softmax(-1, Float)?.f_where_self(&mask.ne(0.0), &Tensor::from(1.0))?
             }
         };
 
@@ -250,7 +250,7 @@ impl ActorCriticOutput for TensorMultiParamActorCritic {
         let mut elements = p_log_p;
         if let Some(fm) = forward_masks{
             for (i,  e) in elements.iter_mut().enumerate(){
-                *e = e.f_where_self(&fm[i], &Tensor::from(0.0))?
+                *e = e.f_where_self(&fm[i].ne(0.0), &Tensor::from(0.0))?
             }
         }
         let elems1:Vec<Tensor> = match reverse_masks{
@@ -414,7 +414,7 @@ impl ActorCriticOutput for TensorMultiParamActorCritic {
                 self.actor.iter().zip(masks).enumerate().map(|(i, (a, m))|{
                     //let Tensor::f_einsum("i,i->i", &[a,m], None::<i64>)
                     let log_softmax = a.f_log_softmax(-1, Kind::Float)?;
-                    let masked = log_softmax.f_where_self(m, &Tensor::from(1.0))?;
+                    let masked = log_softmax.f_where_self(&m.ne(0.0), &Tensor::from(1.0))?;
                     masked.f_gather(1, &param_indices[i].f_unsqueeze(1)?, false)?
                         .f_flatten(0, -1)
 

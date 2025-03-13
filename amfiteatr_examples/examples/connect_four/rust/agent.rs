@@ -2,6 +2,7 @@ use amfiteatr_core::agent::InformationSet;
 use amfiteatr_core::domain::{DomainParameters, Renew};
 use amfiteatr_core::error::{AmfiteatrError, ConvertError};
 use amfiteatr_rl::error::TensorRepresentationError;
+use amfiteatr_rl::MaskingInformationSetAction;
 use amfiteatr_rl::tch::Tensor;
 use amfiteatr_rl::tensor_data::{ConversionToTensor, ContextTryIntoTensor, ContextTryFromTensor, ConversionFromTensor, ContextTryIntoIndexI64, ConversionToIndexI64};
 use crate::common::{ConnectFourAction, ConnectFourBinaryObservation, ConnectFourDomain, ConnectFourPlayer};
@@ -103,5 +104,18 @@ impl ContextTryFromTensor<ConnectFourActionTensorRepresentation> for ConnectFour
 impl ContextTryIntoIndexI64<ConnectFourActionTensorRepresentation> for ConnectFourAction{
     fn try_to_index(&self, _way: &ConnectFourActionTensorRepresentation) -> Result<i64, ConvertError> {
         Ok(self.index() as i64)
+    }
+}
+
+impl MaskingInformationSetAction<ConnectFourDomain, ConnectFourActionTensorRepresentation> for ConnectFourInfoSet{
+    fn try_build_mask(&self, _ctx: &ConnectFourActionTensorRepresentation) -> Result<Tensor, AmfiteatrError<ConnectFourDomain>> {
+        let top_row_is_empty: [f32; 7] =  self.latest_observation.board[0].map(|[u1,u2]| {
+            match (u1,u2) {
+                (0,0) => 1.0,
+                _ => 0.0,
+            }
+        });
+        Ok(Tensor::f_from_slice(&top_row_is_empty)?)
+
     }
 }

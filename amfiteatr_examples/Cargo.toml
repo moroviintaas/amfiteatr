@@ -38,6 +38,11 @@ required-features = ["rl-python"]
 path = "examples/connect_four/run_model_ppo.rs"
 
 [[example]]
+name = "connect_four_ppo_masking"
+required-features = ["rl-python"]
+path = "examples/connect_four/run_model_ppo_masking.rs"
+
+[[example]]
 name = "communication_choice"
 
 [dependencies]

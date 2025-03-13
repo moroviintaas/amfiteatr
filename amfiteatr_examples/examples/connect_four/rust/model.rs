@@ -10,7 +10,7 @@ use amfiteatr_core::domain::Renew;
 use amfiteatr_core::env::{GameStateWithPayoffs, HashMapEnvironment, ReseedEnvironment, RoundRobinPenalisingUniversalEnvironment, StatefulEnvironment};
 use amfiteatr_core::error::AmfiteatrError;
 use amfiteatr_rl::error::AmfiteatrRlError;
-use amfiteatr_rl::policy::{ActorCriticPolicy, ConfigPPO, LearningNetworkPolicy, PolicyPpoDiscrete, TrainConfig};
+use amfiteatr_rl::policy::{ActorCriticPolicy, ConfigPPO, LearningNetworkPolicy, PolicyMaskingPpoDiscrete, PolicyPpoDiscrete, TrainConfig};
 use amfiteatr_rl::tch::{Device, nn, Tensor};
 use amfiteatr_rl::tch::nn::{Adam, OptimizerConfig, VarStore};
 use amfiteatr_rl::tensor_data::ConversionToTensor;
@@ -138,7 +138,7 @@ fn build_a2c_policy(layer_sizes: &[i64], device: Device) -> Result<C4A2CPolicy, 
     )
 }
 
-fn build_ppo_policy(layer_sizes: &[i64], device: Device, config: ConfigPPO) -> Result<C4PPOPolicy, AmfiteatrRlError<ConnectFourDomain>>{
+fn build_ppo_policy_masking(layer_sizes: &[i64], device: Device, config: ConfigPPO) -> Result<C4PPOPolicyMasking, AmfiteatrRlError<ConnectFourDomain>>{
     let var_store = VarStore::new(device);
     //let var_store = VarStore::new(Device::Cuda(0));
     let input_shape = ConnectFourTensorReprD1{}.desired_shape()[0];
@@ -185,7 +185,7 @@ fn build_ppo_policy(layer_sizes: &[i64], device: Device, config: ConfigPPO) -> R
     let optimiser = Adam::default().build(&var_store, 1e-4)?;
     let net = A2CNet::new(var_store, net, );
 
-    Ok(PolicyPpoDiscrete::new(
+    Ok(PolicyMaskingPpoDiscrete::new(
         config,
         net,
         optimiser,
@@ -193,9 +193,15 @@ fn build_ppo_policy(layer_sizes: &[i64], device: Device, config: ConfigPPO) -> R
         ConnectFourActionTensorRepresentation{})
     )
 }
+fn build_ppo_policy(layer_sizes: &[i64], device: Device, config: ConfigPPO) -> Result<C4PPOPolicy, AmfiteatrRlError<ConnectFourDomain>>{
+    Ok(build_ppo_policy_masking(layer_sizes, device, config)?.base)
+
+}
+
 
 pub type C4A2CPolicy = ActorCriticPolicy<ConnectFourDomain, ConnectFourInfoSet, ConnectFourTensorReprD1>;
 pub type C4PPOPolicy = PolicyPpoDiscrete<ConnectFourDomain, ConnectFourInfoSet, ConnectFourTensorReprD1, ConnectFourActionTensorRepresentation>;
+pub type C4PPOPolicyMasking = PolicyMaskingPpoDiscrete<ConnectFourDomain, ConnectFourInfoSet, ConnectFourTensorReprD1, ConnectFourActionTensorRepresentation>;
 type Environment<S> = HashMapEnvironment<ConnectFourDomain, S, StdEnvironmentEndpoint<ConnectFourDomain>>;
 type Agent<P: LearningNetworkPolicy<ConnectFourDomain>> = TracingAgentGen<ConnectFourDomain, P, StdAgentEndpoint<ConnectFourDomain>>;
 pub struct ConnectFourModelRust<S: GameStateWithPayoffs<ConnectFourDomain>, P: LearningNetworkPolicy<ConnectFourDomain>>{
@@ -251,6 +257,34 @@ impl<
         let env = Environment::new(S::default(), hm, );
         let agent_policy_1 = build_ppo_policy(agent_layers_1, device, config_ppo).unwrap();
         let agent_policy_2 = build_ppo_policy(agent_layers_2, device, config_ppo).unwrap();
+        let agent_1 = Agent::new(ConnectFourInfoSet::new(ConnectFourPlayer::One), c_a1, agent_policy_1);
+        let agent_2 = Agent::new(ConnectFourInfoSet::new(ConnectFourPlayer::Two), c_a2, agent_policy_2);
+
+        Self{
+            env,
+            agent1: agent_1,
+            agent2: agent_2
+        }
+    }
+}
+
+impl<
+    S:  GameStateWithPayoffs<ConnectFourDomain> + Clone + Renew<ConnectFourDomain, ()>,
+> ConnectFourModelRust<S,C4PPOPolicyMasking>{
+    pub fn new_ppo_masking(agent_layers_1: &[i64], agent_layers_2: &[i64], device: Device, config_ppo: ConfigPPO) -> Self
+    where S: Default{
+
+        let (c_env1, c_a1) = StdEnvironmentEndpoint::new_pair();
+        let (c_env2, c_a2) = StdEnvironmentEndpoint::new_pair();
+
+        let mut hm = HashMap::new();
+        hm.insert(ConnectFourPlayer::One, c_env1);
+        hm.insert(ConnectFourPlayer::Two, c_env2);
+
+
+        let env = Environment::new(S::default(), hm, );
+        let agent_policy_1 = build_ppo_policy_masking(agent_layers_1, device, config_ppo).unwrap();
+        let agent_policy_2 = build_ppo_policy_masking(agent_layers_2, device, config_ppo).unwrap();
         let agent_1 = Agent::new(ConnectFourInfoSet::new(ConnectFourPlayer::One), c_a1, agent_policy_1);
         let agent_2 = Agent::new(ConnectFourInfoSet::new(ConnectFourPlayer::Two), c_a2, agent_policy_2);
 

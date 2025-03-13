@@ -511,7 +511,7 @@ where
 
 impl<
     DP: DomainParameters,
-    InfoSet: InformationSet<DP> + Debug + ContextTryIntoTensor<InfoSetConversionContext> + MaskingInformationSetActionMultiParameter<ActionBuildContext>,
+    InfoSet: InformationSet<DP> + Debug + ContextTryIntoTensor<InfoSetConversionContext>,
     InfoSetConversionContext: ConversionToTensor,
     ActionBuildContext: ConversionFromMultipleTensors + ConversionToMultiIndexI64 + tensor_data::ActionTensorFormat<Vec<Tensor>>,
 > LearningNetworkPolicy<DP> for PolicyPpoMultiDiscrete<DP, InfoSet, InfoSetConversionContext, ActionBuildContext>
