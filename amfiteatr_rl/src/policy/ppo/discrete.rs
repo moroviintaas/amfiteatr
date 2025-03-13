@@ -34,7 +34,7 @@ impl<
     InfoSet: InformationSet<DP> + Debug + ContextTryIntoTensor<InfoSetConversionContext>,
     InfoSetConversionContext: ConversionToTensor,
     ActionBuildContext: ConversionFromTensor + ConversionToIndexI64
-        + tensor_data::ActionTensorFormat<TensorForm = Tensor>,
+        + tensor_data::ActionTensorFormat<Tensor>,
 > PolicyPpoDiscrete<DP, InfoSet, InfoSetConversionContext, ActionBuildContext>{
 
     pub fn new(
@@ -87,7 +87,7 @@ impl<
     InfoSet: InformationSet<DP> + Debug + ContextTryIntoTensor<InfoSetConversionContext>,
     InfoSetConversionContext: ConversionToTensor,
     ActionBuildContext: ConversionFromTensor + ConversionToIndexI64
-    + tensor_data::ActionTensorFormat<TensorForm = Tensor>,
+    + tensor_data::ActionTensorFormat<Tensor>,
 > PolicyHelperPPO<DP> for PolicyPpoDiscrete<DP, InfoSet, InfoSetConversionContext, ActionBuildContext>
 where
     <DP as DomainParameters>::ActionType:
@@ -153,8 +153,8 @@ where
     fn ppo_batch_get_actor_critic_with_logprob_and_entropy(
         &self,
         info_set_batch: &Tensor,
-        action_param_batches: &<Self::ActionConversionContext as ActionTensorFormat>::TensorForm, action_category_mask_batches: Option<&<Self::ActionConversionContext as ActionTensorFormat>::TensorForm>,
-        action_forward_mask_batches: Option<&<Self::ActionConversionContext as ActionTensorFormat>::TensorForm>
+        action_param_batches: &<Self::NetworkOutput as ActorCriticOutput>::ActionTensorType, action_category_mask_batches: Option<&<Self::NetworkOutput as ActorCriticOutput>::ActionTensorType>,
+        action_forward_mask_batches: Option<&<Self::NetworkOutput as ActorCriticOutput>::ActionTensorType>
     ) -> Result<(Tensor, Tensor, Tensor), AmfiteatrError<DP>>
     {
 
@@ -175,7 +175,7 @@ impl<
     InfoSet: InformationSet<DP> + Debug + ContextTryIntoTensor<InfoSetConversionContext>,
     InfoSetConversionContext: ConversionToTensor,
     ActionBuildContext: ConversionFromTensor + ConversionToIndexI64
-    + tensor_data::ActionTensorFormat<TensorForm = Tensor>,
+    + tensor_data::ActionTensorFormat<Tensor>,
 > Policy<DP> for PolicyPpoDiscrete<DP, InfoSet, InfoSetConversionContext, ActionBuildContext>
 where
     <DP as DomainParameters>::ActionType:
@@ -193,7 +193,7 @@ impl<
     InfoSet: InformationSet<DP> + Debug + ContextTryIntoTensor<InfoSetConversionContext>,
     InfoSetConversionContext: ConversionToTensor,
     ActionBuildContext: ConversionFromTensor + ConversionToIndexI64
-    + tensor_data::ActionTensorFormat<TensorForm = Tensor>,
+    + tensor_data::ActionTensorFormat<Tensor>,
 > LearningNetworkPolicy<DP> for PolicyPpoDiscrete<DP, InfoSet, InfoSetConversionContext, ActionBuildContext>
 where
     <DP as DomainParameters>::ActionType:

@@ -108,18 +108,16 @@ pub trait ConversionToMultiIndexI64{
 
 }
 
-/*
-impl<T: ConversionToMultiIndexI64 + ConversionFromMultipleTensors> ActionTensorFormat for T{
-    type TensorForm = Vec<Tensor>;
+
+impl<T: ConversionToMultiIndexI64 + ConversionFromMultipleTensors> ActionTensorFormat<Vec<Tensor>> for T{
 
     fn param_dimension_size(&self) -> i64 {
         Self::number_of_params() as i64
     }
 }
 
- */
-impl<T: ConversionToIndexI64 + ConversionFromTensor> ActionTensorFormat for T{
-    type TensorForm = Tensor;
+
+impl<T: ConversionToIndexI64 + ConversionFromTensor> ActionTensorFormat<Tensor> for T{
 
     fn param_dimension_size(&self) -> i64 {
         1
@@ -287,11 +285,10 @@ pub trait ContextTryFromMultipleTensors<Ctx: crate::tensor_data::ConversionFromM
 }
 
 
+/// Typically TensorForm will be just `Tensor` or `Vec<Tensor>`
+pub trait ActionTensorFormat<TensorForm> {
 
-pub trait ActionTensorFormat {
 
-    /// Typically it will be just `Tensor` or `Vec<Tensor>`
-    type TensorForm;
 
     //type BatchVecTensorForm;
 

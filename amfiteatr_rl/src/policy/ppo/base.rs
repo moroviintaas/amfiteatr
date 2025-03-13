@@ -48,7 +48,7 @@ pub trait PolicyHelperPPO<DP: DomainParameters>
 {
     type InfoSet: InformationSet<DP> + ContextTryIntoTensor<Self::InfoSetConversionContext>;
     type InfoSetConversionContext: ConversionToTensor;
-    type ActionConversionContext: ActionTensorFormat<TensorForm = <Self::NetworkOutput as ActorCriticOutput>::ActionTensorType>;
+    type ActionConversionContext: ActionTensorFormat<<Self::NetworkOutput as ActorCriticOutput>::ActionTensorType>;
 
     type NetworkOutput: ActorCriticOutput;
 
@@ -88,9 +88,9 @@ pub trait PolicyHelperPPO<DP: DomainParameters>
     fn ppo_batch_get_actor_critic_with_logprob_and_entropy(
         &self,
         info_set_batch: &Tensor,
-        action_param_batches: &<Self::ActionConversionContext as ActionTensorFormat>::TensorForm,
-        action_category_mask_batches: Option<&<Self::ActionConversionContext as ActionTensorFormat>::TensorForm>,
-        action_forward_mask_batches: Option<&<Self::ActionConversionContext as ActionTensorFormat>::TensorForm>,
+        action_param_batches: &<Self::NetworkOutput as ActorCriticOutput>::ActionTensorType,
+        action_category_mask_batches: Option<&<Self::NetworkOutput as ActorCriticOutput>::ActionTensorType>,
+        action_forward_mask_batches: Option<&<Self::NetworkOutput as ActorCriticOutput>::ActionTensorType>,
     ) -> Result<(Tensor, Tensor, Tensor), AmfiteatrError<DP>>;
     fn ppo_select_action(&self, info_set: &Self::InfoSet) -> Result<DP::ActionType, AmfiteatrError<DP>>{
         let state_tensor = info_set.to_tensor(self.info_set_conversion_context());

@@ -492,7 +492,7 @@ impl<
     DP: DomainParameters,
     InfoSet: InformationSet<DP> + Debug + ContextTryIntoTensor<InfoSetConversionContext> ,
     InfoSetConversionContext: ConversionToTensor ,
-    ActionBuildContext: ConversionFromMultipleTensors + ConversionToMultiIndexI64 + tensor_data::ActionTensorFormat<TensorForm = Vec<tch::Tensor>>,
+    ActionBuildContext: ConversionFromMultipleTensors + ConversionToMultiIndexI64 + tensor_data::ActionTensorFormat<Vec<Tensor>>,
 >
 Policy<DP> for PolicyPpoMultiDiscrete<DP, InfoSet, InfoSetConversionContext, ActionBuildContext>
 where
@@ -513,7 +513,7 @@ impl<
     DP: DomainParameters,
     InfoSet: InformationSet<DP> + Debug + ContextTryIntoTensor<InfoSetConversionContext> + MaskingInformationSetActionMultiParameter<ActionBuildContext>,
     InfoSetConversionContext: ConversionToTensor,
-    ActionBuildContext: ConversionFromMultipleTensors + ConversionToMultiIndexI64 + tensor_data::ActionTensorFormat<TensorForm = Vec<tch::Tensor>>,
+    ActionBuildContext: ConversionFromMultipleTensors + ConversionToMultiIndexI64 + tensor_data::ActionTensorFormat<Vec<Tensor>>,
 > LearningNetworkPolicy<DP> for PolicyPpoMultiDiscrete<DP, InfoSet, InfoSetConversionContext, ActionBuildContext>
 where <DP as DomainParameters>::ActionType: ContextTryFromMultipleTensors<ActionBuildContext>
     + ContextTryIntoMultiIndexI64<ActionBuildContext>,
@@ -551,7 +551,7 @@ impl<
     DP: DomainParameters,
     InfoSet: InformationSet<DP> + Debug + ContextTryIntoTensor<InfoSetConversionContext> ,
     InfoSetConversionContext: ConversionToTensor ,
-    ActionBuildContext: ConversionFromMultipleTensors + ConversionToMultiIndexI64 + tensor_data::ActionTensorFormat<TensorForm = Vec<tch::Tensor>>,
+    ActionBuildContext: ConversionFromMultipleTensors + ConversionToMultiIndexI64 + tensor_data::ActionTensorFormat<Vec<Tensor>>,
 >
 PolicyHelperPPO<DP> for PolicyPpoMultiDiscrete<DP, InfoSet, InfoSetConversionContext, ActionBuildContext>
     where
