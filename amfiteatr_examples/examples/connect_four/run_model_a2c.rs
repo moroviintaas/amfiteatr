@@ -6,7 +6,7 @@ use crate::common::ErrorRL;
 use crate::options::{ComputeDevice, ConnectFourOptions, Implementation};
 use crate::rust::env::ConnectFourRustEnvState;
 use crate::rust::env_wrapped::PythonPettingZooStateWrap;
-use crate::rust::model::ConnectFourModelRust;
+use crate::rust::model::{C4A2CPolicy, ConnectFourModelRust};
 
 mod rust;
 pub mod common;
@@ -27,7 +27,7 @@ pub fn setup_logger(options: &ConnectFourOptions) -> Result<(), fern::InitError>
         })
         .level(options.log_level)
         .level_for("amfiteatr_examples", options.log_level)
-        .level_for("amfiteatr_core", options.log_level_amfi);
+        .level_for("amfiteatr_core", options.log_level_amfiteatr);
 
     match &options.log_file{
         None => dispatch.chain(std::io::stdout()),
@@ -49,7 +49,7 @@ fn main() -> Result<(), ErrorRL>{
 
     match cli.implementation{
         Implementation::Rust => {
-            let mut model = ConnectFourModelRust::<ConnectFourRustEnvState>::new(
+            let mut model = ConnectFourModelRust::<ConnectFourRustEnvState, C4A2CPolicy>::new_a2c(
                 &cli.layer_sizes_1[..], &cli.layer_sizes_2[..], device
             );
             model.run_session(cli.epochs, cli.num_episodes, cli.num_test_episodes)?;
@@ -57,7 +57,7 @@ fn main() -> Result<(), ErrorRL>{
         },
 
         Implementation::Wrap => {
-            let mut model = ConnectFourModelRust::<PythonPettingZooStateWrap>::new(
+            let mut model = ConnectFourModelRust::<PythonPettingZooStateWrap, C4A2CPolicy>::new_a2c(
                 &cli.layer_sizes_1[..], &cli.layer_sizes_2[..], device
             );
             Python::with_gil(|py|{

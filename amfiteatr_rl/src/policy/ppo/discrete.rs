@@ -36,6 +36,25 @@ impl<
     ActionBuildContext: ConversionFromTensor + ConversionToIndexI64
         + tensor_data::ActionTensorFormat<TensorForm = Tensor>,
 > PolicyPpoDiscrete<DP, InfoSet, InfoSetConversionContext, ActionBuildContext>{
+
+    pub fn new(
+        config: ConfigPPO,
+        network: NeuralNetActorCritic,
+        optimizer: Optimizer,
+        info_set_conversion_context: InfoSetConversionContext,
+        action_build_context: ActionBuildContext,
+    ) -> Self{
+        Self{
+            config,
+            network,
+            optimizer,
+            _dp: Default::default(),
+            _is: Default::default(),
+            info_set_conversion_context,
+            action_build_context,
+            exploration: true,
+        }
+    }
     fn batch_get_actor_critic_with_logprob_and_entropy(
         &self,
         info_set_batch: &Tensor,
@@ -57,15 +76,9 @@ impl<
 
         )?;
 
-        let batch_entropy_avg = batch_entropy.f_sum_dim_intlist(
-            Some(1),
-            false,
-            Kind::Float
-        )?.f_div_scalar(batch_entropy.size()[1])?;
-        //println!("batch entropy: {}", batch_entropy);
-        //println!("batch entropy avg: {}", batch_entropy_avg);
 
-        Ok((batch_logprob, batch_entropy_avg, critic_actor.critic))
+
+        Ok((batch_logprob, batch_entropy, critic_actor.critic))
     }
 }
 
@@ -137,7 +150,14 @@ where
         Ok((Tensor::from(act_i), Tensor::from(true)))
     }
 
-    fn ppo_batch_get_actor_critic_with_logprob_and_entropy(&self, info_set_batch: &Tensor, action_param_batches: &<Self::ActionConversionContext as ActionTensorFormat>::TensorForm, action_category_mask_batches: Option<&<Self::ActionConversionContext as ActionTensorFormat>::TensorForm>, action_forward_mask_batches: Option<&<Self::ActionConversionContext as ActionTensorFormat>::TensorForm>) -> Result<(Tensor, Tensor, Tensor), AmfiteatrError<DP>> {
+    fn ppo_batch_get_actor_critic_with_logprob_and_entropy(
+        &self,
+        info_set_batch: &Tensor,
+        action_param_batches: &<Self::ActionConversionContext as ActionTensorFormat>::TensorForm, action_category_mask_batches: Option<&<Self::ActionConversionContext as ActionTensorFormat>::TensorForm>,
+        action_forward_mask_batches: Option<&<Self::ActionConversionContext as ActionTensorFormat>::TensorForm>
+    ) -> Result<(Tensor, Tensor, Tensor), AmfiteatrError<DP>>
+    {
+
         #[cfg(feature = "log_trace")]
         log::trace!("action_category_mask_batches: {:?}", action_category_mask_batches);
         self.batch_get_actor_critic_with_logprob_and_entropy(

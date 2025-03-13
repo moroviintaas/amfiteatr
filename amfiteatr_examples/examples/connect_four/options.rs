@@ -22,8 +22,8 @@ pub struct ConnectFourOptions{
     #[arg(short = 'v', long = "log_level", value_enum, default_value = "info")]
     pub log_level: LevelFilter,
 
-    #[arg(short = 'a', long = "log_level_amfi", value_enum, default_value = "OFF")]
-    pub log_level_amfi: LevelFilter,
+    #[arg(short = 'a', long = "log_level_amfiteatr", value_enum, default_value = "OFF")]
+    pub log_level_amfiteatr: LevelFilter,
 
     #[arg(short = 'o', long = "logfile")]
     pub log_file: Option<PathBuf>,
@@ -47,7 +47,7 @@ pub struct ConnectFourOptions{
     #[arg(short = 'g', long = "games", default_value = "128")]
     pub num_episodes: usize,
 
-    #[arg(short = 't', long = "test_games", default_value = "100")]
+    #[arg(short = 't', long = "test-games", default_value = "100")]
     pub num_test_episodes: usize,
 
     #[arg(short = 'P', long = "penalty", default_value = "-10")]

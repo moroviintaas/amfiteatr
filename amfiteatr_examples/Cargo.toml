@@ -28,8 +28,14 @@ required-features = ["rl-python"]
 #name = "cart_pole_pure_rust"
 
 [[example]]
-name = "connect_four"
+name = "connect_four_a2c"
 required-features = ["rl-python"]
+path = "examples/connect_four/run_model_a2c.rs"
+
+[[example]]
+name = "connect_four_ppo"
+required-features = ["rl-python"]
+path = "examples/connect_four/run_model_ppo.rs"
 
 [[example]]
 name = "communication_choice"

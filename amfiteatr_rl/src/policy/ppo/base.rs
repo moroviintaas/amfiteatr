@@ -96,9 +96,9 @@ pub trait PolicyHelperPPO<DP: DomainParameters>
         let state_tensor = info_set.to_tensor(self.info_set_conversion_context());
         let out = tch::no_grad(|| (self.ppo_network().net())(&state_tensor));
         //let actor = out.actor;
-        println!("out: {:?}", out);
+        //println!("out: {:?}", out);
         let probs = self.ppo_dist(&info_set, &out)?;
-        println!("probs: {:?}", probs);
+        //println!("probs: {:?}", probs);
         let choices = match self.ppo_exploration(){
             true => Self::NetworkOutput::perform_choice(&probs, |t| t.f_multinomial(1, true))?,
               //  probs.into_iter().map(|t| t.multinomial(1, true)).collect(),
@@ -120,6 +120,8 @@ pub trait PolicyHelperPPO<DP: DomainParameters>
         &mut self, trajectories: &[AgentTrajectory<DP, Self::InfoSet>],
         reward_f: R
     ) -> Result<(), AmfiteatrRlError<DP>>{
+        #[cfg(feature = "trace")]
+        log::trace!("Starting training PPO.");
 
         let device = self.ppo_network().device();
         let capacity_estimate = sum_trajectories_steps(&trajectories);

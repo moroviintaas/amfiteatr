@@ -108,6 +108,7 @@ pub trait ConversionToMultiIndexI64{
 
 }
 
+/*
 impl<T: ConversionToMultiIndexI64 + ConversionFromMultipleTensors> ActionTensorFormat for T{
     type TensorForm = Vec<Tensor>;
 
@@ -115,6 +116,16 @@ impl<T: ConversionToMultiIndexI64 + ConversionFromMultipleTensors> ActionTensorF
         Self::number_of_params() as i64
     }
 }
+
+ */
+impl<T: ConversionToIndexI64 + ConversionFromTensor> ActionTensorFormat for T{
+    type TensorForm = Tensor;
+
+    fn param_dimension_size(&self) -> i64 {
+        1
+    }
+}
+
 
 pub trait ContextTryIntoMultiIndexI64<Ctx: ConversionToMultiIndexI64>{
     fn param_value(&self, context: &Ctx, param_index: usize) -> Result<Option<i64>, ConvertError>;
@@ -282,19 +293,11 @@ pub trait ActionTensorFormat {
     /// Typically it will be just `Tensor` or `Vec<Tensor>`
     type TensorForm;
 
-
-
     //type BatchVecTensorForm;
-
-
-
 
 
     /// Set to 1 for `TensorForm` being `Tensor`, and `v.len()` for `Vec<Tensor>`
     fn param_dimension_size(&self) -> i64;
-
-
-
 
 
 }

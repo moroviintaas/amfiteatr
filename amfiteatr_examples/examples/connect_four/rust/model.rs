@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::ops::{Add, Div};
 use log::info;
-use amfiteatr_core::agent::{AutomaticAgent, MultiEpisodeAutoAgent, PolicyAgent, ReseedAgent, TracingAgentGen};
+use amfiteatr_core::agent::{AutomaticAgent, MultiEpisodeAutoAgent, Policy, PolicyAgent, ReseedAgent, TracingAgentGen};
 use amfiteatr_core::comm::{
     StdAgentEndpoint,
     StdEnvironmentEndpoint
@@ -10,13 +10,13 @@ use amfiteatr_core::domain::Renew;
 use amfiteatr_core::env::{GameStateWithPayoffs, HashMapEnvironment, ReseedEnvironment, RoundRobinPenalisingUniversalEnvironment, StatefulEnvironment};
 use amfiteatr_core::error::AmfiteatrError;
 use amfiteatr_rl::error::AmfiteatrRlError;
-use amfiteatr_rl::policy::{ActorCriticPolicy, LearningNetworkPolicy, TrainConfig};
+use amfiteatr_rl::policy::{ActorCriticPolicy, ConfigPPO, LearningNetworkPolicy, PolicyPpoDiscrete, TrainConfig};
 use amfiteatr_rl::tch::{Device, nn, Tensor};
 use amfiteatr_rl::tch::nn::{Adam, OptimizerConfig, VarStore};
 use amfiteatr_rl::tensor_data::ConversionToTensor;
 use amfiteatr_rl::torch_net::{A2CNet, NeuralNetTemplate, TensorActorCritic};
 use crate::common::{ConnectFourDomain, ConnectFourPlayer, ErrorRL};
-use crate::rust::agent::{ConnectFourInfoSet, ConnectFourTensorReprD1};
+use crate::rust::agent::{ConnectFourActionTensorRepresentation, ConnectFourInfoSet, ConnectFourTensorReprD1};
 
 
 #[derive(Default, Copy, Clone)]
@@ -138,21 +138,78 @@ fn build_a2c_policy(layer_sizes: &[i64], device: Device) -> Result<C4A2CPolicy, 
     )
 }
 
-type C4A2CPolicy = ActorCriticPolicy<ConnectFourDomain, ConnectFourInfoSet, ConnectFourTensorReprD1>;
+fn build_ppo_policy(layer_sizes: &[i64], device: Device, config: ConfigPPO) -> Result<C4PPOPolicy, AmfiteatrRlError<ConnectFourDomain>>{
+    let var_store = VarStore::new(device);
+    //let var_store = VarStore::new(Device::Cuda(0));
+    let input_shape = ConnectFourTensorReprD1{}.desired_shape()[0];
+    let hidden_layers = &layer_sizes;
+    let network_pattern = NeuralNetTemplate::new(|path| {
+        let mut seq = nn::seq();
+        let mut last_dim = None;
+        if !hidden_layers.is_empty(){
+            let mut ld = hidden_layers[0];
+
+            last_dim = Some(ld);
+            seq = seq.add(nn::linear(path / "INPUT", input_shape, ld, Default::default()));
+
+            for (i, ld_new) in hidden_layers.iter().enumerate().skip(1){
+                seq = seq.add(nn::linear(path / &format!("h_{:}", i+1), ld, *ld_new, Default::default()))
+                    .add_fn(|xs| xs.tanh());
+
+                ld = *ld_new;
+                last_dim = Some(ld);
+            }
+        }
+        let (actor, critic) = match last_dim{
+            None => {
+                (nn::linear(path / "al", input_shape, 7, Default::default()),
+                 nn::linear(path / "cl", input_shape, 1, Default::default()))
+            }
+            Some(ld) => {
+                (nn::linear(path / "al", ld, 7, Default::default()),
+                 nn::linear(path / "cl", ld, 1, Default::default()))
+            }
+        };
+        let device = path.device();
+        {move |xs: &Tensor|{
+            if seq.is_empty(){
+                TensorActorCritic {critic: xs.apply(&critic), actor: xs.apply(&actor)}
+            } else {
+                let xs = xs.to_device(device).apply(&seq);
+                TensorActorCritic {critic: xs.apply(&critic), actor: xs.apply(&actor)}
+            }
+        }}
+    });
+
+    let net = network_pattern.get_net_closure();
+    let optimiser = Adam::default().build(&var_store, 1e-4)?;
+    let net = A2CNet::new(var_store, net, );
+
+    Ok(PolicyPpoDiscrete::new(
+        config,
+        net,
+        optimiser,
+        ConnectFourTensorReprD1{},
+        ConnectFourActionTensorRepresentation{})
+    )
+}
+
+pub type C4A2CPolicy = ActorCriticPolicy<ConnectFourDomain, ConnectFourInfoSet, ConnectFourTensorReprD1>;
+pub type C4PPOPolicy = PolicyPpoDiscrete<ConnectFourDomain, ConnectFourInfoSet, ConnectFourTensorReprD1, ConnectFourActionTensorRepresentation>;
 type Environment<S> = HashMapEnvironment<ConnectFourDomain, S, StdEnvironmentEndpoint<ConnectFourDomain>>;
-type Agent = TracingAgentGen<ConnectFourDomain, C4A2CPolicy, StdAgentEndpoint<ConnectFourDomain>>;
-pub struct ConnectFourModelRust<S: GameStateWithPayoffs<ConnectFourDomain>>{
+type Agent<P: LearningNetworkPolicy<ConnectFourDomain>> = TracingAgentGen<ConnectFourDomain, P, StdAgentEndpoint<ConnectFourDomain>>;
+pub struct ConnectFourModelRust<S: GameStateWithPayoffs<ConnectFourDomain>, P: LearningNetworkPolicy<ConnectFourDomain>>{
 
     env: Environment<S>,
-    agent1: Agent,
-    agent2: Agent,
+    agent1: Agent<P>,
+    agent2: Agent<P>,
 
 }
 
-
-impl<S:  GameStateWithPayoffs<ConnectFourDomain> + Clone + Renew<ConnectFourDomain, ()>> ConnectFourModelRust<S>{
-
-    pub fn new(agent_layers_1: &[i64], agent_layers_2: &[i64], device: Device) -> Self
+impl<
+    S:  GameStateWithPayoffs<ConnectFourDomain> + Clone + Renew<ConnectFourDomain, ()>,
+> ConnectFourModelRust<S,C4A2CPolicy>{
+    pub fn new_a2c(agent_layers_1: &[i64], agent_layers_2: &[i64], device: Device) -> Self
     where S: Default{
 
         let (c_env1, c_a1) = StdEnvironmentEndpoint::new_pair();
@@ -175,6 +232,43 @@ impl<S:  GameStateWithPayoffs<ConnectFourDomain> + Clone + Renew<ConnectFourDoma
             agent2: agent_2
         }
     }
+}
+
+impl<
+    S:  GameStateWithPayoffs<ConnectFourDomain> + Clone + Renew<ConnectFourDomain, ()>,
+> ConnectFourModelRust<S,C4PPOPolicy>{
+    pub fn new_ppo(agent_layers_1: &[i64], agent_layers_2: &[i64], device: Device, config_ppo: ConfigPPO) -> Self
+    where S: Default{
+
+        let (c_env1, c_a1) = StdEnvironmentEndpoint::new_pair();
+        let (c_env2, c_a2) = StdEnvironmentEndpoint::new_pair();
+
+        let mut hm = HashMap::new();
+        hm.insert(ConnectFourPlayer::One, c_env1);
+        hm.insert(ConnectFourPlayer::Two, c_env2);
+
+
+        let env = Environment::new(S::default(), hm, );
+        let agent_policy_1 = build_ppo_policy(agent_layers_1, device, config_ppo).unwrap();
+        let agent_policy_2 = build_ppo_policy(agent_layers_2, device, config_ppo).unwrap();
+        let agent_1 = Agent::new(ConnectFourInfoSet::new(ConnectFourPlayer::One), c_a1, agent_policy_1);
+        let agent_2 = Agent::new(ConnectFourInfoSet::new(ConnectFourPlayer::Two), c_a2, agent_policy_2);
+
+        Self{
+            env,
+            agent1: agent_1,
+            agent2: agent_2
+        }
+    }
+}
+
+impl<
+    S:  GameStateWithPayoffs<ConnectFourDomain> + Clone + Renew<ConnectFourDomain, ()>,
+    P: LearningNetworkPolicy<ConnectFourDomain>
+> ConnectFourModelRust<S,P>
+where <P as Policy<ConnectFourDomain>>::InfoSetType: Renew<ConnectFourDomain, ()> + Clone{
+
+
 
     pub fn play_one_game(&mut self, store_episode: bool) -> Result<Summary, AmfiteatrRlError<ConnectFourDomain>>{
         let mut summary = Summary::default();
