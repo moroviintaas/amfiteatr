@@ -61,7 +61,7 @@ pub enum AmfiteatrError<DP: DomainParameters>{
     NoActionAvailable{
         context: String
     },
-    #[error("Tensor operation error: {error}")]
+    #[error("Tensor operation error: \"{error}\"")]
     Tensor{
         #[source]
         error: TensorError,

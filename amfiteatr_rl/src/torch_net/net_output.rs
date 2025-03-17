@@ -1,4 +1,5 @@
 use std::fmt::Debug;
+use rand::Rng;
 use tch::{Device, Kind, TchError, Tensor};
 use tch::Kind::Float;
 use amfiteatr_core::domain::DomainParameters;
@@ -93,14 +94,29 @@ impl ActorCriticOutput for TensorActorCritic{
     fn batch_log_probability_of_action<DP: DomainParameters>(&self, param_indices: &Self::ActionTensorType, action_masks: Option<&Self::ActionTensorType>, _param_masks: Option<&Self::ActionTensorType>) -> Result<Tensor, AmfiteatrError<DP>> {
 
         let log_probs = match action_masks{
-            None => self.actor.f_log_softmax(-1, Float)?,
+            None => self.actor.f_log_softmax(-1, Float).map_err(|e| AmfiteatrError::Tensor {
+                error: TensorError::Torch { origin: format!("{e}"), context: "batch_log_probability_of_action".to_string() },
+            }),
             Some(mask) => {
-                self.actor.f_log_softmax(-1, Float)?.f_where_self(&mask.ne(0.0), &Tensor::from(1.0))?
-            }
-        };
 
-        let choice = log_probs.f_gather(1, &param_indices, false)?
-            .f_flatten(0, -1)?;
+                self.actor.f_log_softmax(-1, Float)
+                    .and_then(|t| t.f_where_self(&mask.ne(0.0), &Tensor::from(1.0)))
+                .map_err(|e| TensorError::Torch {
+                    origin: format!("{e}"),
+                    context: "batch_log_probability_of_action".into()
+                }.into())
+
+            }
+        }?;
+
+        let choice = log_probs.f_gather(1, &param_indices, false)
+            .and_then(|t| t.f_flatten(0, -1))
+            .map_err(|e| AmfiteatrError::Tensor {
+                error: TensorError::Torch {
+                    origin: format!("{e}"),
+                    context: "batch_log_probability_of_action (gathering)".into()
+                }
+            })?;
 
         match choice.size().get(0){
             None => Err(ZeroBatchSize {
@@ -145,7 +161,7 @@ impl ActorCriticOutput for TensorActorCritic{
     }
 
     fn perform_choice(dist: &Self::ActionTensorType, apply: impl Fn(&Tensor) -> Result<Tensor, TchError>) -> Result<Self::ActionTensorType, TensorError> {
-        apply(dist).map_err(|e| TensorError::Torch { context: format!("{e}") })
+        apply(dist).map_err(|e| TensorError::Torch { origin: format!("{e}"), context: "Performing action choice".into()})
     }
 
     fn index_select(data: &Self::ActionTensorType, indices: &Tensor) -> Result<Self::ActionTensorType, TchError> {
@@ -398,7 +414,8 @@ impl ActorCriticOutput for TensorMultiParamActorCritic {
                         .f_gather(1, &param_indices[i].f_unsqueeze(1)?, false)?
                         .f_flatten(0, -1)
                 }).collect::<Result<Vec<Tensor>, TchError>>().map_err(|e|{
-                    TensorError::Torch {context: format!("Torch error while calculating log probabilities of parameters. {}", e)}
+                    TensorError::Torch { origin: format!("Torch error while calculating log probabilities of parameters. {}", e),
+                        context: "Calculating batch log-probability of action (not masked)".into()}
                 })?
             },
             Some(masks) => {
@@ -419,33 +436,12 @@ impl ActorCriticOutput for TensorMultiParamActorCritic {
                         .f_flatten(0, -1)
 
                 }).collect::<Result<Vec<Tensor>, TchError>>().map_err(|e|{
-                    TensorError::Torch {context: format!("Torch error while calculating log probabilities of parameters. {}", e)}
+                    TensorError::Torch { origin: format!("{}", e),
+                        context: "Calculating batch log-probability of action (masked)".into()}
                 })?
             }
         };
-        /*
-        let mut choices: Vec<Tensor> = self.actor.iter().enumerate().map(|(i, a)|{
-            #[cfg(feature = "log_trace")]
-            log::trace!("Sizes of actor category batch {:?} and param_indices{:?}", a.size(), param_indices[i].size());
 
-            a.f_log_softmax(-1, Kind::Float)?
-
-                .f_gather(1, &param_indices[i].f_unsqueeze(1)?, false)?
-                .f_flatten(0, -1)
-        }).collect::<Result<Vec<Tensor>, TchError>>().map_err(|e|{
-            TensorError::Torch {context: format!("Torch error while calculating log probabilities of parameters. {}", e)}
-        })?;
-
-
-         */
-        if let Some(action_masks) = action_masks{
-            todo!();
-            //Need to move it before choice
-            for (logprob, mask) in choices.iter_mut().zip(action_masks){
-                //set logprob to 1 (prob to 0) when mask is false
-                *logprob =  logprob.f_where_self(mask, &tch::Tensor::from(1.0))?;
-            }
-        }
 
         let log_probs_vec = match param_masks{
             None => {
@@ -454,10 +450,13 @@ impl ActorCriticOutput for TensorMultiParamActorCritic {
             Some(masks) => {
                 let masked_param_log_probs = choices.iter().zip(masks.iter())
                     .map(|(logp, mask)|{
+                        // if parameter is masked it means it was not used to create action therefore
+                        // we set log probability to 0 (probability =1) so it does not change entropy
                         let masked_log_probs = Tensor::f_einsum("i,i -> i", &[logp, mask], Option::<i64>::None);
                         masked_log_probs
                     }).collect::<Result<Vec<Tensor>, TchError>>().map_err(|e|{
-                    TensorError::Torch {context: format!("Torch error while masking unused parameters {}", e)}
+                    TensorError::Torch { origin: format!("{}", e),
+                        context: "Calculating batch log-probability of action - during log probs of masked".into() }
                 })?;
                 masked_param_log_probs
             }
@@ -484,7 +483,9 @@ impl ActorCriticOutput for TensorMultiParamActorCritic {
 
         for t in log_probs_vec{
             sum = sum.f_add(&t).map_err(|e|{
-                TensorError::Torch {context: format!("Torch error while summing log probabilities in categories {}", e)}
+                TensorError::Torch {
+                    origin: format!("{}", e),
+                context:  "Calculating batch log-probability of action - during summing log probs".into() }
             })?;
         }
 
@@ -535,7 +536,21 @@ impl ActorCriticOutput for TensorMultiParamActorCritic {
     }
 
     fn perform_choice(dist: &Self::ActionTensorType, apply: impl Fn(&Tensor) -> Result<Tensor, TchError>) -> Result<Self::ActionTensorType, TensorError> {
-        dist.iter().map(|d|apply(d).map_err(|e| TensorError::Torch { context: format!("{e}") })).collect::<Result<Vec<Tensor>,_>>()
+        dist.iter().map(|d|{
+            let is_all_zeros = d.eq_tensor(&Tensor::zeros_like(&d)).all().int64_value(&[]);
+            if is_all_zeros == 0{
+                apply(d)
+
+                
+            } else {
+                let t = Tensor::ones_like(d);
+                apply(&t.softmax(-1, d.kind()))
+            }
+
+        }
+            .map_err(|e| TensorError::Torch {
+                origin: format!("{e}"),
+                context: format!("Performing choice of parameter based on tensor {d}")})).collect::<Result<Vec<Tensor>,_>>()
     }
 
     fn index_select(data: &Self::ActionTensorType, indices: &Tensor) -> Result<Self::ActionTensorType, TchError>{

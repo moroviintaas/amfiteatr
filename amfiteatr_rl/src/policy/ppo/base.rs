@@ -100,7 +100,10 @@ pub trait PolicyHelperPPO<DP: DomainParameters>
         let probs = self.ppo_dist(&info_set, &out)?;
         //println!("probs: {:?}", probs);
         let choices = match self.ppo_exploration(){
-            true => Self::NetworkOutput::perform_choice(&probs, |t| t.f_multinomial(1, true))?,
+            true => {
+
+                Self::NetworkOutput::perform_choice(&probs, |t| t.f_multinomial(1, true))?
+            },
               //  probs.into_iter().map(|t| t.multinomial(1, true)).collect(),
 
             false => Self::NetworkOutput::perform_choice(&probs, |t| t.f_argmax(None, false)?.f_unsqueeze(-1))?,

@@ -4,7 +4,7 @@ use tch::nn::{Optimizer, VarStore};
 use tch::{Kind, Tensor};
 use amfiteatr_core::agent::{AgentStepView, AgentTrajectory, InformationSet, Policy};
 use amfiteatr_core::domain::DomainParameters;
-use amfiteatr_core::error::AmfiteatrError;
+use amfiteatr_core::error::{AmfiteatrError, TensorError};
 use crate::error::AmfiteatrRlError;
 use crate::policy::{ConfigPPO, LearningNetworkPolicy, PolicyHelperPPO};
 use crate::{tensor_data, MaskingInformationSetAction};
@@ -74,7 +74,12 @@ impl<
             action_forward_mask_batches,
             action_category_mask_batches
 
-        )?;
+        ).map_err(|e|AmfiteatrError::Tensor {
+            error: TensorError::Torch {
+                context: "batch_get_actor_critic_with_logprob_and_entropy".into(),
+                origin: format!("{e}")
+            }
+        })?;
 
 
 
@@ -120,8 +125,10 @@ where
         &self.action_build_context
     }
 
-    fn ppo_dist(&self, info_set: &Self::InfoSet, network_output: &Self::NetworkOutput) -> Result<<Self::NetworkOutput as ActorCriticOutput>::ActionTensorType, AmfiteatrError<DP>> {
-        Ok(network_output.actor.f_softmax(-1, self.config.tensor_kind)?)
+    fn ppo_dist(&self, _info_set: &Self::InfoSet, network_output: &Self::NetworkOutput) -> Result<<Self::NetworkOutput as ActorCriticOutput>::ActionTensorType, AmfiteatrError<DP>> {
+        Ok(network_output.actor.f_softmax(-1, self.config.tensor_kind)
+            .map_err(|e| TensorError::from_tch_with_context(e, "Calculating action distribution (ppo_dist)".into()))?)
+
 
     }
 
@@ -311,12 +318,25 @@ where
     }
 
     fn ppo_dist(&self, info_set: &Self::InfoSet, network_output: &Self::NetworkOutput) -> Result<<Self::NetworkOutput as ActorCriticOutput>::ActionTensorType, AmfiteatrError<DP>> {
+        let softmax = network_output.actor.f_softmax(-1, self.base.config.tensor_kind)
+            .map_err(|e| TensorError::from_tch_with_context(e, "PPO distribution (softmax)".into()))?;
+
+        let masks = info_set.try_build_mask(&self.base.action_build_context)?;
+
+        let product = softmax.f_mul(&masks)
+            .map_err(|e| TensorError::from_tch_with_context(e, "PPO distribution (softmax * mask)".into())
+        )?;
+        Ok(product)
+
+        /*
         Ok(
             network_output.actor.f_softmax(-1, self.base.config.tensor_kind)?.f_mul(
                 &info_set.try_build_mask(&self.base.action_build_context)?
             )?
 
         )
+
+         */
     }
 
     fn is_action_masking_supported(&self) -> bool {
