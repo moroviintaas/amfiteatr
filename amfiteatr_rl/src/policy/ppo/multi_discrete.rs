@@ -17,7 +17,7 @@ use crate::{tch, MaskingInformationSetActionMultiParameter, tensor_data, Masking
 use crate::tch::nn::Optimizer;
 use crate::tch::Tensor;
 use crate::tensor_data::{ConversionFromMultipleTensors, ConversionFromTensor, ConversionToMultiIndexI64, ConversionToTensor, ContextTryIntoMultiIndexI64, ContextTryFromMultipleTensors, ContextTryIntoTensor, ConversionToIndexI64};
-use crate::torch_net::{A2CNet, ActorCriticOutput, MultiDiscreteNet, NeuralNet, NeuralNetActorCritic, NeuralNetMultiActorCritic, TensorMultiParamActorCritic};
+use crate::torch_net::{A2CNet, ActorCriticOutput, DeviceTransfer, MultiDiscreteNet, NeuralNet, NeuralNetActorCritic, NeuralNetMultiActorCritic, TensorMultiParamActorCritic};
 
 
 
@@ -714,7 +714,7 @@ impl<
     }
 
     fn ppo_dist(&self, info_set: &Self::InfoSet, network_output: &Self::NetworkOutput) -> Result<<Self::NetworkOutput as ActorCriticOutput>::ActionTensorType, AmfiteatrError<DP>> {
-        let masks = info_set.try_build_masks(self.action_conversion_context())?;
+        let masks = info_set.try_build_masks(self.action_conversion_context())?.move_to_device(network_output.device());
         let masked: Vec<_> = network_output.actor.iter().zip(masks).map(|(t,m)|{
             t.f_softmax(-1, self.config().tensor_kind)?.f_mul(
                 &m

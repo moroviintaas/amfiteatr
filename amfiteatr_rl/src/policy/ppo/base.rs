@@ -10,7 +10,7 @@ use amfiteatr_core::error::AmfiteatrError;
 use crate::error::AmfiteatrRlError;
 use crate::policy::{find_max_trajectory_len, sum_trajectories_steps};
 use crate::tensor_data::{ActionTensorFormat, ContextTryIntoTensor, ConversionToTensor};
-use crate::torch_net::{ActorCriticOutput, NetOutput, NeuralNet};
+use crate::torch_net::{ActorCriticOutput, DeviceTransfer, NetOutput, NeuralNet};
 
 ///! Based on [cleanrl PPO](https://github.com/vwxyzjn/cleanrl/blob/master/cleanrl/ppo.py)
 #[derive(Copy, Clone, Debug, Getters, Setters)]
@@ -207,7 +207,7 @@ pub trait PolicyHelperPPO<DP: DomainParameters>
                  */
                 Self::NetworkOutput::clear_batch_dim_in_batch(&mut tmp_trajectory_action_tensor_vecs);
                 Self::NetworkOutput::clear_batch_dim_in_batch(&mut tmp_trajectory_action_category_mask_vecs);
-                let final_reward_t = reward_f(&last_step);
+                let final_reward_t = reward_f(&last_step).to_device(device);
                 let critic_shape = tmp_trajectory_reward_vec.clear();
                 for step in t.iter(){
                     #[cfg(feature = "log_trace")]
@@ -280,15 +280,15 @@ pub trait PolicyHelperPPO<DP: DomainParameters>
 
 
         }
-        let batch_info_sets_t = Tensor::f_vstack(&state_tensor_vec)?;
+        let batch_info_sets_t = Tensor::f_vstack(&state_tensor_vec)?.move_to_device(device);
         let action_forward_masks = match self.is_action_masking_supported(){
-            true => Some(Self::NetworkOutput::stack_tensor_batch(&action_masks_vec)?),
+            true => Some(Self::NetworkOutput::stack_tensor_batch(&action_masks_vec)?.move_to_device(device)),
             false => None
         };
         #[cfg(feature = "log_trace")]
         log::trace!("Batch infoset shape = {:?}", batch_info_sets_t.size());
-        let batch_advantage_t = Tensor::f_vstack(&advantage_tensor_vec,)?;
-        let batch_returns_t = Tensor::f_vstack(&returns_v)?;
+        let batch_advantage_t = Tensor::f_vstack(&advantage_tensor_vec,)?.move_to_device(device);
+        let batch_returns_t = Tensor::f_vstack(&returns_v)?.move_to_device(device);
         #[cfg(feature = "log_trace")]
         log::trace!("Batch returns shape = {:?}", batch_returns_t.size());
 
@@ -305,9 +305,10 @@ pub trait PolicyHelperPPO<DP: DomainParameters>
         }).collect::<Result<Vec<_>, TchError>>()?;
 
          */
-        let batch_actions_t = Self::NetworkOutput::stack_tensor_batch(&multi_action_tensor_vec)?;
-        let batch_action_masks_t = Self::NetworkOutput::stack_tensor_batch(&multi_action_cat_mask_tensor_vec)?;
-
+        let batch_actions_t = Self::NetworkOutput::stack_tensor_batch(&multi_action_tensor_vec)?
+            .move_to_device(device);
+        let batch_action_masks_t = Self::NetworkOutput::stack_tensor_batch(&multi_action_cat_mask_tensor_vec)?
+            .move_to_device(device);
 
 
 
@@ -343,34 +344,22 @@ pub trait PolicyHelperPPO<DP: DomainParameters>
 
             for minibatch_start in (0..batch_size).step_by(self.config().mini_batch_size){
                 let minibatch_end = min(minibatch_start + self.config().mini_batch_size as i64, batch_size);
-                let minibatch_indices = Tensor::from(&indices[minibatch_start as usize..minibatch_end as usize]);
-                /*
-                let mini_batch_action: Vec<Tensor> = batch_actions_t.iter().map(|c|{
-                    c.f_index_select(0, &minibatch_indices)
-                }).collect::<Result<Vec<_>, TchError>>()?;
+                let minibatch_indices = Tensor::from(&indices[minibatch_start as usize..minibatch_end as usize]).to_device(device);
 
-                let mini_batch_action_cat_mask: Vec<Tensor> = batch_action_masks_t.iter().map(|c|{
-                    c.f_index_select(0, &minibatch_indices)
-                }).collect::<Result<Vec<_>, TchError>>()?;
-
-                 */
 
                 let mini_batch_action = Self::NetworkOutput::index_select(&batch_actions_t, &minibatch_indices)?;
                 let mini_batch_action_cat_mask = Self::NetworkOutput::index_select(&batch_action_masks_t, &minibatch_indices)?;
-                /*
-                let mini_batch_action_forward_mask = action_forward_masks.as_ref().and_then(|m|{
-                   Self::NetworkOutput::index_select(m, &minibatch_indices)?
-                });
 
-                 */
 
                 let mini_batch_action_forward_mask = match action_forward_masks{
                     None => None,
                     Some(ref m) => Some(Self::NetworkOutput::index_select(&m, &minibatch_indices)?)
                 };
 
-                let mini_batch_base_logprobs = batch_logprob_t.f_index_select(0, &minibatch_indices)?;
 
+                let mini_batch_base_logprobs = batch_logprob_t.f_index_select(0, &minibatch_indices)?;
+                #[cfg(feature = "log_trace")]
+                log::trace!("Selected minibatch logprobs");
                 let (new_logprob, entropy, newvalue) = self.ppo_batch_get_actor_critic_with_logprob_and_entropy(
                     &batch_info_sets_t.f_index_select(0, &minibatch_indices)?,
                     &mini_batch_action,

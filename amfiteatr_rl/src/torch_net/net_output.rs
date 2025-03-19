@@ -1,4 +1,5 @@
 use std::fmt::Debug;
+use std::ops::Deref;
 use rand::Rng;
 use tch::{Device, Kind, TchError, Tensor};
 use tch::Kind::Float;
@@ -15,12 +16,46 @@ use crate::error::AmfiteatrRlError::ZeroBatchSize;
 pub trait NetOutput{}
 
 
+pub trait DeviceTransfer{
+
+    fn move_to_device(self, device: Device) -> Self;
+}
+
+impl DeviceTransfer for Tensor{
+    fn move_to_device(self, device: Device) -> Self {
+        self.to_device(device)
+    }
+}
+
+impl DeviceTransfer for Vec<Tensor>{
+    fn move_to_device(self, device: Device) -> Self {
+        self.into_iter().map(|x| x.move_to_device(device)).collect()
+    }
+}
+
+impl DeviceTransfer for Vec<Vec<Tensor>>{
+    fn move_to_device(self, device: Device) -> Self {
+        let mut result = Vec::with_capacity(self.len());
+
+        for v in self.into_iter(){
+            result.push(v.into_iter().map(|x| x.to_device(device)).collect());
+        }
+
+        result
+    }
+}
+
 pub trait ActorCriticOutput : NetOutput + Debug{
-    type ActionTensorType: Debug;
+    type ActionTensorType: Debug + DeviceTransfer;
     /// Vec type to construct Tensor batch, it will be typically `Vec<Tensor>` and `Vec<Vec<Tensor>>`,
     /// however this is not just `Vec<Self:TensorForm>` because on `Vec<Vec<_>>` it mess with dimensions.
     /// Outer is Param dimenstion Inner is Batch dimension. We later create param batches from continuous slice.
-    type ActionBatchTensorType: Debug;
+    type ActionBatchTensorType: Debug + DeviceTransfer;
+
+    fn device(&self) -> Device;
+
+   // fn move_to_device(&self, tensor: Self::ActionTensorType) -> Self::ActionTensorType;
+   // fn move_batch_to_device(&self, tensor: Self::ActionBatchTensorType) -> Self::ActionBatchTensorType;
 
     fn batch_entropy_masked(&self, action_masks: Option<&Self::ActionTensorType>, parameter_masks: Option<&Self::ActionTensorType>)
                             -> Result<Tensor, TchError>;
@@ -71,7 +106,24 @@ impl ActorCriticOutput for TensorActorCritic{
     type ActionTensorType = Tensor;
     type ActionBatchTensorType = Vec<Tensor>;
 
+    fn device(&self) -> Device {
+        self.critic.device()
+    }
+
+    /*
+    fn move_to_device(&self, tensor: Self::ActionTensorType) -> Self::ActionTensorType {
+        tensor.to_device(self.device())
+    }
+
+    fn move_batch_to_device(&self, tensor: Self::ActionBatchTensorType) -> Self::ActionBatchTensorType {
+        tensor.into_iter().map(|x| x.to_device(self.device())).collect()
+    }
+
+     */
+
+
     fn batch_entropy_masked(&self, forward_masks: Option<&Self::ActionTensorType>, reverse_masks: Option<&Self::ActionTensorType>) -> Result<Tensor, TchError> {
+
         let p_log_p = Tensor::f_einsum("ij, ij -> ij", &[self.actor.f_softmax(-1, Float)?, self.actor.f_log_softmax(-1, Float)?], None::<i64>)?;
         let mut element = p_log_p;
         if let Some(fm) = forward_masks{
@@ -79,7 +131,7 @@ impl ActorCriticOutput for TensorActorCritic{
         }
         let elem = match reverse_masks{
             Some(mut rev_mask) => {
-                let t = [&element, &rev_mask];
+                let t = [&element, &rev_mask.to_device(self.device())];
 
                 Tensor::f_einsum("ij, ij -> ij", &t, None::<i64>)?
             },
@@ -181,6 +233,27 @@ impl ActorCriticOutput for TensorMultiParamActorCritic {
     type ActionTensorType = Vec<Tensor>;
     type ActionBatchTensorType = Vec<Vec<Tensor>>;
 
+    fn device(&self) -> Device {
+        self.critic.device()
+    }
+
+    /*
+    fn move_to_device(&self, tensor: Self::ActionTensorType) -> Self::ActionTensorType {
+        tensor.into_iter().map(|x| x.to_device(self.device())).collect()
+    }
+
+    fn move_batch_to_device(&self, tensor: Self::ActionBatchTensorType) -> Self::ActionBatchTensorType {
+        let mut result = Vec::with_capacity(tensor.len());
+
+        for v in tensor.into_iter(){
+            result.push(v.into_iter().map(|x| x.to_device(self.device())).collect());
+        }
+
+        result
+    }
+
+     */
+
     /// # Input
     /// `forward_masks: Option<&[Tensor]>`, where `Tensor` has shape `[BATCH_SIZE, CATEGORY_SIZE`] (works for single param sample probability), and `Vec::len` is the number of categories.
     /// `reverse_masks: Option<&[Tensor]>` where `Tensor` has shape `[BATCH_SIZE]`, (enables/disables whole category), and `Vec::len` is the number of categories.
@@ -260,20 +333,22 @@ impl ActorCriticOutput for TensorMultiParamActorCritic {
         for a in self.actor.iter(){
 
 
-            p_log_p.push(Tensor::f_einsum("ij, ij -> ij", &[a.f_softmax(-1, Float)?, a.f_log_softmax(-1, Float)?], None::<i64>)?)
+            p_log_p.push(Tensor::f_einsum("ij, ij -> ij",
+                                          &[a.f_softmax(-1, Float)?, a.f_log_softmax(-1, Float)?],
+                                          None::<i64>)?)
         }
 
         let mut elements = p_log_p;
         if let Some(fm) = forward_masks{
             for (i,  e) in elements.iter_mut().enumerate(){
-                *e = e.f_where_self(&fm[i].ne(0.0), &Tensor::from(0.0))?
+                *e = e.f_where_self(&fm[i].to_device(self.device()).ne(0.0), &Tensor::from(0.0))?
             }
         }
         let elems1:Vec<Tensor> = match reverse_masks{
             Some(mut rm) => {
                 let mut v = Vec::new();
                 for (i,e) in elements.into_iter().enumerate(){
-                    let t = [&e, &rm[i]];
+                    let t = [&e, &rm[i].to_device(self.device())];
 
                     v.push(Tensor::f_einsum("ij,i->ij", &t, Option::<i64>::None)?);
                 }
@@ -411,7 +486,7 @@ impl ActorCriticOutput for TensorMultiParamActorCritic {
                 self.actor.iter().enumerate().map(|(i, a)|{
                     a.f_log_softmax(-1, Kind::Float)?
 
-                        .f_gather(1, &param_indices[i].f_unsqueeze(1)?, false)?
+                        .f_gather(1, &param_indices[i].to_device(self.device()).f_unsqueeze(1)?, false)?
                         .f_flatten(0, -1)
                 }).collect::<Result<Vec<Tensor>, TchError>>().map_err(|e|{
                     TensorError::Torch { origin: format!("Torch error while calculating log probabilities of parameters. {}", e),
@@ -432,7 +507,7 @@ impl ActorCriticOutput for TensorMultiParamActorCritic {
                     //let Tensor::f_einsum("i,i->i", &[a,m], None::<i64>)
                     let log_softmax = a.f_log_softmax(-1, Kind::Float)?;
                     let masked = log_softmax.f_where_self(&m.ne(0.0), &Tensor::from(1.0))?;
-                    masked.f_gather(1, &param_indices[i].f_unsqueeze(1)?, false)?
+                    masked.f_gather(1, &param_indices[i].to_device(self.device()).f_unsqueeze(1)?, false)?
                         .f_flatten(0, -1)
 
                 }).collect::<Result<Vec<Tensor>, TchError>>().map_err(|e|{
@@ -452,7 +527,7 @@ impl ActorCriticOutput for TensorMultiParamActorCritic {
                     .map(|(logp, mask)|{
                         // if parameter is masked it means it was not used to create action therefore
                         // we set log probability to 0 (probability =1) so it does not change entropy
-                        let masked_log_probs = Tensor::f_einsum("i,i -> i", &[logp, mask], Option::<i64>::None);
+                        let masked_log_probs = Tensor::f_einsum("i,i -> i", &[logp, &mask.to_device(self.device())], Option::<i64>::None);
                         masked_log_probs
                     }).collect::<Result<Vec<Tensor>, TchError>>().map_err(|e|{
                     TensorError::Torch { origin: format!("{}", e),
