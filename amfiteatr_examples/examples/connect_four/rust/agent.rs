@@ -1,6 +1,6 @@
 use amfiteatr_core::agent::InformationSet;
 use amfiteatr_core::domain::{DomainParameters, Renew};
-use amfiteatr_core::error::{AmfiteatrError, ConvertError};
+use amfiteatr_core::error::{AmfiteatrError, ConvertError, TensorError};
 use amfiteatr_rl::error::TensorRepresentationError;
 use amfiteatr_rl::MaskingInformationSetAction;
 use amfiteatr_rl::tch::Tensor;
@@ -115,7 +115,8 @@ impl MaskingInformationSetAction<ConnectFourDomain, ConnectFourActionTensorRepre
                 _ => 0.0,
             }
         });
-        Ok(Tensor::f_from_slice(&top_row_is_empty)?)
+        Ok(Tensor::f_from_slice(&top_row_is_empty)
+            .map_err(|e| TensorError::from_tch_with_context(e, "Masking for connect four.".into()))?)
 
     }
 }
