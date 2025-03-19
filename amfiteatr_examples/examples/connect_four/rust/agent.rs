@@ -4,7 +4,7 @@ use amfiteatr_core::error::{AmfiteatrError, ConvertError, TensorError};
 use amfiteatr_rl::error::TensorRepresentationError;
 use amfiteatr_rl::MaskingInformationSetAction;
 use amfiteatr_rl::tch::Tensor;
-use amfiteatr_rl::tensor_data::{ConversionToTensor, ContextTryIntoTensor, ContextTryFromTensor, ConversionFromTensor, ContextTryIntoIndexI64, ConversionToIndexI64};
+use amfiteatr_rl::tensor_data::{TensorEncoding, ContextEncodeTensor, ContextDecodeTensor, TensorDecoding, ContextEncodeIndexI64, TensorIndexI64Encoding};
 use crate::common::{ConnectFourAction, ConnectFourBinaryObservation, ConnectFourDomain, ConnectFourPlayer};
 
 #[derive(Clone, Debug)]
@@ -48,13 +48,13 @@ pub struct ConnectFourTensorReprD1{
 
 }
 
-impl ConversionToTensor for ConnectFourTensorReprD1{
+impl TensorEncoding for ConnectFourTensorReprD1{
     fn desired_shape(&self) -> &[i64] {
         &[84]
     }
 }
 
-impl ContextTryIntoTensor<ConnectFourTensorReprD1> for ConnectFourInfoSet{
+impl ContextEncodeTensor<ConnectFourTensorReprD1> for ConnectFourInfoSet{
     fn try_to_tensor(&self, way: &ConnectFourTensorReprD1) -> Result<Tensor, ConvertError> {
 
         let mut vec = Vec::with_capacity(way.desired_shape()[0] as usize);
@@ -70,13 +70,13 @@ impl ContextTryIntoTensor<ConnectFourTensorReprD1> for ConnectFourInfoSet{
 
 pub struct ConnectFourActionTensorRepresentation{}
 
-impl ConversionFromTensor for ConnectFourActionTensorRepresentation{
+impl TensorDecoding for ConnectFourActionTensorRepresentation{
     fn expected_input_shape(&self) -> &[i64] {
         &[1]
     }
 }
 
-impl ConversionToIndexI64 for ConnectFourActionTensorRepresentation{
+impl TensorIndexI64Encoding for ConnectFourActionTensorRepresentation{
     fn min(&self) -> i64 {
         0
     }
@@ -86,7 +86,7 @@ impl ConversionToIndexI64 for ConnectFourActionTensorRepresentation{
     }
 }
 
-impl ContextTryFromTensor<ConnectFourActionTensorRepresentation> for ConnectFourAction{
+impl ContextDecodeTensor<ConnectFourActionTensorRepresentation> for ConnectFourAction{
     fn try_from_tensor(tensor: &Tensor, _way: &ConnectFourActionTensorRepresentation) -> Result<Self, ConvertError>
     where
         Self: Sized
@@ -101,7 +101,7 @@ impl ContextTryFromTensor<ConnectFourActionTensorRepresentation> for ConnectFour
     }
 }
 
-impl ContextTryIntoIndexI64<ConnectFourActionTensorRepresentation> for ConnectFourAction{
+impl ContextEncodeIndexI64<ConnectFourActionTensorRepresentation> for ConnectFourAction{
     fn try_to_index(&self, _way: &ConnectFourActionTensorRepresentation) -> Result<i64, ConvertError> {
         Ok(self.index() as i64)
     }

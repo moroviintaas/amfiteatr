@@ -7,12 +7,12 @@ use amfiteatr_core::error::{AmfiteatrError, ConvertError, TensorError};
 use crate::error::TensorRepresentationError;
 
 
-/// Extension for [`ConversionToTensor`] to actually produce tensor. However, implementing this trait
-/// is optional, because generic implementations require [`ContextTryIntoTensor`] on type converted,
+/// Extension for [`TensorEncoding`] to actually produce tensor. However, implementing this trait
+/// is optional, because generic implementations require [`ContextEncodeTensor`] on type converted,
 /// and it is probably what you need to implement.
 /// However, it may be sometimes convenient to implement this trait for converter and then use it on
 /// converted types.
-pub trait SimpleConvertToTensor<T>: Send + ConversionToTensor {
+pub trait SimpleConvertToTensor<T>: Send + TensorEncoding {
     /// Take reference to associated type and output tensor
     fn make_tensor(&self, t: &T) -> Tensor;
 }
@@ -21,8 +21,8 @@ pub trait SimpleConvertToTensor<T>: Send + ConversionToTensor {
 
 
 /// Trait representing structs (maybe 0-sized) that tell what is desired shape of tensor produced
-/// by conversion to tensor when using [`ContextTryIntoTensor`].
-pub trait ConversionToTensor: Send{
+/// by conversion to tensor when using [`ContextEncodeTensor`].
+pub trait TensorEncoding: Send{
     /// Returns shape (slice of i64 numbers) of shape that must be produced for network
     fn desired_shape(&self) -> &[i64];
 
@@ -35,14 +35,14 @@ pub trait ConversionToTensor: Send{
 
 /// Trait for structs that can be represented as traits, for example game information sets (game states).
 /// It could be resolved by requiring `&T: Into<Tensor>`, however using associated type
-/// [`ConversionToTensor`] allows to implement different conversion. This may be useful when you
+/// [`TensorEncoding`] allows to implement different conversion. This may be useful when you
 /// implement information set however you want several tensor forms for experiments.
 /// For example in some card game you may represent only current _certain_ information
 /// and compare it with model utilizing some assumptions on _uncertain_ information like
 /// _"enemy has king of hearts with probability of 40%"_.
 /// In this case you can implement one [`InformationSet`](amfiteatr_core::agent::InformationSet) and two ways
 /// of converting it.
-pub trait ContextTryIntoTensor<Ctx: ConversionToTensor> : Debug{
+pub trait ContextEncodeTensor<Ctx: TensorEncoding> : Debug{
     fn try_to_tensor(&self, way: &Ctx) -> Result<Tensor, ConvertError>;
 
     fn to_tensor(&self, way: &Ctx) -> Tensor{
@@ -72,11 +72,11 @@ pub trait ContextTryIntoTensor<Ctx: ConversionToTensor> : Debug{
 }
 
 /// Represents format for converting element to set of Tensors
-pub trait ConversionToMultipleTensors: Send{
+pub trait MultiTensorEncoding: Send{
     fn expected_outputs_shape(&self) -> &[Vec<i64>];
 }
 
-pub trait ContextTryIntoMultipleTensors<Ctx: ConversionToMultipleTensors> : Debug{
+pub trait ContextMultiTensorEncode<Ctx: MultiTensorEncoding> : Debug{
     fn try_to_multiple_tensors(&self, form: &Ctx) -> Result<Vec<Tensor>, ConvertError>;
     fn to_multiple_tensors(&self, form: &Ctx) -> Vec<Tensor>{
         self.try_to_multiple_tensors(form).unwrap()
@@ -89,17 +89,17 @@ pub trait ContextTryIntoMultipleTensors<Ctx: ConversionToMultipleTensors> : Debu
      */
 }
 
-pub trait ConversionToIndexI64: Send{
+pub trait TensorIndexI64Encoding: Send{
     fn min(&self) -> i64;
     fn limit(&self) -> i64;
 }
 
-pub trait ContextTryIntoIndexI64<Ctx: ConversionToIndexI64> : Debug{
+pub trait ContextEncodeIndexI64<Ctx: TensorIndexI64Encoding> : Debug{
 
     fn try_to_index(&self, way: &Ctx) -> Result<i64, ConvertError>;
 }
 
-pub trait ConversionToMultiIndexI64{
+pub trait MultiTensorIndexI64Encoding {
     fn min(&self, param_index: usize) -> Option<i64>;
     fn limit(&self, param_index: usize) -> Option<i64>;
 
@@ -109,7 +109,7 @@ pub trait ConversionToMultiIndexI64{
 }
 
 
-impl<T: ConversionToMultiIndexI64 + ConversionFromMultipleTensors> ActionTensorFormat<Vec<Tensor>> for T{
+impl<T: MultiTensorIndexI64Encoding + MultiTensorDecoding> ActionTensorFormat<Vec<Tensor>> for T{
 
     fn param_dimension_size(&self) -> i64 {
         Self::number_of_params() as i64
@@ -117,7 +117,7 @@ impl<T: ConversionToMultiIndexI64 + ConversionFromMultipleTensors> ActionTensorF
 }
 
 
-impl<T: ConversionToIndexI64 + ConversionFromTensor> ActionTensorFormat<Tensor> for T{
+impl<T: TensorIndexI64Encoding + TensorDecoding> ActionTensorFormat<Tensor> for T{
 
     fn param_dimension_size(&self) -> i64 {
         1
@@ -125,7 +125,7 @@ impl<T: ConversionToIndexI64 + ConversionFromTensor> ActionTensorFormat<Tensor> 
 }
 
 
-pub trait ContextTryIntoMultiIndexI64<Ctx: ConversionToMultiIndexI64>{
+pub trait ContextEncodeMultiIndexI64<Ctx: MultiTensorIndexI64Encoding>{
     fn param_value(&self, context: &Ctx, param_index: usize) -> Result<Option<i64>, ConvertError>;
     fn default_value(&self, _context: &Ctx, _param_index: usize) -> i64{
         0
@@ -210,10 +210,10 @@ pub trait ContextTryIntoMultiIndexI64<Ctx: ConversionToMultiIndexI64>{
 
 }
 
-pub trait TensorFormat: ConversionToTensor + ConversionFromTensor{}
-impl<T> TensorFormat for T where T: ConversionToTensor + ConversionFromTensor{}
-pub trait MultipleTensorFormat: ConversionToMultipleTensors + ConversionFromMultipleTensors{}
-impl<T> MultipleTensorFormat for T where T: ConversionToMultipleTensors + ConversionFromMultipleTensors{}
+pub trait TensorFormat: TensorEncoding + TensorDecoding {}
+impl<T> TensorFormat for T where T: TensorEncoding + TensorDecoding {}
+pub trait MultipleTensorFormat: MultiTensorEncoding + MultiTensorDecoding {}
+impl<T> MultipleTensorFormat for T where T: MultiTensorEncoding + MultiTensorDecoding {}
 
 
 
@@ -223,7 +223,7 @@ pub trait TryIntoTensor: Debug{
     fn try_to_tensor(&self) -> Result<Tensor, TensorRepresentationError>;
 }
 
-impl<W: ConversionToTensor, T: ContextTryIntoTensor<W>> ContextTryIntoTensor<W> for Box<T>{
+impl<W: TensorEncoding, T: ContextEncodeTensor<W>> ContextEncodeTensor<W> for Box<T>{
 
     fn try_to_tensor(&self, way: &W) -> Result<Tensor, ConvertError> {
         self.as_ref().try_to_tensor(way)
@@ -231,15 +231,15 @@ impl<W: ConversionToTensor, T: ContextTryIntoTensor<W>> ContextTryIntoTensor<W> 
 }
 
 /// Trait representing structs (maybe 0-sized) that tell what is expected size of tensor to be
-/// used to create data struct using [`ContextTryFromTensor`].
-pub trait ConversionFromTensor: Send{
+/// used to create data struct using [`ContextDecodeTensor`].
+pub trait TensorDecoding: Send{
     fn expected_input_shape(&self) -> &[i64];
 }
 
 /// Implemented by structs that can be converted from tensors.
 /// Certain data type can have different tensor representation, then it is needed to specify
-/// what particular contextual representation is used (done by using correct [`ConversionFromTensor`]).
-pub trait ContextTryFromTensor<Ctx: ConversionFromTensor>{
+/// what particular contextual representation is used (done by using correct [`TensorDecoding`]).
+pub trait ContextDecodeTensor<Ctx: TensorDecoding>{
     fn try_from_tensor(tensor: &Tensor, way: &Ctx) -> Result<Self, ConvertError> where Self: Sized;
 }
 
@@ -271,15 +271,15 @@ impl<T: for<'a> TryFrom<&'a [Tensor], Error=ConvertError> + Sized> TryFromMultiT
 
 
 /// Trait representing structs (maybe 0-sized) that tell what is expected size of tensor to be
-/// used to create data struct using [`crate::tensor_data::ContextTryFromMultipleTensors`].
-pub trait ConversionFromMultipleTensors: Send{
+/// used to create data struct using [`crate::tensor_data::ContextDecodeMultiTensor`].
+pub trait MultiTensorDecoding: Send{
     fn expected_inputs_shape(&self) -> &[Vec<i64>];
 }
 
 /// Implemented by structs that can be converted from tensors.
 /// Certain data type can have different tensor representation, then it is needed to specify
-/// what particular contextual representation is used (done by using correct [`crate::tensor_data::ConversionFromTensor`]).
-pub trait ContextTryFromMultipleTensors<Ctx: crate::tensor_data::ConversionFromMultipleTensors>{
+/// what particular contextual representation is used (done by using correct [`crate::tensor_data::TensorDecoding`]).
+pub trait ContextDecodeMultiTensor<Ctx: crate::tensor_data::MultiTensorDecoding>{
     fn try_from_tensors(tensors: &[Tensor], way: &Ctx)
         -> Result<Self, ConvertError> where Self: Sized;
 }
@@ -347,12 +347,12 @@ macro_rules! impl_reward_std_f {
 
 
 
-impl<N: ArrayLength> ConversionToTensor for GenericArray<i64, N>{
+impl<N: ArrayLength> TensorEncoding for GenericArray<i64, N>{
     fn desired_shape(&self) -> &[i64] {
         &self[..]
     }
 }
-impl<N: ArrayLength> ConversionFromTensor for GenericArray<i64, N>{
+impl<N: ArrayLength> TensorDecoding for GenericArray<i64, N>{
     fn expected_input_shape(&self) -> &[i64] {
         &self[..]
     }

@@ -14,15 +14,15 @@ use amfiteatr_core::error::AmfiteatrError;
 use crate::error::{AmfiteatrRlError, TensorRepresentationError};
 use crate::policy::common::categorical_dist_entropy;
 use crate::policy::LearningNetworkPolicy;
-use crate::tensor_data::{ContextTryIntoTensor, ConversionToTensor, TryIntoTensor, TryFromTensor};
+use crate::tensor_data::{ContextEncodeTensor, TensorEncoding, TryIntoTensor, TryFromTensor};
 use crate::torch_net::{A2CNet, TensorActorCritic};
 use crate::policy::TrainConfig;
 
 /// Generic implementation of Advantage Actor Critic policy
 pub struct ActorCriticPolicy<
     DP: DomainParameters,
-    InfoSet: InformationSet<DP> + Debug + ContextTryIntoTensor<InfoSetConversionContext>,
-    InfoSetConversionContext: ConversionToTensor,
+    InfoSet: InformationSet<DP> + Debug + ContextEncodeTensor<InfoSetConversionContext>,
+    InfoSetConversionContext: TensorEncoding,
    // ActionConversionContext: ConversionFromTensor,
 > {
     network: A2CNet,
@@ -41,8 +41,8 @@ pub struct ActorCriticPolicy<
 
 impl<
     DP: DomainParameters,
-    InfoSet: InformationSet<DP>  + Debug + ContextTryIntoTensor<InfoSetConversionContext>,
-    InfoSetConversionContext: ConversionToTensor,
+    InfoSet: InformationSet<DP>  + Debug + ContextEncodeTensor<InfoSetConversionContext>,
+    InfoSetConversionContext: TensorEncoding,
     //ActionConversionContext: ConversionFromTensor,
     >
 ActorCriticPolicy<
@@ -109,8 +109,8 @@ ActorCriticPolicy<
 impl<DP: DomainParameters,
     //InfoSet: InformationSet<DP> + Debug,
     //TB: ConvStateToTensor<InfoSet>,
-    InfoSet: InformationSet<DP> + Debug + ContextTryIntoTensor<InfoSetConversionContext>,
-    InfoSetConversionContext: ConversionToTensor,
+    InfoSet: InformationSet<DP> + Debug + ContextEncodeTensor<InfoSetConversionContext>,
+    InfoSetConversionContext: TensorEncoding,
     //ActionConversionContext: ConversionFromTensor,
 > Policy<DP> for ActorCriticPolicy<
     DP,
@@ -153,8 +153,8 @@ where <DP as DomainParameters>::ActionType: TryFromTensor{
 
 impl<
     DP: DomainParameters,
-    InfoSet: InformationSet<DP>  + Debug + ContextTryIntoTensor<InfoSetWay>,
-    InfoSetWay: ConversionToTensor,
+    InfoSet: InformationSet<DP>  + Debug + ContextEncodeTensor<InfoSetWay>,
+    InfoSetWay: TensorEncoding,
     //InfoSet: ScoringInformationSet<DP> + Debug,
     //StateConverter: ConvStateToTensor<InfoSet>>
     > LearningNetworkPolicy<DP> for ActorCriticPolicy<DP, InfoSet, InfoSetWay>

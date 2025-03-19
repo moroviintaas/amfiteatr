@@ -4,7 +4,7 @@ use amfiteatr_core::error::{AmfiteatrError, ConvertError};
 use amfiteatr_proc_macro::no_assessment_info_set;
 use amfiteatr_rl::error::TensorRepresentationError;
 use amfiteatr_rl::tch::Tensor;
-use amfiteatr_rl::tensor_data::{ConversionToTensor, ContextTryIntoTensor};
+use amfiteatr_rl::tensor_data::{TensorEncoding, ContextEncodeTensor};
 use crate::common::{CartPoleAction, CartPoleDomain, CartPoleObservation, SINGLE_PLAYER_ID};
 
 
@@ -56,13 +56,13 @@ pub const CART_POLE_TENSOR_REPR: CartPoleInformationSetConversion = CartPoleInfo
 
 
 
-impl ConversionToTensor for CartPoleInformationSetConversion{
+impl TensorEncoding for CartPoleInformationSetConversion{
     fn desired_shape(&self) -> &[i64] {
         &[4]
     }
 }
 
-impl ContextTryIntoTensor<CartPoleInformationSetConversion> for PythonGymnasiumCartPoleInformationSet{
+impl ContextEncodeTensor<CartPoleInformationSetConversion> for PythonGymnasiumCartPoleInformationSet{
     fn try_to_tensor(&self, _way: &CartPoleInformationSetConversion) -> Result<Tensor, ConvertError> {
         let v = vec![
             self.latest_observation.position,

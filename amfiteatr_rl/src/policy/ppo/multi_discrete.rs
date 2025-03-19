@@ -16,16 +16,16 @@ use crate::policy::{ConfigPPO, LearningNetworkPolicy, PolicyHelperPPO, PolicyMas
 use crate::{tch, MaskingInformationSetActionMultiParameter, tensor_data, MaskingInformationSetAction};
 use crate::tch::nn::Optimizer;
 use crate::tch::Tensor;
-use crate::tensor_data::{ConversionFromMultipleTensors, ConversionFromTensor, ConversionToMultiIndexI64, ConversionToTensor, ContextTryIntoMultiIndexI64, ContextTryFromMultipleTensors, ContextTryIntoTensor, ConversionToIndexI64};
+use crate::tensor_data::{MultiTensorDecoding, TensorDecoding, MultiTensorIndexI64Encoding, TensorEncoding, ContextEncodeMultiIndexI64, ContextDecodeMultiTensor, ContextEncodeTensor, TensorIndexI64Encoding};
 use crate::torch_net::{A2CNet, ActorCriticOutput, DeviceTransfer, MultiDiscreteNet, NeuralNet, NeuralNetActorCritic, NeuralNetMultiActorCritic, TensorMultiParamActorCritic};
 
 
 
 pub struct PolicyPpoMultiDiscrete<
     DP: DomainParameters,
-    InfoSet: InformationSet<DP> + Debug + ContextTryIntoTensor<InfoSetConversionContext>,
-    InfoSetConversionContext: ConversionToTensor,
-    ActionBuildContext: ConversionFromMultipleTensors,
+    InfoSet: InformationSet<DP> + Debug + ContextEncodeTensor<InfoSetConversionContext>,
+    InfoSetConversionContext: TensorEncoding,
+    ActionBuildContext: MultiTensorDecoding,
 >
 //where <DP as DomainParameters>::ActionType: ContextTryFromMultipleTensors<ActionBuildContext>
 {
@@ -45,13 +45,13 @@ pub struct PolicyPpoMultiDiscrete<
 
 impl<
     DP: DomainParameters,
-    InfoSet: InformationSet<DP> + Debug + ContextTryIntoTensor<InfoSetConversionContext>,
-    InfoSetConversionContext: ConversionToTensor,
-    ActionBuildContext: ConversionFromMultipleTensors + ConversionToMultiIndexI64,
+    InfoSet: InformationSet<DP> + Debug + ContextEncodeTensor<InfoSetConversionContext>,
+    InfoSetConversionContext: TensorEncoding,
+    ActionBuildContext: MultiTensorDecoding + MultiTensorIndexI64Encoding,
 > PolicyPpoMultiDiscrete<DP, InfoSet, InfoSetConversionContext, ActionBuildContext>
 where <DP as DomainParameters>::ActionType:
-    ContextTryFromMultipleTensors<ActionBuildContext>
-    + ContextTryIntoMultiIndexI64<ActionBuildContext>
+    ContextDecodeMultiTensor<ActionBuildContext>
+    + ContextEncodeMultiIndexI64<ActionBuildContext>
 
 {
 
@@ -424,12 +424,12 @@ pub(crate)  fn vec_2d_push_second_dim<T>(v: &mut Vec<Vec<T>>, append: Vec<T>){
 
 impl<
     DP: DomainParameters,
-    InfoSet: InformationSet<DP> + Debug + ContextTryIntoTensor<InfoSetConversionContext>,
-    InfoSetConversionContext: ConversionToTensor,
-    ActionBuildContext: ConversionFromMultipleTensors,
+    InfoSet: InformationSet<DP> + Debug + ContextEncodeTensor<InfoSetConversionContext>,
+    InfoSetConversionContext: TensorEncoding,
+    ActionBuildContext: MultiTensorDecoding,
 >
 PolicyPpoMultiDiscrete<DP, InfoSet, InfoSetConversionContext, ActionBuildContext>
-where <DP as DomainParameters>::ActionType: ContextTryFromMultipleTensors<ActionBuildContext>
+where <DP as DomainParameters>::ActionType: ContextDecodeMultiTensor<ActionBuildContext>
 {
     pub fn new(
         config: ConfigPPO,
@@ -500,14 +500,14 @@ where <DP as DomainParameters>::ActionType: ContextTryFromMultipleTensors<Action
 
 impl<
     DP: DomainParameters,
-    InfoSet: InformationSet<DP> + Debug + ContextTryIntoTensor<InfoSetConversionContext> ,
-    InfoSetConversionContext: ConversionToTensor ,
-    ActionBuildContext: ConversionFromMultipleTensors + ConversionToMultiIndexI64 + tensor_data::ActionTensorFormat<Vec<Tensor>>,
+    InfoSet: InformationSet<DP> + Debug + ContextEncodeTensor<InfoSetConversionContext> ,
+    InfoSetConversionContext: TensorEncoding,
+    ActionBuildContext: MultiTensorDecoding + MultiTensorIndexI64Encoding + tensor_data::ActionTensorFormat<Vec<Tensor>>,
 >
 Policy<DP> for PolicyPpoMultiDiscrete<DP, InfoSet, InfoSetConversionContext, ActionBuildContext>
 where
     <DP as DomainParameters>::ActionType:
-        ContextTryFromMultipleTensors<ActionBuildContext, > + ContextTryIntoMultiIndexI64<ActionBuildContext>,
+        ContextDecodeMultiTensor<ActionBuildContext, > + ContextEncodeMultiIndexI64<ActionBuildContext>,
 
 {
     type InfoSetType = InfoSet;
@@ -521,12 +521,12 @@ where
 
 impl<
     DP: DomainParameters,
-    InfoSet: InformationSet<DP> + Debug + ContextTryIntoTensor<InfoSetConversionContext>,
-    InfoSetConversionContext: ConversionToTensor,
-    ActionBuildContext: ConversionFromMultipleTensors + ConversionToMultiIndexI64 + tensor_data::ActionTensorFormat<Vec<Tensor>>,
+    InfoSet: InformationSet<DP> + Debug + ContextEncodeTensor<InfoSetConversionContext>,
+    InfoSetConversionContext: TensorEncoding,
+    ActionBuildContext: MultiTensorDecoding + MultiTensorIndexI64Encoding + tensor_data::ActionTensorFormat<Vec<Tensor>>,
 > LearningNetworkPolicy<DP> for PolicyPpoMultiDiscrete<DP, InfoSet, InfoSetConversionContext, ActionBuildContext>
-where <DP as DomainParameters>::ActionType: ContextTryFromMultipleTensors<ActionBuildContext>
-    + ContextTryIntoMultiIndexI64<ActionBuildContext>,
+where <DP as DomainParameters>::ActionType: ContextDecodeMultiTensor<ActionBuildContext>
+    + ContextEncodeMultiIndexI64<ActionBuildContext>,
 {
     fn var_store(&self) -> &VarStore {
         &self.network.var_store()
@@ -561,14 +561,14 @@ where <DP as DomainParameters>::ActionType: ContextTryFromMultipleTensors<Action
 
 impl<
     DP: DomainParameters,
-    InfoSet: InformationSet<DP> + Debug + ContextTryIntoTensor<InfoSetConversionContext> ,
-    InfoSetConversionContext: ConversionToTensor ,
-    ActionBuildContext: ConversionFromMultipleTensors + ConversionToMultiIndexI64 + tensor_data::ActionTensorFormat<Vec<Tensor>>,
+    InfoSet: InformationSet<DP> + Debug + ContextEncodeTensor<InfoSetConversionContext> ,
+    InfoSetConversionContext: TensorEncoding,
+    ActionBuildContext: MultiTensorDecoding + MultiTensorIndexI64Encoding + tensor_data::ActionTensorFormat<Vec<Tensor>>,
 >
 PolicyHelperPPO<DP> for PolicyPpoMultiDiscrete<DP, InfoSet, InfoSetConversionContext, ActionBuildContext>
     where
         <DP as DomainParameters>::ActionType:
-        ContextTryFromMultipleTensors<ActionBuildContext, > + ContextTryIntoMultiIndexI64<ActionBuildContext>,
+        ContextDecodeMultiTensor<ActionBuildContext, > + ContextEncodeMultiIndexI64<ActionBuildContext>,
 
 {
     type InfoSet = InfoSet;
@@ -647,21 +647,21 @@ PolicyHelperPPO<DP> for PolicyPpoMultiDiscrete<DP, InfoSet, InfoSetConversionCon
 
 pub struct PolicyMaskingPpoMultiDiscrete<
     DP: DomainParameters,
-    InfoSet: InformationSet<DP> + Debug + ContextTryIntoTensor<InfoSetConversionContext> + MaskingInformationSetActionMultiParameter<DP, ActionBuildContext>,
-    InfoSetConversionContext: ConversionToTensor,
-    ActionBuildContext: ConversionFromMultipleTensors + ConversionToMultiIndexI64,
+    InfoSet: InformationSet<DP> + Debug + ContextEncodeTensor<InfoSetConversionContext> + MaskingInformationSetActionMultiParameter<DP, ActionBuildContext>,
+    InfoSetConversionContext: TensorEncoding,
+    ActionBuildContext: MultiTensorDecoding + MultiTensorIndexI64Encoding,
 >{
     pub base: PolicyPpoMultiDiscrete<DP, InfoSet, InfoSetConversionContext, ActionBuildContext>
 }
 
 impl<
     DP: DomainParameters,
-    InfoSet: InformationSet<DP> + Debug + ContextTryIntoTensor<InfoSetConversionContext> + MaskingInformationSetActionMultiParameter<DP, ActionBuildContext>,
-    InfoSetConversionContext: ConversionToTensor ,
-    ActionBuildContext: ConversionFromMultipleTensors + ConversionToMultiIndexI64
+    InfoSet: InformationSet<DP> + Debug + ContextEncodeTensor<InfoSetConversionContext> + MaskingInformationSetActionMultiParameter<DP, ActionBuildContext>,
+    InfoSetConversionContext: TensorEncoding,
+    ActionBuildContext: MultiTensorDecoding + MultiTensorIndexI64Encoding
     + tensor_data::ActionTensorFormat<Vec<Tensor>>,
 > PolicyMaskingPpoMultiDiscrete<DP, InfoSet, InfoSetConversionContext, ActionBuildContext>
-    where <DP as DomainParameters>::ActionType: ContextTryFromMultipleTensors<ActionBuildContext>{
+    where <DP as DomainParameters>::ActionType: ContextDecodeMultiTensor<ActionBuildContext>{
     pub fn new(
         config: ConfigPPO,
         network: NeuralNetMultiActorCritic,
@@ -678,15 +678,15 @@ impl<
 
 impl<
     DP: DomainParameters,
-    InfoSet: InformationSet<DP> + Debug + ContextTryIntoTensor<InfoSetConversionContext>
+    InfoSet: InformationSet<DP> + Debug + ContextEncodeTensor<InfoSetConversionContext>
     + MaskingInformationSetActionMultiParameter<DP, ActionBuildContext>,
-    InfoSetConversionContext: ConversionToTensor ,
-    ActionBuildContext: ConversionFromMultipleTensors + ConversionToMultiIndexI64
+    InfoSetConversionContext: TensorEncoding,
+    ActionBuildContext: MultiTensorDecoding + MultiTensorIndexI64Encoding
     + tensor_data::ActionTensorFormat<Vec<Tensor>>,
 > PolicyHelperPPO<DP> for PolicyMaskingPpoMultiDiscrete<DP, InfoSet, InfoSetConversionContext, ActionBuildContext>
     where
-        <DP as DomainParameters>::ActionType: ContextTryFromMultipleTensors<ActionBuildContext>
-        + ContextTryIntoMultiIndexI64<ActionBuildContext>
+        <DP as DomainParameters>::ActionType: ContextDecodeMultiTensor<ActionBuildContext>
+        + ContextEncodeMultiIndexI64<ActionBuildContext>
 {
     type InfoSet = InfoSet;
     type InfoSetConversionContext = InfoSetConversionContext;
@@ -772,15 +772,15 @@ impl<
 
 impl<
     DP: DomainParameters,
-    InfoSet: InformationSet<DP> + Debug + ContextTryIntoTensor<InfoSetConversionContext>
+    InfoSet: InformationSet<DP> + Debug + ContextEncodeTensor<InfoSetConversionContext>
         + MaskingInformationSetActionMultiParameter<DP, ActionBuildContext>,
-    InfoSetConversionContext: ConversionToTensor ,
-    ActionBuildContext: ConversionFromMultipleTensors + ConversionToMultiIndexI64 + tensor_data::ActionTensorFormat<Vec<Tensor>>,
+    InfoSetConversionContext: TensorEncoding,
+    ActionBuildContext: MultiTensorDecoding + MultiTensorIndexI64Encoding + tensor_data::ActionTensorFormat<Vec<Tensor>>,
 >
 Policy<DP> for PolicyMaskingPpoMultiDiscrete<DP, InfoSet, InfoSetConversionContext, ActionBuildContext>
     where
         <DP as DomainParameters>::ActionType:
-        ContextTryFromMultipleTensors<ActionBuildContext, > + ContextTryIntoMultiIndexI64<ActionBuildContext>,
+        ContextDecodeMultiTensor<ActionBuildContext, > + ContextEncodeMultiIndexI64<ActionBuildContext>,
 
 {
 
@@ -793,15 +793,15 @@ Policy<DP> for PolicyMaskingPpoMultiDiscrete<DP, InfoSet, InfoSetConversionConte
 
 impl<
     DP: DomainParameters,
-    InfoSet: InformationSet<DP> + Debug + ContextTryIntoTensor<InfoSetConversionContext>
+    InfoSet: InformationSet<DP> + Debug + ContextEncodeTensor<InfoSetConversionContext>
     + MaskingInformationSetActionMultiParameter<DP, ActionBuildContext>,
-    InfoSetConversionContext: ConversionToTensor ,
-    ActionBuildContext: ConversionFromMultipleTensors + ConversionToMultiIndexI64
+    InfoSetConversionContext: TensorEncoding,
+    ActionBuildContext: MultiTensorDecoding + MultiTensorIndexI64Encoding
     + tensor_data::ActionTensorFormat<Vec<Tensor>>,
 > LearningNetworkPolicy<DP> for PolicyMaskingPpoMultiDiscrete<DP, InfoSet, InfoSetConversionContext, ActionBuildContext>
     where
-        <DP as DomainParameters>::ActionType: ContextTryFromMultipleTensors<ActionBuildContext>
-        + ContextTryIntoMultiIndexI64<ActionBuildContext>
+        <DP as DomainParameters>::ActionType: ContextDecodeMultiTensor<ActionBuildContext>
+        + ContextEncodeMultiIndexI64<ActionBuildContext>
 {
     fn var_store(&self) -> &VarStore {
         self.base.var_store()

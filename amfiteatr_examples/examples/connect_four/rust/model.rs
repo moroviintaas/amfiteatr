@@ -13,7 +13,7 @@ use amfiteatr_rl::error::AmfiteatrRlError;
 use amfiteatr_rl::policy::{ActorCriticPolicy, ConfigPPO, LearningNetworkPolicy, PolicyMaskingPpoDiscrete, PolicyPpoDiscrete, TrainConfig};
 use amfiteatr_rl::tch::{Device, nn, Tensor};
 use amfiteatr_rl::tch::nn::{Adam, OptimizerConfig, VarStore};
-use amfiteatr_rl::tensor_data::ConversionToTensor;
+use amfiteatr_rl::tensor_data::TensorEncoding;
 use amfiteatr_rl::torch_net::{A2CNet, NeuralNetTemplate, TensorActorCritic};
 use crate::common::{ConnectFourDomain, ConnectFourPlayer, ErrorRL};
 use crate::rust::agent::{ConnectFourActionTensorRepresentation, ConnectFourInfoSet, ConnectFourTensorReprD1};

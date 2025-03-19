@@ -9,7 +9,7 @@ use amfiteatr_core::domain::DomainParameters;
 use amfiteatr_core::error::AmfiteatrError;
 use crate::error::AmfiteatrRlError;
 use crate::policy::{find_max_trajectory_len, sum_trajectories_steps};
-use crate::tensor_data::{ActionTensorFormat, ContextTryIntoTensor, ConversionToTensor};
+use crate::tensor_data::{ActionTensorFormat, ContextEncodeTensor, TensorEncoding};
 use crate::torch_net::{ActorCriticOutput, DeviceTransfer, NetOutput, NeuralNet};
 
 ///! Based on [cleanrl PPO](https://github.com/vwxyzjn/cleanrl/blob/master/cleanrl/ppo.py)
@@ -46,8 +46,8 @@ impl Default for ConfigPPO {
 }
 pub trait PolicyHelperPPO<DP: DomainParameters>
 {
-    type InfoSet: InformationSet<DP> + ContextTryIntoTensor<Self::InfoSetConversionContext>;
-    type InfoSetConversionContext: ConversionToTensor;
+    type InfoSet: InformationSet<DP> + ContextEncodeTensor<Self::InfoSetConversionContext>;
+    type InfoSetConversionContext: TensorEncoding;
     type ActionConversionContext: ActionTensorFormat<<Self::NetworkOutput as ActorCriticOutput>::ActionTensorType>;
 
     type NetworkOutput: ActorCriticOutput;
