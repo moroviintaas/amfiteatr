@@ -5,7 +5,7 @@ use crate::error::AmfiteatrError;
 #[derive(Debug, Clone, Error)]
 #[cfg_attr(feature = "speedy", derive(speedy::Writable, speedy::Readable))]
 pub enum TensorError{
-    #[error("Action convert in context: \"{context}\", transcript: \"{transcript:}\"")]
+    #[error("Action convert in context: \"{context}\", origin: \"{origin:}\"")]
     Torch{
         origin: String,
         context: String,
