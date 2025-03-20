@@ -81,7 +81,7 @@ impl TryFrom<&Tensor> for CartPoleAction{
         match v[0]{
             0 => Ok(CartPoleAction::Left),
             1 => Ok(CartPoleAction::Right),
-            e => Err(ConvertError::ConvertFromTensor{ origin: "".into(), context: "Bad action index {e}".into()})
+            e => Err(ConvertError::ConvertFromTensor{ origin: format!("{e:}"), context: "Bad action index {e}".into()})
         }
     }
 }

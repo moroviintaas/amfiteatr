@@ -1,6 +1,6 @@
 use thiserror::Error;
 use crate::domain::DomainParameters;
-use crate::error::{AmfiteatrError, TensorError};
+use crate::error::AmfiteatrError;
 
 #[derive(Debug, Clone, Error)]
 #[cfg_attr(feature = "speedy", derive(speedy::Writable, speedy::Readable))]

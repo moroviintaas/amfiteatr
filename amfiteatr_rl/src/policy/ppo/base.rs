@@ -1,16 +1,16 @@
 use std::cmp::min;
 use getset::{Getters, Setters};
 use rand::prelude::SliceRandom;
-use tch::{Kind, TchError, Tensor};
+use tch::{Kind, Tensor};
 use tch::Kind::Float;
 use tch::nn::Optimizer;
-use amfiteatr_core::agent::{AgentStepView, AgentTrajectory, InformationSet, Policy};
+use amfiteatr_core::agent::{AgentStepView, AgentTrajectory, InformationSet};
 use amfiteatr_core::domain::DomainParameters;
 use amfiteatr_core::error::AmfiteatrError;
 use crate::error::AmfiteatrRlError;
 use crate::policy::{find_max_trajectory_len, sum_trajectories_steps};
 use crate::tensor_data::{ActionTensorFormat, ContextEncodeTensor, TensorEncoding};
-use crate::torch_net::{ActorCriticOutput, DeviceTransfer, NetOutput, NeuralNet};
+use crate::torch_net::{ActorCriticOutput, DeviceTransfer, NeuralNet};
 
 ///! Based on [cleanrl PPO](https://github.com/vwxyzjn/cleanrl/blob/master/cleanrl/ppo.py)
 #[derive(Copy, Clone, Debug, Getters, Setters)]
@@ -123,7 +123,7 @@ pub trait PolicyHelperPPO<DP: DomainParameters>
         &mut self, trajectories: &[AgentTrajectory<DP, Self::InfoSet>],
         reward_f: R
     ) -> Result<(), AmfiteatrRlError<DP>>{
-        #[cfg(feature = "trace")]
+        #[cfg(feature = "log_trace")]
         log::trace!("Starting training PPO.");
 
         let device = self.ppo_network().device();
@@ -198,17 +198,12 @@ pub trait PolicyHelperPPO<DP: DomainParameters>
 
 
             if let Some(last_step) = t.last_view_step(){
-                let steps_in_trajectory = t.number_of_steps();
 
                 tmp_trajectory_state_tensor_vec.clear();
-                /*
-                crate::policy::ppo::multi_discrete::vec_2d_clear_second_dim(&mut tmp_trajectory_action_tensor_vecs);
-                crate::policy::ppo::multi_discrete::vec_2d_clear_second_dim(&mut tmp_trajectory_action_category_mask_vecs);
-                 */
                 Self::NetworkOutput::clear_batch_dim_in_batch(&mut tmp_trajectory_action_tensor_vecs);
                 Self::NetworkOutput::clear_batch_dim_in_batch(&mut tmp_trajectory_action_category_mask_vecs);
-                let final_reward_t = reward_f(&last_step).to_device(device);
-                let critic_shape = tmp_trajectory_reward_vec.clear();
+                //let final_reward_t = reward_f(&last_step).to_device(device);
+                tmp_trajectory_reward_vec.clear();
                 for step in t.iter(){
                     #[cfg(feature = "log_trace")]
                     log::trace!("Adding information set tensor to single trajectory vec.",);

@@ -1,4 +1,3 @@
-use std::sync::Arc;
 use tch::TchError;
 use amfiteatr_core::domain::DomainParameters;
 use crate::error::AmfiteatrRlError;

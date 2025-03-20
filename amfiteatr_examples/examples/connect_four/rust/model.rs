@@ -203,7 +203,7 @@ pub type C4A2CPolicy = ActorCriticPolicy<ConnectFourDomain, ConnectFourInfoSet, 
 pub type C4PPOPolicy = PolicyPpoDiscrete<ConnectFourDomain, ConnectFourInfoSet, ConnectFourTensorReprD1, ConnectFourActionTensorRepresentation>;
 pub type C4PPOPolicyMasking = PolicyMaskingPpoDiscrete<ConnectFourDomain, ConnectFourInfoSet, ConnectFourTensorReprD1, ConnectFourActionTensorRepresentation>;
 type Environment<S> = HashMapEnvironment<ConnectFourDomain, S, StdEnvironmentEndpoint<ConnectFourDomain>>;
-type Agent<P: LearningNetworkPolicy<ConnectFourDomain>> = TracingAgentGen<ConnectFourDomain, P, StdAgentEndpoint<ConnectFourDomain>>;
+type Agent<P> = TracingAgentGen<ConnectFourDomain, P, StdAgentEndpoint<ConnectFourDomain>>;
 pub struct ConnectFourModelRust<S: GameStateWithPayoffs<ConnectFourDomain>, P: LearningNetworkPolicy<ConnectFourDomain>>{
 
     env: Environment<S>,

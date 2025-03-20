@@ -1,14 +1,21 @@
 use std::fmt::Debug;
 use std::marker::PhantomData;
 use tch::nn::{Optimizer, VarStore};
-use tch::{Kind, Tensor};
+use tch::Tensor;
 use amfiteatr_core::agent::{AgentStepView, AgentTrajectory, InformationSet, Policy};
 use amfiteatr_core::domain::DomainParameters;
 use amfiteatr_core::error::{AmfiteatrError, TensorError};
 use crate::error::AmfiteatrRlError;
 use crate::policy::{ConfigPPO, LearningNetworkPolicy, PolicyHelperPPO};
 use crate::{tensor_data, MaskingInformationSetAction};
-use crate::tensor_data::{ActionTensorFormat, ContextDecodeTensor, ContextEncodeIndexI64, ContextEncodeTensor, MultiTensorDecoding, TensorDecoding, TensorIndexI64Encoding, TensorEncoding};
+use crate::tensor_data::{
+    ContextDecodeTensor,
+    ContextEncodeIndexI64,
+    ContextEncodeTensor,
+    TensorDecoding,
+    TensorIndexI64Encoding,
+    TensorEncoding
+};
 use crate::torch_net::{ActorCriticOutput, NeuralNet, NeuralNetActorCritic, TensorActorCritic};
 
 pub struct PolicyPpoDiscrete<

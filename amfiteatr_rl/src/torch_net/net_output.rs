@@ -1,12 +1,9 @@
 use std::fmt::Debug;
-use std::ops::Deref;
-use rand::Rng;
 use tch::{Device, Kind, TchError, Tensor};
 use tch::Kind::Float;
 use amfiteatr_core::domain::DomainParameters;
 use amfiteatr_core::error::{AmfiteatrError, ConvertError, DataError, TensorError};
 use amfiteatr_core::error::DataError::LengthMismatch;
-use amfiteatr_core::reexport::nom::Parser;
 use crate::error::AmfiteatrRlError;
 use crate::error::AmfiteatrRlError::ZeroBatchSize;
 
@@ -130,7 +127,7 @@ impl ActorCriticOutput for TensorActorCritic{
             element = element.f_where_self(&fm.ne(0.0), &Tensor::from(0.0))?
         }
         let elem = match reverse_masks{
-            Some(mut rev_mask) => {
+            Some(rev_mask) => {
                 let t = [&element, &rev_mask.to_device(self.device())];
 
                 Tensor::f_einsum("ij, ij -> ij", &t, None::<i64>)?
@@ -345,7 +342,7 @@ impl ActorCriticOutput for TensorMultiParamActorCritic {
             }
         }
         let elems1:Vec<Tensor> = match reverse_masks{
-            Some(mut rm) => {
+            Some(rm) => {
                 let mut v = Vec::new();
                 for (i,e) in elements.into_iter().enumerate(){
                     let t = [&e, &rm[i].to_device(self.device())];
@@ -481,7 +478,7 @@ impl ActorCriticOutput for TensorMultiParamActorCritic {
 
 
 
-        let mut choices: Vec<Tensor> = match action_masks{
+        let choices: Vec<Tensor> = match action_masks{
             None => {
                 self.actor.iter().enumerate().map(|(i, a)|{
                     a.f_log_softmax(-1, Kind::Float)?
@@ -963,17 +960,8 @@ impl NetOutput for TensorMultiParamActorCritic {}
 /// assert!(index >=0 && index <= 3);
 /// ```
 #[inline]
-pub fn index_tensor_to_i64(tensor: &Tensor, additional_context: &str) -> Result<i64, ConvertError>{
-    /*
-    let v: Vec<i64> = match Vec::try_from(tensor){
-        Ok(v) => v,
-        Err(_) => {
-            return Err(ConvertError::ActionDeserialize(format!("From tensor {} in context \"{}\"", tensor, additional_context)))
-        }
-    };
-    Ok(v[0])
+pub fn index_tensor_to_i64(tensor: &Tensor, _additional_context: &str) -> Result<i64, ConvertError>{
 
-     */
 
     tensor.f_int64_value(&[0]).map_err(|e|{
         ConvertError::ConvertFromTensor{

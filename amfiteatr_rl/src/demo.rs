@@ -1,7 +1,6 @@
 use tch::Tensor;
 use amfiteatr_core::demo::{DemoInfoSet};
 use amfiteatr_core::error::ConvertError;
-use crate::error::TensorRepresentationError;
 use crate::tensor_data::{ContextEncodeTensor, TensorEncoding};
 
 /// Demonstration conversion to tensor meant for [`DemoInfoSet`].

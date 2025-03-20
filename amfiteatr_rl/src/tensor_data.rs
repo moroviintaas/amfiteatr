@@ -1,9 +1,8 @@
-use std::error::Error;
 use std::fmt::{Debug};
 use generic_array::{ArrayLength, GenericArray};
-use tch::{TchError, Tensor};
-use amfiteatr_core::domain::{Action, DomainParameters, Reward};
-use amfiteatr_core::error::{AmfiteatrError, ConvertError, TensorError};
+use tch::Tensor;
+use amfiteatr_core::domain::{Action, Reward};
+use amfiteatr_core::error::ConvertError;
 use crate::error::TensorRepresentationError;
 
 
@@ -171,7 +170,7 @@ pub trait ContextEncodeMultiIndexI64<Ctx: MultiTensorIndexI64Encoding>{
     fn batch_index_and_mask_tensor_vecs(actions: &[&Self], context: &Ctx) -> Result<(Vec<Tensor>, Vec<Tensor>), ConvertError>
     {
         let mut params = Vec::new();
-        let mut usage_masks = Vec::new();
+        let usage_masks = Vec::new();
 
         for i in 0..Ctx::number_of_params(){
 
@@ -222,6 +221,8 @@ pub trait TryIntoTensor: Debug{
 
     fn try_to_tensor(&self) -> Result<Tensor, TensorRepresentationError>;
 }
+
+
 
 impl<W: TensorEncoding, T: ContextEncodeTensor<W>> ContextEncodeTensor<W> for Box<T>{
 

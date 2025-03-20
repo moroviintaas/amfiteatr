@@ -1,7 +1,6 @@
-use std::error::Error;
 use tch::Tensor;
 use amfiteatr_core::domain::DomainParameters;
-use amfiteatr_core::error::{AmfiteatrError, ConvertError};
+use amfiteatr_core::error::AmfiteatrError;
 use crate::tensor_data::{TensorIndexI64Encoding, MultiTensorIndexI64Encoding};
 
 pub trait MaskingInformationSetAction<DP: DomainParameters, Ctx: TensorIndexI64Encoding>{

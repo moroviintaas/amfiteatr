@@ -8,7 +8,7 @@ use crate::agent::{
     IdAgent,
 };
 use crate::error::{AmfiteatrError};
-use crate::error::ProtocolError::{NoPossibleAction, ReceivedKill};
+use crate::error::ProtocolError::ReceivedKill;
 use crate::error::AmfiteatrError::Protocol;
 use crate::domain::{AgentMessage, EnvironmentMessage, DomainParameters};
 
