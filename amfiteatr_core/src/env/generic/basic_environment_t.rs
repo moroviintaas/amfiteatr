@@ -115,13 +115,13 @@ where <Self as StatefulEnvironment<DP>>::State: Renew<DP, Seed>{
 }
 impl <
     DP: DomainParameters,
-    S: SequentialGameState<DP> + Clone + RenewWithSideEffect<DP, Seed>,
+    S: SequentialGameState<DP> + Clone + RenewWithEffect<DP, Seed>,
     CP: BroadcastingEnvironmentAdapter<DP>,
     Seed,
     AgentSeed
 > DirtyReseedEnvironment<DP, Seed> for TracingBasicEnvironment<DP, S, CP>
-    where <Self as StatefulEnvironment<DP>>::State: RenewWithSideEffect<DP, Seed>,
-          <<Self as StatefulEnvironment<DP>>::State as RenewWithSideEffect<DP, Seed>>::SideEffect:
+    where <Self as StatefulEnvironment<DP>>::State: RenewWithEffect<DP, Seed>,
+          <<Self as StatefulEnvironment<DP>>::State as RenewWithEffect<DP, Seed>>::Effect:
           IntoIterator<Item=(DP::AgentId, AgentSeed)>{
     //type Observation = <<Self as StatefulEnvironment<DP>>::State as RenewWithSideEffect<DP, Seed>>::SideEffect;
     type Observation = AgentSeed;

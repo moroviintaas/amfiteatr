@@ -9,9 +9,19 @@ pub trait Renew<DP: DomainParameters, S>{
     fn renew_from(&mut self, base: S) -> Result<(), AmfiteatrError<DP>>;
 }
 
-pub trait RenewWithSideEffect<DP: DomainParameters, S>{
 
-    type SideEffect;
-    fn renew_with_side_effect_from(&mut self, base: S) -> Result<Self::SideEffect, AmfiteatrError<DP>>;
+/// Trait for renewing some struct (usually state of game).
+/// Lets say you want to renew game state with some seed, but based of this reseeding you want
+/// to have generated seeds for information sets.
+/// Maybe you want to shuffle cards and distribute them among the players as a game preparation,
+/// normally players could receive their cards early in the game - but only their hands. What if
+/// you would like to give them unfair advantage and show other players' cards before the game. W
+/// Fair game protocol does not have [`UpdateType`](crate::domain::DomainParameters::UpdateType) to do such
+/// nasty thing.
+
+pub trait RenewWithEffect<DP: DomainParameters, S>{
+
+    type Effect;
+    fn renew_with_effect_from(&mut self, base: S) -> Result<Self::Effect, AmfiteatrError<DP>>;
 
 }

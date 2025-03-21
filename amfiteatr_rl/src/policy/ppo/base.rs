@@ -44,6 +44,17 @@ impl Default for ConfigPPO {
         }
     }
 }
+
+/// The sole purpose of this trait is to provide some function dealing with
+/// information sets and actions using tensors. It is used to create final implementations.
+/// It is made to have single implementation of PPO, regardless if action space is single discrete space or multiple discrete space.
+/// And whenever action masking is supported.
+/// **You probably don't need to implement this trait if you can use provided implementations.**
+/// There are provided generic implementations for:
+/// + [`PolicyPpoDiscrete`](crate::policy::ppo::PolicyPpoDiscrete);
+/// + [`PolicyPpoMultiDiscrete`](crate::policy::ppo::PolicyPpoMultiDiscrete);
+/// + [`PolicyMaskingPpoDiscrete`](crate::policy::ppo::PolicyMaskingPpoDiscrete);
+///+ [`PolicyMaskingPpoMultiDiscrete`](crate::policy::ppo::PolicyMaskingPpoMultiDiscrete).
 pub trait PolicyHelperPPO<DP: DomainParameters>
 {
     type InfoSet: InformationSet<DP> + ContextEncodeTensor<Self::InfoSetConversionContext>;
@@ -52,32 +63,57 @@ pub trait PolicyHelperPPO<DP: DomainParameters>
 
     type NetworkOutput: ActorCriticOutput;
 
+    /// Returns reference to policy config.
     fn config(&self) -> &ConfigPPO;
 
+    /// Mutable reference to optimizer owned by policy.
     fn optimizer_mut(&mut self) -> &mut Optimizer;
 
 
+    /// Reference to policy neural-network.
     fn ppo_network(&self) -> &NeuralNet<Self::NetworkOutput>;
 
+    /// Return tensor encoding context for information set
     fn info_set_conversion_context(&self) -> &Self::InfoSetConversionContext;
+
+    /// Returns tensor index decoding and encoding for action.
     fn action_conversion_context(&self) -> &Self::ActionConversionContext;
 
     /// Uses information set (state) and network output to calculate (masked) action distribution(s).
     fn ppo_dist(&self, info_set: &Self::InfoSet, network_output: &Self::NetworkOutput)
         -> Result<<Self::NetworkOutput as ActorCriticOutput>::ActionTensorType, AmfiteatrError<DP>>;
 
+
+    /// Indicate if action masking is supported.
     fn is_action_masking_supported(&self) -> bool;
 
+
+    /// Generate action masks for information set.
+    /// Lets say that action space is 5 and actions 0,2,3 are illegal now.
+    /// The result should be Tensor([false, true, false, false, true])
     fn generate_action_masks(&self, information_set: &Self::InfoSet) -> Result<<Self::NetworkOutput as ActorCriticOutput>::ActionTensorType, AmfiteatrError<DP>>;
 
-    //fn colle
+    /// If policy in mode of exploration i.e. if it is not suppressed to select always the best looking action without random walk
     fn ppo_exploration(&self) -> bool;
+
+
+    /// Tries converting choice tensor to action - for example for single tensor choice `Tensor([3])` - meaning the aaction  with index `3` is selected, the proper action type is constructed.
 
     fn ppo_try_action_from_choice_tensor(&self,
         choice_tensor: &<Self::NetworkOutput as ActorCriticOutput>::ActionTensorType,
     ) -> Result<DP::ActionType, AmfiteatrError<DP>>;
 
 
+
+    /// This function makes more sense with multi tensor actions.
+    /// Suppose you have some action B(7,3), where B, 7 and 3 are parameters from three different parameter distribution.
+    /// Action is chosen from five parameters, but when parameter i0 is B parameters i1 and i4 are not used.
+    /// Therefore when constructing action B we lose information of sampling of parameters i1 and i4.
+    /// What;s more they do not had impact on game result, therefore we would like to avoid including them in calculating B(7,3) probability,
+    /// and somehow exclude them from impact on entropy.
+    /// So in this case we would produce from B(7,3):
+    /// 1. Vector of choice tensors vec![[1], [?], [7], [3], [?]]
+    /// 2. Vector of paramter masks: vec![[true], [false], [true], [true], [false]).
     fn ppo_vectorise_action_and_create_category_mask(&self, action: &DP::ActionType)
         -> Result<(
             <Self::NetworkOutput as ActorCriticOutput>::ActionTensorType,
@@ -85,13 +121,19 @@ pub trait PolicyHelperPPO<DP: DomainParameters>
         ), AmfiteatrError<DP>>;
 
 
-    fn ppo_batch_get_actor_critic_with_logprob_and_entropy(
+    /// Calculate  actions (choices in batch) a triple of
+    /// + log probability
+    /// + distribution entropy
+    /// + critic value
+    fn ppo_batch_get_logprob_entropy_critic(
         &self,
         info_set_batch: &Tensor,
         action_param_batches: &<Self::NetworkOutput as ActorCriticOutput>::ActionTensorType,
         action_category_mask_batches: Option<&<Self::NetworkOutput as ActorCriticOutput>::ActionTensorType>,
         action_forward_mask_batches: Option<&<Self::NetworkOutput as ActorCriticOutput>::ActionTensorType>,
     ) -> Result<(Tensor, Tensor, Tensor), AmfiteatrError<DP>>;
+
+    /// Automatically implemented action selection using required methods.
     fn ppo_select_action(&self, info_set: &Self::InfoSet) -> Result<DP::ActionType, AmfiteatrError<DP>>{
         let state_tensor = info_set.to_tensor(self.info_set_conversion_context());
         let out = tch::no_grad(|| (self.ppo_network().net())(&state_tensor));
@@ -296,7 +338,7 @@ pub trait PolicyHelperPPO<DP: DomainParameters>
         log::trace!("batch_actions_t: {:?}", batch_actions_t);
 
         let (batch_logprob_t, _entropy, batch_values_t) = tch::no_grad(||{
-            self.ppo_batch_get_actor_critic_with_logprob_and_entropy(
+            self.ppo_batch_get_logprob_entropy_critic(
                 &batch_info_sets_t,
                 &batch_actions_t,
                 Some(&batch_action_masks_t),
@@ -329,7 +371,7 @@ pub trait PolicyHelperPPO<DP: DomainParameters>
                 let mini_batch_base_logprobs = batch_logprob_t.f_index_select(0, &minibatch_indices)?;
                 #[cfg(feature = "log_trace")]
                 log::trace!("Selected minibatch logprobs");
-                let (new_logprob, entropy, newvalue) = self.ppo_batch_get_actor_critic_with_logprob_and_entropy(
+                let (new_logprob, entropy, newvalue) = self.ppo_batch_get_logprob_entropy_critic(
                     &batch_info_sets_t.f_index_select(0, &minibatch_indices)?,
                     &mini_batch_action,
                     Some(&mini_batch_action_cat_mask),

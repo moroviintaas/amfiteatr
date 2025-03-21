@@ -1,7 +1,7 @@
 //! Wrapping Farama gymnasium [CartPole environment](https://github.com/Farama-Foundation/Gymnasium)
 use std::fmt::{Debug};
 use pyo3::prelude::*;
-use amfiteatr_core::domain::{DomainParameters, RenewWithSideEffect};
+use amfiteatr_core::domain::{DomainParameters, RenewWithEffect};
 use amfiteatr_core::env::{SequentialGameState, GameStateWithPayoffs};
 use amfiteatr_core::error::AmfiteatrError;
 use crate::common::{CartPoleDomain, CartPoleObservation, CartPoleError, SINGLE_PLAYER_ID, CartPoleAction};
@@ -159,10 +159,10 @@ impl SequentialGameState<CartPoleDomain> for PythonGymnasiumCartPoleState{
     }
 }
 
-impl RenewWithSideEffect<CartPoleDomain, ()> for PythonGymnasiumCartPoleState{
-    type SideEffect = [(<CartPoleDomain as DomainParameters>::AgentId, <CartPoleDomain as DomainParameters>::UpdateType);1];
+impl RenewWithEffect<CartPoleDomain, ()> for PythonGymnasiumCartPoleState{
+    type Effect = [(<CartPoleDomain as DomainParameters>::AgentId, <CartPoleDomain as DomainParameters>::UpdateType);1];
 
-    fn renew_with_side_effect_from(&mut self, _base: ()) -> Result<Self::SideEffect, AmfiteatrError<CartPoleDomain>> {
+    fn renew_with_effect_from(&mut self, _base: ()) -> Result<Self::Effect, AmfiteatrError<CartPoleDomain>> {
         match self.__reset(){
             Err(e) => Err(AmfiteatrError::Game{source: e.into()}),
             Ok(observation_vec) => {

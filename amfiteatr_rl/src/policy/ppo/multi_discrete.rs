@@ -276,7 +276,7 @@ PolicyHelperPPO<DP> for PolicyPpoMultiDiscrete<DP, InfoSet, InfoSetConversionCon
 
     }
 
-    fn ppo_batch_get_actor_critic_with_logprob_and_entropy(&self, info_set_batch: &Tensor, action_param_batches: &Vec<Tensor>, action_category_mask_batches: Option<&Vec<Tensor>>, action_forward_mask_batches: Option<&Vec<Tensor>>) -> Result<(Tensor, Tensor, Tensor), AmfiteatrError<DP>> {
+    fn ppo_batch_get_logprob_entropy_critic(&self, info_set_batch: &Tensor, action_param_batches: &Vec<Tensor>, action_category_mask_batches: Option<&Vec<Tensor>>, action_forward_mask_batches: Option<&Vec<Tensor>>) -> Result<(Tensor, Tensor, Tensor), AmfiteatrError<DP>> {
         #[cfg(feature = "log_trace")]
         log::trace!("action_category_mask_batches: {:?}", action_category_mask_batches);
         self.batch_get_actor_critic_with_logprob_and_entropy(
@@ -394,8 +394,8 @@ impl<
         self.base.ppo_vectorise_action_and_create_category_mask(action)
     }
 
-    fn ppo_batch_get_actor_critic_with_logprob_and_entropy(&self, info_set_batch: &Tensor, action_param_batches: &<Self::NetworkOutput as ActorCriticOutput>::ActionTensorType, action_category_mask_batches: Option<&<Self::NetworkOutput as ActorCriticOutput>::ActionTensorType>, action_forward_mask_batches: Option<&<Self::NetworkOutput as ActorCriticOutput>::ActionTensorType>) -> Result<(Tensor, Tensor, Tensor), AmfiteatrError<DP>> {
-        self.base.ppo_batch_get_actor_critic_with_logprob_and_entropy(info_set_batch, action_param_batches, action_category_mask_batches, action_forward_mask_batches)
+    fn ppo_batch_get_logprob_entropy_critic(&self, info_set_batch: &Tensor, action_param_batches: &<Self::NetworkOutput as ActorCriticOutput>::ActionTensorType, action_category_mask_batches: Option<&<Self::NetworkOutput as ActorCriticOutput>::ActionTensorType>, action_forward_mask_batches: Option<&<Self::NetworkOutput as ActorCriticOutput>::ActionTensorType>) -> Result<(Tensor, Tensor, Tensor), AmfiteatrError<DP>> {
+        self.base.ppo_batch_get_logprob_entropy_critic(info_set_batch, action_param_batches, action_category_mask_batches, action_forward_mask_batches)
     }
 }
 

@@ -3,7 +3,7 @@ use crate::comm::{EnvironmentEndpoint};
 use crate::env::{BroadcastingEndpointEnvironment, CommunicatingEndpointEnvironment, SequentialGameState, GameStateWithPayoffs, EnvironmentWithAgents, ScoreEnvironment, StatefulEnvironment, ReinitEnvironment, TracingEnvironment, ReseedEnvironment, DirtyReseedEnvironment, GameTrajectory, AutoEnvironment, RoundRobinEnvironment, AutoEnvironmentWithScores, RoundRobinUniversalEnvironment};
 use crate::env::generic::{HashMapEnvironment};
 use crate::error::{AmfiteatrError, CommunicationError};
-use crate::domain::{AgentMessage, DomainParameters, EnvironmentMessage, Renew, RenewWithSideEffect};
+use crate::domain::{AgentMessage, DomainParameters, EnvironmentMessage, Renew, RenewWithEffect};
 
 /// Implementation of environment using [`HashMap`](std::collections::HashMap) to store
 /// individual [`BidirectionalEndpoint`](crate::comm::BidirectionalEndpoint)'s to communicate with
@@ -222,13 +222,13 @@ impl <
 }
 impl <
     DP: DomainParameters,
-    S: SequentialGameState<DP> + Clone + RenewWithSideEffect<DP, Seed>,
+    S: SequentialGameState<DP> + Clone + RenewWithEffect<DP, Seed>,
     CP: EnvironmentEndpoint<DP>,
     Seed,
     AgentSeed
 > DirtyReseedEnvironment<DP, Seed> for TracingHashMapEnvironment<DP, S, CP>
-    where <Self as StatefulEnvironment<DP>>::State: RenewWithSideEffect<DP, Seed>,
-          <<Self as StatefulEnvironment<DP>>::State as RenewWithSideEffect<DP, Seed>>::SideEffect:
+    where <Self as StatefulEnvironment<DP>>::State: RenewWithEffect<DP, Seed>,
+          <<Self as StatefulEnvironment<DP>>::State as RenewWithEffect<DP, Seed>>::Effect:
           IntoIterator<Item=(DP::AgentId, AgentSeed)>{
     //type Observation = <<Self as StatefulEnvironment<DP>>::State as RenewWithSideEffect<DP, Seed>>::SideEffect;
     type Observation = AgentSeed;

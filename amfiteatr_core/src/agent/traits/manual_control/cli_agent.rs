@@ -91,6 +91,7 @@ where
     }
 }
 
+/// Dummy trait to link [`CliAgent`] and [`ReseedAgent`](ReseedAgent)
 pub trait MultiEpisodeCliAgent<DP: DomainParameters, Seed>: ReseedAgent<DP, Seed> + CliAgent<DP>{
 
 }

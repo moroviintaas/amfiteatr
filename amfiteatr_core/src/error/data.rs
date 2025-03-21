@@ -2,6 +2,8 @@ use thiserror::Error;
 use crate::domain::DomainParameters;
 use crate::error::AmfiteatrError;
 
+
+/// Data processing error, **likely to be merged in some different category later. **
 #[derive(Debug, Clone, Error)]
 #[cfg_attr(feature = "speedy", derive(speedy::Writable, speedy::Readable))]
 pub enum DataError{

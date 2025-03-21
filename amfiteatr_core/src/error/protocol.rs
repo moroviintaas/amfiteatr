@@ -2,6 +2,7 @@ use thiserror::Error;
 use crate::error::AmfiteatrError;
 use crate::domain::DomainParameters;
 
+/// Error for capturing misbehavior in game protocol.
 #[derive(Debug, Clone, PartialEq, Eq, Error)]
 #[cfg_attr(feature = "speedy", derive(speedy::Writable, speedy::Readable))]
 pub enum ProtocolError<DP: DomainParameters>{

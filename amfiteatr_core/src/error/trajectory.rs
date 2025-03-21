@@ -2,6 +2,8 @@ use thiserror::Error;
 use crate::domain::DomainParameters;
 use crate::error::AmfiteatrError;
 
+
+/// Error dealing with game trajectory.
 #[derive(Debug, Clone, PartialEq, Eq, Error)]
 #[cfg_attr(feature = "speedy", derive(speedy::Writable, speedy::Readable))]
 pub enum TrajectoryError<DP: DomainParameters>{

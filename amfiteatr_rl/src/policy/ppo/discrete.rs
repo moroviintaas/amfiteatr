@@ -62,7 +62,7 @@ impl<
             exploration: true,
         }
     }
-    fn batch_get_actor_critic_with_logprob_and_entropy(
+    fn batch_get_logprob_entropy_critic(
         &self,
         info_set_batch: &Tensor,
         action_param_batches: &Tensor,
@@ -166,7 +166,7 @@ where
         Ok((Tensor::from(act_i), Tensor::from(true)))
     }
 
-    fn ppo_batch_get_actor_critic_with_logprob_and_entropy(
+    fn ppo_batch_get_logprob_entropy_critic(
         &self,
         info_set_batch: &Tensor,
         action_param_batches: &<Self::NetworkOutput as ActorCriticOutput>::ActionTensorType, action_category_mask_batches: Option<&<Self::NetworkOutput as ActorCriticOutput>::ActionTensorType>,
@@ -176,7 +176,7 @@ where
 
         #[cfg(feature = "log_trace")]
         log::trace!("action_category_mask_batches: {:?}", action_category_mask_batches);
-        self.batch_get_actor_critic_with_logprob_and_entropy(
+        self.batch_get_logprob_entropy_critic(
             info_set_batch,
             action_param_batches,
             action_category_mask_batches,
@@ -371,14 +371,14 @@ where
         self.base.ppo_vectorise_action_and_create_category_mask(action)
     }
 
-    fn ppo_batch_get_actor_critic_with_logprob_and_entropy(
+    fn ppo_batch_get_logprob_entropy_critic(
         &self, info_set_batch: &Tensor,
         action_param_batches: &<Self::NetworkOutput as ActorCriticOutput>::ActionTensorType,
         action_category_mask_batches: Option<&<Self::NetworkOutput as ActorCriticOutput>::ActionTensorType>,
         action_forward_mask_batches: Option<&<Self::NetworkOutput as ActorCriticOutput>::ActionTensorType>
     ) -> Result<(Tensor, Tensor, Tensor), AmfiteatrError<DP>>
     {
-        self.base.ppo_batch_get_actor_critic_with_logprob_and_entropy(info_set_batch, action_param_batches, action_category_mask_batches, action_forward_mask_batches)
+        self.base.ppo_batch_get_logprob_entropy_critic(info_set_batch, action_param_batches, action_category_mask_batches, action_forward_mask_batches)
     }
 }
 

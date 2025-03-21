@@ -2,6 +2,8 @@ use thiserror::Error;
 use crate::domain::DomainParameters;
 use crate::error::AmfiteatrError;
 
+
+/// Error from tensor processing crate.
 #[derive(Debug, Clone, Error)]
 #[cfg_attr(feature = "speedy", derive(speedy::Writable, speedy::Readable))]
 pub enum TensorError{

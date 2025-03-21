@@ -9,7 +9,13 @@ use crate::error::AmfiteatrError;
 use crate::util::{StrParsed};
 use nom::Parser;
 
-
+/// Experimental policy trait that is meant to be used as agent interactive policies.
+/// Planned use case is as follows:
+/// Agent (probably [`CliAgent`](crate::agent::manual_control::CliAgent) executes game protocol, but asks player what action is to be chosen.
+/// Action can be invoked by player inputing some command, however player may prompt for some information
+/// about information set or ask for hint (e.g some Q-table).
+/// Example question implementation is [`TurnCommand`].
+/// *Implementation of human controlled playing interface is not a priority now, however this is current idea of how it would look like.*
 pub trait AssistingPolicy<DP: DomainParameters>: Policy<DP>{
 
     type Question;
@@ -30,6 +36,14 @@ impl<DP: DomainParameters, IS: PresentPossibleActions<DP>> AssistingPolicy<DP> f
 }
 //pub enum PolicyCommand
 
+
+/// Example question structure for implementation. Here player would have following commands to use:
+/// + `quit` - for exiting the game (sending signal [`Quit`](crate::domain::AgentMessage::Quit);
+/// + `play SOMETHING` - play action that is parsed from 'SOMETHING' `str`;
+/// + `show` - display information set
+/// + `ask` QUESTION - special command to be parsed - depending on Policy it might be something like "ask action top 10" which would list at most ten best looking actions with their Q-functions.
+///
+/// *Implementation of human controlled playing interface is not a priority now, however this is current idea of how it would look like.*
 #[derive(Clone, Debug, PartialEq)]
 pub enum TurnCommand<DP: DomainParameters, P: AssistingPolicy<DP>>{
     Quit,

@@ -9,8 +9,8 @@ use crate::env::{
     AutoEnvironmentWithScores};
 use crate::{comm::EnvironmentEndpoint};
 
-use crate::error::{AmfiteatrError, CommunicationError, WorldError};
-use crate::domain::{AgentMessage, DomainParameters, EnvironmentMessage, Renew, RenewWithSideEffect, Reward};
+use crate::error::{AmfiteatrError, CommunicationError, ModelError};
+use crate::domain::{AgentMessage, DomainParameters, EnvironmentMessage, Renew, RenewWithEffect, Reward};
 
 
 
@@ -144,21 +144,27 @@ CommunicatingEndpointEnvironment<DP> for HashMapEnvironment<DP, S, C> {
     fn send_to(&mut self, agent_id: &DP::AgentId, message: EnvironmentMessage<DP>)
         -> Result<(), Self::CommunicationError> {
 
-        self.comm_endpoints.get_mut(agent_id).ok_or(CommunicationError::NoSuchConnection)
+        self.comm_endpoints.get_mut(agent_id).ok_or(CommunicationError::NoSuchConnection{
+            connection: format!("To agent {agent_id:}")
+        })
             .map(|v| v.send(message))?
     }
 
     fn blocking_receive_from(&mut self, agent_id: &DP::AgentId)
                              -> Result<AgentMessage<DP>, Self::CommunicationError> {
 
-        self.comm_endpoints.get_mut(agent_id).ok_or(CommunicationError::NoSuchConnection)
+        self.comm_endpoints.get_mut(agent_id).ok_or(CommunicationError::NoSuchConnection{
+            connection: format!("To agent {agent_id:}")
+        })
             .map(|v| v.receive_blocking())?
     }
 
     fn nonblocking_receive_from(&mut self, agent_id: &DP::AgentId)
                                 -> Result<Option<AgentMessage<DP>>, Self::CommunicationError> {
 
-        self.comm_endpoints.get_mut(agent_id).ok_or(CommunicationError::NoSuchConnection)
+        self.comm_endpoints.get_mut(agent_id).ok_or(CommunicationError::NoSuchConnection{
+            connection: format!("To agent {agent_id:}")
+        })
             .map(|v| v.receive_non_blocking())?
     }
 }
@@ -261,22 +267,22 @@ impl<
 EnvironmentBuilderTrait<DP, HashMapEnvironment<DP, S, C>> for HashMapEnvironmentBuilder<DP, S, C>{
     type Comm = C;
 
-    fn build(self) -> Result<HashMapEnvironment<DP, S, C>, WorldError<DP>>{
+    fn build(self) -> Result<HashMapEnvironment<DP, S, C>, ModelError<DP>>{
 
 
         Ok(HashMapEnvironment::new(
-            self.state_opt.ok_or(WorldError::MissingState)?,
+            self.state_opt.ok_or(ModelError::MissingState)?,
             self.comm_endpoints))
 
     }
 
-    fn add_comm(mut self, agent_id: &DP::AgentId, comm: C) -> Result<Self, WorldError<DP>>{
+    fn add_comm(mut self, agent_id: &DP::AgentId, comm: C) -> Result<Self, ModelError<DP>>{
 
         let _ = &mut self.comm_endpoints.insert(agent_id.clone(), comm);
         Ok(self)
     }
 
-    fn with_state(mut self, state: S) -> Result<Self, WorldError<DP>>{
+    fn with_state(mut self, state: S) -> Result<Self, ModelError<DP>>{
         self.state_opt = Some(state);
         Ok(self)
     }
@@ -311,13 +317,13 @@ impl <
 
 impl <
     DP: DomainParameters,
-    S: SequentialGameState<DP> + Clone + RenewWithSideEffect<DP, Seed>,
+    S: SequentialGameState<DP> + Clone + RenewWithEffect<DP, Seed>,
     CP: EnvironmentEndpoint<DP>,
     Seed,
     AgentSeed
 > DirtyReseedEnvironment<DP, Seed> for HashMapEnvironment<DP, S, CP>
-    where <Self as StatefulEnvironment<DP>>::State: RenewWithSideEffect<DP, Seed>,
-          <<Self as StatefulEnvironment<DP>>::State as RenewWithSideEffect<DP, Seed>>::SideEffect:
+    where <Self as StatefulEnvironment<DP>>::State: RenewWithEffect<DP, Seed>,
+          <<Self as StatefulEnvironment<DP>>::State as RenewWithEffect<DP, Seed>>::Effect:
           IntoIterator<Item=(DP::AgentId, AgentSeed)>{
     //type Observation = <<Self as StatefulEnvironment<DP>>::State as RenewWithSideEffect<DP, Seed>>::SideEffect;
     type Observation = AgentSeed;
@@ -325,7 +331,7 @@ impl <
 
     fn dirty_reseed(&mut self, seed: Seed) -> Result<Self::InitialObservations, AmfiteatrError<DP>>{
         self.game_steps = 0;
-        self.game_state.renew_with_side_effect_from(seed)
+        self.game_state.renew_with_effect_from(seed)
             .map(|agent_observation_iter|
                 agent_observation_iter.into_iter().collect())
     }

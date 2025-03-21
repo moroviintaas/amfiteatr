@@ -6,7 +6,7 @@ use crate::{
     comm::{EnvironmentAdapter, BroadcastingEnvironmentAdapter}
 };
 use crate::env::ListPlayers;
-use crate::domain::{AgentMessage, EnvironmentMessage, Renew, RenewWithSideEffect};
+use crate::domain::{AgentMessage, EnvironmentMessage, Renew, RenewWithEffect};
 use crate::error::{AmfiteatrError, CommunicationError};
 use crate::error::ProtocolError::PlayerExited;
 
@@ -99,13 +99,13 @@ where <Self as StatefulEnvironment<DP>>::State: Renew<DP, Seed>{
 
 impl <
     DP: DomainParameters,
-    S: SequentialGameState<DP> + Clone + RenewWithSideEffect<DP, Seed>,
+    S: SequentialGameState<DP> + Clone + RenewWithEffect<DP, Seed>,
     CP: BroadcastingEnvironmentAdapter<DP>,
     Seed,
     AgentSeed
 > DirtyReseedEnvironment<DP, Seed> for BasicEnvironment<DP, S, CP>
-where <Self as StatefulEnvironment<DP>>::State: RenewWithSideEffect<DP, Seed>,
- <<Self as StatefulEnvironment<DP>>::State as RenewWithSideEffect<DP, Seed>>::SideEffect:
+where <Self as StatefulEnvironment<DP>>::State: RenewWithEffect<DP, Seed>,
+ <<Self as StatefulEnvironment<DP>>::State as RenewWithEffect<DP, Seed>>::Effect:
        IntoIterator<Item=(DP::AgentId, AgentSeed)>{
     //type Observation = <<Self as StatefulEnvironment<DP>>::State as RenewWithSideEffect<DP, Seed>>::SideEffect;
     type Observation = AgentSeed;
@@ -113,7 +113,7 @@ where <Self as StatefulEnvironment<DP>>::State: RenewWithSideEffect<DP, Seed>,
 
     fn dirty_reseed(&mut self, seed: Seed) -> Result<Self::InitialObservations, AmfiteatrError<DP>>{
         self.game_steps = 0;
-        self.game_state.renew_with_side_effect_from(seed)
+        self.game_state.renew_with_effect_from(seed)
             .map(|agent_observation_iter|
                 agent_observation_iter.into_iter().collect())
     }

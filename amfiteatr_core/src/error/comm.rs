@@ -4,6 +4,8 @@ use thiserror::Error;
 use crate::error::AmfiteatrError;
 use crate::domain::DomainParameters;
 
+
+/// Error during communication.
 #[derive(Debug, Clone, PartialEq, Eq, Error)]
 #[cfg_attr(feature = "speedy", derive(speedy::Writable, speedy::Readable))]
 pub enum CommunicationError<DP: DomainParameters>{
@@ -31,8 +33,8 @@ pub enum CommunicationError<DP: DomainParameters>{
     SerializeError(String),
     #[error("Deserialize Error, text: {0}")]
     DeserializeError(String),
-    #[error("No such connection")]
-    NoSuchConnection,
+    #[error("No such` connection")]
+    NoSuchConnection{ connection: String},
     #[error("Connection to agent {0} not found")]
     ConnectionToAgentNotFound(DP::AgentId),
     #[error("Duplicated Agent: {0}")]

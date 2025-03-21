@@ -5,6 +5,7 @@ use nom::Parser;
 
 /// Trait for data that can be constructed with [`nom`] parser.
 /// It is designed to support  hierarchical construction, typically for action.
+/// **Currently it does not work - there are some bugs to investigate**
 // /// # Example 1: Simple 2-level action construction
 // /// ```
 // /// use amfiteatr_core::util::StrParsed;
@@ -56,12 +57,13 @@ impl StrParsed for (){
 
 
 
-/*
+
 /// Helper trait to allow derived parsed from tokens like U8(u8).
 /// > When in different crate `TokenParsed` macro would fail if for something like:
-/// //should_panic
-/// ```
-/// /// #[derive(TokenVariant, PartialEq, Debug)]
+///
+/// ```no_run
+/// use amfiteatr_proc_macro::TokenVariant;
+/// #[derive(TokenVariant, PartialEq, Debug)]
 /// pub enum AToken{
 ///     Up,
 ///     Down,
@@ -71,11 +73,10 @@ impl StrParsed for (){
 /// }
 /// ```
 /// will panic because it tires to parse `u8` which is not defined in this system.
-/// To work around we define additional `[primitive]U8(u8)` that and in tree use `Wait(u8)` (refer to [`AToken` example](AToken)).
+/// To work around we define additional `[primitive]U8(u8)` that and in tree use `Wait(u8)).
 /// It may be changed in the future, when I figure out how to do it better. For now, it works.
 
 
- */
 pub trait PrimitiveMarker<Pt>{
 
 
@@ -100,7 +101,8 @@ impl<'a, T: PrimitiveMarker<Pt>, Pt> TokenParsed<TokensBorrowed<'a, T>> for Pt{
     }
 }
 
-
+/// **This is very likely to change in the future**
+/// Represents slice of tokens on which parser operates.
 #[derive(Clone, Debug)]
 pub struct TokensBorrowed<'a, T>(pub &'a [T]);
 impl<'a, T> From<&'a [T]> for TokensBorrowed<'a, T>{

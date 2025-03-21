@@ -3,6 +3,8 @@ use thiserror::Error;
 use crate::domain::DomainParameters;
 use crate::error::AmfiteatrError;
 
+
+/// Error type for data conversion - mainly to tensor for ML operations.
 #[derive(Debug, Clone, Error)]
 #[cfg_attr(feature = "speedy", derive(speedy::Writable, speedy::Readable))]
 pub enum ConvertError{
@@ -34,7 +36,9 @@ pub enum ConvertError{
         entity: String,
         context: String,
     },
-    #[error("Torch str")]
+
+    /// Dump of `TchError` from crate `tch` (optional dependency) to string.
+    #[error("Torch string")]
     TorchStr{
         origin: String
     }
