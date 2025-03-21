@@ -1,11 +1,15 @@
 //! # amfiteatr
 //!
-//! __Licence:__ MIT
 //!
-//! Crate providing framework to build models simulating game theory problems.
+//! Crate providing framework to build models simulating game theory problems with support for machine learning techniques.
 //! It is designed to help model problems involving many players.
+//!
+//! ## Examples
 //! For examples look at [`amfiteatr_examples`](https://github.com/moroviintaas/amfiteatr_examples.git)
-
+//! ## State
+//! The crate is in research/experimental state. API is dynamically changing on every release.
+//! U should probably avoid using it in production.
+//! ## Licence: MIT
 
 /// Traits and generic implementations of agent (player).
 pub mod agent;

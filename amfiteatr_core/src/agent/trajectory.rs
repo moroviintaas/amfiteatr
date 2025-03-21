@@ -84,8 +84,8 @@ impl<'a, DP: DomainParameters, S: InformationSet<DP>> AgentStepView<'a, DP, S>{
     }
 
     /// If action is legal returns `true`, else `false`. It says about `action` in `information_set`,
-    /// does not say anything about step initial information set, but says that next information set ([`late_information_set`])
-    /// is to be treated as illegal.
+    /// does not say anything about step initial information set, but says that next information set
+    /// is to be considered illegal..
     pub fn is_action_legal(&self) -> bool{
         self.legality
     }

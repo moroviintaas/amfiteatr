@@ -5,7 +5,6 @@ use amfiteatr_rl::tch::Tensor;
 use amfiteatr_core::agent::{InformationSet, PresentPossibleActions, EvaluatedInformationSet};
 use amfiteatr_core::domain::{Renew};
 use amfiteatr_core::error::{AmfiteatrError, ConvertError};
-use amfiteatr_rl::error::TensorRepresentationError;
 use amfiteatr_rl::tensor_data::{ContextEncodeTensor, TensorEncoding};
 use crate::agent::{ActionPairMapper, AgentAssessmentClassic};
 use crate::AsymmetricRewardTableInt;

@@ -1,4 +1,4 @@
-# amfi_core
+# `amfiteatr_core`
 
 Crate providing framework to build models simulating game theory problems. 
 It is designed to help model problems involving many players.

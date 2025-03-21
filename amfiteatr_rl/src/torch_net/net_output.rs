@@ -267,8 +267,8 @@ impl ActorCriticOutput for TensorMultiParamActorCritic {
     ///
     /// Now masks:
     /// Assume we took actions:
-    /// 1. [0,2,0] (Index 0 on first param, index 2 on second, index 0 in third]
-    /// 2. [2,-,1] (Index 2 on first action, second param is unknown since it not a param wof action type 0, index 1 on third
+    /// 1. `[0,2,0]` (Index 0 on first param, index 2 on second, index 0 in third]
+    /// 2. `[2,-,1]` (Index 2 on first action, second param is unknown since it not a param wof action type 0, index 1 on third
     ///
     /// ```
     ///

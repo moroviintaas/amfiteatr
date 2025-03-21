@@ -22,5 +22,6 @@ pub use model::*;
 
 
 //#[cfg(feature = "manual_control")]
+/// Experimental module for supporting human-controlled policies (Human playing interface).
 pub mod manual_control;
 //pub use manual_control::MultiEpisodeCliAgent;

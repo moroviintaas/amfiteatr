@@ -143,7 +143,7 @@ where
         false
     }
 
-    fn generate_action_masks(&self, information_set: &Self::InfoSet) -> Result<<Self::NetworkOutput as ActorCriticOutput>::ActionTensorType, AmfiteatrError<DP>> {
+    fn generate_action_masks(&self, _information_set: &Self::InfoSet) -> Result<<Self::NetworkOutput as ActorCriticOutput>::ActionTensorType, AmfiteatrError<DP>> {
         Err(AmfiteatrError::Custom("Action masking is not supported.".into()))
     }
 
@@ -271,6 +271,7 @@ impl<
             base: PolicyPpoDiscrete::new(config, network, optimizer, info_set_conversion_context, action_build_context),
         }
     }
+    /*
     fn batch_get_actor_critic_with_logprob_and_entropy(
         &self,
         info_set_batch: &Tensor,
@@ -286,6 +287,8 @@ impl<
             action_forward_mask_batches
         )
     }
+
+     */
 }
 
 impl<

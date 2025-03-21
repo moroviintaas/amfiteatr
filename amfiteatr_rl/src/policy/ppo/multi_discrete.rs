@@ -110,22 +110,7 @@ where <DP as DomainParameters>::ActionType:
 
 }
 
-pub(crate) fn vec_2d_clear_second_dim<T>(v: &mut Vec<Vec<T>>){
-    for c in v.iter_mut(){
-        c.clear()
-    }
-}
 
-pub(crate) fn vec_2d_append_second_dim<T>(v: &mut Vec<Vec<T>>, append: &mut Vec<Vec<T>>){
-    for (c_append, c_base) in append.iter_mut().zip(v.iter_mut()){
-        c_base.append(c_append)
-    }
-}
-pub(crate)  fn vec_2d_push_second_dim<T>(v: &mut Vec<Vec<T>>, append: Vec<T>){
-    for (c_push, c_base) in append.into_iter().zip(v.iter_mut()){
-        c_base.push(c_push)
-    }
-}
 
 impl<
     DP: DomainParameters,

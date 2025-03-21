@@ -6,7 +6,7 @@ use thiserror::Error;
 
 /// Error in vectorisation of data to tensor
 #[derive(Error, Debug)]
-#[deprecated(since = "0.7.0", note = "Migrating to [`ConvertError`] in [`AmfiteatrError`]")]
+//#[deprecated(since = "0.8.0", note = "Migrating to [`ConvertError`] in [`AmfiteatrError`]")]
 pub enum TensorRepresentationError{
     #[error("Information set {info_set:?} cannot be fit into tensor of shape {shape:?}.")]
     InfoSetNotFit{

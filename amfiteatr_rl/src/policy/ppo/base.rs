@@ -152,39 +152,17 @@ pub trait PolicyHelperPPO<DP: DomainParameters>
         let tmp_capacity_estimate = find_max_trajectory_len(&trajectories);
 
         let mut state_tensor_vec = Vec::<Tensor>::with_capacity(capacity_estimate);
-        let mut reward_tensor_vec = Vec::<Tensor>::with_capacity(capacity_estimate);
+        //let mut reward_tensor_vec = Vec::<Tensor>::with_capacity(capacity_estimate);
         let mut advantage_tensor_vec = Vec::<Tensor>::with_capacity(capacity_estimate);
 
-        /*let mut action_masks_vec = (0..self.action_conversion_context().param_dimension_size())
-            .map(|_a|Vec::<Tensor>::with_capacity(capacity_estimate)).collect();
 
-         */
         let mut action_masks_vec = Self::NetworkOutput::new_batch_with_capacity(action_params ,capacity_estimate);
         let mut multi_action_tensor_vec = Self::NetworkOutput::new_batch_with_capacity(action_params, capacity_estimate);
         let mut multi_action_cat_mask_tensor_vec = Self::NetworkOutput::new_batch_with_capacity(action_params, capacity_estimate);
 
 
-        // batch dimenstion x param dimension
-        /*
-        let mut multi_action_tensor_vec: Vec<Vec<Tensor>> = (0..self.action_conversion_context().param_dimension_size())
-            .map(|_a|Vec::<Tensor>::with_capacity(capacity_estimate)).collect();
-
-        let mut multi_action_cat_mask_tensor_vec: Vec<Vec<Tensor>> = (0..self.action_conversion_context().param_dimension_size())
-            .map(|_a|Vec::<Tensor>::with_capacity(capacity_estimate)).collect();
-
-
-         */
         let mut tmp_trajectory_state_tensor_vec = Vec::with_capacity(tmp_capacity_estimate);
-        /*
-        let mut tmp_trajectory_action_tensor_vecs: Vec<Vec<Tensor>> = Vec::new();
 
-        let mut tmp_trajectory_action_category_mask_vecs: Vec<Vec<Tensor>> = Vec::new();
-        for i in 0.. self.action_conversion_context().param_dimension_size(){
-            tmp_trajectory_action_tensor_vecs.push(Vec::new());
-            tmp_trajectory_action_category_mask_vecs.push(Vec::new());
-        }
-
-         */
         let mut tmp_trajectory_action_tensor_vecs = Self::NetworkOutput::new_batch_with_capacity(action_params, capacity_estimate);
         let mut tmp_trajectory_action_category_mask_vecs = Self::NetworkOutput::new_batch_with_capacity(action_params, capacity_estimate);
 
@@ -197,7 +175,7 @@ pub trait PolicyHelperPPO<DP: DomainParameters>
         for t in trajectories{
 
 
-            if let Some(last_step) = t.last_view_step(){
+            if let Some(_last_step) = t.last_view_step(){
 
                 tmp_trajectory_state_tensor_vec.clear();
                 Self::NetworkOutput::clear_batch_dim_in_batch(&mut tmp_trajectory_action_tensor_vecs);
@@ -262,10 +240,6 @@ pub trait PolicyHelperPPO<DP: DomainParameters>
 
                 Self::NetworkOutput::append_vec_batch(&mut multi_action_cat_mask_tensor_vec, &mut tmp_trajectory_action_category_mask_vecs );
 
-                /*
-                crate::policy::ppo::multi_discrete::vec_2d_append_second_dim(&mut multi_action_tensor_vec, &mut tmp_trajectory_action_tensor_vecs);
-                crate::policy::ppo::multi_discrete::vec_2d_append_second_dim(&mut multi_action_cat_mask_tensor_vec, &mut tmp_trajectory_action_category_mask_vecs);
-                */
 
 
             } else {
@@ -359,7 +333,7 @@ pub trait PolicyHelperPPO<DP: DomainParameters>
                     &batch_info_sets_t.f_index_select(0, &minibatch_indices)?,
                     &mini_batch_action,
                     Some(&mini_batch_action_cat_mask),
-                    None, //to add it some day
+                    mini_batch_action_forward_mask.as_ref(), //to add it some day
                 )?;
                 #[cfg(feature = "log_debug")]
                 log::debug!("Advantages: {:?}", batch_advantage_t.f_index_select(0, &minibatch_indices)?);
