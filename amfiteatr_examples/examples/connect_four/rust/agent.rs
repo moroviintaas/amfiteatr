@@ -4,7 +4,7 @@ use amfiteatr_core::error::{AmfiteatrError, ConvertError, TensorError};
 use amfiteatr_rl::error::TensorRepresentationError;
 use amfiteatr_rl::MaskingInformationSetAction;
 use amfiteatr_rl::tch::Tensor;
-use amfiteatr_rl::tensor_data::{TensorEncoding, ContextEncodeTensor, ContextDecodeTensor, TensorDecoding, ContextEncodeIndexI64, TensorIndexI64Encoding};
+use amfiteatr_rl::tensor_data::{TensorEncoding, ContextEncodeTensor, ContextDecodeTensor, TensorDecoding, ContextEncodeIndexI64, TensorIndexI64Encoding, ContextDecodeIndexI64};
 use crate::common::{ConnectFourAction, ConnectFourBinaryObservation, ConnectFourDomain, ConnectFourPlayer};
 
 #[derive(Clone, Debug)]
@@ -98,6 +98,12 @@ impl ContextDecodeTensor<ConnectFourActionTensorRepresentation> for ConnectFourA
             )?;
 
         Self::try_from(action_index)
+    }
+}
+
+impl ContextDecodeIndexI64<ConnectFourActionTensorRepresentation> for ConnectFourAction{
+    fn try_from_index(index: i64, _way: &ConnectFourActionTensorRepresentation) -> Result<Self, ConvertError> {
+        Self::try_from(index)
     }
 }
 

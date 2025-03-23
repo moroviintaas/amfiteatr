@@ -8,14 +8,7 @@ use amfiteatr_core::error::{AmfiteatrError, TensorError};
 use crate::error::AmfiteatrRlError;
 use crate::policy::{ConfigPpo, LearningNetworkPolicy, PolicyHelperPPO};
 use crate::{tensor_data, MaskingInformationSetAction};
-use crate::tensor_data::{
-    ContextDecodeTensor,
-    ContextEncodeIndexI64,
-    ContextEncodeTensor,
-    TensorDecoding,
-    TensorIndexI64Encoding,
-    TensorEncoding
-};
+use crate::tensor_data::{ContextEncodeIndexI64, ContextEncodeTensor, TensorDecoding, TensorIndexI64Encoding, TensorEncoding, ContextDecodeIndexI64};
 use crate::torch_net::{ActorCriticOutput, NeuralNet, NeuralNetActorCritic, TensorActorCritic};
 
 
@@ -144,7 +137,7 @@ impl<
 > PolicyHelperPPO<DP> for PolicyPpoDiscrete<DP, InfoSet, InfoSetConversionContext, ActionBuildContext>
 where
     <DP as DomainParameters>::ActionType:
-    ContextDecodeTensor<ActionBuildContext, > + ContextEncodeIndexI64<ActionBuildContext>
+    ContextDecodeIndexI64<ActionBuildContext> + ContextEncodeIndexI64<ActionBuildContext>
 {
     type InfoSet = InfoSet;
     type InfoSetConversionContext = InfoSetConversionContext;
@@ -191,7 +184,15 @@ where
     }
 
     fn ppo_try_action_from_choice_tensor(&self, choice_tensor: &<Self::NetworkOutput as ActorCriticOutput>::ActionTensorType) -> Result<DP::ActionType, AmfiteatrError<DP>> {
-        Ok(<DP::ActionType>::try_from_tensor(choice_tensor, &self.action_build_context)?)
+        //Ok(<DP::ActionType>::try_from_tensor(choice_tensor, &self.action_build_context)?)
+        let index = choice_tensor.f_int64_value(&[0])
+            .map_err(|e| AmfiteatrError::Tensor { error: TensorError::Torch {
+                origin: format!("{}", e),
+                context: "Converting choice tensor to i64 action index.".to_string() } }
+            )?;
+        Ok(<DP::ActionType>::try_from_index(index, &self.action_build_context)?)
+
+
     }
 
     fn ppo_vectorise_action_and_create_category_mask(&self, action: &DP::ActionType)
@@ -234,7 +235,7 @@ impl<
 > Policy<DP> for PolicyPpoDiscrete<DP, InfoSet, InfoSetConversionContext, ActionBuildContext>
 where
     <DP as DomainParameters>::ActionType:
-    ContextDecodeTensor<ActionBuildContext, > + ContextEncodeIndexI64<ActionBuildContext>
+    ContextDecodeIndexI64<ActionBuildContext, > + ContextEncodeIndexI64<ActionBuildContext>
 {
     type InfoSetType = InfoSet;
 
@@ -252,7 +253,7 @@ impl<
 > LearningNetworkPolicy<DP> for PolicyPpoDiscrete<DP, InfoSet, InfoSetConversionContext, ActionBuildContext>
 where
     <DP as DomainParameters>::ActionType:
-    ContextDecodeTensor<ActionBuildContext, > + ContextEncodeIndexI64<ActionBuildContext>
+    ContextDecodeIndexI64<ActionBuildContext, > + ContextEncodeIndexI64<ActionBuildContext>
 {
     fn var_store(&self) -> &VarStore {
         &self.network.var_store()
@@ -341,7 +342,7 @@ impl<
 > PolicyHelperPPO<DP> for PolicyMaskingPpoDiscrete<DP, InfoSet, InfoSetConversionContext, ActionBuildContext>
 where
     <DP as DomainParameters>::ActionType:
-    ContextDecodeTensor<ActionBuildContext, > + ContextEncodeIndexI64<ActionBuildContext>
+    ContextDecodeIndexI64<ActionBuildContext, > + ContextEncodeIndexI64<ActionBuildContext>
 {
     type InfoSet = InfoSet;
     type InfoSetConversionContext = InfoSetConversionContext;
@@ -432,7 +433,7 @@ impl<
 > Policy<DP> for PolicyMaskingPpoDiscrete<DP, InfoSet, InfoSetConversionContext, ActionBuildContext>
 where
     <DP as DomainParameters>::ActionType:
-    ContextDecodeTensor<ActionBuildContext, > + ContextEncodeIndexI64<ActionBuildContext>
+    ContextDecodeIndexI64<ActionBuildContext, > + ContextEncodeIndexI64<ActionBuildContext>
 {
     type InfoSetType = InfoSet;
 
@@ -450,7 +451,7 @@ impl<
 > LearningNetworkPolicy<DP> for PolicyMaskingPpoDiscrete<DP, InfoSet, InfoSetConversionContext, ActionBuildContext>
 where
     <DP as DomainParameters>::ActionType:
-    ContextDecodeTensor<ActionBuildContext, > + ContextEncodeIndexI64<ActionBuildContext>{
+    ContextDecodeIndexI64<ActionBuildContext, > + ContextEncodeIndexI64<ActionBuildContext>{
     fn var_store(&self) -> &VarStore {
         self.base.var_store()
     }

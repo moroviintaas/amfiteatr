@@ -98,6 +98,11 @@ pub trait ContextEncodeIndexI64<Ctx: TensorIndexI64Encoding> : Debug{
     fn try_to_index(&self, way: &Ctx) -> Result<i64, ConvertError>;
 }
 
+pub trait ContextDecodeIndexI64<Ctx: TensorIndexI64Encoding> : Debug + Sized{
+
+    fn try_from_index(index: i64, way: &Ctx) -> Result<Self, ConvertError>;
+}
+
 pub trait MultiTensorIndexI64Encoding {
     fn min(&self, param_index: usize) -> Option<i64>;
     fn limit(&self, param_index: usize) -> Option<i64>;
@@ -108,7 +113,7 @@ pub trait MultiTensorIndexI64Encoding {
 }
 
 
-impl<T: MultiTensorIndexI64Encoding + MultiTensorDecoding> ActionTensorFormat<Vec<Tensor>> for T{
+impl<T: MultiTensorIndexI64Encoding> ActionTensorFormat<Vec<Tensor>> for T{
 
     fn param_dimension_size(&self) -> i64 {
         Self::number_of_params() as i64
@@ -116,7 +121,7 @@ impl<T: MultiTensorIndexI64Encoding + MultiTensorDecoding> ActionTensorFormat<Ve
 }
 
 
-impl<T: TensorIndexI64Encoding + TensorDecoding> ActionTensorFormat<Tensor> for T{
+impl<T: TensorIndexI64Encoding> ActionTensorFormat<Tensor> for T{
 
     fn param_dimension_size(&self) -> i64 {
         1
@@ -207,6 +212,11 @@ pub trait ContextEncodeMultiIndexI64<Ctx: MultiTensorIndexI64Encoding>{
      */
 
 
+}
+
+pub trait ContextDecodeMultiIndexI64<Ctx: MultiTensorIndexI64Encoding> : Debug + Sized{
+
+    fn try_from_indices(indices: &[i64], way: &Ctx) -> Result<Self, ConvertError>;
 }
 
 pub trait TensorFormat: TensorEncoding + TensorDecoding {}
