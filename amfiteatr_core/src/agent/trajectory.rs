@@ -350,6 +350,29 @@ impl<DP: DomainParameters, S: InformationSet<DP>> AgentTrajectory<DP, S>{
         }
     }
 
+    /// From a slice of trajectories finds the length of the longest one.
+    #[inline]
+    pub fn find_max_trajectory_len
+    (
+        trajectories: &[AgentTrajectory<DP, S>]
+    ) -> usize{
+        trajectories.iter().map(|x|{
+            x.number_of_steps()
+        }).max().unwrap_or(0)
+    }
+
+    /// Sum the number of steps in slice of trajectories.
+    #[inline]
+    pub fn sum_trajectories_steps
+    (
+        trajectories: &[AgentTrajectory<DP, S>]
+    ) -> usize{
+        trajectories.iter().fold(0, |acc, x|{
+            acc + x.number_of_steps()
+        })
+    }
+
+
 }
 
 /// Iterator for step views in agent trajectory

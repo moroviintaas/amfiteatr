@@ -7,7 +7,7 @@ use amfiteatr_core::agent::{AgentStepView, AgentTrajectory, InformationSet, Poli
 use amfiteatr_core::domain::DomainParameters;
 use amfiteatr_core::error::{AmfiteatrError,TensorError};
 use crate::error::AmfiteatrRlError;
-use crate::policy::{ConfigPPO, LearningNetworkPolicy, PolicyHelperPPO};
+use crate::policy::{ConfigPpo, LearningNetworkPolicy, PolicyHelperPPO};
 use crate::{tch, MaskingInformationSetActionMultiParameter, tensor_data};
 use crate::tch::nn::Optimizer;
 use crate::tch::Tensor;
@@ -29,6 +29,14 @@ use crate::torch_net::{
 
 
 
+
+/// Experimental PPO policy for actions from discrete actions space but sampled from
+/// more than one parameter distribution.
+/// E.g. Action type is one parameter sampled from one distribution (with space size `N`).
+/// Then optionally some additional parameters like e.g. coordinates, tooling (or whatever) are sampled from
+/// different distributions.
+/// It is an __experimental__ approach disassembling cartesian action space of size `N x P1 x P2 x ... Pk` into
+/// `k + 1` distribution of action parameters.
 pub struct PolicyPpoMultiDiscrete<
     DP: DomainParameters,
     InfoSet: InformationSet<DP> + Debug + ContextEncodeTensor<InfoSetConversionContext>,
@@ -37,7 +45,7 @@ pub struct PolicyPpoMultiDiscrete<
 >
 //where <DP as DomainParameters>::ActionType: ContextTryFromMultipleTensors<ActionBuildContext>
 {
-    config: ConfigPPO,
+    config: ConfigPpo,
     network: NeuralNetMultiActorCritic,
     optimizer: Optimizer,
     _dp: PhantomData<DP>,
@@ -122,7 +130,7 @@ PolicyPpoMultiDiscrete<DP, InfoSet, InfoSetConversionContext, ActionBuildContext
 where <DP as DomainParameters>::ActionType: ContextDecodeMultiTensor<ActionBuildContext>
 {
     pub fn new(
-        config: ConfigPPO,
+        config: ConfigPpo,
         network: NeuralNetMultiActorCritic,
         optimizer: Optimizer,
         info_set_conversion_context: InfoSetConversionContext,
@@ -220,7 +228,7 @@ PolicyHelperPPO<DP> for PolicyPpoMultiDiscrete<DP, InfoSet, InfoSetConversionCon
     type ActionConversionContext = ActionBuildContext;
     type NetworkOutput = TensorMultiParamActorCritic;
 
-    fn config(&self) -> &ConfigPPO {
+    fn config(&self) -> &ConfigPpo {
         &self.config
     }
 
@@ -288,7 +296,8 @@ PolicyHelperPPO<DP> for PolicyPpoMultiDiscrete<DP, InfoSet, InfoSetConversionCon
         )
     }
 }
-
+/// Experimental PPO policy for actions from discrete actions space but sampled from
+/// more than one parameter distribution with support of masking out illegal actions.
 pub struct PolicyMaskingPpoMultiDiscrete<
     DP: DomainParameters,
     InfoSet: InformationSet<DP> + Debug + ContextEncodeTensor<InfoSetConversionContext> + MaskingInformationSetActionMultiParameter<DP, ActionBuildContext>,
@@ -307,7 +316,7 @@ impl<
 > PolicyMaskingPpoMultiDiscrete<DP, InfoSet, InfoSetConversionContext, ActionBuildContext>
     where <DP as DomainParameters>::ActionType: ContextDecodeMultiTensor<ActionBuildContext>{
     pub fn new(
-        config: ConfigPPO,
+        config: ConfigPpo,
         network: NeuralNetMultiActorCritic,
         optimizer: Optimizer,
         info_set_conversion_context: InfoSetConversionContext,
@@ -337,7 +346,7 @@ impl<
     type ActionConversionContext = ActionBuildContext;
     type NetworkOutput = TensorMultiParamActorCritic;
 
-    fn config(&self) -> &ConfigPPO {
+    fn config(&self) -> &ConfigPpo {
         self.base.config()
     }
 

@@ -6,7 +6,7 @@ use amfiteatr_core::agent::{AgentStepView, AgentTrajectory, InformationSet, Poli
 use amfiteatr_core::domain::DomainParameters;
 use amfiteatr_core::error::{AmfiteatrError, TensorError};
 use crate::error::AmfiteatrRlError;
-use crate::policy::{ConfigPPO, LearningNetworkPolicy, PolicyHelperPPO};
+use crate::policy::{ConfigPpo, LearningNetworkPolicy, PolicyHelperPPO};
 use crate::{tensor_data, MaskingInformationSetAction};
 use crate::tensor_data::{
     ContextDecodeTensor,
@@ -18,13 +18,16 @@ use crate::tensor_data::{
 };
 use crate::torch_net::{ActorCriticOutput, NeuralNet, NeuralNetActorCritic, TensorActorCritic};
 
+
+/// Policy PPO for discrete action space with single distribution using [`tch`] crate for `torch` backed
+/// [`Tensors`](tch::Tensor).
 pub struct PolicyPpoDiscrete<
     DP: DomainParameters,
     InfoSet: InformationSet<DP> + Debug + ContextEncodeTensor<InfoSetConversionContext>,
     InfoSetConversionContext: TensorEncoding,
     ActionBuildContext: TensorDecoding,
 >{
-    config: ConfigPPO,
+    config: ConfigPpo,
     network: NeuralNetActorCritic,
     optimizer: Optimizer,
     _dp: PhantomData<DP>,
@@ -44,8 +47,37 @@ impl<
         + tensor_data::ActionTensorFormat<Tensor>,
 > PolicyPpoDiscrete<DP, InfoSet, InfoSetConversionContext, ActionBuildContext>{
 
+
+    /// ```
+    /// use tch::{Device, nn, Tensor};
+    /// use tch::nn::{Adam, VarStore};
+    /// use amfiteatr_core::demo::{DemoDomain, DemoInfoSet};
+    /// use amfiteatr_rl::demo::{DemoActionConversionContext, DemoConversionToTensor};
+    /// use amfiteatr_rl::policy::{ConfigPpo, PolicyPpoDiscrete};
+    /// use amfiteatr_rl::torch_net::{NeuralNetActorCritic, TensorActorCritic};
+    /// let var_store = VarStore::new(Device::Cpu);
+    /// let net = NeuralNetActorCritic::new(var_store, |path|{
+    ///     let seq = nn::seq()
+    ///         .add(nn::linear(path / "input", 1, 128, Default::default()))
+    ///         .add(nn::linear(path / "hidden", 128, 128, Default::default()));
+    ///     let actor = nn::linear(path / "al", 128, 2, Default::default());
+    ///     let critic = nn::linear(path / "cl", 128, 1, Default::default());
+    ///     let device = path.device();
+    ///     {move |xs: &Tensor|{
+    ///         let xs = xs.to_device(device).apply(&seq);
+    ///         TensorActorCritic{critic: xs.apply(&critic), actor: xs.apply(&actor)}
+    ///     }}
+    /// });
+    /// let optimizer = net.build_optimizer(Adam::default(), 0.01).unwrap();
+    /// let config = ConfigPpo::default();
+    /// let demo_info_set_ctx = DemoConversionToTensor::default();
+    /// let demo_action_ctx = DemoActionConversionContext{};
+    /// let policy: PolicyPpoDiscrete<DemoDomain, DemoInfoSet, DemoConversionToTensor, DemoActionConversionContext> =
+    ///     PolicyPpoDiscrete::new(
+    ///     config, net, optimizer, demo_info_set_ctx, demo_action_ctx);
+    /// ```
     pub fn new(
-        config: ConfigPPO,
+        config: ConfigPpo,
         network: NeuralNetActorCritic,
         optimizer: Optimizer,
         info_set_conversion_context: InfoSetConversionContext,
@@ -62,6 +94,13 @@ impl<
             exploration: true,
         }
     }
+
+    /// Returns three tensors for respectively log probability of each action, entropy of this distribution
+    /// and critic value.
+    /// Tensor sizes:
+    /// 1. BATCH_SIZE x ACTION_SPACE..
+    /// 2. BATCH_SIZE x 1
+    /// 3. BATCH_SIZE x1
     fn batch_get_logprob_entropy_critic(
         &self,
         info_set_batch: &Tensor,
@@ -112,7 +151,7 @@ where
     type ActionConversionContext = ActionBuildContext;
     type NetworkOutput = TensorActorCritic;
 
-    fn config(&self) -> &ConfigPPO {
+    fn config(&self) -> &ConfigPpo {
         &self.config
     }
 
@@ -242,12 +281,14 @@ where
     }
 }
 
+/// Policy PPO structure for discrete action space with support of masking.
 pub struct PolicyMaskingPpoDiscrete<
     DP: DomainParameters,
     InfoSet: InformationSet<DP> + Debug + ContextEncodeTensor<InfoSetConversionContext> + MaskingInformationSetAction<DP, ActionBuildContext>,
     InfoSetConversionContext: TensorEncoding,
     ActionBuildContext: TensorDecoding + TensorIndexI64Encoding,
 >{
+    /// It wraps around 'normal' PPO policy, but with more traits enforced.
     pub base: PolicyPpoDiscrete<DP, InfoSet, InfoSetConversionContext, ActionBuildContext>,
 
 }
@@ -261,7 +302,7 @@ impl<
 > PolicyMaskingPpoDiscrete<DP, InfoSet, InfoSetConversionContext, ActionBuildContext>{
 
     pub fn new(
-        config: ConfigPPO,
+        config: ConfigPpo,
         network: NeuralNetActorCritic,
         optimizer: Optimizer,
         info_set_conversion_context: InfoSetConversionContext,
@@ -307,7 +348,7 @@ where
     type ActionConversionContext = ActionBuildContext;
     type NetworkOutput = TensorActorCritic;
 
-    fn config(&self) -> &ConfigPPO {
+    fn config(&self) -> &ConfigPpo {
         self.base.config()
     }
 

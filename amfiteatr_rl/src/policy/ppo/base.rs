@@ -1,3 +1,5 @@
+//! Based on [cleanrl PPO](https://github.com/vwxyzjn/cleanrl/blob/master/cleanrl/ppo.py)
+
 use std::cmp::min;
 use getset::{Getters, Setters};
 use rand::prelude::SliceRandom;
@@ -8,13 +10,13 @@ use amfiteatr_core::agent::{AgentStepView, AgentTrajectory, InformationSet};
 use amfiteatr_core::domain::DomainParameters;
 use amfiteatr_core::error::AmfiteatrError;
 use crate::error::AmfiteatrRlError;
-use crate::policy::{find_max_trajectory_len, sum_trajectories_steps};
 use crate::tensor_data::{ActionTensorFormat, ContextEncodeTensor, TensorEncoding};
 use crate::torch_net::{ActorCriticOutput, DeviceTransfer, NeuralNet};
 
-///! Based on [cleanrl PPO](https://github.com/vwxyzjn/cleanrl/blob/master/cleanrl/ppo.py)
+
+/// Configuration structure for PPO Policy
 #[derive(Copy, Clone, Debug, Getters, Setters)]
-pub struct ConfigPPO {
+pub struct ConfigPpo {
     pub gamma: f64,
     pub clip_vloss: bool,
     pub clip_coef: f64,
@@ -28,8 +30,8 @@ pub struct ConfigPPO {
     //pub
 }
 
-impl Default for ConfigPPO {
-    fn default() -> ConfigPPO {
+impl Default for ConfigPpo {
+    fn default() -> ConfigPpo {
         Self{
             gamma: 0.99,
             clip_vloss: true,
@@ -64,7 +66,7 @@ pub trait PolicyHelperPPO<DP: DomainParameters>
     type NetworkOutput: ActorCriticOutput;
 
     /// Returns reference to policy config.
-    fn config(&self) -> &ConfigPPO;
+    fn config(&self) -> &ConfigPpo;
 
     /// Mutable reference to optimizer owned by policy.
     fn optimizer_mut(&mut self) -> &mut Optimizer;
@@ -108,12 +110,12 @@ pub trait PolicyHelperPPO<DP: DomainParameters>
     /// This function makes more sense with multi tensor actions.
     /// Suppose you have some action B(7,3), where B, 7 and 3 are parameters from three different parameter distribution.
     /// Action is chosen from five parameters, but when parameter i0 is B parameters i1 and i4 are not used.
-    /// Therefore when constructing action B we lose information of sampling of parameters i1 and i4.
+    /// Therefore when constructing ac`tion B we lose information of sampling of parameters i1 and i4.
     /// What;s more they do not had impact on game result, therefore we would like to avoid including them in calculating B(7,3) probability,
     /// and somehow exclude them from impact on entropy.
     /// So in this case we would produce from B(7,3):
-    /// 1. Vector of choice tensors vec![[1], [?], [7], [3], [?]]
-    /// 2. Vector of paramter masks: vec![[true], [false], [true], [true], [false]).
+    /// 1. Vector of choice tensors `vec![[1], [?], [7], [3], [?]]`
+    /// 2. Vector of parameter masks: `vec![[true], [false], [true], [true], [false]`).
     fn ppo_vectorise_action_and_create_category_mask(&self, action: &DP::ActionType)
         -> Result<(
             <Self::NetworkOutput as ActorCriticOutput>::ActionTensorType,
@@ -169,7 +171,7 @@ pub trait PolicyHelperPPO<DP: DomainParameters>
         log::trace!("Starting training PPO.");
 
         let device = self.ppo_network().device();
-        let capacity_estimate = sum_trajectories_steps(&trajectories);
+        let capacity_estimate = AgentTrajectory::sum_trajectories_steps(&trajectories);
 
         //find single sample step
 
@@ -191,7 +193,7 @@ pub trait PolicyHelperPPO<DP: DomainParameters>
 
         let mut rng = rand::thread_rng();
 
-        let tmp_capacity_estimate = find_max_trajectory_len(&trajectories);
+        let tmp_capacity_estimate = AgentTrajectory::find_max_trajectory_len(&trajectories);
 
         let mut state_tensor_vec = Vec::<Tensor>::with_capacity(capacity_estimate);
         //let mut reward_tensor_vec = Vec::<Tensor>::with_capacity(capacity_estimate);

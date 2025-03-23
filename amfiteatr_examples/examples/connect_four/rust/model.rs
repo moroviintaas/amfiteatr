@@ -10,7 +10,7 @@ use amfiteatr_core::domain::Renew;
 use amfiteatr_core::env::{GameStateWithPayoffs, HashMapEnvironment, ReseedEnvironment, RoundRobinPenalisingUniversalEnvironment, StatefulEnvironment};
 use amfiteatr_core::error::AmfiteatrError;
 use amfiteatr_rl::error::AmfiteatrRlError;
-use amfiteatr_rl::policy::{ActorCriticPolicy, ConfigPPO, LearningNetworkPolicy, PolicyMaskingPpoDiscrete, PolicyPpoDiscrete, TrainConfig};
+use amfiteatr_rl::policy::{ActorCriticPolicy, ConfigPpo, LearningNetworkPolicy, PolicyMaskingPpoDiscrete, PolicyPpoDiscrete, TrainConfig};
 use amfiteatr_rl::tch::{Device, nn, Tensor};
 use amfiteatr_rl::tch::nn::{Adam, OptimizerConfig, VarStore};
 use amfiteatr_rl::tensor_data::TensorEncoding;
@@ -138,7 +138,7 @@ fn build_a2c_policy(layer_sizes: &[i64], device: Device) -> Result<C4A2CPolicy, 
     )
 }
 
-fn build_ppo_policy_masking(layer_sizes: &[i64], device: Device, config: ConfigPPO) -> Result<C4PPOPolicyMasking, AmfiteatrRlError<ConnectFourDomain>>{
+fn build_ppo_policy_masking(layer_sizes: &[i64], device: Device, config: ConfigPpo) -> Result<C4PPOPolicyMasking, AmfiteatrRlError<ConnectFourDomain>>{
     let var_store = VarStore::new(device);
     //let var_store = VarStore::new(Device::Cuda(0));
     let input_shape = ConnectFourTensorReprD1{}.desired_shape()[0];
@@ -193,7 +193,7 @@ fn build_ppo_policy_masking(layer_sizes: &[i64], device: Device, config: ConfigP
         ConnectFourActionTensorRepresentation{})
     )
 }
-fn build_ppo_policy(layer_sizes: &[i64], device: Device, config: ConfigPPO) -> Result<C4PPOPolicy, AmfiteatrRlError<ConnectFourDomain>>{
+fn build_ppo_policy(layer_sizes: &[i64], device: Device, config: ConfigPpo) -> Result<C4PPOPolicy, AmfiteatrRlError<ConnectFourDomain>>{
     Ok(build_ppo_policy_masking(layer_sizes, device, config)?.base)
 
 }
@@ -243,7 +243,7 @@ impl<
 impl<
     S:  GameStateWithPayoffs<ConnectFourDomain> + Clone + Renew<ConnectFourDomain, ()>,
 > ConnectFourModelRust<S,C4PPOPolicy>{
-    pub fn new_ppo(agent_layers_1: &[i64], agent_layers_2: &[i64], device: Device, config_ppo: ConfigPPO) -> Self
+    pub fn new_ppo(agent_layers_1: &[i64], agent_layers_2: &[i64], device: Device, config_ppo: ConfigPpo) -> Self
     where S: Default{
 
         let (c_env1, c_a1) = StdEnvironmentEndpoint::new_pair();
@@ -271,7 +271,7 @@ impl<
 impl<
     S:  GameStateWithPayoffs<ConnectFourDomain> + Clone + Renew<ConnectFourDomain, ()>,
 > ConnectFourModelRust<S,C4PPOPolicyMasking>{
-    pub fn new_ppo_masking(agent_layers_1: &[i64], agent_layers_2: &[i64], device: Device, config_ppo: ConfigPPO) -> Self
+    pub fn new_ppo_masking(agent_layers_1: &[i64], agent_layers_2: &[i64], device: Device, config_ppo: ConfigPpo) -> Self
     where S: Default{
 
         let (c_env1, c_a1) = StdEnvironmentEndpoint::new_pair();
