@@ -42,13 +42,18 @@ pub trait TensorEncoding: Send{
 /// In this case you can implement one [`InformationSet`](amfiteatr_core::agent::InformationSet) and two ways
 /// of converting it.
 pub trait ContextEncodeTensor<Ctx: TensorEncoding> : Debug{
-    fn try_to_tensor(&self, way: &Ctx) -> Result<Tensor, ConvertError>;
 
-    fn to_tensor(&self, way: &Ctx) -> Tensor{
-        self.try_to_tensor(way).unwrap()
+    /// Try convert to tensor using encoding.
+    fn try_to_tensor(&self, encoding: &Ctx) -> Result<Tensor, ConvertError>;
+
+    /// Convert to tensor using encoding.
+    fn to_tensor(&self, encoding: &Ctx) -> Tensor{
+        self.try_to_tensor(encoding).unwrap()
     }
-    fn try_to_tensor_flat(&self, way: &Ctx) -> Result<Tensor, ConvertError>{
-        let t1 = self.try_to_tensor(way)?;
+
+    /// Tries to encode as tensor and then flatten it to one dimension.
+    fn try_to_tensor_flat(&self, encoding: &Ctx) -> Result<Tensor, ConvertError>{
+        let t1 = self.try_to_tensor(encoding)?;
         t1.f_flatten(0, -1).map_err(|e|{
             ConvertError::ConvertToTensor {
                 origin: format!("{e}"),
@@ -57,26 +62,35 @@ pub trait ContextEncodeTensor<Ctx: TensorEncoding> : Debug{
         })
     }
 
-    fn to_tensor_flat(&self, way: &Ctx) -> Tensor{
-        let t1 = self.to_tensor(way);
+    /// Converts to tensor ant then flattens it to one dimension.
+    fn to_tensor_flat(&self, encoding: &Ctx) -> Tensor{
+        let t1 = self.to_tensor(encoding);
         //let dim = t1.dim() as i64;
         t1.flatten(0, -1)
     }
-    fn tensor_shape(way: &Ctx) -> &[i64]{
-        way.desired_shape()
+    /// Returns desired shape of data encoded as [`Tensor`].
+    fn tensor_shape(encoding: &Ctx) -> &[i64]{
+        encoding.desired_shape()
     }
-    fn tensor_length_flatten(way: &Ctx) -> i64{
-        way.desired_shape().iter().product()
+
+    /// Length of flatten encoded tensor.
+    fn tensor_length_flatten(encoding: &Ctx) -> i64{
+        encoding.desired_shape().iter().product()
     }
 }
 
-/// Represents format for converting element to set of Tensors
+/// Represents format for converting element to set of Tensors. Currently not used in this crate.
 pub trait MultiTensorEncoding: Send{
+    /// Returns expected shape of output in this format.
+    /// Vector is indexed with category, and i64 is length of [`Tensor`] representing parameter.
     fn expected_outputs_shape(&self) -> &[Vec<i64>];
 }
 
+/// For data to be encoded into multiple tensors. Currently without use in this crate.
 pub trait ContextMultiTensorEncode<Ctx: MultiTensorEncoding> : Debug{
+    /// Try encode to tensors using format.
     fn try_to_multiple_tensors(&self, form: &Ctx) -> Result<Vec<Tensor>, ConvertError>;
+    /// Encode to tensors using format.
     fn to_multiple_tensors(&self, form: &Ctx) -> Vec<Tensor>{
         self.try_to_multiple_tensors(form).unwrap()
     }
@@ -88,25 +102,34 @@ pub trait ContextMultiTensorEncode<Ctx: MultiTensorEncoding> : Debug{
      */
 }
 
+/// Encoding format of data into index [`Tensor`], usually for mapping discrete actions to index.
+
 pub trait TensorIndexI64Encoding: Send{
+    /// Minimal value of index
     fn min(&self) -> i64;
+    /// Limit of index value - the maximal index is `limit() -1`
     fn limit(&self) -> i64;
 }
-
+/// For data implementing encoding into index (usually actions from discrete space).
 pub trait ContextEncodeIndexI64<Ctx: TensorIndexI64Encoding> : Debug{
 
-    fn try_to_index(&self, way: &Ctx) -> Result<i64, ConvertError>;
+    /// Tries encoding data (from discrete space) into index using specific format.
+    fn try_to_index(&self, encoding: &Ctx) -> Result<i64, ConvertError>;
 }
-
+/// For decoding data from index [`Tensot`] - usually discrete actions mapped to numbers.
 pub trait ContextDecodeIndexI64<Ctx: TensorIndexI64Encoding> : Debug + Sized{
 
-    fn try_from_index(index: i64, way: &Ctx) -> Result<Self, ConvertError>;
+    fn try_from_index(index: i64, encoding: &Ctx) -> Result<Self, ConvertError>;
 }
 
-pub trait MultiTensorIndexI64Encoding {
-    fn min(&self, param_index: usize) -> Option<i64>;
-    fn limit(&self, param_index: usize) -> Option<i64>;
 
+/// Encoding into multiple [`Tensors`](tch::Tensor) format.
+pub trait MultiTensorIndexI64Encoding {
+    /// Minimum index for a category.
+    fn min(&self, param_index: usize) -> Option<i64>;
+    /// Limiting index for a category - maximal index is this value -1.
+    fn limit(&self, param_index: usize) -> Option<i64>;
+    /// Number of categories that are in this encoding format.
     fn number_of_params() -> usize;
 
 
@@ -128,9 +151,15 @@ impl<T: TensorIndexI64Encoding> ActionTensorFormat<Tensor> for T{
     }
 }
 
-
+/// Trait for type (usually action) into vector of indices.
+/// The main purpose is to generate index of parameter choice in every category.
 pub trait ContextEncodeMultiIndexI64<Ctx: MultiTensorIndexI64Encoding>{
+    /// Outputs index of parameter at given category.
+    /// Let's say that an action has parameter in category 1 of value that is mapped to index 2.
+    /// Then this function will return Some(2) for category 1.
     fn param_value(&self, context: &Ctx, param_index: usize) -> Result<Option<i64>, ConvertError>;
+    /// Default value when the index must be generated and no info is preserved about this.
+    /// It could be 0 or random value in proper range. Default implementation gives index 0.
     fn default_value(&self, _context: &Ctx, _param_index: usize) -> i64{
         0
     }
@@ -138,7 +167,7 @@ pub trait ContextEncodeMultiIndexI64<Ctx: MultiTensorIndexI64Encoding>{
 
 
 
-
+    /// Returns vector of choice indexes in every category.
     fn action_indexes(&self, context: &Ctx) -> Result<Vec<Option<i64>>, ConvertError>{
 
         Ok((0..Ctx::number_of_params()).map(|i|{
@@ -147,7 +176,9 @@ pub trait ContextEncodeMultiIndexI64<Ctx: MultiTensorIndexI64Encoding>{
     }
 
 
-
+    /// Returns vector of index for every category and mask for category - if it is important.
+    /// There may be a case where action does not have value in some category. This is
+    /// indicated by setting mask to `Tensor([False])` in this category.
     fn action_index_and_mask_tensor_vecs(&self, context: &Ctx) -> Result<(Vec<Tensor>, Vec<Tensor>),ConvertError>{
         let mut params = Vec::new();
         let mut usage_masks = Vec::new();
@@ -172,6 +203,8 @@ pub trait ContextEncodeMultiIndexI64<Ctx: MultiTensorIndexI64Encoding>{
 
     }
 
+    /// Just like `action_index_and_mask_tensor_vecs` but for slice of actions. Outputting vectors (indexed by category)
+    /// of Tensors with first (0) dimension being batch dimension.
     fn batch_index_and_mask_tensor_vecs(actions: &[&Self], context: &Ctx) -> Result<(Vec<Tensor>, Vec<Tensor>), ConvertError>
     {
         let mut params = Vec::new();
@@ -214,18 +247,24 @@ pub trait ContextEncodeMultiIndexI64<Ctx: MultiTensorIndexI64Encoding>{
 
 }
 
+/// For types to be decoded from multiple index [`Tensors`](tch::Tensor).
+/// E.g. action build from `vec![Tensor([1]), Tensor([4]), Tensor([0])]`.
+/// Where these numbers `1,4,0` are indices of parameter choices. In category 0 parameter 1 is chosen,
+/// in category 1 parameter of index 4 is chosen and in category 2 parameter is chosen from index 0.
 pub trait ContextDecodeMultiIndexI64<Ctx: MultiTensorIndexI64Encoding> : Debug + Sized{
 
     fn try_from_indices(indices: &[i64], way: &Ctx) -> Result<Self, ConvertError>;
 }
 
+/// Trait combining [`TensorEncoding`] and [`TensorDecoding`].
 pub trait TensorFormat: TensorEncoding + TensorDecoding {}
 impl<T> TensorFormat for T where T: TensorEncoding + TensorDecoding {}
+
+/// Trait combining [`MultiTensorDecoding`] and [`MultiTensorEncoding`].
 pub trait MultipleTensorFormat: MultiTensorEncoding + MultiTensorDecoding {}
 impl<T> MultipleTensorFormat for T where T: MultiTensorEncoding + MultiTensorDecoding {}
 
-
-
+/// This is to be deprecated in the future.
 pub trait TryIntoTensor: Debug{
 
 
@@ -244,6 +283,7 @@ impl<W: TensorEncoding, T: ContextEncodeTensor<W>> ContextEncodeTensor<W> for Bo
 /// Trait representing structs (maybe 0-sized) that tell what is expected size of tensor to be
 /// used to create data struct using [`ContextDecodeTensor`].
 pub trait TensorDecoding: Send{
+    /// Expected tensor shape that is decoded into value.
     fn expected_input_shape(&self) -> &[i64];
 }
 
@@ -251,7 +291,8 @@ pub trait TensorDecoding: Send{
 /// Certain data type can have different tensor representation, then it is needed to specify
 /// what particular contextual representation is used (done by using correct [`TensorDecoding`]).
 pub trait ContextDecodeTensor<Ctx: TensorDecoding>{
-    fn try_from_tensor(tensor: &Tensor, way: &Ctx) -> Result<Self, ConvertError> where Self: Sized;
+    /// Try decode data from tensor using decoding format.
+    fn try_from_tensor(tensor: &Tensor, decoding: &Ctx) -> Result<Self, ConvertError> where Self: Sized;
 }
 
 
@@ -268,7 +309,8 @@ impl<T: for<'a> TryFrom<&'a Tensor, Error=ConvertError> + Sized> TryFromTensor f
 
 }
 
-
+/// Trait for data to be converted from multiple tensors. Currently without use in this library.
+/// In A2C and PPO policies actions are converted from index tensors using trait [`ContextDecodeMultiIndexI64`].
 pub trait TryFromMultiTensors: for<'a> TryFrom<&'a [Tensor], Error=ConvertError> + Sized{
 
     fn try_from_multi_tensors(tensors: &[Tensor]) -> Result<Self, ConvertError> where Self: Sized{
@@ -284,6 +326,8 @@ impl<T: for<'a> TryFrom<&'a [Tensor], Error=ConvertError> + Sized> TryFromMultiT
 /// Trait representing structs (maybe 0-sized) that tell what is expected size of tensor to be
 /// used to create data struct using [`crate::tensor_data::ContextDecodeMultiTensor`].
 pub trait MultiTensorDecoding: Send{
+    /// Expected shape of vec of tensors to decode. `Vec` is indexed with category numbers,
+    /// and `i64` is the length of [`Tensor`] in category.
     fn expected_inputs_shape(&self) -> &[Vec<i64>];
 }
 

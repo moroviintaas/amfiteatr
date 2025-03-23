@@ -42,7 +42,11 @@ impl DeviceTransfer for Vec<Vec<Tensor>>{
     }
 }
 
+/// Trait for data types returned by Actor-Critic networks
 pub trait ActorCriticOutput : NetOutput + Debug{
+
+    /// Type of actor data. Typically for discrete action space with one category it is `Tensor`
+    /// For discrete actions with multiple parameters it will be `Vec<Tensor>`
     type ActionTensorType: Debug + DeviceTransfer;
     /// Vec type to construct Tensor batch, it will be typically `Vec<Tensor>` and `Vec<Vec<Tensor>>`,
     /// however this is not just `Vec<Self:TensorForm>` because on `Vec<Vec<_>>` it mess with dimensions.
@@ -54,8 +58,15 @@ pub trait ActorCriticOutput : NetOutput + Debug{
    // fn move_to_device(&self, tensor: Self::ActionTensorType) -> Self::ActionTensorType;
    // fn move_batch_to_device(&self, tensor: Self::ActionBatchTensorType) -> Self::ActionBatchTensorType;
 
+    /// Returns batched entropy of distribution.
+    /// Use when this output is batched - every actor tensor has BATCH_DIMENSION (dimension 0).
+    /// This outputs [`Tensor`] that for every member of batch returns entropy of categorical distribution build on actor.
     fn batch_entropy_masked(&self, action_masks: Option<&Self::ActionTensorType>, parameter_masks: Option<&Self::ActionTensorType>)
                             -> Result<Tensor, TchError>;
+
+    /// Returns batched log probability of action.
+    /// /// Use when this output is batched - every actor tensor has BATCH_DIMENSION (dimension 0).
+    /// This outputs [`Tensor`] that for every member of batch returns log probability of action that is pointed by index..
 
     fn batch_log_probability_of_action<DP: DomainParameters>(&self, param_indices: &Self::ActionTensorType, action_masks: Option<&Self::ActionTensorType>, parameter_masks: Option<&Self::ActionTensorType>)
                                                              -> Result<Tensor, AmfiteatrError<DP>>;
@@ -63,8 +74,11 @@ pub trait ActorCriticOutput : NetOutput + Debug{
     fn critic(&self) -> &Tensor;
 
 
+    /// Pushes to every category vector new entry
+    /// For example look at [`TensorMultiParamActorCritic::push_to_vec_batch`].
     fn push_to_vec_batch(vec_batch: &mut Self::ActionBatchTensorType, data: Self::ActionTensorType);
 
+    /// This is analogous to [`Vec::append`] in the logic of [`ush_to_vec_batch`].
     fn append_vec_batch(dst: &mut Self::ActionBatchTensorType, source: &mut Self::ActionBatchTensorType);
     /*{
 
@@ -72,6 +86,8 @@ pub trait ActorCriticOutput : NetOutput + Debug{
             c_dst.append(c_src)
         }
     }*/
+    /// Clears batch dimension.
+    /// Refer to example in [`TensorMultiParamActorCritic::clear_batch_dim_in_batch`].
     fn clear_batch_dim_in_batch(vector: &mut Self::ActionBatchTensorType);
     /*{
         for v in vector.iter_mut(){
@@ -573,6 +589,43 @@ impl ActorCriticOutput for TensorMultiParamActorCritic {
 
 
 
+    /// ```
+    /// // let's say we have two category action, currently three entries in batch
+    /// use tch::Tensor;
+    /// use amfiteatr_rl::torch_net::{ActorCriticOutput, TensorMultiParamActorCritic};
+    /// let mut vec_batch = vec![ //category
+    ///     vec![ // category 0, batch dimension
+    ///         Tensor::from(1i64),
+    ///         Tensor::from(0i64),
+    ///         Tensor::from(0i64),
+    ///     ]   ,
+    ///     vec![ // category 1, batch dimension
+    ///         Tensor::from(7i64),
+    ///         Tensor::from(0i64),
+    ///         Tensor::from(4i64),
+    ///     ]   ,
+    /// ];
+    /// let push = vec![Tensor::from(3i64), Tensor::from(2i64)];
+    ///
+    /// let pushed = TensorMultiParamActorCritic::push_to_vec_batch(&mut vec_batch, push);
+    ///
+    /// let mut expected = vec![ //category
+    ///     vec![ // category 0, batch dimension
+    ///         Tensor::from(1i64),
+    ///         Tensor::from(0i64),
+    ///         Tensor::from(0i64),
+    ///         Tensor::from(3i64),
+    ///     ]   ,
+    ///     vec![ // category 1, batch dimension
+    ///         Tensor::from(7i64),
+    ///         Tensor::from(0i64),
+    ///         Tensor::from(4i64),
+    ///         Tensor::from(2i64)
+    ///         ]
+    ///  ];
+    /// assert_eq!(&expected, &vec_batch);
+    /// ```
+
     fn push_to_vec_batch(vec_batch: &mut Self::ActionBatchTensorType, data: Self::ActionTensorType) {
         for (b_param, d_param) in vec_batch.iter_mut().zip(data.into_iter()){
             b_param.push(d_param);
@@ -585,6 +638,31 @@ impl ActorCriticOutput for TensorMultiParamActorCritic {
         }
     }
 
+    /// ```
+    /// // let's say we have two category action, currently three entries in batch
+    /// use tch::Tensor;
+    /// use amfiteatr_rl::torch_net::{ActorCriticOutput, TensorMultiParamActorCritic};
+    /// let mut vec_batch = vec![ //category
+    ///     vec![ // category 0, batch dimension
+    ///         Tensor::from(1i64),
+    ///         Tensor::from(0i64),
+    ///         Tensor::from(0i64),
+    ///     ]   ,
+    ///     vec![ // category 1, batch dimension
+    ///         Tensor::from(7i64),
+    ///         Tensor::from(0i64),
+    ///         Tensor::from(4i64),
+    ///     ]   ,
+    /// ];
+    ///
+    /// TensorMultiParamActorCritic::clear_batch_dim_in_batch(&mut vec_batch);
+    ///
+    /// let mut expected = vec![ //category
+    ///     Vec::<Tensor>::new(),
+    ///     Vec::<Tensor>::new()
+    ///  ];
+    /// assert_eq!(&expected, &vec_batch);
+    /// ```
     fn clear_batch_dim_in_batch(vector: &mut Self::ActionBatchTensorType) {
         for v in vector.iter_mut(){
             v.clear()
