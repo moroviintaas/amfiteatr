@@ -1,3 +1,4 @@
+#[cfg(feature = "torch")]
 use tch::TchError;
 use thiserror::Error;
 use crate::domain::DomainParameters;
