@@ -1,7 +1,7 @@
 [package]
 name = "amfiteatr_net_ext"
 version = "0.7.0"
-edition = "2021"
+edition = "2024"
 repository = "https://github.com/moroviintaas/amfiteatr"
 license-file = "LICENSE"
 keywords = ["game", "theory", "model", "player"]
@@ -14,11 +14,11 @@ harness = false
 
 
 [dependencies]
-log = "0.4.21"
+log = "0.4.26"
 speedy = "0.8.7"
 
 thiserror = "2.0.11"
 criterion = "0.5.1"
-zeroize = "1.7.0"
+zeroize = "1.8.1"
 
 amfiteatr_core = {version = "0.7.0", path = "../amfiteatr_core", features = ["speedy", "demo"]}

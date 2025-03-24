@@ -1,0 +1,17 @@
+[package]
+name = "amfiteatr"
+version = "0.7.0"
+edition = "2024"
+
+repository = "https://github.com/moroviintaas/amfiteatr"
+license-file = "LICENSE"
+keywords = ["game", "theory", "model", "player"]
+categories = ["games", "simulation", "concurrency", "development-tools"]
+description = "Placeholder crate to gather developed crates to help modeling game theory problems"
+
+[dependencies]
+
+amfiteatr_core = "0.7.0"
+amfiteatr_rl = "0.7.0"
+amfiteatr_classic = "0.7.0"
+amfiteatr_net_ext = "0.7.0"

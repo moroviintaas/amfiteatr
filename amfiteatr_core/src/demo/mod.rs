@@ -46,12 +46,12 @@
 use std::collections::{HashMap, HashSet};
 use std::fmt::{Debug, Display, Formatter};
 use nom::IResult;
-use rand::{thread_rng};
-use rand::distributions::Uniform;
+use rand::distr::Uniform;
 use crate::agent::{AgentIdentifier, Policy, PresentPossibleActions};
 use crate::domain::{Action, DomainParameters, Renew};
 use crate::env::{SequentialGameState, GameStateWithPayoffs};
-use rand::distributions::Distribution;
+use rand::distr::Distribution;
+use rand::{rng};
 use crate::agent::{InformationSet, EvaluatedInformationSet};
 use crate::error::AmfiteatrError;
 use crate::util::{StrParsed};
@@ -188,11 +188,12 @@ impl SequentialGameState<DemoDomain> for DemoState{
                 return Err(DemoError(format!("Bad player order, expected: {}, received: {agent}", &self.player_ids[current_player_index] )));
             }
 
-            let mut r = thread_rng();
+            let mut r = rng();
             let reward = if self.bounds[action.0 as usize].0 == self.bounds[action.0 as usize].1{
                 self.bounds[action.0 as usize].0
             } else {
-                let d = Uniform::new(self.bounds[action.0 as usize].0, self.bounds[action.0 as usize].1);
+                let d = Uniform::new(self.bounds[action.0 as usize].0, self.bounds[action.0 as usize].1)
+                    .map_err(|e| DemoError(e.to_string()))?;
                 d.sample(&mut r)
             };
 

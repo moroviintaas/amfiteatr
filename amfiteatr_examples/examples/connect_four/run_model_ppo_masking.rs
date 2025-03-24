@@ -7,7 +7,7 @@ use crate::common::ErrorRL;
 use crate::options::{ComputeDevice, ConnectFourOptions, Implementation};
 use crate::rust::env::ConnectFourRustEnvState;
 use crate::rust::env_wrapped::PythonPettingZooStateWrap;
-use crate::rust::model::{C4A2CPolicy, C4PPOPolicy, C4PPOPolicyMasking, ConnectFourModelRust};
+use crate::rust::model::{C4PPOPolicyMasking, ConnectFourModelRust};
 
 mod rust;
 pub mod common;

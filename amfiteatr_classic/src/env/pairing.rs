@@ -1,12 +1,12 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 use rand::prelude::SliceRandom;
-use rand::thread_rng;
 use amfiteatr_core::domain::{Renew};
 use amfiteatr_core::env::{GameStateWithPayoffs, SequentialGameState};
 use log::{debug, trace};
 use std::fmt::{Display, Formatter};
 use std::marker::PhantomData;
+use rand::rng;
 use serde::Serialize;
 use amfiteatr_core::error::AmfiteatrError;
 use crate::domain::{AgentNum, ClassicAction, ClassicGameDomain, ClassicGameError, ClassicGameUpdate, EncounterReport, IntReward, UsizeAgentId};
@@ -78,10 +78,9 @@ impl<ID: UsizeAgentId> PairingState<ID>{
          */
 
         let mut indexes: Vec<usize> = (0..players).collect();
-        let mut rng = thread_rng();
+        let mut rng = rng();
         indexes.shuffle(&mut rng);
-        //debug!("Shuffled indexes: {:?}", &indexes);
-        //println!("Shuffled indexes: {:?}", &indexes);
+
         let actual_pairings = Self::create_pairings(&indexes[..])?;
 
         let mut score_cache = Vec::with_capacity(indexes.len());
@@ -136,7 +135,7 @@ impl<ID: UsizeAgentId> PairingState<ID>{
 
     fn prepare_new_pairing(&mut self) -> Result<(), ClassicGameError<ID>>{
 
-        let mut rng = thread_rng();
+        let mut rng = rng();
         self.indexes.shuffle(&mut rng);
         debug!("Preparing new pairings for indexes: {:?}", self.indexes);
         //debug!("Shuffled indexes: {:?}", &self.indexes);
@@ -310,7 +309,7 @@ impl<ID: UsizeAgentId> Renew<ClassicGameDomain<ID>, ()> for PairingState<ID>{
         }
         self.previous_pairings.clear();
         self.current_player_index = 0;
-        let mut rng = thread_rng();
+        let mut rng = rng();
         self.indexes.shuffle(&mut rng);
         self.actual_pairings = Self::create_pairings(&self.indexes[..]).unwrap();
         debug!("After renewing state, with pairings of length = {}", self.actual_pairings.len());

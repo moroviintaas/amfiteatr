@@ -1,7 +1,7 @@
 use std::fmt::Debug;
 use std::marker::PhantomData;
 
-use rand::distributions::uniform::{UniformFloat, UniformSampler};
+use rand::distr::uniform::{UniformFloat, UniformSampler};
 use tch::Kind::Float;
 use tch::nn::{Optimizer, VarStore};
 use tch::{Kind, Reduction, Tensor};
@@ -17,7 +17,7 @@ use amfiteatr_core::domain::DomainParameters;
 use crate::error::AmfiteatrRlError;
 use crate::tensor_data::{ContextEncodeTensor, TensorEncoding};
 use crate::torch_net::NeuralNet1;
-use rand::thread_rng;
+use rand::rng;
 use amfiteatr_core::error::AmfiteatrError;
 use crate::policy::LearningNetworkPolicy;
 pub use crate::policy::TrainConfig;
@@ -61,8 +61,9 @@ impl QSelector{
                 rv.ok().and_then(|v|v.first().map(|i| *i as usize))
             }
             Self::EpsilonGreedy(epsilon) =>{
-                let mut rng = thread_rng();
-                let n: f64 = UniformFloat::<f64>::sample_single(0.0, 1.0, &mut rng);
+                let mut rng = rng();
+                let n: f64 = UniformFloat::<f64>::sample_single(0.0, 1.0, &mut rng)
+                    .unwrap_or(0.0);
                 //println!("n: {n:}, epsilon: {epsilon:}");
                 if n < *epsilon{
                     let probs = q_vals.softmax(-1, Float);
@@ -79,19 +80,6 @@ impl QSelector{
         }
     }
 
-    /*
-    fn logits<R: ProportionalReward<f32>>(values: &[R]) -> Vec<f32>
-    where for<'a> &'a R: Sub<&'a R, Output = R>
-    {
-        let sum = values.iter().fold(R::neutral(), |acc, x|{
-              acc + x
-        });
-        values.iter().map(|v|{
-            v.proportion(&(&sum - v)).ln()
-        }).collect()
-
-
-    }*/
 
 }
 

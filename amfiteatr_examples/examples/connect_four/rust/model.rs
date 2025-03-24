@@ -85,7 +85,6 @@ impl Div<f64> for Summary{
 
 fn build_a2c_policy(layer_sizes: &[i64], device: Device) -> Result<C4A2CPolicy, AmfiteatrRlError<ConnectFourDomain>>{
     let var_store = VarStore::new(device);
-    //let var_store = VarStore::new(Device::Cuda(0));
     let input_shape = ConnectFourTensorReprD1{}.desired_shape()[0];
     let hidden_layers = &layer_sizes;
     let network_pattern = NeuralNetTemplate::new(|path| {

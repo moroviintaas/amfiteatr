@@ -191,7 +191,7 @@ pub trait PolicyHelperPPO<DP: DomainParameters>
 
 
 
-        let mut rng = rand::thread_rng();
+        let mut rng = rand::rng();
 
         let tmp_capacity_estimate = AgentTrajectory::find_max_trajectory_len(&trajectories);
 

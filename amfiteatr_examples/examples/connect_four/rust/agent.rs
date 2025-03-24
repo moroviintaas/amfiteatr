@@ -1,7 +1,6 @@
 use amfiteatr_core::agent::InformationSet;
 use amfiteatr_core::domain::{DomainParameters, Renew};
 use amfiteatr_core::error::{AmfiteatrError, ConvertError, TensorError};
-use amfiteatr_rl::error::TensorRepresentationError;
 use amfiteatr_rl::MaskingInformationSetAction;
 use amfiteatr_rl::tch::Tensor;
 use amfiteatr_rl::tensor_data::{TensorEncoding, ContextEncodeTensor, ContextDecodeTensor, TensorDecoding, ContextEncodeIndexI64, TensorIndexI64Encoding, ContextDecodeIndexI64};

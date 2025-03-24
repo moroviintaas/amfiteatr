@@ -2,7 +2,6 @@ use amfiteatr_core::agent::{InformationSet, PresentPossibleActions};
 use amfiteatr_core::domain::{DomainParameters, Renew};
 use amfiteatr_core::error::{AmfiteatrError, ConvertError};
 use amfiteatr_proc_macro::no_assessment_info_set;
-use amfiteatr_rl::error::TensorRepresentationError;
 use amfiteatr_rl::tch::Tensor;
 use amfiteatr_rl::tensor_data::{TensorEncoding, ContextEncodeTensor};
 use crate::common::{CartPoleAction, CartPoleDomain, CartPoleObservation, SINGLE_PLAYER_ID};

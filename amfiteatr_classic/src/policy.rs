@@ -1,6 +1,6 @@
 use std::cmp::Ordering;
 use std::marker::PhantomData;
-use rand::{Rng, thread_rng};
+use rand::{Rng, rng};
 use amfiteatr_core::agent::{InformationSet, Policy};
 use amfiteatr_core::error::AmfiteatrError;
 use crate::domain::{ClassicAction, ClassicGameDomain, ClassicGameError, UsizeAgentId};
@@ -60,8 +60,8 @@ impl<ID: UsizeAgentId, IS: InformationSet<ClassicGameDomain<ID>>> Policy<Classic
     type InfoSetType = IS ;
 
     fn select_action(&self, _state: &Self::InfoSetType) -> Result<ClassicAction, AmfiteatrError<ClassicGameDomain<ID>>> {
-        let mut rng = thread_rng();
-        let sample = rng.gen_range(0.0..1.0);
+        let mut rng = rng();
+        let sample = rng.random_range(0.0..1.0);
         sample.partial_cmp(&self.probability_up).map(|o|{
           match o{
               Ordering::Less => Up,
