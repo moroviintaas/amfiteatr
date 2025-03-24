@@ -48,8 +48,8 @@ pub type PairingVec<ID> = Vec<PlayerPairing<ID>>;
 /// 3. Every pair makes new encounter.
 /// 4. Every player is subsequently asked to make action which is noted.
 /// 5. After all players moved, reports of every encounter is prepared and sent to all players.
-/// (Every player get complete information about all encounters, what he does with this knowledge
-/// is up to his information set implementation).
+/// > (Every player get complete information about all encounters, what he does with this knowledge
+/// > is up to his information set implementation).
 ///
 #[derive(Debug, Clone, Serialize)]
 pub struct PairingState<ID: UsizeAgentId>{

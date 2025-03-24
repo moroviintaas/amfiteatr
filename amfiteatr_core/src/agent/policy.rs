@@ -17,8 +17,6 @@ pub trait Policy<DP: DomainParameters>: Send{
     /// suggested error is [`AmfiteatrError::NoActionAvailable`](AmfiteatrError::NoActionAvailable).
     ///
     /// Migration from previous version: use `ok_or`
-
-
     fn select_action(&self, state: &Self::InfoSetType) -> Result<DP::ActionType, AmfiteatrError<DP>>;
 }
 

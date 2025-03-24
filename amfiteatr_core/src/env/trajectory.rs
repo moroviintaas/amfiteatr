@@ -86,7 +86,7 @@ impl<'a, DP: DomainParameters, S: SequentialGameState<DP>> GameStepView<'a, DP, 
 /// + __agent__ that performed action,
 /// + __action__ being performed,
 /// + boolean evaluation of __action__ being legal (it usually should be legal, however in case it isn't
-/// it may be noted here.
+///     it may be noted here.
 ///
 /// Trajectory ends with final state.
 /// Data can be considered with following array:

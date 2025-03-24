@@ -118,7 +118,6 @@ impl<Output: NetOutput> NeuralNet< Output>{
 /// structured neural networks you have to clone defined closure and use these cloned closures to
 /// construct two networks. This helper structure allows declaring closure and then using it to
 /// build many neural networks
-
 pub struct NeuralNetTemplate<
     Output: NetOutput,
     N: 'static + Send + Fn(&Tensor) -> Output,

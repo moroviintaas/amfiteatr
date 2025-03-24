@@ -75,8 +75,6 @@ impl StrParsed for (){
 /// will panic because it tires to parse `u8` which is not defined in this system.
 /// To work around we define additional `[primitive]U8(u8)` that and in tree use `Wait(u8)).
 /// It may be changed in the future, when I figure out how to do it better. For now, it works.
-
-
 pub trait PrimitiveMarker<Pt>{
 
 
@@ -140,7 +138,7 @@ impl<'a, T> TokensBorrowed<'a, T>{
         }
     }
 }
-impl<'a, T, Idx> std::ops::Index<Idx> for TokensBorrowed<'a, T>
+impl<T, Idx> std::ops::Index<Idx> for TokensBorrowed<'_, T>
 where Idx: std::slice::SliceIndex<[T]>{
     type Output = Idx::Output;
 
@@ -223,7 +221,7 @@ pub trait TokenParsed<T>: Sized{
 impl<'a, T: Sized> TokenParsed<&'a [T]> for T
 where T: TokenParsed<TokensBorrowed<'a, T>>{
     fn parse_from_tokens(input: &'a [T]) -> IResult<&'a [T], Self> {
-        let tb = TokensBorrowed::from(&input[..]);
+        let tb = TokensBorrowed::from(input);
         T::parse_from_tokens(tb)
             .map(|(rest, element)|{
                 (rest.0, element)

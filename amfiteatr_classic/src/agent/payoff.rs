@@ -13,7 +13,6 @@ use crate::domain::ClassicAction::{Down, Up};
 pub type Level1ActionMap<T> = EnumMap<ClassicAction, T>;
 /// [`EnumMap`] mapping [`Level1ActionMap`] to [`ClassicAction`] used here to store for examples counts
 /// of actions made. You probably want to use wrapping structure [`ActionPairMapper`].
-
 pub type Level2ActionMap<T> = EnumMap<ClassicAction, Level1ActionMap<T>>;
 
 

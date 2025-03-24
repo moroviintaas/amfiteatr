@@ -49,7 +49,7 @@ pub enum ConvertError{
 
 impl<DP: DomainParameters> From<ConvertError> for AmfiteatrError<DP>{
     fn from(error: ConvertError) -> Self {
-        AmfiteatrError::DataConvert(error.into())
+        AmfiteatrError::DataConvert(error)
     }
 }
 

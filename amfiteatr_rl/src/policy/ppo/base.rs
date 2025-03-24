@@ -100,7 +100,6 @@ pub trait PolicyHelperPPO<DP: DomainParameters>
 
 
     /// Tries converting choice tensor to action - for example for single tensor choice `Tensor([3])` - meaning the aaction  with index `3` is selected, the proper action type is constructed.
-
     fn ppo_try_action_from_choice_tensor(&self,
         choice_tensor: &<Self::NetworkOutput as ActorCriticOutput>::ActionTensorType,
     ) -> Result<DP::ActionType, AmfiteatrError<DP>>;
@@ -141,7 +140,7 @@ pub trait PolicyHelperPPO<DP: DomainParameters>
         let out = tch::no_grad(|| (self.ppo_network().net())(&state_tensor));
         //let actor = out.actor;
         //println!("out: {:?}", out);
-        let probs = self.ppo_dist(&info_set, &out)?;
+        let probs = self.ppo_dist(info_set, &out)?;
         //println!("probs: {:?}", probs);
         let choices = match self.ppo_exploration(){
             true => {
@@ -171,7 +170,7 @@ pub trait PolicyHelperPPO<DP: DomainParameters>
         log::trace!("Starting training PPO.");
 
         let device = self.ppo_network().device();
-        let capacity_estimate = AgentTrajectory::sum_trajectories_steps(&trajectories);
+        let capacity_estimate = AgentTrajectory::sum_trajectories_steps(trajectories);
 
         //find single sample step
 
@@ -193,7 +192,7 @@ pub trait PolicyHelperPPO<DP: DomainParameters>
 
         let mut rng = rand::rng();
 
-        let tmp_capacity_estimate = AgentTrajectory::find_max_trajectory_len(&trajectories);
+        let tmp_capacity_estimate = AgentTrajectory::find_max_trajectory_len(trajectories);
 
         let mut state_tensor_vec = Vec::<Tensor>::with_capacity(capacity_estimate);
         //let mut reward_tensor_vec = Vec::<Tensor>::with_capacity(capacity_estimate);
@@ -229,7 +228,7 @@ pub trait PolicyHelperPPO<DP: DomainParameters>
                 for step in t.iter(){
                     #[cfg(feature = "log_trace")]
                     log::trace!("Adding information set tensor to single trajectory vec.",);
-                    tmp_trajectory_state_tensor_vec.push(step.information_set().try_to_tensor(&self.info_set_conversion_context())?);
+                    tmp_trajectory_state_tensor_vec.push(step.information_set().try_to_tensor(self.info_set_conversion_context())?);
                     #[cfg(feature = "log_trace")]
                     log::trace!("Added information set tensor to single trajectory vec.",);
                     //let (act_t, cat_mask_t) = step.action().action_index_and_mask_tensor_vecs(&self.action_conversion_context())?;
@@ -266,13 +265,13 @@ pub trait PolicyHelperPPO<DP: DomainParameters>
                     //chgeck if last step
                     let (next_nonterminal, next_value) = match index == t.number_of_steps() as i64 -1{
                         true => (0.0, Tensor::zeros(values_t.f_get(0)?.size(), (Kind::Float, device))),
-                        false => (1.0, values_t.f_get(index as i64+1)?)
+                        false => (1.0, values_t.f_get(index+1)?)
                     };
                     let delta   = rewards_t.f_get(index)? + (next_value.f_mul_scalar(self.config().gamma)?.f_mul_scalar(next_nonterminal)?) - values_t.f_get(index)?;
                     let last_gae_lambda = delta + (self.config().gamma * self.config().gae_lambda * next_nonterminal);
                     advantages_t.f_get(index)?.f_copy_(&last_gae_lambda)?
                 }
-                returns_v.push(advantages_t.f_add(&values_t)?);
+                returns_v.push(advantages_t.f_add(values_t)?);
 
                 state_tensor_vec.push(information_set_t);
                 advantage_tensor_vec.push(advantages_t);
@@ -366,7 +365,7 @@ pub trait PolicyHelperPPO<DP: DomainParameters>
 
                 let mini_batch_action_forward_mask = match action_forward_masks{
                     None => None,
-                    Some(ref m) => Some(Self::NetworkOutput::index_select(&m, &minibatch_indices)?)
+                    Some(ref m) => Some(Self::NetworkOutput::index_select(m, &minibatch_indices)?)
                 };
 
 

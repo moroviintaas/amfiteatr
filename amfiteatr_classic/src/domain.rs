@@ -259,9 +259,9 @@ pub struct ClassicGameDomain<ID: AgentIdentifier>{
 
 /// Represents outcome of single encounter, meant to be individual for one player.
 /// > Consider player _1_ met player _2_, at some point of game. Both players make some action.
-/// Then for both players there is constructed report of this encounter stating what actions where
-/// played, what was the id of opponent, and on which side player were set (side does not matter if
-/// reward table is symmetric).
+/// > Then for both players there is constructed report of this encounter stating what actions where
+/// > played, what was the id of opponent, and on which side player were set (side does not matter if
+/// > reward table is symmetric).
 #[derive(Debug, Copy, Clone, Serialize)]
 pub struct EncounterReport<ID: UsizeAgentId> {
 
@@ -420,9 +420,9 @@ pub type IntReward = i64;
 pub struct ClassicGameUpdate<ID: UsizeAgentId>{
     /// Information about encounters in this round.
     /// > This may change in the future but now update consists of [EncounterReport] for some players.
-    /// If model expects player to gain only his encounter report it will be HashMap with one element.
-    /// However for models with players having knowledge about other players actions this map would
-    /// contain reports for other players.
+    /// > If model expects player to gain only his encounter report it will be HashMap with one element.
+    /// > However for models with players having knowledge about other players actions this map would
+    /// > contain reports for other players.
     pub encounters: Arc<HashMap<ID, EncounterReport<ID>>>,
     /// Optionally environment can inform agent with whom he was paired for this round.
     pub pairing:  Option<Arc<PairingVec<ID>>>

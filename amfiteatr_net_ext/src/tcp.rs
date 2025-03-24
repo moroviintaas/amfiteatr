@@ -116,9 +116,7 @@ impl<DP: DomainParameters, const SIZE: usize> PairedTcpEnvironmentEndpoint<DP, S
         }).collect();
 
         r_env_connections.and_then(|env|{
-            r_agents_connections.and_then(|agent|{
-                Ok((env, agent))
-            })
+            r_agents_connections.map(|agent| (env, agent))
         })
 
 

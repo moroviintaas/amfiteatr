@@ -35,7 +35,7 @@ fn build_parse_variant_stream(token_type: &TokenStream, token_type_variant: &Tok
     //let stream = make_variant_parser(token);
     match fields{
         Fields::Named(fields_named) => {
-            let ref fields = fields_named.named;
+            let fields = &fields_named.named;
 
             let mut member_idents = Vec::new();
             let mut codes = Vec::new();
@@ -43,7 +43,7 @@ fn build_parse_variant_stream(token_type: &TokenStream, token_type_variant: &Tok
             for field in fields.iter(){
 
 
-                let ref ty  = field.ty;
+                let ty = &field.ty;
                 let field_name = &field.ident.clone().unwrap();
 
                 codes.push(quote! {
@@ -70,14 +70,14 @@ fn build_parse_variant_stream(token_type: &TokenStream, token_type_variant: &Tok
 
         }
         Fields::Unnamed(fields_unnamed) => {
-            let ref fields = fields_unnamed.unnamed;
+            let fields = &fields_unnamed.unnamed;
 
             let mut streams = Vec::new();
             let mut member_names = Vec::new();
             let mut i= 1u8;
             for field in fields.iter(){
                 //if let Some(ref member_type_ident) = field.ident{
-                let ref ty = field.ty;
+                let ty = &field.ty;
                     let this_member_tmp_name = format_ident!("result_member_{}",i);
 
                     streams.push(quote! {
@@ -150,7 +150,7 @@ pub(crate) fn code_for_parse_input_data_from_slice(data: &Data,  token_type: &To
                 });
 
                 for (i, field) in unnamed.unnamed.iter().enumerate(){
-                    let ref ty = field.ty;
+                    let ty = &field.ty;
                     let subname = format_ident!("_member_{}",i);
                     codes.push(quote! {
                         let (rest, #subname) = <#ty as amfiteatr_core::util::TokenParsed<amfiteatr_core::util::TokensBorrowed<'input_lifetime, #token_type>>>::parse_from_tokens(rest)?;
@@ -200,7 +200,7 @@ pub(crate) fn code_for_parse_input_data_from_slice(data: &Data,  token_type: &To
                         if ml.path.is_ident("token"){
                             //let keywords = ml.tokens.clone();
                             let token_type_variant = &ml.tokens;
-                            let variant_stream_parser = build_parse_variant_stream(token_type, token_type_variant, &parsed_variant_ident, &fields);
+                            let variant_stream_parser = build_parse_variant_stream(token_type, token_type_variant, parsed_variant_ident, fields);
 
                             variant_codes.push(variant_stream_parser);
                             break;

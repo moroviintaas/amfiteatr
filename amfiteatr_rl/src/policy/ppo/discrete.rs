@@ -102,7 +102,7 @@ impl<
         action_forward_mask_batches: Option<&Tensor>,
     ) -> Result<(Tensor, Tensor, Tensor), AmfiteatrError<DP>>{
 
-        let critic_actor= (&self.network.net())(info_set_batch);
+        let critic_actor= self.network.net()(info_set_batch);
 
         let batch_logprob = critic_actor.batch_log_probability_of_action::<DP>(
             action_param_batches,
@@ -256,7 +256,7 @@ where
     ContextDecodeIndexI64<ActionBuildContext, > + ContextEncodeIndexI64<ActionBuildContext>
 {
     fn var_store(&self) -> &VarStore {
-        &self.network.var_store()
+        self.network.var_store()
     }
 
     fn var_store_mut(&mut self) -> &mut VarStore {

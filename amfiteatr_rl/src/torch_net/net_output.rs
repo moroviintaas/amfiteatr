@@ -67,7 +67,6 @@ pub trait ActorCriticOutput : NetOutput + Debug{
     /// Returns batched log probability of action.
     /// /// Use when this output is batched - every actor tensor has BATCH_DIMENSION (dimension 0).
     /// This outputs [`Tensor`] that for every member of batch returns log probability of action that is pointed by index..
-
     fn batch_log_probability_of_action<DP: DomainParameters>(&self, param_indices: &Self::ActionTensorType, action_masks: Option<&Self::ActionTensorType>, parameter_masks: Option<&Self::ActionTensorType>)
                                                              -> Result<Tensor, AmfiteatrError<DP>>;
 
@@ -174,7 +173,7 @@ impl ActorCriticOutput for TensorActorCritic{
             }
         }?;
 
-        let choice = log_probs.f_gather(1, &param_indices, false)
+        let choice = log_probs.f_gather(1, param_indices, false)
             .and_then(|t| t.f_flatten(0, -1))
             .map_err(|e| AmfiteatrError::Tensor {
                 error: TensorError::Torch {
@@ -183,7 +182,7 @@ impl ActorCriticOutput for TensorActorCritic{
                 }
             })?;
 
-        match choice.size().get(0){
+        match choice.size().first(){
             None => Err(ZeroBatchSize {
                 context: format!("Batch log probability error. Indexes tensor: {param_indices}, choice tensor: {choice}")
             }.into()),
@@ -230,7 +229,7 @@ impl ActorCriticOutput for TensorActorCritic{
     }
 
     fn index_select(data: &Self::ActionTensorType, indices: &Tensor) -> Result<Self::ActionTensorType, TchError> {
-        data.f_index_select(0, &indices)
+        data.f_index_select(0, indices)
     }
 }
 
@@ -410,16 +409,13 @@ impl ActorCriticOutput for TensorMultiParamActorCritic {
     ///
     /// Now what if some param is not known - like in second batch step.
     /// In action sampling the parameter was sampled it was 0,1 or 2.
-    /// However it was not used in action construction due to some game logic.
+    /// However, it was not used in action construction due to some game logic.
     /// > E.g, when actor decides to shoot he chooses direction and distance (balistic), but when he chooses
-    /// to look (scan) he just need to select direction.
+    /// > to look (scan) he just needs to select direction.
     /// > The action created is Look(Direction), we lose information about distance param, as it is not used.
-    /// When we calculate probability it is now `p(B) = p0(2) * p1(Omega) * p2(1)`.
-    /// And `p1(Omega) = 1.0`.
-    /// In log prob it is `lp(B) = lp0(2) + lp1(Omega) + lp2(1)`. While `lp1(Omega) = 0`.
-    ///
-    ///
-    ///
+    /// > When we calculate probability it is now `p(B) = p0(2) * p1(Omega) * p2(1)`.
+    /// > And `p1(Omega) = 1.0`.
+    /// > In log prob it is `lp(B) = lp0(2) + lp1(Omega) + lp2(1)`. While `lp1(Omega) = 0`.
     /// ```
     ///
     /// use tch::{Device, Kind, Tensor};
@@ -482,7 +478,6 @@ impl ActorCriticOutput for TensorMultiParamActorCritic {
     /// let masked: Vec<f32> = probs_masked.try_into().unwrap();
     /// assert!(masked[1] > unmasked[1]);
     /// ```
-
     fn batch_log_probability_of_action<DP: DomainParameters>(&self, param_indices: &Self::ActionTensorType, action_masks: Option<&Self::ActionTensorType> , param_masks: Option<&Self::ActionTensorType>) -> Result<Tensor, AmfiteatrError<DP>> {
         if param_indices.len() != self.actor.len(){
             return Err(DataError::LengthMismatch {
@@ -536,23 +531,22 @@ impl ActorCriticOutput for TensorMultiParamActorCritic {
                 choices
             }
             Some(masks) => {
-                let masked_param_log_probs = choices.iter().zip(masks.iter())
+                choices.iter().zip(masks.iter())
                     .map(|(logp, mask)|{
                         // if parameter is masked it means it was not used to create action therefore
                         // we set log probability to 0 (probability =1) so it does not change entropy
-                        let masked_log_probs = Tensor::f_einsum("i,i -> i", &[logp, &mask.to_device(self.device())], Option::<i64>::None);
-                        masked_log_probs
+
+                        Tensor::f_einsum("i,i -> i", &[logp, &mask.to_device(self.device())], Option::<i64>::None)
                     }).collect::<Result<Vec<Tensor>, TchError>>().map_err(|e|{
                     TensorError::Torch { origin: format!("{}", e),
                         context: "Calculating batch log-probability of action - during log probs of masked".into() }
-                })?;
-                masked_param_log_probs
+                })?
             }
         };
 
 
 
-        let batch_size = log_probs_vec.get(0)
+        let batch_size = log_probs_vec.first()
             .ok_or_else(|| ZeroBatchSize {
                 context: "batch_log_probability_of_action".into()
             })
@@ -625,7 +619,6 @@ impl ActorCriticOutput for TensorMultiParamActorCritic {
     ///  ];
     /// assert_eq!(&expected, &vec_batch);
     /// ```
-
     fn push_to_vec_batch(vec_batch: &mut Self::ActionBatchTensorType, data: Self::ActionTensorType) {
         for (b_param, d_param) in vec_batch.iter_mut().zip(data.into_iter()){
             b_param.push(d_param);
@@ -687,7 +680,7 @@ impl ActorCriticOutput for TensorMultiParamActorCritic {
 
     fn perform_choice(dist: &Self::ActionTensorType, apply: impl Fn(&Tensor) -> Result<Tensor, TchError>) -> Result<Self::ActionTensorType, TensorError> {
         dist.iter().map(|d|{
-            let is_all_zeros = d.eq_tensor(&Tensor::zeros_like(&d)).all().int64_value(&[]);
+            let is_all_zeros = d.eq_tensor(&Tensor::zeros_like(d)).all().int64_value(&[]);
             if is_all_zeros == 0{
                 apply(d)
 
@@ -705,7 +698,7 @@ impl ActorCriticOutput for TensorMultiParamActorCritic {
 
     fn index_select(data: &Self::ActionTensorType, indices: &Tensor) -> Result<Self::ActionTensorType, TchError>{
         data.iter().map(|c|{
-            c.f_index_select(0, &indices)
+            c.f_index_select(0, indices)
         }).collect::<Result<Vec<_>, TchError>>()
     }
 }
@@ -1022,7 +1015,7 @@ impl NetOutput for TensorMultiParamActorCritic {}
 /// Used usually when converting discrete distribution to action index.
 /// Consider distribution of 4 actions: `[0.3, 0.5, 0.1, 0.1]`
 /// 1. First we sample one number of `(0,1,2,3)` with probabilities above.
-/// Let's say we sampled `1` (here it has 1/2 chance to be so);
+///     Let's say we sampled `1` (here it has 1/2 chance to be so);
 /// 2. At this moment we have Tensor of shape `(1,)` of type `i64`. But we want just number `i64`.
 /// 3. So we need to do this conversion;
 ///

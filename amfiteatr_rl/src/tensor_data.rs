@@ -58,7 +58,7 @@ pub trait ContextEncodeTensor<Ctx: TensorEncoding> : Debug{
             ConvertError::ConvertToTensor {
                 origin: format!("{e}"),
                 context: format!("Flattening tensor {t1:?} from information set: {:?}", self)
-            }.into()
+            }
         })
     }
 
@@ -103,7 +103,6 @@ pub trait ContextMultiTensorEncode<Ctx: MultiTensorEncoding> : Debug{
 }
 
 /// Encoding format of data into index [`Tensor`], usually for mapping discrete actions to index.
-
 pub trait TensorIndexI64Encoding: Send{
     /// Minimal value of index
     fn min(&self) -> i64;
@@ -170,9 +169,9 @@ pub trait ContextEncodeMultiIndexI64<Ctx: MultiTensorIndexI64Encoding>{
     /// Returns vector of choice indexes in every category.
     fn action_indexes(&self, context: &Ctx) -> Result<Vec<Option<i64>>, ConvertError>{
 
-        Ok((0..Ctx::number_of_params()).map(|i|{
+        (0..Ctx::number_of_params()).map(|i|{
             self.param_value(context, i)
-        }).collect::<Result<Vec<Option<i64>>, _>>()?)
+        }).collect::<Result<Vec<Option<i64>>, _>>()
     }
 
 

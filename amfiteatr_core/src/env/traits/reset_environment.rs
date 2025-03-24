@@ -4,7 +4,6 @@ use crate::error::AmfiteatrError;
 
 
 /// Environment with ability to be reset wit new state.
-
 pub trait ReinitEnvironment<DP: DomainParameters>: StatefulEnvironment<DP>{
     /// Reinitialisation should set new state (at the beginning of new game episode)
     /// and it should clear every data from previous episode (optionally it can
@@ -39,9 +38,9 @@ pub trait ReseedEnvironment<DP: DomainParameters, Seed>
 /// These observations should compatible with [`ReseedAgent`](crate::agent::ReseedAgent), then
 /// it can be used to reinitialize agents.
 /// > For example when environment shuffles and distributes card, agents can observe their initial cards
-/// and this information can be used to initialize their information set. Or when constructing similar environment
-/// to [`Gymnasium`](https://gymnasium.farama.org/), while reseeding environment player observes the same data type
-/// as when he makes _step_.
+/// > and this information can be used to initialize their information set. Or when constructing similar environment
+/// > to [`Gymnasium`](https://gymnasium.farama.org/), while reseeding environment player observes the same data type
+/// > as when he makes _step_.
 pub trait DirtyReseedEnvironment<DP: DomainParameters, Seed>{
     /// Observation type for one player (probably corresponding to `ReseedAgent's` [Seed](crate::agent::ReseedAgent)
     /// parameter

@@ -4,7 +4,7 @@ use crate::domain::DomainParameters;
 
 /// Agent that holds some game state
 /// > Formally agent knows _information set_ which can be described as state of the game
-/// from point of view of the agent.
+/// > from point of view of the agent.
 pub trait StatefulAgent<DP: DomainParameters>{
     type InfoSetType: InformationSet<DP>;
 

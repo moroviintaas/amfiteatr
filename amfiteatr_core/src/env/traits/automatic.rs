@@ -56,10 +56,9 @@ impl <
 
     fn send_message(&mut self, agent: &<DP as DomainParameters>::AgentId, message: EnvironmentMessage<DP>) -> Result<(), CommunicationError<DP>> {
         self.send(agent, message)
-            .map_err(|e|{
+            .inspect_err(|e|{
                 self.notify_error(e.clone().into())
-                    .unwrap_or_else(|_|panic!("Failed broadcasting error message {}", &e));
-                e
+                    .unwrap_or_else(|_|panic!("Failed broadcasting error message {}", e));
             })
     }
 

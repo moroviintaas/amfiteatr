@@ -82,7 +82,7 @@ where <DP as DomainParameters>::ActionType:
         action_forward_mask_batches: Option<&Vec<Tensor>>,
     ) -> Result<(Tensor, Tensor, Tensor), AmfiteatrError<DP>>{
 
-        let critic_actor= (&self.network.net())(info_set_batch);
+        let critic_actor= self.network.net()(info_set_batch);
 
         let batch_logprob = critic_actor.batch_log_probability_of_action::<DP>(
             action_param_batches,
@@ -181,7 +181,7 @@ where <DP as DomainParameters>::ActionType: ContextDecodeMultiIndexI64<ActionBui
     + ContextEncodeMultiIndexI64<ActionBuildContext>,
 {
     fn var_store(&self) -> &VarStore {
-        &self.network.var_store()
+        self.network.var_store()
     }
 
     fn var_store_mut(&mut self) -> &mut VarStore {
@@ -287,8 +287,8 @@ PolicyHelperPPO<DP> for PolicyPpoMultiDiscrete<DP, InfoSet, InfoSetConversionCon
     }
 
     fn ppo_vectorise_action_and_create_category_mask(&self, action: &DP::ActionType) -> Result<(<Self::NetworkOutput as ActorCriticOutput>::ActionTensorType, <Self::NetworkOutput as ActorCriticOutput>::ActionTensorType), AmfiteatrError<DP>> {
-        let (act_t, cat_mask_t) = action.action_index_and_mask_tensor_vecs(&self.action_conversion_context())
-            .map_err(|e| AmfiteatrError::from(e))?;
+        let (act_t, cat_mask_t) = action.action_index_and_mask_tensor_vecs(self.action_conversion_context())
+            .map_err(AmfiteatrError::from)?;
 
         Ok((act_t, cat_mask_t))
 

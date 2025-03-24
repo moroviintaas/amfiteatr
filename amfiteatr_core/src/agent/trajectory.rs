@@ -387,14 +387,13 @@ impl<'a, DP: DomainParameters, S: InformationSet<DP>> Iterator for AgentStepIter
 
     fn next(&mut self) -> Option<Self::Item> {
 
-        self.trajectory.view_step(self.index).map(|v|{
+        self.trajectory.view_step(self.index).inspect(|_v|{
             self.index += 1;
-            v
         })
     }
 }
 
-impl<'a, DP: DomainParameters, S: InformationSet<DP>> ExactSizeIterator for AgentStepIterator<'a, DP, S>{
+impl<DP: DomainParameters, S: InformationSet<DP>> ExactSizeIterator for AgentStepIterator<'_, DP, S>{
     fn len(&self) -> usize{
         match self.trajectory.final_info_set{
             Some(_) => self.trajectory.information_sets.len(),

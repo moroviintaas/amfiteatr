@@ -46,10 +46,9 @@ DP: DomainParameters
 
     fn send_message(&mut self, agent: &DP::AgentId, message: EnvironmentMessage<DP>) -> Result<(), CommunicationError<DP>>{
         self.send_to(agent, message)
-            .map_err(|e| {
+            .inspect_err(|e| {
                 self.notify_error(e.clone().into())
-                    .unwrap_or_else(|_| panic!("Failed broadcasting error message {}", &e));
-                e
+                    .unwrap_or_else(|_| panic!("Failed broadcasting error message {}", e));
             })
     }
 
@@ -94,9 +93,8 @@ where Env: CommunicatingEndpointEnvironment<DP, CommunicationError=Communication
                                 Ok(updates) => {
                                     for (ag, update) in updates{
                                         self.send_message(&ag, EnvironmentMessage::UpdateState(update))
-                                            .map_err(|e| {
+                                            .inspect_err(|e| {
                                                 let _ = self.send_to_all(ErrorNotify(e.clone().into()));
-                                                e
                                             })?;
 
                                     }
@@ -200,9 +198,8 @@ where Env: CommunicatingEndpointEnvironment<DP, CommunicationError=Communication
                                 Ok(updates) => {
                                     for (ag, update) in updates{
                                         self.send_message(&ag, EnvironmentMessage::UpdateState(update))
-                                            .map_err(|e|{
+                                            .inspect_err(|e|{
                                                 let _ = self.send_to_all(ErrorNotify(e.clone().into()));
-                                                e
                                             })?;
                                     }
                                     #[cfg(feature = "log_debug")]
@@ -312,9 +309,8 @@ P: Fn(&<Self as StatefulEnvironment<DP>>::State, &DP::AgentId) -> DP::UniversalR
                                 Ok(updates) => {
                                     for (ag, update) in updates{
                                         self.send_message(&ag, EnvironmentMessage::UpdateState(update))
-                                            .map_err(|e|{
+                                            .inspect_err(|e|{
                                                 let _ = self.send_to_all(ErrorNotify(e.clone().into()));
-                                                e
                                             })?;
                                     }
                                     for (player, score) in actual_universal_scores.iter_mut(){
@@ -328,7 +324,7 @@ P: Fn(&<Self as StatefulEnvironment<DP>>::State, &DP::AgentId) -> DP::UniversalR
                                     #[cfg(feature = "log_error")]
                                     log::error!("Player {player:} performed illegal action: {action:}, detailed error: {e}");
                                     let _ = self.send_to(&player, EnvironmentMessage::MoveRefused);
-                                    let _ = self.send_to(&player, EnvironmentMessage::RewardFragment(penalty_fn(&self.state(), &player)));
+                                    let _ = self.send_to(&player, EnvironmentMessage::RewardFragment(penalty_fn(self.state(), &player)));
                                     for (player, score) in actual_universal_scores.iter_mut(){
 
                                         let reward = self.actual_score_of_player(player) - score.clone();

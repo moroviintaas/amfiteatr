@@ -228,9 +228,8 @@ impl <
                                 Ok(updates) => {
                                     for (ag, update) in updates{
                                         self.send_message(&ag, EnvironmentMessage::UpdateState(update))
-                                            .map_err(|e| {
+                                            .inspect_err(|e| {
                                                 let _ = self.send_all(EnvironmentMessage::ErrorNotify(e.clone().into()));
-                                                e
                                             })?;
 
                                     }
@@ -333,9 +332,8 @@ impl <
                                 Ok(updates) => {
                                     for (ag, update) in updates{
                                         self.send_message(&ag, EnvironmentMessage::UpdateState(update))
-                                            .map_err(|e| {
+                                            .inspect_err(|e| {
                                                 let _ = self.send_all(EnvironmentMessage::ErrorNotify(e.clone().into()));
-                                                e
                                             })?;
 
                                     }
@@ -444,9 +442,8 @@ impl <
                                 Ok(updates) => {
                                     for (ag, update) in updates{
                                         self.send_message(&ag, EnvironmentMessage::UpdateState(update))
-                                            .map_err(|e| {
+                                            .inspect_err(|e| {
                                                 let _ = self.send_all(EnvironmentMessage::ErrorNotify(e.clone().into()));
-                                                e
                                             })?;
 
                                     }

@@ -79,7 +79,8 @@ impl<R: Reward + Copy> SymmetricRewardTable<R> {
 
 /// This is reward table for games where it is important on what side the player is.
 /// > May be used for games that has asymmetric tables - if two players switched certain action it
-/// may not necessarily need to reverted payoffs.
+/// > may not necessarily need to reverted payoffs.
+///
 /// The reward table would look like this:
 /// ```norust
 ///  --------------------

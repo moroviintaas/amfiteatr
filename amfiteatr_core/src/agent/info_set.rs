@@ -3,10 +3,10 @@ use crate::domain::{DomainParameters, Reward};
 
 /// Represents agent's point of view on game state.
 /// > Formally _information set_ is subset of game _states_ that are indistinguishable
-/// from the point of view of this agent.
-/// Most common case is when agent does not know some detail of the game state.
-/// Game states with identical observable details but differing in unobservable (not known) detail
-/// form single _information set_.
+/// > from the point of view of this agent.
+/// > Most common case is when agent does not know some detail of the game state.
+/// > Game states with identical observable details but differing in unobservable (not known) detail
+/// > form single _information set_.
 pub trait InformationSet<DP: DomainParameters>: Send + Debug{
 
 
@@ -49,9 +49,9 @@ impl<DP: DomainParameters, T: PresentPossibleActions<DP>> PresentPossibleActions
 /// Information Set that can produce score based on it's state.
 /// This reward can be in different type that defined in [`DomainParameters`](DomainParameters).
 /// > It can represent different kind of reward than defined in protocol parameters.
-/// Primary use case is to allow agent interpret its situation, for example instead of
-/// one numeric value as reward agent may be interested in some vector of numeric values representing
-/// his multi-criterion view on game's result.
+/// > Primary use case is to allow agent interpret its situation, for example instead of
+/// > one numeric value as reward agent may be interested in some vector of numeric values representing
+/// > his multi-criterion view on game's result.
 pub trait EvaluatedInformationSet<DP: DomainParameters, R: Reward>: InformationSet<DP>{
     fn current_assessment(&self) -> R;
     fn penalty_for_illegal(&self) -> R;
@@ -72,8 +72,8 @@ impl<T: EvaluatedInformationSet<DP, R>, DP: DomainParameters, R: Reward> Evaluat
 /// Information set that can be constructed using certain (generic type) value to construct new
 /// information set instance.
 /// > This is meant to be implemented for every information set
-/// used in game by any agent and for state of environment.
-/// Implementing construction based on common seed allows to reload all info sets and states.
+/// > used in game by any agent and for state of environment.
+/// > Implementing construction based on common seed allows to reload all info sets and states.
 pub trait ConstructedInfoSet<DP: DomainParameters, B>: InformationSet<DP> + From<B> {}
 impl<DP: DomainParameters, B, T: InformationSet<DP> + From<B>> ConstructedInfoSet<DP, B> for T{}
 
