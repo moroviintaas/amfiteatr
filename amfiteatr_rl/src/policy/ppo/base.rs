@@ -91,7 +91,7 @@ pub trait PolicyHelperPPO<DP: DomainParameters>
 
 
     /// Generate action masks for information set.
-    /// Lets say that action space is 5 and actions 0,2,3 are illegal now.
+    /// Let's say that action space is 5 and actions 0,2,3 are illegal now.
     /// The result should be Tensor([false, true, false, false, true])
     fn generate_action_masks(&self, information_set: &Self::InfoSet) -> Result<<Self::NetworkOutput as ActorCriticOutput>::ActionTensorType, AmfiteatrError<DP>>;
 
