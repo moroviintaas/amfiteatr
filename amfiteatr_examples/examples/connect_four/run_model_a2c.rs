@@ -6,7 +6,7 @@ use crate::common::ErrorRL;
 use crate::options::{ComputeDevice, ConnectFourOptions, Implementation};
 use crate::rust::env::ConnectFourRustEnvState;
 use crate::rust::env_wrapped::PythonPettingZooStateWrap;
-use crate::rust::model::{C4A2CPolicy, ConnectFourModelRust};
+use crate::rust::model::{C4A2CPolicy, C4A2CPolicyOld, ConnectFourModelRust};
 
 mod rust;
 pub mod common;
@@ -52,7 +52,7 @@ fn main() -> Result<(), ErrorRL>{
             let mut model = ConnectFourModelRust::<ConnectFourRustEnvState, C4A2CPolicy>::new_a2c(
                 &cli.layer_sizes_1[..], &cli.layer_sizes_2[..], device
             );
-            model.run_session(cli.epochs, cli.num_episodes, cli.num_test_episodes)?;
+            model.run_session(cli.epochs, cli.num_episodes, cli.num_test_episodes, cli.extended_epochs)?;
 
         },
 
@@ -66,7 +66,7 @@ fn main() -> Result<(), ErrorRL>{
                    .call_method0("suppress_output").unwrap();
 
             });
-            model.run_session(cli.epochs, cli.num_episodes, cli.num_test_episodes).unwrap();
+            model.run_session(cli.epochs, cli.num_episodes, cli.num_test_episodes, cli.extended_epochs).unwrap();
 
 
         }

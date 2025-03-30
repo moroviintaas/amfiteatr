@@ -7,4 +7,5 @@ mod discrete;
 mod base;
 
 pub use discrete::*;
+pub use base::*;
 

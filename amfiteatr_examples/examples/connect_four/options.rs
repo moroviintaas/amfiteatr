@@ -44,6 +44,9 @@ pub struct ConnectFourOptions{
     #[arg(short = 'e', long = "epochs", default_value = "100")]
     pub epochs: usize,
 
+    #[arg(short = 'E', long = "extended-epochs", default_value = "100")]
+    pub extended_epochs: usize,
+
     #[arg(short = 'g', long = "games", default_value = "128")]
     pub num_episodes: usize,
 

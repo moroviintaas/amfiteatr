@@ -259,8 +259,10 @@ pub trait PolicyHelperPPO<DP: DomainParameters>
                 let rewards_t = Tensor::f_stack(&tmp_trajectory_reward_vec[..],0)?.f_to_device(device)?;
 
                 let advantages_t = Tensor::zeros(critic_t.size(), (Kind::Float, device));
+                let advantages_t2 = Tensor::zeros(critic_t.size(), (Kind::Float, device));
                 //let mut next_is_final = 1f32;
                 let mut last_gae_lambda = Tensor::from(0.0).to_device(device);
+                //let mut last_gae_lambda2 = Tensor::from(0.0).to_device(device);
                 for index in (0..t.number_of_steps()).rev()
                     .map(|i, | i as i64,){
                     //chgeck if last step
@@ -269,8 +271,10 @@ pub trait PolicyHelperPPO<DP: DomainParameters>
                         false => (1.0, critic_t.f_get(index+1)?)
                     };
                     let delta   = rewards_t.f_get(index)? + (next_value.f_mul_scalar(self.config().gamma)?.f_mul_scalar(next_nonterminal)?) - critic_t.f_get(index)?;
+                    //last_gae_lambda = &delta + (  self.config().gamma * self.config().gae_lambda * next_nonterminal);
                     last_gae_lambda = delta + ( last_gae_lambda * self.config().gamma * self.config().gae_lambda * next_nonterminal);
-                    advantages_t.f_get(index)?.f_copy_(&last_gae_lambda)?
+                    advantages_t.f_get(index)?.f_copy_(&last_gae_lambda.detach_copy())?;
+                    //advantages_t2.f_get(index)?.f_copy_(&last_gae_lambda2)?;
                 }
                 returns_vec.push(advantages_t.f_add(critic_t)?);
 
