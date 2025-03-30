@@ -28,6 +28,9 @@ pub struct ConnectFourOptions{
     #[arg(short = 'o', long = "logfile")]
     pub log_file: Option<PathBuf>,
 
+    #[arg(short = 'l', long = "gae-lambda")]
+    pub gae_lambda: Option<f64>,
+
     /*
     #[arg(short = 's', long = "save")]
     pub save_file: Option<PathBuf>,

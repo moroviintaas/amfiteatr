@@ -355,6 +355,8 @@ impl <
     }
 
     fn train_on_trajectories<R: Fn(&AgentStepView<DP, <Self as Policy<DP>>::InfoSetType>) -> Tensor>(&mut self, trajectories: &[AgentTrajectory<DP, <Self as Policy<DP>>::InfoSetType>], reward_f: R) -> Result<(), AmfiteatrRlError<DP>> {
+        #[cfg(feature = "log_trace")]
+        log::trace!("Train on trajectories start.");
         Ok(self.a2c_train_on_trajectories(trajectories, reward_f)?)
     }
 }

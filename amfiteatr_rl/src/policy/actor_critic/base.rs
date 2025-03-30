@@ -3,7 +3,7 @@ use std::panic::resume_unwind;
 use getset::{Getters, Setters};
 use rand::prelude::SliceRandom;
 use tch::nn::Optimizer;
-use tch::{kind, Kind, Tensor};
+use tch::{kind, Kind, TchError, Tensor};
 use tch::Kind::Float;
 use amfiteatr_core::agent::{AgentStepView, AgentTrajectory, InformationSet};
 use amfiteatr_core::domain::DomainParameters;
@@ -142,6 +142,11 @@ pub trait PolicyHelperA2C<DP: DomainParameters>{
         })
     }
 
+
+    fn calculate_delta(index: i64, critic_values: &Tensor, rewards: &Tensor, next_critic_value: &Tensor, gamma: f64, next_nonterminal: f64) -> Result<Tensor, TchError>{
+        Ok(rewards.f_get(index)? + (next_critic_value.f_mul_scalar(gamma)?.f_mul_scalar(next_nonterminal)?) - critic_values.f_get(index)?)
+    }
+
     fn calculate_gae_advantages_and_returns
     <R: Fn(&AgentStepView<DP, Self::InfoSet>) -> Tensor>(
         &self,
@@ -150,7 +155,7 @@ pub trait PolicyHelperA2C<DP: DomainParameters>{
         reward_f: &R,
         gae_lambda: f64,
 
-    ) -> Result<(Tensor, Tensor), AmfiteatrRlError<DP>> {
+    ) -> Result<(Tensor, Tensor), AmfiteatrError<DP>> {
 
         //let device = self.network().device();
 
@@ -163,21 +168,34 @@ pub trait PolicyHelperA2C<DP: DomainParameters>{
             let mut shape = vec![1];
             shape.append(&mut last_reward_shape);
 
-            let rewards_t = Tensor::zeros(shape, (Kind::Float, tch::Device::Cpu));
+            let rewards = trajectory.iter().map(|step|{
+                reward_f(&step)
+            }).collect::<Vec<Tensor>>();
+
+            let rewards_t = Tensor::f_vstack(&rewards)
+                .map_err(|e| TensorError::from_tch_with_context(e, "Stacking rewards for gae advantage computation".into()))?;
             let mut last_gae_lambda = Tensor::from(0.0);
             let advantages_t = Tensor::zeros(critic_t.size(), (Kind::Float, tch::Device::Cpu));
+            #[cfg(feature = "log_trace")]
+            log::trace!("Crirtic tensor: {critic_t}");
             for index in (0..trajectory.number_of_steps()).rev()
                 .map(|i, | i as i64,){
                 //chgeck if last step
                 let (next_nonterminal, next_value) = match index == trajectory.number_of_steps() as i64 -1{
-                    true => (0.0, Tensor::zeros(critic_t.f_get(0)?.size(), (Kind::Float, tch::Device::Cpu))),
-                    false => (1.0, critic_t.f_get(index+1)?)
+                    true => (0.0, Tensor::zeros(critic_t.f_get(0)
+                        .map_err(|e|TensorError::from_tch_with_context(e, "ciritic tensor - get(0)".into()))
+                                                    ?.size(), (Kind::Float, tch::Device::Cpu))),
+                    false => (1.0, critic_t.f_get(index+1)
+                        .map_err(|e|TensorError::from_tch_with_context(e, format!("ciritic tensor - get({})", index + 1)))?)
                 };
-                let delta   = rewards_t.f_get(index)? + (next_value.f_mul_scalar(self.config().gamma())?.f_mul_scalar(next_nonterminal)?) - critic_t.f_get(index)?;
+                //let delta   = rewards_t.get(index)? + (next_value.f_mul_scalar(self.config().gamma())?.f_mul_scalar(next_nonterminal)?) - critic_t.f_get(index)?;
+                let delta = Self::calculate_delta(index, &rewards_t, &critic_t, &next_value, self.config().gamma(), next_nonterminal)
+                    .map_err(|e| TensorError::from_tch_with_context(e, "Calculating delta dor gae lambda".into()))?;
                 last_gae_lambda = delta + ( last_gae_lambda * self.config().gamma() * gae_lambda * next_nonterminal);
-                advantages_t.f_get(index)?.f_copy_(&last_gae_lambda)?
+                advantages_t.get(index).copy_(&last_gae_lambda.detach_copy());
             }
-            let returns_t = advantages_t.f_add(critic_t)?;
+            let returns_t = advantages_t.f_add(critic_t)
+                .map_err(|e| TensorError::from_tch_with_context(e, "Calculating estimated returns from advantages and critic".into()))?;
             Ok((advantages_t, returns_t))
         } else {
             todo!()
@@ -248,6 +266,9 @@ pub trait PolicyTrainHelperA2C<DP: DomainParameters> : PolicyHelperA2C<DP, Confi
         reward_f: R
     ) -> Result<(), AmfiteatrError<DP>>{
         let mut rng = rand::rng();
+
+        #[cfg(feature = "log_trace")]
+        log::trace!("Starting a2c train session");
 
 
         let device = self.network().device();

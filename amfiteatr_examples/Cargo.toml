@@ -33,6 +33,11 @@ required-features = ["rl-python"]
 path = "examples/connect_four/run_model_a2c.rs"
 
 [[example]]
+name = "connect_four_a2c_masking"
+required-features = ["rl-python"]
+path = "examples/connect_four/run_model_a2c_masking.rs"
+
+[[example]]
 name = "connect_four_ppo"
 required-features = ["rl-python"]
 path = "examples/connect_four/run_model_ppo.rs"
