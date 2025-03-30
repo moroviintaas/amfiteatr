@@ -246,7 +246,7 @@ pub trait PolicyTrainHelperA2C<DP: DomainParameters> : PolicyHelperA2C<DP, Confi
     (
         &mut self, trajectories: &[AgentTrajectory<DP, Self::InfoSet>],
         reward_f: R
-    ) -> Result<(), AmfiteatrRlError<DP>>{
+    ) -> Result<(), AmfiteatrError<DP>>{
         let mut rng = rand::rng();
 
 
@@ -331,7 +331,11 @@ pub trait PolicyTrainHelperA2C<DP: DomainParameters> : PolicyHelperA2C<DP, Confi
                     Self::NetworkOutput::push_to_vec_batch(&mut action_masks_vec, self.generate_action_masks(step.information_set())?);
                 }
             }
-            let information_set_t = Tensor::f_stack(&tmp_trajectory_state_tensor_vec[..],0)?.f_to_device(device)?;
+            let information_set_t = Tensor::f_stack(&tmp_trajectory_state_tensor_vec[..],0)
+                .map_err(|e|TensorError::Torch {
+                    origin: format!("{e}"),
+                    context: "Stacking information set - tensors".into(),
+                }) ?.to_device(device);
             #[cfg(feature = "log_trace")]
             log::trace!("Tmp infoset shape = {:?}", information_set_t.size());
             let net_out = tch::no_grad(|| (self.network().net())(&information_set_t));
@@ -358,15 +362,25 @@ pub trait PolicyTrainHelperA2C<DP: DomainParameters> : PolicyHelperA2C<DP, Confi
             Self::NetworkOutput::append_vec_batch(&mut multi_action_cat_mask_tensor_vec, &mut tmp_trajectory_action_category_mask_vecs );
 
         }
-        let batch_info_sets_t = Tensor::f_vstack(&state_tensor_vec)?.move_to_device(device);
+
+        let batch_info_sets_t = Tensor::f_vstack(&state_tensor_vec)
+            .map_err(|e| TensorError::Torch {
+                origin: format!("{e}"),
+                context: "Stacking information sets to batch tensor.".into(),
+            })?
+            .move_to_device(device);
+
+
         let action_forward_masks = match self.is_action_masking_supported(){
             true => Some(Self::NetworkOutput::stack_tensor_batch(&action_masks_vec)?.move_to_device(device)),
             false => None
         };
         #[cfg(feature = "log_trace")]
         log::trace!("Batch infoset shape = {:?}", batch_info_sets_t.size());
-        let batch_advantage_t = Tensor::f_vstack(&advantage_tensor_vec,)?.move_to_device(device);
-        let batch_returns_t = Tensor::f_vstack(&returns_vec)?.move_to_device(device);
+        //let batch_advantage_t = Tensor::f_vstack(&advantage_tensor_vec,)?.move_to_device(device);
+        let batch_returns_t = Tensor::f_vstack(&returns_vec)
+            .map_err(|e| TensorError::from_tch_with_context(e, "Batching return tensors".into()))?
+            .move_to_device(device);
         #[cfg(feature = "log_trace")]
         log::trace!("Batch returns shape = {:?}", batch_returns_t.size());
 
@@ -398,19 +412,23 @@ pub trait PolicyTrainHelperA2C<DP: DomainParameters> : PolicyHelperA2C<DP, Confi
             let minibatch_end = min(minibatch_start + mini_batch_size as i64, batch_size);
             let minibatch_indices = Tensor::from(&indices[minibatch_start as usize..minibatch_end as usize]).to_device(device);
 
-            let mini_batch_action = Self::NetworkOutput::index_select(&batch_actions_t, &minibatch_indices)?;
-            let mini_batch_action_cat_mask = Self::NetworkOutput::index_select(&batch_action_masks_t, &minibatch_indices)?;
+            let mini_batch_action = Self::NetworkOutput::index_select(&batch_actions_t, &minibatch_indices)
+                .map_err(|e| TensorError::from_tch_with_context(e, "Mini-batching action".into()))?;
+            let mini_batch_action_cat_mask = Self::NetworkOutput::index_select(&batch_action_masks_t, &minibatch_indices)
+                .map_err(|e| TensorError::from_tch_with_context(e, "Mini-batching action categories masks".into()))?;
 
             let mini_batch_action_forward_mask = match action_forward_masks{
                 None => None,
-                Some(ref m) => Some(Self::NetworkOutput::index_select(m, &minibatch_indices)?)
+                Some(ref m) => Some(Self::NetworkOutput::index_select(m, &minibatch_indices)
+                    .map_err(|e| TensorError::from_tch_with_context(e, "Mini-batching action masks".into()))?)
             };
 
             //let mini_batch_base_logprobs = batch_logprob_t.f_index_select(0, &minibatch_indices)?;
             #[cfg(feature = "log_trace")]
             log::trace!("Selected minibatch logprobs");
             let (log_probs, entropy, critic) = self.batch_get_logprob_entropy_critic(
-                &batch_info_sets_t.f_index_select(0, &minibatch_indices)?,
+                &batch_info_sets_t.f_index_select(0, &minibatch_indices)
+                    .map_err(|e| TensorError::from_tch_with_context(e, "Calculating log_prob, entropy and critic value for mini-batch".into()))?,
                 &mini_batch_action,
                 Some(&mini_batch_action_cat_mask),
                 mini_batch_action_forward_mask.as_ref(), //to add it some day
@@ -426,7 +444,8 @@ pub trait PolicyTrainHelperA2C<DP: DomainParameters> : PolicyHelperA2C<DP, Confi
             //let ratio  = logratio.f_exp()?;
 
             //let minibatch_advantages_t = batch_advantage_t.f_index_select(0, &minibatch_indices)?;
-            let minibatch_returns_t = batch_returns_t.f_index_select(0, &minibatch_indices)?;
+            let minibatch_returns_t = batch_returns_t.f_index_select(0, &minibatch_indices)
+                .map_err(|e| TensorError::from_tch_with_context(e, "Mini-batching returns".into()))?;
             //let minibatch_values_t = batch_values_t.f_index_select(0, &minibatch_indices)?;
 
             //let dist_entropy = categorical_dist_entropy(&probs, &log_probs, Kind::Float).mean(Float);
@@ -439,10 +458,13 @@ pub trait PolicyTrainHelperA2C<DP: DomainParameters> : PolicyHelperA2C<DP, Confi
 
             let value_loss = (&advantages * &advantages).mean(Float);
             let action_loss = (-advantages.detach() * log_probs).mean(Float);
-            let entropy_loss = entropy.f_mean(Float)?;
+            let entropy_loss = entropy.f_mean(Float)
+                .map_err(|e| TensorError::from_tch_with_context(e, "Calculating entropy loss".into()))?;
             let loss = action_loss
-                .f_add(&(value_loss * self.config().vf_coef))?
-                .f_sub(&(entropy_loss * self.config().ent_coef))?;
+                .f_add(&(value_loss * self.config().vf_coef))
+                .map_err(|e| TensorError::from_tch_with_context(e, "Calculating loss (adding value loss)".into()))?
+                .f_sub(&(entropy_loss * self.config().ent_coef))
+                .map_err(|e| TensorError::from_tch_with_context(e, "Calculating loss (subtracting entropy loss)".into()))?;
 
             self.optimizer_mut().zero_grad();
 
