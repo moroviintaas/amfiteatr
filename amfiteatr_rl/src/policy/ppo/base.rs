@@ -211,7 +211,7 @@ pub trait PolicyHelperPPO<DP: DomainParameters>
 
         let mut tmp_trajectory_reward_vec = Vec::with_capacity(tmp_capacity_estimate);
 
-        let mut returns_v = Vec::new();
+        let mut returns_vec = Vec::new();
 
         #[cfg(feature = "log_debug")]
         log::debug!("Starting operations on trajectories.",);
@@ -253,25 +253,26 @@ pub trait PolicyHelperPPO<DP: DomainParameters>
                 #[cfg(feature = "log_trace")]
                 log::trace!("Tmp infoset shape = {:?}", information_set_t.size());
                 let net_out = tch::no_grad(|| (self.ppo_network().net())(&information_set_t));
-                let values_t = net_out.critic();
+                let critic_t = net_out.critic();
                 #[cfg(feature = "log_trace")]
-                log::trace!("Tmp values_t shape = {:?}", values_t.size());
+                log::trace!("Tmp values_t shape = {:?}", critic_t.size());
                 let rewards_t = Tensor::f_stack(&tmp_trajectory_reward_vec[..],0)?.f_to_device(device)?;
 
-                let advantages_t = Tensor::zeros(values_t.size(), (Kind::Float, device));
+                let advantages_t = Tensor::zeros(critic_t.size(), (Kind::Float, device));
                 //let mut next_is_final = 1f32;
+                let mut last_gae_lambda = Tensor::from(0.0).to_device(device);
                 for index in (0..t.number_of_steps()).rev()
                     .map(|i, | i as i64,){
                     //chgeck if last step
                     let (next_nonterminal, next_value) = match index == t.number_of_steps() as i64 -1{
-                        true => (0.0, Tensor::zeros(values_t.f_get(0)?.size(), (Kind::Float, device))),
-                        false => (1.0, values_t.f_get(index+1)?)
+                        true => (0.0, Tensor::zeros(critic_t.f_get(0)?.size(), (Kind::Float, device))),
+                        false => (1.0, critic_t.f_get(index+1)?)
                     };
-                    let delta   = rewards_t.f_get(index)? + (next_value.f_mul_scalar(self.config().gamma)?.f_mul_scalar(next_nonterminal)?) - values_t.f_get(index)?;
-                    let last_gae_lambda = delta + (self.config().gamma * self.config().gae_lambda * next_nonterminal);
+                    let delta   = rewards_t.f_get(index)? + (next_value.f_mul_scalar(self.config().gamma)?.f_mul_scalar(next_nonterminal)?) - critic_t.f_get(index)?;
+                    last_gae_lambda = delta + ( last_gae_lambda * self.config().gamma * self.config().gae_lambda * next_nonterminal);
                     advantages_t.f_get(index)?.f_copy_(&last_gae_lambda)?
                 }
-                returns_v.push(advantages_t.f_add(values_t)?);
+                returns_vec.push(advantages_t.f_add(critic_t)?);
 
                 state_tensor_vec.push(information_set_t);
                 advantage_tensor_vec.push(advantages_t);
@@ -300,7 +301,7 @@ pub trait PolicyHelperPPO<DP: DomainParameters>
         #[cfg(feature = "log_trace")]
         log::trace!("Batch infoset shape = {:?}", batch_info_sets_t.size());
         let batch_advantage_t = Tensor::f_vstack(&advantage_tensor_vec,)?.move_to_device(device);
-        let batch_returns_t = Tensor::f_vstack(&returns_v)?.move_to_device(device);
+        let batch_returns_t = Tensor::f_vstack(&returns_vec)?.move_to_device(device);
         #[cfg(feature = "log_trace")]
         log::trace!("Batch returns shape = {:?}", batch_returns_t.size());
 

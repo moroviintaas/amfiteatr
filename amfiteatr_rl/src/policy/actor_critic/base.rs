@@ -1,18 +1,36 @@
+use std::cmp::min;
+use std::panic::resume_unwind;
 use getset::{Getters, Setters};
+use rand::prelude::SliceRandom;
 use tch::nn::Optimizer;
 use tch::{kind, Kind, Tensor};
+use tch::Kind::Float;
 use amfiteatr_core::agent::{AgentStepView, AgentTrajectory, InformationSet};
 use amfiteatr_core::domain::DomainParameters;
-use amfiteatr_core::error::AmfiteatrError;
+use amfiteatr_core::error::{AmfiteatrError, TensorError};
 use crate::error::{AmfiteatrRlError, TensorRepresentationError};
+use crate::policy::{categorical_dist_entropy, RlPolicyConfigBasic};
 use crate::tensor_data::{ActionTensorFormat, ContextEncodeTensor, TensorEncoding};
-use crate::torch_net::{ActorCriticOutput, NeuralNet};
+use crate::torch_net::{ActorCriticOutput, DeviceTransfer, NeuralNet};
 
 /// Configuration structure for A2C
 #[derive(Copy, Clone, Debug, Getters, Setters)]
 pub struct ConfigA2C{
     pub gamma: f64,
     pub mini_batch_size: Option<usize>,
+    pub ent_coef: f64,
+    pub vf_coef: f64,
+    pub gae_lambda: Option<f64>
+}
+
+impl RlPolicyConfigBasic for ConfigA2C{
+    fn gamma(&self) -> f64 {
+        self.gamma
+    }
+
+    fn gae_lambda(&self) -> Option<f64> {
+        self.gae_lambda
+    }
 }
 
 impl Default for ConfigA2C {
@@ -20,6 +38,9 @@ impl Default for ConfigA2C {
         Self{
             gamma: 0.99,
             mini_batch_size: Some(16),
+            ent_coef: 0.01,
+            vf_coef: 0.5,
+            gae_lambda: None
         }
     }
 }
@@ -32,7 +53,7 @@ pub trait PolicyHelperA2C<DP: DomainParameters>{
     type ActionConversionContext: ActionTensorFormat<<Self::NetworkOutput as ActorCriticOutput>::ActionTensorType>;
     type NetworkOutput: ActorCriticOutput;
 
-    type Config;
+    type Config: RlPolicyConfigBasic;
 
 
     fn config(&self) -> &Self::Config;
@@ -121,6 +142,101 @@ pub trait PolicyHelperA2C<DP: DomainParameters>{
         })
     }
 
+    fn calculate_gae_advantages_and_returns
+    <R: Fn(&AgentStepView<DP, Self::InfoSet>) -> Tensor>(
+        &self,
+        trajectory: &AgentTrajectory<DP, Self::InfoSet>,
+        critic_t: &Tensor,
+        reward_f: &R,
+        gae_lambda: f64,
+
+    ) -> Result<(Tensor, Tensor), AmfiteatrRlError<DP>> {
+
+        //let device = self.network().device();
+
+
+        if let Some(last_reward) = trajectory.last_view_step()
+            .and_then(|ref t| Some(reward_f(t))){
+
+
+            let mut last_reward_shape = last_reward.size();
+            let mut shape = vec![1];
+            shape.append(&mut last_reward_shape);
+
+            let rewards_t = Tensor::zeros(shape, (Kind::Float, tch::Device::Cpu));
+            let mut last_gae_lambda = Tensor::from(0.0);
+            let advantages_t = Tensor::zeros(critic_t.size(), (Kind::Float, tch::Device::Cpu));
+            for index in (0..trajectory.number_of_steps()).rev()
+                .map(|i, | i as i64,){
+                //chgeck if last step
+                let (next_nonterminal, next_value) = match index == trajectory.number_of_steps() as i64 -1{
+                    true => (0.0, Tensor::zeros(critic_t.f_get(0)?.size(), (Kind::Float, tch::Device::Cpu))),
+                    false => (1.0, critic_t.f_get(index+1)?)
+                };
+                let delta   = rewards_t.f_get(index)? + (next_value.f_mul_scalar(self.config().gamma())?.f_mul_scalar(next_nonterminal)?) - critic_t.f_get(index)?;
+                last_gae_lambda = delta + ( last_gae_lambda * self.config().gamma() * gae_lambda * next_nonterminal);
+                advantages_t.f_get(index)?.f_copy_(&last_gae_lambda)?
+            }
+            let returns_t = advantages_t.f_add(critic_t)?;
+            Ok((advantages_t, returns_t))
+        } else {
+            todo!()
+        }
+
+
+    }
+    fn calculate_advantages_and_returns<R: Fn(&AgentStepView<DP, Self::InfoSet>) -> Tensor>(
+        &self,
+        trajectory: &AgentTrajectory<DP, Self::InfoSet>,
+        critic: &Tensor,
+        reward_f: &R,
+
+    ) -> Result<(Tensor, Tensor), AmfiteatrError<DP>>{
+        let device = self.network().device();
+
+        if let Some(last_reward) = trajectory.last_view_step()
+            .and_then(|ref t| Some(reward_f(t))){
+
+            let mut discounted_payoffs = (0..=trajectory.number_of_steps())
+                .map(|_|Tensor::zeros(last_reward.size(), (Kind::Float, device)))
+                .collect::<Vec<Tensor>>();
+
+            for s in (0..discounted_payoffs.len()-1).rev(){
+                //println!("{}", s);
+                let this_reward = reward_f(&trajectory.view_step(s).unwrap());
+                let r_s = &this_reward + (&discounted_payoffs[s+1] * self.config().gamma());
+                discounted_payoffs[s].copy_(&r_s);
+                #[cfg(feature = "log_trace")]
+                log::trace!("Calculating discounted payoffs for {} step. This step reward {}, following payoff: {}, result: {}.",
+                    s, this_reward, discounted_payoffs[s+1], r_s);
+            }
+            discounted_payoffs.pop();
+
+            let payoff_tensor = Tensor::f_stack(&discounted_payoffs[..], 0)
+                .map_err(|e| TensorError::Torch{
+                    origin: format!("{e}"),
+                    context: "Stacking discounted payoffs to tensor".to_string(),
+                })?
+                .to_device(critic.device());
+
+            let advantage =
+            payoff_tensor.f_sub(&critic).map_err(|e| AmfiteatrError::Tensor {
+                error: TensorError::Torch {
+                    origin: format!("{e}"),
+                    context: "Calculating advantage from criric tensor and discounted payoffs tensor".to_string(),
+                }
+            }
+            )?;
+            Ok((advantage, payoff_tensor))
+
+        } else {
+            todo!()
+        }
+
+
+
+    }
+
 }
 
 pub trait PolicyTrainHelperA2C<DP: DomainParameters> : PolicyHelperA2C<DP, Config=ConfigA2C>{
@@ -131,6 +247,8 @@ pub trait PolicyTrainHelperA2C<DP: DomainParameters> : PolicyHelperA2C<DP, Confi
         &mut self, trajectories: &[AgentTrajectory<DP, Self::InfoSet>],
         reward_f: R
     ) -> Result<(), AmfiteatrRlError<DP>>{
+        let mut rng = rand::rng();
+
 
         let device = self.network().device();
         let capacity_estimate = trajectories.iter().fold(0, |acc, x|{
@@ -156,6 +274,9 @@ pub trait PolicyTrainHelperA2C<DP: DomainParameters> : PolicyHelperA2C<DP, Confi
         let mut advantage_tensor_vec = Vec::<Tensor>::with_capacity(capacity_estimate);
 
         let mut action_masks_vec = Self::NetworkOutput::new_batch_with_capacity(action_params ,capacity_estimate);
+        let mut multi_action_tensor_vec = Self::NetworkOutput::new_batch_with_capacity(action_params, capacity_estimate);
+        let mut multi_action_cat_mask_tensor_vec = Self::NetworkOutput::new_batch_with_capacity(action_params, capacity_estimate);
+
 
 
 
@@ -166,6 +287,8 @@ pub trait PolicyTrainHelperA2C<DP: DomainParameters> : PolicyHelperA2C<DP, Confi
         let mut tmp_trajectory_reward_vec = Vec::with_capacity(tmp_capacity_estimate);
         let mut discounted_payoff_tensor_vec: Vec<Tensor> = Vec::with_capacity(tmp_capacity_estimate+1);
 
+        let mut returns_vec = Vec::with_capacity(capacity_estimate);
+        //let mut gae_returns_v = Vec::new();
         for t in trajectories {
             let steps_in_trajectory = t.number_of_steps();
 
@@ -176,9 +299,11 @@ pub trait PolicyTrainHelperA2C<DP: DomainParameters> : PolicyHelperA2C<DP, Confi
             });
 
             if t.last_view_step().is_none(){
+                #[cfg(feature = "log_debug")]
+                log::debug!("Slipping empty trajectory.");
                 continue;
             }
-            let final_score_t =   reward_f(&t.last_view_step().unwrap());
+            //let final_score_t =   reward_f(&t.last_view_step().unwrap());
 
             tmp_trajectory_state_tensor_vec.clear();
             Self::NetworkOutput::clear_batch_dim_in_batch(&mut tmp_trajectory_action_tensor_vecs);
@@ -210,50 +335,122 @@ pub trait PolicyTrainHelperA2C<DP: DomainParameters> : PolicyHelperA2C<DP, Confi
             #[cfg(feature = "log_trace")]
             log::trace!("Tmp infoset shape = {:?}", information_set_t.size());
             let net_out = tch::no_grad(|| (self.network().net())(&information_set_t));
+            let critic_t = net_out.critic();
             let values_t = net_out.critic();
             #[cfg(feature = "log_trace")]
             log::trace!("Tmp values_t shape = {:?}", values_t.size());
-            let rewards_t = Tensor::f_stack(&tmp_trajectory_reward_vec[..],0)?.f_to_device(device)?;
+            let mut returns_t = Tensor::from(0.0);
 
-            let advantages_t = Tensor::zeros(values_t.size(), (Kind::Float, device));
+            let mut advantages_t = Tensor::from(0.0);
 
-            discounted_payoff_tensor_vec.clear();
-            for _ in 0..=steps_in_trajectory{
-                discounted_payoff_tensor_vec.push(Tensor::zeros(final_score_t.size(), (Kind::Float, device)));
-
+            if let Some(gae_lambda) = self.config().gae_lambda{
+                (advantages_t, returns_t) = tch::no_grad(||self.calculate_gae_advantages_and_returns(t, critic_t, &reward_f, gae_lambda))?;
+            } else {
+                (advantages_t, returns_t) = tch::no_grad(||self.calculate_advantages_and_returns(t, critic_t, &reward_f))?;
             }
 
-            for s in (0..discounted_payoff_tensor_vec.len()-1).rev(){
-                //println!("{}", s);
-                let this_reward = reward_f(&t.view_step(s).unwrap()).to_device(device);
-                let r_s = &this_reward + (&discounted_payoff_tensor_vec[s+1] * self.config().gamma);
-                discounted_payoff_tensor_vec[s].copy_(&r_s);
-                #[cfg(feature = "log_trace")]
-                log::trace!("Calculating discounted payoffs for {} step. This step reward {}, following payoff: {}, result: {}.",
-                    s, this_reward, discounted_payoff_tensor_vec[s+1], r_s);
-            }
-            discounted_payoff_tensor_vec.pop();
 
             state_tensor_vec.push(information_set_t);
+            advantage_tensor_vec.push(advantages_t);
+            returns_vec.push(returns_t);
+            Self::NetworkOutput::append_vec_batch(&mut multi_action_tensor_vec, &mut tmp_trajectory_action_tensor_vecs );
 
+            Self::NetworkOutput::append_vec_batch(&mut multi_action_cat_mask_tensor_vec, &mut tmp_trajectory_action_category_mask_vecs );
 
+        }
+        let batch_info_sets_t = Tensor::f_vstack(&state_tensor_vec)?.move_to_device(device);
+        let action_forward_masks = match self.is_action_masking_supported(){
+            true => Some(Self::NetworkOutput::stack_tensor_batch(&action_masks_vec)?.move_to_device(device)),
+            false => None
+        };
+        #[cfg(feature = "log_trace")]
+        log::trace!("Batch infoset shape = {:?}", batch_info_sets_t.size());
+        let batch_advantage_t = Tensor::f_vstack(&advantage_tensor_vec,)?.move_to_device(device);
+        let batch_returns_t = Tensor::f_vstack(&returns_vec)?.move_to_device(device);
+        #[cfg(feature = "log_trace")]
+        log::trace!("Batch returns shape = {:?}", batch_returns_t.size());
 
+        let batch_actions_t = Self::NetworkOutput::stack_tensor_batch(&multi_action_tensor_vec)?
+            .move_to_device(device);
+        let batch_action_masks_t = Self::NetworkOutput::stack_tensor_batch(&multi_action_cat_mask_tensor_vec)?
+            .move_to_device(device);
+
+        let batch_size = batch_info_sets_t.size()[0];
+        let mut indices: Vec<i64> = (0..batch_size).collect();
+        indices.shuffle(&mut rng);
+
+        /*
+        let (batch_logprob_t, _entropy, _batch_values_t) = tch::no_grad(||{
+            self.batch_get_logprob_entropy_critic(
+                &batch_info_sets_t,
+                &batch_actions_t,
+                Some(&batch_action_masks_t),
+                action_forward_masks.as_ref(),
+            )
+
+        })?;
+
+         */
+
+        let mini_batch_size = self.config().mini_batch_size.unwrap_or(batch_size as usize);
+
+        for minibatch_start in (0..batch_size).step_by(mini_batch_size){
+            let minibatch_end = min(minibatch_start + mini_batch_size as i64, batch_size);
+            let minibatch_indices = Tensor::from(&indices[minibatch_start as usize..minibatch_end as usize]).to_device(device);
+
+            let mini_batch_action = Self::NetworkOutput::index_select(&batch_actions_t, &minibatch_indices)?;
+            let mini_batch_action_cat_mask = Self::NetworkOutput::index_select(&batch_action_masks_t, &minibatch_indices)?;
+
+            let mini_batch_action_forward_mask = match action_forward_masks{
+                None => None,
+                Some(ref m) => Some(Self::NetworkOutput::index_select(m, &minibatch_indices)?)
+            };
+
+            //let mini_batch_base_logprobs = batch_logprob_t.f_index_select(0, &minibatch_indices)?;
+            #[cfg(feature = "log_trace")]
+            log::trace!("Selected minibatch logprobs");
+            let (log_probs, entropy, critic) = self.batch_get_logprob_entropy_critic(
+                &batch_info_sets_t.f_index_select(0, &minibatch_indices)?,
+                &mini_batch_action,
+                Some(&mini_batch_action_cat_mask),
+                mini_batch_action_forward_mask.as_ref(), //to add it some day
+            )?;
             /*
+            let probs = log_probs.f_exp()
+                .map_err(|e| AmfiteatrError::Tensor {error: TensorError::Torch { origin: format!{"{e}"},
+                    context: "Calculating probabilities from log probabilities".to_string() }})?;
 
-            let steps_in_trajectory = t.number_of_steps();
-
-            let mut state_tensor_vec_t: Vec<Tensor> = t.iter().map(|step|{
-                step.information_set().try_to_tensor(&self.info_set_conversion_context())
-            }).collect();
-
-            let mut action_tensor_vec_t: Vec<Tensor> = t.iter().map(|step|{
-                step.action().try_to_tensor().map(|t| t.to_kind(kind::Kind::Int64))
-            }).collect::<Result<Vec<Tensor>, TensorRepresentationError>>()?;
 
              */
+            //let logratio = logprob.f_sub(&mini_batch_base_logprobs)?;
+            //let ratio  = logratio.f_exp()?;
+
+            //let minibatch_advantages_t = batch_advantage_t.f_index_select(0, &minibatch_indices)?;
+            let minibatch_returns_t = batch_returns_t.f_index_select(0, &minibatch_indices)?;
+            //let minibatch_values_t = batch_values_t.f_index_select(0, &minibatch_indices)?;
+
+            //let dist_entropy = categorical_dist_entropy(&probs, &log_probs, Kind::Float).mean(Float);
+
+            let advantages = minibatch_returns_t.f_sub(&critic)
+                .map_err(|e| AmfiteatrError::Tensor {error: TensorError::Torch {
+                    origin: format!{"{e}"},
+                    context: "Calculating A2C advantages.".into(),
+                }})?;
+
+            let value_loss = (&advantages * &advantages).mean(Float);
+            let action_loss = (-advantages.detach() * log_probs).mean(Float);
+            let entropy_loss = entropy.f_mean(Float)?;
+            let loss = action_loss
+                .f_add(&(value_loss * self.config().vf_coef))?
+                .f_sub(&(entropy_loss * self.config().ent_coef))?;
+
+            self.optimizer_mut().zero_grad();
+
+            self.optimizer_mut().backward_step(&loss);
+
         }
 
-        todo!()
+        Ok(())
     }
 
 }
