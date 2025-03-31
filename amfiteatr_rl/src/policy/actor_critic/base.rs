@@ -144,7 +144,7 @@ pub trait PolicyHelperA2C<DP: DomainParameters>{
 
 
     fn calculate_delta(index: i64, critic_values: &Tensor, rewards: &Tensor, next_critic_value: &Tensor, gamma: f64, next_nonterminal: f64) -> Result<Tensor, TchError>{
-        Ok(rewards.f_get(index)? + (next_critic_value.f_mul_scalar(gamma)?.f_mul_scalar(next_nonterminal)?) - critic_values.f_get(index)?)
+        Ok(rewards.f_get(index)? + (next_critic_value * gamma * next_nonterminal) - critic_values.f_get(index)?)
     }
 
     fn calculate_gae_advantages_and_returns
@@ -188,11 +188,11 @@ pub trait PolicyHelperA2C<DP: DomainParameters>{
                     false => (1.0, critic_t.f_get(index+1)
                         .map_err(|e|TensorError::from_tch_with_context(e, format!("ciritic tensor - get({})", index + 1)))?)
                 };
-                //let delta   = rewards_t.get(index)? + (next_value.f_mul_scalar(self.config().gamma())?.f_mul_scalar(next_nonterminal)?) - critic_t.f_get(index)?;
-                let delta = Self::calculate_delta(index, &rewards_t, &critic_t, &next_value, self.config().gamma(), next_nonterminal)
-                    .map_err(|e| TensorError::from_tch_with_context(e, "Calculating delta dor gae lambda".into()))?;
+                let delta   = rewards_t.get(index) + (next_value.f_mul_scalar(self.config().gamma()).unwrap().f_mul_scalar(next_nonterminal).unwrap()) - critic_t.f_get(index).unwrap();
+                //let delta = Self::calculate_delta(index, &rewards_t, &critic_t, &next_value, self.config().gamma(), next_nonterminal)
+                    //.map_err(|e| TensorError::from_tch_with_context(e, "Calculating delta dor gae lambda".into()))?;
                 last_gae_lambda = delta + ( last_gae_lambda * self.config().gamma() * gae_lambda * next_nonterminal);
-                advantages_t.get(index).copy_(&last_gae_lambda.detach_copy());
+                advantages_t.get(index).copy_(&last_gae_lambda);
             }
             let returns_t = advantages_t.f_add(critic_t)
                 .map_err(|e| TensorError::from_tch_with_context(e, "Calculating estimated returns from advantages and critic".into()))?;

@@ -44,7 +44,9 @@ fn main() -> Result<(), ErrorRL>{
     let cli = ConnectFourOptions::parse();
     setup_logger(&cli).unwrap();
 
-    let ppo_config = ConfigPpo::default();
+    let mut ppo_config = ConfigPpo::default();
+
+    ppo_config.gae_lambda = cli.gae_lambda;
 
 
     let device = match cli.device{
