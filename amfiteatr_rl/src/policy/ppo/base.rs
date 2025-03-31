@@ -60,6 +60,7 @@ impl RlPolicyConfigBasic for ConfigPpo{
     }
 }
 
+#[deprecated(since = "0.8.0", note = "Use [PolicyHelperA2C] and [PolicyTrainHelperPPO]")]
 /// The sole purpose of this trait is to provide some function dealing with
 /// information sets and actions using tensors. It is used to create final implementations.
 /// It is made to have single implementation of PPO, regardless if action space is single discrete space or multiple discrete space.
@@ -484,6 +485,7 @@ pub trait PolicyHelperPPO<DP: DomainParameters>
 
 
 }
+
 
 pub trait PolicyTrainHelperPPO<DP: DomainParameters> : PolicyHelperA2C<DP, Config=ConfigPpo>{
 
