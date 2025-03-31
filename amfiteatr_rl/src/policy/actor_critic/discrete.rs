@@ -117,15 +117,15 @@ ContextDecodeIndexI64<ActionEncoding> + ContextEncodeIndexI64<ActionEncoding>{
         &self.network
     }
 
-    fn info_set_conversion_context(&self) -> &Self::InfoSetConversionContext {
+    fn info_set_encoding(&self) -> &Self::InfoSetConversionContext {
         &self.info_set_encoding
     }
 
-    fn action_conversion_context(&self) -> &Self::ActionConversionContext {
+    fn action_encoding(&self) -> &Self::ActionConversionContext {
         &self.action_encoding
     }
 
-    fn dist(&self, info_set: &Self::InfoSet, network_output: &Self::NetworkOutput) -> Result<<Self::NetworkOutput as ActorCriticOutput>::ActionTensorType, AmfiteatrError<DP>> {
+    fn dist(&self, _info_set: &Self::InfoSet, network_output: &Self::NetworkOutput) -> Result<<Self::NetworkOutput as ActorCriticOutput>::ActionTensorType, AmfiteatrError<DP>> {
         Ok(network_output.actor.f_softmax(-1, tch::Kind::Float)
             .map_err(|e| TensorError::from_tch_with_context(e, "Calculating action distribution (a2c_dist)".into()))?)
     }
@@ -274,19 +274,19 @@ impl <
         self.base.network()
     }
 
-    fn info_set_conversion_context(&self) -> &Self::InfoSetConversionContext {
-        self.base.info_set_conversion_context()
+    fn info_set_encoding(&self) -> &Self::InfoSetConversionContext {
+        self.base.info_set_encoding()
     }
 
-    fn action_conversion_context(&self) -> &Self::ActionConversionContext {
-        self.base.action_conversion_context()
+    fn action_encoding(&self) -> &Self::ActionConversionContext {
+        self.base.action_encoding()
     }
 
     fn dist(&self, info_set: &Self::InfoSet, network_output: &Self::NetworkOutput) -> Result<<Self::NetworkOutput as ActorCriticOutput>::ActionTensorType, AmfiteatrError<DP>> {
         let softmax = network_output.actor.f_softmax(-1, tch::Kind::Float)
             .map_err(|e| TensorError::from_tch_with_context(e, "PPO distribution (softmax)".into()))?;
 
-        let masks = info_set.try_build_mask(&self.action_conversion_context())?;
+        let masks = info_set.try_build_mask(&self.action_encoding())?;
 
         let product = softmax.f_mul(&masks)
             .map_err(|e| TensorError::from_tch_with_context(e, "PPO distribution (softmax * mask)".into())
@@ -299,7 +299,7 @@ impl <
     }
 
     fn generate_action_masks(&self, information_set: &Self::InfoSet) -> Result<<Self::NetworkOutput as ActorCriticOutput>::ActionTensorType, AmfiteatrError<DP>> {
-        information_set.try_build_mask(self.action_conversion_context())
+        information_set.try_build_mask(self.action_encoding())
     }
 
     fn is_exploration_on(&self) -> bool {

@@ -63,10 +63,10 @@ pub trait PolicyHelperA2C<DP: DomainParameters>{
     fn network(&self) ->  &NeuralNet<Self::NetworkOutput>;
 
     /// Return tensor encoding context for information set
-    fn info_set_conversion_context(&self) -> &Self::InfoSetConversionContext;
+    fn info_set_encoding(&self) -> &Self::InfoSetConversionContext;
 
     /// Returns tensor index decoding and encoding for action.
-    fn action_conversion_context(&self) -> &Self::ActionConversionContext;
+    fn action_encoding(&self) -> &Self::ActionConversionContext;
 
     /// Uses information set (state) and network output to calculate (masked) action distribution(s).
     fn dist(&self, info_set: &Self::InfoSet, network_output: &Self::NetworkOutput)
@@ -120,7 +120,7 @@ pub trait PolicyHelperA2C<DP: DomainParameters>{
 
     /// Automatically implemented action selection using required methods.
     fn a2c_select_action(&self, info_set: &Self::InfoSet) -> Result<DP::ActionType, AmfiteatrError<DP>>{
-        let state_tensor = info_set.to_tensor(self.info_set_conversion_context());
+        let state_tensor = info_set.to_tensor(self.info_set_encoding());
         let out = tch::no_grad(|| (self.network().net())(&state_tensor));
         //let actor = out.actor;
         //println!("out: {:?}", out);
@@ -286,7 +286,7 @@ pub trait PolicyTrainHelperA2C<DP: DomainParameters> : PolicyHelperA2C<DP, Confi
 
         let sample_info_set = step_example.information_set();
 
-        let sample_info_set_t = sample_info_set.try_to_tensor(self.info_set_conversion_context())?;
+        let sample_info_set_t = sample_info_set.try_to_tensor(self.info_set_encoding())?;
         let sample_net_output = tch::no_grad(|| self.network().net()(&sample_info_set_t));
         let action_params = sample_net_output.param_dimension_size() as usize;
 
@@ -333,7 +333,7 @@ pub trait PolicyTrainHelperA2C<DP: DomainParameters> : PolicyHelperA2C<DP, Confi
             for step in t.iter(){
                 #[cfg(feature = "log_trace")]
                 log::trace!("Adding information set tensor to single trajectory vec.",);
-                tmp_trajectory_state_tensor_vec.push(step.information_set().try_to_tensor(self.info_set_conversion_context())?);
+                tmp_trajectory_state_tensor_vec.push(step.information_set().try_to_tensor(self.info_set_encoding())?);
                 #[cfg(feature = "log_trace")]
                 log::trace!("Added information set tensor to single trajectory vec.",);
                 //let (act_t, cat_mask_t) = step.action().action_index_and_mask_tensor_vecs(&self.action_conversion_context())?;

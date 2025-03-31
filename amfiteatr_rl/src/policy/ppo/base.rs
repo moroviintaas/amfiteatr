@@ -10,7 +10,7 @@ use amfiteatr_core::agent::{AgentStepView, AgentTrajectory, InformationSet};
 use amfiteatr_core::domain::DomainParameters;
 use amfiteatr_core::error::{AmfiteatrError, TensorError};
 use crate::error::AmfiteatrRlError;
-use crate::policy::{ConfigA2C, PolicyHelperA2C, PolicyTrainHelperA2C};
+use crate::policy::{ConfigA2C, PolicyHelperA2C, PolicyTrainHelperA2C, RlPolicyConfigBasic};
 use crate::tensor_data::{ActionTensorFormat, ContextEncodeTensor, TensorEncoding};
 use crate::torch_net::{ActorCriticOutput, DeviceTransfer, NeuralNet};
 
@@ -47,6 +47,16 @@ impl Default for ConfigPpo {
             tensor_kind: tch::kind::Kind::Float,
             update_epochs: 4,
         }
+    }
+}
+
+impl RlPolicyConfigBasic for ConfigPpo{
+    fn gamma(&self) -> f64 {
+        self.gamma
+    }
+
+    fn gae_lambda(&self) -> Option<f64> {
+        self.gae_lambda
     }
 }
 
@@ -499,7 +509,7 @@ pub trait PolicyTrainHelperPPO<DP: DomainParameters> : PolicyHelperA2C<DP, Confi
 
         let sample_info_set = step_example.information_set();
 
-        let sample_info_set_t = sample_info_set.try_to_tensor(self.info_set_conversion_context())?;
+        let sample_info_set_t = sample_info_set.try_to_tensor(self.info_set_encoding())?;
         let sample_net_output = tch::no_grad(|| self.network().net()(&sample_info_set_t));
         let action_params = sample_net_output.param_dimension_size() as usize;
 
@@ -541,7 +551,7 @@ pub trait PolicyTrainHelperPPO<DP: DomainParameters> : PolicyHelperA2C<DP, Confi
                 for step in t.iter(){
                     #[cfg(feature = "log_trace")]
                     log::trace!("Adding information set tensor to single trajectory vec.",);
-                    tmp_trajectory_state_tensor_vec.push(step.information_set().try_to_tensor(self.info_set_conversion_context())?);
+                    tmp_trajectory_state_tensor_vec.push(step.information_set().try_to_tensor(self.info_set_encoding())?);
                     #[cfg(feature = "log_trace")]
                     log::trace!("Added information set tensor to single trajectory vec.",);
                     //let (act_t, cat_mask_t) = step.action().action_index_and_mask_tensor_vecs(&self.action_conversion_context())?;
