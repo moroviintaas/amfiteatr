@@ -361,9 +361,8 @@ pub trait PolicyTrainHelperA2C<DP: DomainParameters> : PolicyHelperA2C<DP, Confi
             log::trace!("Tmp infoset shape = {:?}", information_set_t.size());
             let net_out = tch::no_grad(|| (self.network().net())(&information_set_t));
             let critic_t = net_out.critic();
-            let values_t = net_out.critic();
             #[cfg(feature = "log_trace")]
-            log::trace!("Tmp values_t shape = {:?}", values_t.size());
+            log::trace!("Tmp values_t shape = {:?}", critic_t.size());
             let mut returns_t = Tensor::from(0.0);
 
             let mut advantages_t = Tensor::from(0.0);
