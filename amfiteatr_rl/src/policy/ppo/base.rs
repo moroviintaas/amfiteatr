@@ -17,7 +17,7 @@ use crate::torch_net::{ActorCriticOutput, DeviceTransfer, NeuralNet};
 
 /// Configuration structure for PPO Policy
 #[derive(Copy, Clone, Debug, Getters, Setters)]
-pub struct ConfigPpo {
+pub struct ConfigPPO {
     pub gamma: f64,
     pub clip_vloss: bool,
     pub clip_coef: f64,
@@ -32,8 +32,8 @@ pub struct ConfigPpo {
     //pub
 }
 
-impl Default for ConfigPpo {
-    fn default() -> ConfigPpo {
+impl Default for ConfigPPO {
+    fn default() -> ConfigPPO {
         Self{
             gamma: 0.99,
             clip_vloss: true,
@@ -50,7 +50,7 @@ impl Default for ConfigPpo {
     }
 }
 
-impl RlPolicyConfigBasic for ConfigPpo{
+impl RlPolicyConfigBasic for ConfigPPO {
     fn gamma(&self) -> f64 {
         self.gamma
     }
@@ -68,9 +68,9 @@ impl RlPolicyConfigBasic for ConfigPpo{
 /// **You probably don't need to implement this trait if you can use provided implementations.**
 /// There are provided generic implementations for:
 /// + [`PolicyPpoDiscrete`](crate::policy::ppo::PolicyPpoDiscrete);
-/// + [`PolicyPpoMultiDiscrete`](crate::policy::ppo::PolicyPpoMultiDiscrete);
+/// + [`PolicyPpoMultiDiscrete`](crate::policy::ppo::PolicyMultiDiscretePPO);
 /// + [`PolicyMaskingPpoDiscrete`](crate::policy::ppo::PolicyMaskingPpoDiscrete);
-///+ [`PolicyMaskingPpoMultiDiscrete`](crate::policy::ppo::PolicyMaskingPpoMultiDiscrete).
+///+ [`PolicyMaskingPpoMultiDiscrete`](crate::policy::ppo::PolicyMaskingMultiDiscretePPO).
 pub trait PolicyHelperPPO<DP: DomainParameters>
 {
     type InfoSet: InformationSet<DP> + ContextEncodeTensor<Self::InfoSetConversionContext>;
@@ -80,7 +80,7 @@ pub trait PolicyHelperPPO<DP: DomainParameters>
     type NetworkOutput: ActorCriticOutput;
 
     /// Returns reference to policy config.
-    fn config(&self) -> &ConfigPpo;
+    fn config(&self) -> &ConfigPPO;
 
     /// Mutable reference to optimizer owned by policy.
     fn optimizer_mut(&mut self) -> &mut Optimizer;
@@ -490,7 +490,7 @@ pub trait PolicyHelperPPO<DP: DomainParameters>
 /// Helper trait to build create training interface for PPO Policy.
 /// It provides automatic [`ppo_train_on_trajectories`](PolicyTrainHelperPPO::ppo_train_on_trajectories)
 /// implementation for any (policy) type implementing [`PolicyHelperA2C`].
-pub trait PolicyTrainHelperPPO<DP: DomainParameters> : PolicyHelperA2C<DP, Config=ConfigPpo>{
+pub trait PolicyTrainHelperPPO<DP: DomainParameters> : PolicyHelperA2C<DP, Config=ConfigPPO>{
 
 
     /// Method provided that executes learning step on PPO policy, based on provided [`PolicyHelperA2C`]
@@ -790,7 +790,7 @@ pub trait PolicyTrainHelperPPO<DP: DomainParameters> : PolicyHelperA2C<DP, Confi
 }
 
 impl<T, DP: DomainParameters> PolicyTrainHelperPPO<DP> for T
-    where T: PolicyHelperA2C<DP, Config=ConfigPpo>{}
+    where T: PolicyHelperA2C<DP, Config=ConfigPPO>{}
 
 
 //impl<P:PolicyPPO<DP>, DP: DomainParameters> Policy<DP> for P

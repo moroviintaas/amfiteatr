@@ -437,18 +437,7 @@ pub trait PolicyTrainHelperA2C<DP: DomainParameters> : PolicyHelperA2C<DP, Confi
         let mut indices: Vec<i64> = (0..batch_size).collect();
         indices.shuffle(&mut rng);
 
-        /*
-        let (batch_logprob_t, _entropy, _batch_values_t) = tch::no_grad(||{
-            self.batch_get_logprob_entropy_critic(
-                &batch_info_sets_t,
-                &batch_actions_t,
-                Some(&batch_action_masks_t),
-                action_forward_masks.as_ref(),
-            )
 
-        })?;
-
-         */
 
         let mini_batch_size = self.config().mini_batch_size.unwrap_or(batch_size as usize);
 
@@ -477,17 +466,7 @@ pub trait PolicyTrainHelperA2C<DP: DomainParameters> : PolicyHelperA2C<DP, Confi
                 Some(&mini_batch_action_cat_mask),
                 mini_batch_action_forward_mask.as_ref(), //to add it some day
             )?;
-            /*
-            let probs = log_probs.f_exp()
-                .map_err(|e| AmfiteatrError::Tensor {error: TensorError::Torch { origin: format!{"{e}"},
-                    context: "Calculating probabilities from log probabilities".to_string() }})?;
 
-
-             */
-            //let logratio = logprob.f_sub(&mini_batch_base_logprobs)?;
-            //let ratio  = logratio.f_exp()?;
-
-            //let minibatch_advantages_t = batch_advantage_t.f_index_select(0, &minibatch_indices)?;
             let minibatch_returns_t = batch_returns_t.f_index_select(0, &minibatch_indices)
                 .map_err(|e| TensorError::from_tch_with_context(e, "Mini-batching returns".into()))?;
             //let minibatch_values_t = batch_values_t.f_index_select(0, &minibatch_indices)?;

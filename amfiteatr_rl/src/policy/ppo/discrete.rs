@@ -6,7 +6,7 @@ use amfiteatr_core::agent::{AgentStepView, AgentTrajectory, InformationSet, Poli
 use amfiteatr_core::domain::DomainParameters;
 use amfiteatr_core::error::{AmfiteatrError, TensorError};
 use crate::error::AmfiteatrRlError;
-use crate::policy::{ConfigPpo, LearningNetworkPolicy, PolicyHelperA2C, PolicyHelperPPO, PolicyTrainHelperPPO};
+use crate::policy::{ConfigPPO, LearningNetworkPolicy, PolicyHelperA2C, PolicyHelperPPO, PolicyTrainHelperPPO};
 use crate::{tensor_data, MaskingInformationSetAction};
 use crate::tensor_data::{ContextEncodeIndexI64, ContextEncodeTensor, TensorDecoding, TensorIndexI64Encoding, TensorEncoding, ContextDecodeIndexI64};
 use crate::torch_net::{ActorCriticOutput, NeuralNet, NeuralNetActorCritic, TensorActorCritic};
@@ -20,7 +20,7 @@ pub struct PolicyPpoDiscrete<
     InfoSetConversionContext: TensorEncoding,
     ActionBuildContext: TensorDecoding,
 >{
-    config: ConfigPpo,
+    config: ConfigPPO,
     network: NeuralNetActorCritic,
     optimizer: Optimizer,
     _dp: PhantomData<DP>,
@@ -46,7 +46,7 @@ impl<
     /// use tch::nn::{Adam, VarStore};
     /// use amfiteatr_core::demo::{DemoDomain, DemoInfoSet};
     /// use amfiteatr_rl::demo::{DemoActionConversionContext, DemoConversionToTensor};
-    /// use amfiteatr_rl::policy::{ConfigPpo, PolicyPpoDiscrete};
+    /// use amfiteatr_rl::policy::{ConfigPPO, PolicyPpoDiscrete};
     /// use amfiteatr_rl::torch_net::{NeuralNetActorCritic, TensorActorCritic};
     /// let var_store = VarStore::new(Device::Cpu);
     /// let net = NeuralNetActorCritic::new(var_store, |path|{
@@ -62,7 +62,7 @@ impl<
     ///     }}
     /// });
     /// let optimizer = net.build_optimizer(Adam::default(), 0.01).unwrap();
-    /// let config = ConfigPpo::default();
+    /// let config = ConfigPPO::default();
     /// let demo_info_set_ctx = DemoConversionToTensor::default();
     /// let demo_action_ctx = DemoActionConversionContext{};
     /// let policy: PolicyPpoDiscrete<DemoDomain, DemoInfoSet, DemoConversionToTensor, DemoActionConversionContext> =
@@ -70,7 +70,7 @@ impl<
     ///     config, net, optimizer, demo_info_set_ctx, demo_action_ctx);
     /// ```
     pub fn new(
-        config: ConfigPpo,
+        config: ConfigPPO,
         network: NeuralNetActorCritic,
         optimizer: Optimizer,
         info_set_conversion_context: InfoSetConversionContext,
@@ -143,7 +143,7 @@ impl<
     type InfoSetConversionContext = InfoSetConversionContext;
     type ActionConversionContext = ActionBuildContext;
     type NetworkOutput = TensorActorCritic;
-    type Config = ConfigPpo;
+    type Config = ConfigPPO;
 
     fn config(&self) -> &Self::Config {
         &self.config
@@ -388,7 +388,7 @@ impl<
 > PolicyMaskingPpoDiscrete<DP, InfoSet, InfoSetConversionContext, ActionBuildContext>{
 
     pub fn new(
-        config: ConfigPpo,
+        config: ConfigPPO,
         network: NeuralNetActorCritic,
         optimizer: Optimizer,
         info_set_conversion_context: InfoSetConversionContext,
@@ -432,7 +432,7 @@ impl<
     type InfoSetConversionContext = InfoSetConversionContext;
     type ActionConversionContext = ActionBuildContext;
     type NetworkOutput = TensorActorCritic;
-    type Config = ConfigPpo;
+    type Config = ConfigPPO;
 
     fn config(&self) -> &Self::Config {
         self.base.config()

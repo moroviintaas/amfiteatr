@@ -1,7 +1,7 @@
 use clap::Parser;
 use pyo3::prelude::PyAnyMethods;
 use pyo3::Python;
-use amfiteatr_rl::policy::ConfigPpo;
+use amfiteatr_rl::policy::ConfigPPO;
 use amfiteatr_rl::tch::Device;
 use crate::common::ErrorRL;
 use crate::options::{ComputeDevice, ConnectFourOptions, Implementation};
@@ -44,7 +44,7 @@ fn main() -> Result<(), ErrorRL>{
     let cli = ConnectFourOptions::parse();
     setup_logger(&cli).unwrap();
 
-    let mut ppo_config = ConfigPpo::default();
+    let mut ppo_config = ConfigPPO::default();
 
     ppo_config.gae_lambda = cli.gae_lambda;
 

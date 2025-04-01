@@ -7,7 +7,7 @@ use amfiteatr_core::domain::DomainParameters;
 use amfiteatr_core::error::{AmfiteatrError, TensorError};
 use crate::error::AmfiteatrRlError;
 use crate::policy::actor_critic::base::{ConfigA2C, PolicyHelperA2C, PolicyTrainHelperA2C};
-use crate::policy::{ConfigPpo, LearningNetworkPolicy, PolicyPpoDiscrete};
+use crate::policy::{ConfigPPO, LearningNetworkPolicy, PolicyPpoDiscrete};
 use crate::{MaskingInformationSetAction, tensor_data};
 use crate::tensor_data::{ContextDecodeIndexI64, ContextEncodeIndexI64, ContextEncodeTensor, TensorDecoding, TensorEncoding, TensorIndexI64Encoding};
 use crate::torch_net::{ActorCriticOutput, NeuralNet, NeuralNetActorCritic, TensorActorCritic};
