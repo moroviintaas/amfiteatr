@@ -159,6 +159,7 @@ pub trait PolicyHelperA2C<DP: DomainParameters>{
 
         //let device = self.network().device();
 
+        let device = critic_t.device();
 
         if let Some(last_reward) = trajectory.last_view_step()
             .and_then(|ref t| Some(reward_f(t))){
@@ -173,22 +174,25 @@ pub trait PolicyHelperA2C<DP: DomainParameters>{
             }).collect::<Vec<Tensor>>();
 
             let rewards_t = Tensor::f_vstack(&rewards)
-                .map_err(|e| TensorError::from_tch_with_context(e, "Stacking rewards for gae advantage computation".into()))?;
+                .map_err(|e| TensorError::from_tch_with_context(e, "Stacking rewards for gae advantage computation".into()))?
+                .to_device(device);
             let mut last_gae_lambda = Tensor::from(0.0);
-            let advantages_t = Tensor::zeros(critic_t.size(), (Kind::Float, tch::Device::Cpu));
+            let advantages_t = Tensor::zeros(critic_t.size(), (Kind::Float, device));
             #[cfg(feature = "log_trace")]
             log::trace!("Crirtic tensor: {critic_t}");
             for index in (0..trajectory.number_of_steps()).rev()
                 .map(|i, | i as i64,){
                 //chgeck if last step
                 let (next_nonterminal, next_value) = match index == trajectory.number_of_steps() as i64 -1{
-                    true => (0.0, Tensor::zeros(critic_t.f_get(0)
-                        .map_err(|e|TensorError::from_tch_with_context(e, "ciritic tensor - get(0)".into()))
-                                                    ?.size(), (Kind::Float, tch::Device::Cpu))),
+                    true => (0.0, Tensor::zeros(
+                        critic_t.f_get(0).map_err(|e|TensorError::from_tch_with_context(e, "ciritic tensor - get(0)".into()))?
+                            .size(), (Kind::Float, device))
+                    ),
                     false => (1.0, critic_t.f_get(index+1)
                         .map_err(|e|TensorError::from_tch_with_context(e, format!("ciritic tensor - get({})", index + 1)))?)
                 };
                 let delta   = rewards_t.get(index) + (next_value.f_mul_scalar(self.config().gamma()).unwrap().f_mul_scalar(next_nonterminal).unwrap()) - critic_t.f_get(index).unwrap();
+
                 //let delta = Self::calculate_delta(index, &rewards_t, &critic_t, &next_value, self.config().gamma(), next_nonterminal)
                     //.map_err(|e| TensorError::from_tch_with_context(e, "Calculating delta dor gae lambda".into()))?;
                 last_gae_lambda = delta + ( last_gae_lambda * self.config().gamma() * gae_lambda * next_nonterminal);
@@ -196,6 +200,14 @@ pub trait PolicyHelperA2C<DP: DomainParameters>{
             }
             let returns_t = advantages_t.f_add(critic_t)
                 .map_err(|e| TensorError::from_tch_with_context(e, "Calculating estimated returns from advantages and critic".into()))?;
+
+            #[cfg(feature = "log_trace")]
+            log::trace!("Rewards tensor: {rewards_t}");
+            #[cfg(feature = "log_trace")]
+            log::trace!("Returns tensor: {returns_t}");
+            #[cfg(feature = "log_trace")]
+            log::trace!("Returns tensor: {advantages_t}");
+
             Ok((advantages_t, returns_t))
         } else {
             todo!()
@@ -221,7 +233,7 @@ pub trait PolicyHelperA2C<DP: DomainParameters>{
 
             for s in (0..discounted_payoffs.len()-1).rev(){
                 //println!("{}", s);
-                let this_reward = reward_f(&trajectory.view_step(s).unwrap());
+                let this_reward = reward_f(&trajectory.view_step(s).unwrap()).to_device(device);
                 let r_s = &this_reward + (&discounted_payoffs[s+1] * self.config().gamma());
                 discounted_payoffs[s].copy_(&r_s);
                 #[cfg(feature = "log_trace")]

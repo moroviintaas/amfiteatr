@@ -265,8 +265,9 @@ pub trait PolicyHelperPPO<DP: DomainParameters>
 
                 let information_set_t = Tensor::f_stack(&tmp_trajectory_state_tensor_vec[..],0)?.f_to_device(device)?;
                 #[cfg(feature = "log_trace")]
-                log::trace!("Tmp infoset shape = {:?}", information_set_t.size());
-                let net_out = tch::no_grad(|| (self.ppo_network().net())(&information_set_t));
+                log::trace!("Tmp infoset shape = {:?}, device: {:?}", information_set_t.size(), information_set_t.device());
+
+                let net_out = tch::no_grad(|| self.ppo_network().net()(&information_set_t));
                 let critic_t = net_out.critic();
                 #[cfg(feature = "log_trace")]
                 log::trace!("Tmp values_t shape = {:?}", critic_t.size());
@@ -575,10 +576,10 @@ pub trait PolicyTrainHelperPPO<DP: DomainParameters> : PolicyHelperA2C<DP, Confi
 
 
                 let information_set_t = Tensor::f_stack(&tmp_trajectory_state_tensor_vec[..],0)
-                    .map_err(|e| TensorError::from_tch_with_context(e, "Stacking information sets tensors (from trajectory tensors to batch tensors).".into()))?.
-                    to_device(device);
+                    .map_err(|e| TensorError::from_tch_with_context(e, "Stacking information sets tensors (from trajectory tensors to batch tensors).".into()))?
+                    .to_device(device);
                 #[cfg(feature = "log_trace")]
-                log::trace!("Tmp infoset shape = {:?}", information_set_t.size());
+                log::trace!("Tmp infoset shape = {:?}, device: {:?}", information_set_t.size(), information_set_t.device());
                 let net_out = tch::no_grad(|| (self.network().net())(&information_set_t));
                 let critic_t = net_out.critic();
 
