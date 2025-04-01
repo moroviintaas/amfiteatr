@@ -7,7 +7,7 @@ use tch::{kind, Kind, TchError, Tensor};
 use tch::Kind::Float;
 use amfiteatr_core::agent::{AgentStepView, AgentTrajectory, InformationSet};
 use amfiteatr_core::domain::DomainParameters;
-use amfiteatr_core::error::{AmfiteatrError, TensorError};
+use amfiteatr_core::error::{AmfiteatrError, LearningError, TensorError};
 use crate::error::{AmfiteatrRlError, TensorRepresentationError};
 use crate::policy::{categorical_dist_entropy, RlPolicyConfigBasic};
 use crate::tensor_data::{ActionTensorFormat, ContextEncodeTensor, TensorEncoding};
@@ -45,7 +45,9 @@ impl Default for ConfigA2C {
     }
 }
 
-
+/// Helper trait to build Actor Critic policy.
+/// It requires a number of methods, but provides action selection methods.
+/// Methods required are also used to automatically implement [`PolicyTrainHelperA2C`]/[`PolicyTrainHelperPPO`](crate::policy::PolicyTrainHelperPPO).
 pub trait PolicyHelperA2C<DP: DomainParameters>{
 
     type InfoSet: InformationSet<DP> + ContextEncodeTensor<Self::InfoSetConversionContext>;
@@ -55,12 +57,15 @@ pub trait PolicyHelperA2C<DP: DomainParameters>{
 
     type Config: RlPolicyConfigBasic;
 
-
+    /// Returns reference to policy config.
     fn config(&self) -> &Self::Config;
 
+    /// Mutable reference to optimizer owned by policy.
     fn optimizer_mut(&mut self) -> &mut Optimizer;
 
+    /// Reference to policy neural-network.
     fn network(&self) ->  &NeuralNet<Self::NetworkOutput>;
+
 
     /// Return tensor encoding context for information set
     fn info_set_encoding(&self) -> &Self::InfoSetConversionContext;
@@ -142,11 +147,12 @@ pub trait PolicyHelperA2C<DP: DomainParameters>{
         })
     }
 
-
+    /// Calculates *delta* for GAE advantage.
     fn calculate_delta(index: i64, critic_values: &Tensor, rewards: &Tensor, next_critic_value: &Tensor, gamma: f64, next_nonterminal: f64) -> Result<Tensor, TchError>{
         Ok(rewards.f_get(index)? + (next_critic_value * gamma * next_nonterminal) - critic_values.f_get(index)?)
     }
 
+    /// Calculates gae advantage.
     fn calculate_gae_advantages_and_returns
     <R: Fn(&AgentStepView<DP, Self::InfoSet>) -> Tensor>(
         &self,
@@ -210,11 +216,15 @@ pub trait PolicyHelperA2C<DP: DomainParameters>{
 
             Ok((advantages_t, returns_t))
         } else {
-            todo!()
+            Err(AmfiteatrError::Learning {
+                error: LearningError::EmptyTrajectory
+            })
         }
 
 
     }
+
+    /// Calculates traditional advantage [R(s,a) + (gamma * reward_sum) - V(s) ]
     fn calculate_advantages_and_returns<R: Fn(&AgentStepView<DP, Self::InfoSet>) -> Tensor>(
         &self,
         trajectory: &AgentTrajectory<DP, Self::InfoSet>,
@@ -253,14 +263,16 @@ pub trait PolicyHelperA2C<DP: DomainParameters>{
             payoff_tensor.f_sub(&critic).map_err(|e| AmfiteatrError::Tensor {
                 error: TensorError::Torch {
                     origin: format!("{e}"),
-                    context: "Calculating advantage from criric tensor and discounted payoffs tensor".to_string(),
+                    context: "Calculating advantage from critic tensor and discounted payoffs tensor".to_string(),
                 }
             }
             )?;
             Ok((advantage, payoff_tensor))
 
         } else {
-            todo!()
+            Err(AmfiteatrError::Learning {
+                error: LearningError::EmptyTrajectory
+            })
         }
 
 

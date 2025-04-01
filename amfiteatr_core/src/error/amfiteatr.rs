@@ -1,6 +1,7 @@
 use thiserror::Error;
 use crate::error::{CommunicationError, ConvertError, DataError, ProtocolError, TrajectoryError, ModelError};
 use crate::domain::{DomainParameters};
+use crate::error::learning::LearningError;
 use crate::error::tensor::TensorError;
 
 /// Top level crate error, constructed from more specific error.
@@ -91,6 +92,11 @@ pub enum AmfiteatrError<DP: DomainParameters>{
         #[source]
         error: DataError,
     },
+    #[error("Learning policy error")]
+    Learning{
+        #[source]
+        error: LearningError,
+    }
     //#[error("External: {0}")]
     //External(String)
 }

@@ -24,6 +24,7 @@ mod model;
 mod trajectory;
 mod tensor;
 mod data;
+mod learning;
 
 pub use comm::*;
 pub use self::amfiteatr::*;
@@ -35,3 +36,4 @@ pub use model::*;
 pub use trajectory::*;
 pub use tensor::*;
 pub use data::*;
+pub use learning::*;

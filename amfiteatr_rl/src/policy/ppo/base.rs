@@ -123,7 +123,7 @@ pub trait PolicyHelperPPO<DP: DomainParameters>
     /// This function makes more sense with multi tensor actions.
     /// Suppose you have some action B(7,3), where B, 7 and 3 are parameters from three different parameter distribution.
     /// Action is chosen from five parameters, but when parameter i0 is B parameters i1 and i4 are not used.
-    /// Therefore when constructing ac`tion B we lose information of sampling of parameters i1 and i4.
+    /// Therefore, when constructing ac`tion B we lose information of sampling of parameters i1 and i4.
     /// What;s more they do not had impact on game result, therefore we would like to avoid including them in calculating B(7,3) probability,
     /// and somehow exclude them from impact on entropy.
     /// So in this case we would produce from B(7,3):
@@ -487,9 +487,13 @@ pub trait PolicyHelperPPO<DP: DomainParameters>
 
 }
 
-
+/// Helper trait to build create training interface for PPO Policy.
+/// It provides automatic [`ppo_train_on_trajectories`](PolicyTrainHelperPPO::ppo_train_on_trajectories)
+/// implementation for any (policy) type implementing [`PolicyHelperA2C`].
 pub trait PolicyTrainHelperPPO<DP: DomainParameters> : PolicyHelperA2C<DP, Config=ConfigPpo>{
 
+
+    /// Method provided that executes learning step on PPO policy, based on provided [`PolicyHelperA2C`]
     fn ppo_train_on_trajectories<
         R: Fn(&AgentStepView<DP, Self::InfoSet>) -> Tensor>
     (
