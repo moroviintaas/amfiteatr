@@ -10,7 +10,7 @@ use amfiteatr_core::domain::Renew;
 use amfiteatr_core::env::{GameStateWithPayoffs, HashMapEnvironment, ReseedEnvironment, RoundRobinPenalisingUniversalEnvironment, StatefulEnvironment};
 use amfiteatr_core::error::AmfiteatrError;
 use amfiteatr_rl::error::AmfiteatrRlError;
-use amfiteatr_rl::policy::{ActorCriticPolicy, ConfigA2C, ConfigPPO, LearningNetworkPolicy, PolicyA2cDiscrete, PolicyMaskingA2cDiscrete, PolicyMaskingPpoDiscrete, PolicyPpoDiscrete, TrainConfig};
+use amfiteatr_rl::policy::{ActorCriticPolicy, ConfigA2C, ConfigPPO, LearningNetworkPolicy, PolicyDiscreteA2C, PolicyMaskingDiscreteA2C, PolicyMaskingDiscretePPO, PolicyDiscretePPO, TrainConfig};
 use amfiteatr_rl::tch::{Device, nn, Tensor};
 use amfiteatr_rl::tch::nn::{Adam, OptimizerConfig, VarStore};
 use amfiteatr_rl::tensor_data::TensorEncoding;
@@ -185,7 +185,7 @@ fn build_a2c_policy(layer_sizes: &[i64], device: Device, gae_lambda: Option<f64>
 
     let mut config = ConfigA2C::default();
     config.gae_lambda = gae_lambda;
-    Ok(PolicyA2cDiscrete::new(
+    Ok(PolicyDiscreteA2C::new(
         config,
         net,
         optimiser,
@@ -243,7 +243,7 @@ fn build_a2c_policy_masking(layer_sizes: &[i64], device: Device, gae_lambda: Opt
 
     let mut config = ConfigA2C::default();
     config.gae_lambda = gae_lambda;
-    Ok(PolicyMaskingA2cDiscrete::new(
+    Ok(PolicyMaskingDiscreteA2C::new(
         config,
         net,
         optimiser,
@@ -299,7 +299,7 @@ fn build_ppo_policy_masking(layer_sizes: &[i64], device: Device, config: ConfigP
     let optimiser = Adam::default().build(&var_store, 1e-4)?;
     let net = A2CNet::new(var_store, net, );
 
-    Ok(PolicyMaskingPpoDiscrete::new(
+    Ok(PolicyMaskingDiscretePPO::new(
         config,
         net,
         optimiser,
@@ -314,10 +314,10 @@ fn build_ppo_policy(layer_sizes: &[i64], device: Device, config: ConfigPPO) -> R
 
 
 pub type C4A2CPolicyOld = ActorCriticPolicy<ConnectFourDomain, ConnectFourInfoSet, ConnectFourTensorReprD1>;
-pub type C4A2CPolicy = PolicyA2cDiscrete<ConnectFourDomain, ConnectFourInfoSet, ConnectFourTensorReprD1, ConnectFourActionTensorRepresentation>;
-pub type C4A2CPolicyMasking = PolicyMaskingA2cDiscrete<ConnectFourDomain, ConnectFourInfoSet, ConnectFourTensorReprD1, ConnectFourActionTensorRepresentation>;
-pub type C4PPOPolicy = PolicyPpoDiscrete<ConnectFourDomain, ConnectFourInfoSet, ConnectFourTensorReprD1, ConnectFourActionTensorRepresentation>;
-pub type C4PPOPolicyMasking = PolicyMaskingPpoDiscrete<ConnectFourDomain, ConnectFourInfoSet, ConnectFourTensorReprD1, ConnectFourActionTensorRepresentation>;
+pub type C4A2CPolicy = PolicyDiscreteA2C<ConnectFourDomain, ConnectFourInfoSet, ConnectFourTensorReprD1, ConnectFourActionTensorRepresentation>;
+pub type C4A2CPolicyMasking = PolicyMaskingDiscreteA2C<ConnectFourDomain, ConnectFourInfoSet, ConnectFourTensorReprD1, ConnectFourActionTensorRepresentation>;
+pub type C4PPOPolicy = PolicyDiscretePPO<ConnectFourDomain, ConnectFourInfoSet, ConnectFourTensorReprD1, ConnectFourActionTensorRepresentation>;
+pub type C4PPOPolicyMasking = PolicyMaskingDiscretePPO<ConnectFourDomain, ConnectFourInfoSet, ConnectFourTensorReprD1, ConnectFourActionTensorRepresentation>;
 type Environment<S> = HashMapEnvironment<ConnectFourDomain, S, StdEnvironmentEndpoint<ConnectFourDomain>>;
 type Agent<P> = TracingAgentGen<ConnectFourDomain, P, StdAgentEndpoint<ConnectFourDomain>>;
 pub struct ConnectFourModelRust<S: GameStateWithPayoffs<ConnectFourDomain>, P: LearningNetworkPolicy<ConnectFourDomain>>{

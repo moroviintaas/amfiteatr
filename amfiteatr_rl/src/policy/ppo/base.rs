@@ -67,9 +67,9 @@ impl RlPolicyConfigBasic for ConfigPPO {
 /// And whenever action masking is supported.
 /// **You probably don't need to implement this trait if you can use provided implementations.**
 /// There are provided generic implementations for:
-/// + [`PolicyPpoDiscrete`](crate::policy::ppo::PolicyPpoDiscrete);
+/// + [`PolicyPpoDiscrete`](crate::policy::ppo::PolicyDiscretePPO);
 /// + [`PolicyPpoMultiDiscrete`](crate::policy::ppo::PolicyMultiDiscretePPO);
-/// + [`PolicyMaskingPpoDiscrete`](crate::policy::ppo::PolicyMaskingPpoDiscrete);
+/// + [`PolicyMaskingPpoDiscrete`](crate::policy::ppo::PolicyMaskingDiscretePPO);
 ///+ [`PolicyMaskingPpoMultiDiscrete`](crate::policy::ppo::PolicyMaskingMultiDiscretePPO).
 pub trait PolicyHelperPPO<DP: DomainParameters>
 {
@@ -579,18 +579,28 @@ pub trait PolicyTrainHelperPPO<DP: DomainParameters> : PolicyHelperA2C<DP, Confi
                 }
 
 
-                let information_set_t = Tensor::f_stack(&tmp_trajectory_state_tensor_vec[..],0)
+                let information_set_t = Tensor::f_stack(&tmp_trajectory_state_tensor_vec[..], 0)
                     .map_err(|e| TensorError::from_tch_with_context(e, "Stacking information sets tensors (from trajectory tensors to batch tensors).".into()))?
                     .to_device(device);
+                #[cfg(feature = "log_trace")]
+                log::trace!("State tensor vector: {:?}", tmp_trajectory_state_tensor_vec);
+
                 #[cfg(feature = "log_trace")]
                 log::trace!("Tmp infoset shape = {:?}, device: {:?}", information_set_t.size(), information_set_t.device());
                 let net_out = tch::no_grad(|| (self.network().net())(&information_set_t));
                 let critic_t = net_out.critic();
+                #[cfg(feature = "log_trace")]
+                log::trace!("Critic: {}", critic_t);
 
                 let (advantages_t, returns_t) = match self.config().gae_lambda {
                     Some(gae_lambda) => tch::no_grad(||self.calculate_gae_advantages_and_returns(t, critic_t, &reward_f, gae_lambda))?,
                     None => tch::no_grad(||self.calculate_advantages_and_returns(t, critic_t, &reward_f))?
                 };
+
+                #[cfg(feature = "log_trace")]
+                log::trace!("trajectory advantages_t {:}", advantages_t);
+                #[cfg(feature = "log_trace")]
+                log::trace!("trajectory returns_t {:}", returns_t);
 
                 returns_vec.push(returns_t);
 
@@ -725,10 +735,21 @@ pub trait PolicyTrainHelperPPO<DP: DomainParameters> : PolicyHelperA2C<DP, Confi
                 let approx_kl = r_approx_kl
                     .map_err(|e| TensorError::from_tch_with_context(e, "Calculating KL approximation".into()))?;
 
+                #[cfg(feature = "log_trace")]
+                log::trace!("Minibatch indices: {:}", minibatch_indices);
+                #[cfg(feature = "log_trace")]
+                log::trace!("Batch advantage t: {:?}", batch_advantage_t);
+
+
+
                 let minibatch_advantages_t = batch_advantage_t.f_index_select(0, &minibatch_indices)
                     .map_err(|e| TensorError::from_tch_with_context(e, "Mini-batching advantages".into()))?;
+                #[cfg(feature = "log_trace")]
+                log::trace!("Batch returns: {:?}", batch_returns_t);
                 let minibatch_returns_t = batch_returns_t.f_index_select(0, &minibatch_indices)
                     .map_err(|e| TensorError::from_tch_with_context(e, "Mini-batching returns".into()))?;
+                #[cfg(feature = "log_trace")]
+                log::trace!("Batch values: {:?}", batch_values_t);
                 let minibatch_values_t = batch_values_t.f_index_select(0, &minibatch_indices)
                     .map_err(|e| TensorError::from_tch_with_context(e, "Mini-batching critic values".into()))?;
                 #[cfg(feature = "log_debug")]

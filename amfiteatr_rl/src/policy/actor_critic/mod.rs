@@ -9,4 +9,5 @@ mod multi_discrete;
 
 pub use discrete::*;
 pub use base::*;
+pub use multi_discrete::*;
 

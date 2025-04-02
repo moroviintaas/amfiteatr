@@ -236,7 +236,8 @@ pub trait PolicyHelperA2C<DP: DomainParameters>{
 
         if let Some(last_reward) = trajectory.last_view_step()
             .and_then(|ref t| Some(reward_f(t))){
-
+            #[cfg(feature = "log_trace")]
+            log::trace!("Last reward size: {:?}, last reward: {}", last_reward.size(), last_reward);
             let mut discounted_payoffs = (0..=trajectory.number_of_steps())
                 .map(|_|Tensor::zeros(last_reward.size(), (Kind::Float, device)))
                 .collect::<Vec<Tensor>>();
@@ -252,13 +253,21 @@ pub trait PolicyHelperA2C<DP: DomainParameters>{
             }
             discounted_payoffs.pop();
 
-            let payoff_tensor = Tensor::f_stack(&discounted_payoffs[..], 0)
+            #[cfg(feature = "log_trace")]
+            log::trace!("Discounted payoffs for trajectory: {:?}", discounted_payoffs);
+
+            #[cfg(feature = "log_trace")]
+            log::trace!("Critic tensor: {}", critic);
+
+            let payoff_tensor = Tensor::f_vstack(&discounted_payoffs[..])
                 .map_err(|e| TensorError::Torch{
                     origin: format!("{e}"),
                     context: "Stacking discounted payoffs to tensor".to_string(),
                 })?
                 .to_device(critic.device());
 
+            #[cfg(feature = "log_trace")]
+            log::trace!("Payoff tensor: {}", payoff_tensor);
             let advantage =
             payoff_tensor.f_sub(&critic).map_err(|e| AmfiteatrError::Tensor {
                 error: TensorError::Torch {
