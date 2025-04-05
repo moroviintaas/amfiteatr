@@ -212,7 +212,7 @@ pub trait PolicyHelperA2C<DP: DomainParameters>{
             #[cfg(feature = "log_trace")]
             log::trace!("Returns tensor: {returns_t}");
             #[cfg(feature = "log_trace")]
-            log::trace!("Returns tensor: {advantages_t}");
+            log::trace!("Advantages tensor: {advantages_t}");
 
             Ok((advantages_t, returns_t))
         } else {
