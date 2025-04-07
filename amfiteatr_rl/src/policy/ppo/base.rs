@@ -608,8 +608,8 @@ pub trait PolicyTrainHelperPPO<DP: DomainParameters> : PolicyHelperA2C<DP, Confi
                 advantage_tensor_vec.push(advantages_t);
                 #[cfg(feature = "log_trace")]
                 log::trace!("tmp_trajectory_action_tensor_vecs: {:?}", tmp_trajectory_action_tensor_vecs);
-                #[cfg(feature = "log_trace")]
-                log::trace!("multi_action_tensor_vec: {:?}", multi_action_tensor_vec);
+                //#[cfg(feature = "log_trace")]
+                //log::trace!("multi_action_tensor_vec: {:?}", multi_action_tensor_vec);
                 Self::NetworkOutput::append_vec_batch(&mut multi_action_tensor_vec, &mut tmp_trajectory_action_tensor_vecs );
 
                 Self::NetworkOutput::append_vec_batch(&mut multi_action_cat_mask_tensor_vec, &mut tmp_trajectory_action_category_mask_vecs );
@@ -764,6 +764,12 @@ pub trait PolicyTrainHelperPPO<DP: DomainParameters> : PolicyHelperA2C<DP, Confi
                     .map_err(|e| TensorError::from_tch_with_context(e, "Clamping ratio (pg_loss 2)".into()))?);
                 let pg_loss = pg_loss1.max_other(&pg_loss2).mean(self.config().tensor_kind);
 
+                #[cfg(feature = "log_trace")]
+                log::trace!("Minibatch critic: {newvalue}");
+
+                #[cfg(feature = "log_trace")]
+                log::trace!("Minibatch returns: {minibatch_returns_t}");
+
                 #[cfg(feature = "log_debug")]
                 log::debug!("PG loss : {}", pg_loss);
 
@@ -780,10 +786,13 @@ pub trait PolicyTrainHelperPPO<DP: DomainParameters> : PolicyHelperA2C<DP, Confi
                     );
                     let v_loss_clipped = (v_clipped - &minibatch_returns_t).square();
                     let v_loss_max = v_loss_unclipped.max_other(&v_loss_clipped);
-                    v_loss_max.mean(tch::Kind::Float) * 0.5
+                    v_loss_max.mean(tch::Kind::Float) * self.config().vf_coef
                 } else {
-                    (newvalue -&minibatch_returns_t).square().mean(Float) *0.5
+                    (newvalue -&minibatch_returns_t).square().mean(Float) * self.config().vf_coef
                 };
+
+                #[cfg(feature = "log_debug")]
+                log::debug!("V loss : {}", v_loss);
 
                 let entropy_loss = entropy.mean(Float);
                 let loss = pg_loss

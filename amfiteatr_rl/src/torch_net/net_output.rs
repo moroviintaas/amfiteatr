@@ -562,16 +562,26 @@ impl ActorCriticOutput for TensorMultiParamActorCritic {
         };
 
 
+        #[cfg(feature = "log_trace")]
+        for (i, t) in choices.iter().enumerate(){
+            log::trace!("Category: {i:?} choice log probability tensor: {t}");
+        }
+
+
+        //let log_probs_vec = choices;
+
         let log_probs_vec = match param_masks{
             None => {
                 choices
             }
             Some(masks) => {
+
                 choices.iter().zip(masks.iter())
                     .map(|(logp, mask)|{
                         // if parameter is masked it means it was not used to create action therefore
                         // we set log probability to 0 (probability =1) so it does not change entropy
-
+                        #[cfg(feature = "log_trace")]
+                        log::trace!("Category:  mask: {mask}",);
                         Tensor::f_einsum("i,i -> i", &[logp, &mask.to_device(self.device())], Option::<i64>::None)
                     }).collect::<Result<Vec<Tensor>, TchError>>().map_err(|e|{
                     TensorError::Torch { origin: format!("{}", e),
@@ -579,6 +589,17 @@ impl ActorCriticOutput for TensorMultiParamActorCritic {
                 })?
             }
         };
+
+
+
+
+        #[cfg(feature = "log_trace")]
+        for (i, t) in log_probs_vec.iter().enumerate(){
+
+            log::trace!("Category: {i:?} masked choice log probability tensor: {t}");
+        }
+
+
 
 
 
@@ -606,6 +627,9 @@ impl ActorCriticOutput for TensorMultiParamActorCritic {
                 context:  "Calculating batch log-probability of action - during summing log probs".into() }
             })?;
         }
+
+        #[cfg(feature = "log_trace")]
+        log::trace!("Log probability sum = {sum}");
 
 
 
