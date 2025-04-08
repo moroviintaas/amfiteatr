@@ -547,6 +547,7 @@ where <P as Policy<ConnectFourDomain>>::InfoSetType: Renew<ConnectFourDomain, ()
         self.agent1.policy_mut().train_on_trajectories_env_reward(&t1)?;
         let t2 = self.agent2.take_episodes();
         self.agent2.policy_mut().train_on_trajectories_env_reward(&t2)?;
+        //self.agent2.policy_mut().train_on_trajectories(&t2, |step| Tensor::from(-1.0 + (2.0 * step.reward())))?;
 
         Ok(())
     }

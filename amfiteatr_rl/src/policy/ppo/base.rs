@@ -29,7 +29,7 @@ pub struct ConfigPPO {
     pub mini_batch_size: usize,
     pub tensor_kind: tch::kind::Kind,
     pub update_epochs: usize,
-    //pub
+    pub target_kl: Option<f64>,
 }
 
 impl Default for ConfigPPO {
@@ -46,6 +46,7 @@ impl Default for ConfigPPO {
             mini_batch_size: 16,
             tensor_kind: tch::kind::Kind::Float,
             update_epochs: 4,
+            target_kl: None,
         }
     }
 }
@@ -586,7 +587,7 @@ pub trait PolicyTrainHelperPPO<DP: DomainParameters> : PolicyHelperA2C<DP, Confi
                 log::trace!("State tensor vector: {:?}", tmp_trajectory_state_tensor_vec);
 
                 #[cfg(feature = "log_trace")]
-                log::trace!("Tmp infoset shape = {:?}, device: {:?}", information_set_t.size(), information_set_t.device());
+                log::trace!("Tmp infoset = {}", information_set_t);
                 let net_out = tch::no_grad(|| (self.network().net())(&information_set_t));
                 let critic_t = net_out.critic();
                 #[cfg(feature = "log_trace")]
@@ -666,6 +667,8 @@ pub trait PolicyTrainHelperPPO<DP: DomainParameters> : PolicyHelperA2C<DP, Confi
             )
 
         })?;
+
+        let mut continue_training = true;
 
         for epoch in 0..self.config().update_epochs{
             #[cfg(feature = "log_debug")]
@@ -792,9 +795,12 @@ pub trait PolicyTrainHelperPPO<DP: DomainParameters> : PolicyHelperA2C<DP, Confi
                 };
 
                 #[cfg(feature = "log_debug")]
-                log::debug!("V loss : {}", v_loss);
+                log::debug!("Value loss : {}", v_loss);
 
                 let entropy_loss = entropy.mean(Float);
+                #[cfg(feature = "log_debug")]
+                log::debug!("Entropy loss : {}", entropy_loss);
+
                 let loss = pg_loss
                     - &(entropy_loss * self.config().ent_coef)
                     + &(v_loss * self.config().vf_coef);
@@ -803,8 +809,21 @@ pub trait PolicyTrainHelperPPO<DP: DomainParameters> : PolicyHelperA2C<DP, Confi
 
                 self.optimizer_mut().backward_step(&loss);
 
+                if let Some(tkl) = self.config().target_kl{
+                    if approx_kl.double_value(&[0]) > 1.5 * tkl{
+                        #[cfg(feature = "log_info")]
+                        log::info!("Early leaving learning at step due to reached kl_target");
+                        continue_training = false;
+
+                    }
+                }
 
 
+
+            }
+
+            if !continue_training{
+                break;
             }
 
         }

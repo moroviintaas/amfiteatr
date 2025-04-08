@@ -742,7 +742,10 @@ impl ActorCriticOutput for TensorMultiParamActorCritic {
         dist.iter().map(|d|{
             let is_all_zeros = d.eq_tensor(&Tensor::zeros_like(d)).all().int64_value(&[]);
             if is_all_zeros == 0{
+                #[cfg(feature = "log_trace")]
+                log::trace!("Performing choice on distribution: {d}");
                 apply(d)
+
 
                 
             } else {
