@@ -7,7 +7,7 @@ use amfiteatr_core::agent::{AgentStepView, AgentTrajectory, InformationSet, Poli
 use amfiteatr_core::domain::DomainParameters;
 use amfiteatr_core::error::{AmfiteatrError,TensorError};
 use crate::error::AmfiteatrRlError;
-use crate::policy::{ConfigPPO, LearningNetworkPolicy, PolicyHelperA2C, PolicyHelperPPO, PolicyTrainHelperPPO};
+use crate::policy::{ConfigPPO, LearningNetworkPolicy, PolicyHelperA2C, PolicyTrainHelperPPO};
 use crate::{tch, MaskingInformationSetActionMultiParameter, tensor_data};
 use crate::tch::nn::Optimizer;
 use crate::tch::Tensor;
@@ -249,7 +249,7 @@ PolicyHelperA2C<DP> for PolicyMultiDiscretePPO<DP, InfoSet, InfoSetConversionCon
         &self.action_encoding
     }
 
-    fn dist(&self, info_set: &Self::InfoSet, network_output: &Self::NetworkOutput) -> Result<<Self::NetworkOutput as ActorCriticOutput>::ActionTensorType, AmfiteatrError<DP>> {
+    fn dist(&self, _info_set: &Self::InfoSet, network_output: &Self::NetworkOutput) -> Result<<Self::NetworkOutput as ActorCriticOutput>::ActionTensorType, AmfiteatrError<DP>> {
         network_output.actor.iter().map(|t|
 
             t.f_softmax(-1, self.config().tensor_kind)
@@ -264,7 +264,7 @@ PolicyHelperA2C<DP> for PolicyMultiDiscretePPO<DP, InfoSet, InfoSetConversionCon
         false
     }
 
-    fn generate_action_masks(&self, information_set: &Self::InfoSet) -> Result<<Self::NetworkOutput as ActorCriticOutput>::ActionTensorType, AmfiteatrError<DP>> {
+    fn generate_action_masks(&self, _information_set: &Self::InfoSet) -> Result<<Self::NetworkOutput as ActorCriticOutput>::ActionTensorType, AmfiteatrError<DP>> {
         Err(AmfiteatrError::Custom("Action masking is not supported.".into()))
     }
 

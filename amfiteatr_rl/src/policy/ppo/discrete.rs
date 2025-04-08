@@ -6,7 +6,7 @@ use amfiteatr_core::agent::{AgentStepView, AgentTrajectory, InformationSet, Poli
 use amfiteatr_core::domain::DomainParameters;
 use amfiteatr_core::error::{AmfiteatrError, TensorError};
 use crate::error::AmfiteatrRlError;
-use crate::policy::{ConfigPPO, LearningNetworkPolicy, PolicyHelperA2C, PolicyHelperPPO, PolicyTrainHelperPPO};
+use crate::policy::{ConfigPPO, LearningNetworkPolicy, PolicyHelperA2C,  PolicyTrainHelperPPO};
 use crate::{tensor_data, MaskingInformationSetAction};
 use crate::tensor_data::{ContextEncodeIndexI64, ContextEncodeTensor, TensorDecoding, TensorIndexI64Encoding, TensorEncoding, ContextDecodeIndexI64};
 use crate::torch_net::{ActorCriticOutput, NeuralNet, NeuralNetActorCritic, TensorActorCritic};
@@ -174,7 +174,7 @@ impl<
         false
     }
 
-    fn generate_action_masks(&self, information_set: &Self::InfoSet) -> Result<<Self::NetworkOutput as ActorCriticOutput>::ActionTensorType, AmfiteatrError<DP>> {
+    fn generate_action_masks(&self, _information_set: &Self::InfoSet) -> Result<<Self::NetworkOutput as ActorCriticOutput>::ActionTensorType, AmfiteatrError<DP>> {
         Err(AmfiteatrError::Custom("Action masking is not supported.".into()))
     }
 

@@ -194,7 +194,7 @@ fn build_a2c_policy(layer_sizes: &[i64], device: Device, gae_lambda: Option<f64>
         )
     )
 }
-
+#[allow(dead_code)]
 fn build_a2c_policy_masking(layer_sizes: &[i64], device: Device, gae_lambda: Option<f64>) -> Result<C4A2CPolicyMasking, AmfiteatrRlError<ConnectFourDomain>>{
     let var_store = VarStore::new(device);
     let input_shape = ConnectFourTensorReprD1{}.desired_shape()[0];
@@ -315,7 +315,9 @@ fn build_ppo_policy(layer_sizes: &[i64], device: Device, config: ConfigPPO) -> R
 
 pub type C4A2CPolicyOld = ActorCriticPolicy<ConnectFourDomain, ConnectFourInfoSet, ConnectFourTensorReprD1>;
 pub type C4A2CPolicy = PolicyDiscreteA2C<ConnectFourDomain, ConnectFourInfoSet, ConnectFourTensorReprD1, ConnectFourActionTensorRepresentation>;
+#[allow(dead_code)]
 pub type C4A2CPolicyMasking = PolicyMaskingDiscreteA2C<ConnectFourDomain, ConnectFourInfoSet, ConnectFourTensorReprD1, ConnectFourActionTensorRepresentation>;
+#[allow(dead_code)]
 pub type C4PPOPolicy = PolicyDiscretePPO<ConnectFourDomain, ConnectFourInfoSet, ConnectFourTensorReprD1, ConnectFourActionTensorRepresentation>;
 pub type C4PPOPolicyMasking = PolicyMaskingDiscretePPO<ConnectFourDomain, ConnectFourInfoSet, ConnectFourTensorReprD1, ConnectFourActionTensorRepresentation>;
 type Environment<S> = HashMapEnvironment<ConnectFourDomain, S, StdEnvironmentEndpoint<ConnectFourDomain>>;
@@ -331,6 +333,7 @@ pub struct ConnectFourModelRust<S: GameStateWithPayoffs<ConnectFourDomain>, P: L
 impl<
     S:  GameStateWithPayoffs<ConnectFourDomain> + Clone + Renew<ConnectFourDomain, ()>,
 > ConnectFourModelRust<S, C4A2CPolicyOld>{
+    #[allow(dead_code)]
     pub fn new_a2c_old(agent_layers_1: &[i64], agent_layers_2: &[i64], device: Device) -> Self
     where S: Default{
 
@@ -358,6 +361,7 @@ impl<
 impl<
     S:  GameStateWithPayoffs<ConnectFourDomain> + Clone + Renew<ConnectFourDomain, ()>,
 > ConnectFourModelRust<S, C4A2CPolicy>{
+    #[allow(dead_code)]
     pub fn new_a2c(agent_layers_1: &[i64], agent_layers_2: &[i64], device: Device, gae_lambda: Option<f64>) -> Self
         where S: Default{
 
@@ -386,6 +390,7 @@ impl<
 impl<
     S:  GameStateWithPayoffs<ConnectFourDomain> + Clone + Renew<ConnectFourDomain, ()>,
 > ConnectFourModelRust<S, C4A2CPolicyMasking>{
+    #[allow(dead_code)]
     pub fn new_a2c_masking(agent_layers_1: &[i64], agent_layers_2: &[i64], device: Device, gae_lambda: Option<f64>) -> Self
         where S: Default{
 
@@ -414,6 +419,7 @@ impl<
 impl<
     S:  GameStateWithPayoffs<ConnectFourDomain> + Clone + Renew<ConnectFourDomain, ()>,
 > ConnectFourModelRust<S,C4PPOPolicy>{
+    #[allow(dead_code)]
     pub fn new_ppo(agent_layers_1: &[i64], agent_layers_2: &[i64], device: Device, config_ppo: ConfigPPO) -> Self
     where S: Default{
 
@@ -442,6 +448,7 @@ impl<
 impl<
     S:  GameStateWithPayoffs<ConnectFourDomain> + Clone + Renew<ConnectFourDomain, ()>,
 > ConnectFourModelRust<S,C4PPOPolicyMasking>{
+    #[allow(dead_code)]
     pub fn new_ppo_masking(agent_layers_1: &[i64], agent_layers_2: &[i64], device: Device, config_ppo: ConfigPPO) -> Self
     where S: Default{
 
@@ -555,7 +562,7 @@ where <P as Policy<ConnectFourDomain>>::InfoSetType: Renew<ConnectFourDomain, ()
     pub fn train_agent1_on_experience(&mut self) -> Result<(), ErrorRL>{
         let t1 = self.agent1.take_episodes();
         self.agent1.policy_mut().train_on_trajectories_env_reward(&t1)?;
-        let t2 = self.agent2.take_episodes();
+        let _t2 = self.agent2.take_episodes();
         //self.agent2.policy_mut().train_on_trajectories_env_reward(&t2)?;
 
         Ok(())

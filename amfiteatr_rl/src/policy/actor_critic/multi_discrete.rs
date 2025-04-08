@@ -6,7 +6,7 @@ use amfiteatr_core::agent::{AgentStepView, AgentTrajectory, InformationSet, Poli
 use amfiteatr_core::domain::DomainParameters;
 use amfiteatr_core::error::{AmfiteatrError, TensorError};
 use crate::error::AmfiteatrRlError;
-use crate::policy::{ConfigA2C, ConfigPPO, LearningNetworkPolicy, PolicyHelperA2C, PolicyMaskingMultiDiscretePPO, PolicyMultiDiscretePPO, PolicyTrainHelperA2C, PolicyTrainHelperPPO};
+use crate::policy::{ConfigA2C, LearningNetworkPolicy, PolicyHelperA2C, PolicyTrainHelperA2C};
 use crate::{tensor_data, MaskingInformationSetActionMultiParameter};
 use crate::tensor_data::{ContextDecodeMultiIndexI64, ContextEncodeMultiIndexI64, ContextEncodeTensor, MultiTensorDecoding, MultiTensorIndexI64Encoding, TensorEncoding};
 use crate::torch_net::{ActorCriticOutput, DeviceTransfer, NeuralNet, NeuralNetMultiActorCritic, TensorMultiParamActorCritic};
@@ -98,7 +98,7 @@ where
         &self.action_encoding
     }
 
-    fn dist(&self, info_set: &Self::InfoSet, network_output: &Self::NetworkOutput) -> Result<<Self::NetworkOutput as ActorCriticOutput>::ActionTensorType, AmfiteatrError<DP>> {
+    fn dist(&self, _info_set: &Self::InfoSet, network_output: &Self::NetworkOutput) -> Result<<Self::NetworkOutput as ActorCriticOutput>::ActionTensorType, AmfiteatrError<DP>> {
         network_output.actor.iter().map(|t|
 
             t.f_softmax(-1, tch::Kind::Float)
@@ -113,7 +113,7 @@ where
         false
     }
 
-    fn generate_action_masks(&self, information_set: &Self::InfoSet) -> Result<<Self::NetworkOutput as ActorCriticOutput>::ActionTensorType, AmfiteatrError<DP>> {
+    fn generate_action_masks(&self, _information_set: &Self::InfoSet) -> Result<<Self::NetworkOutput as ActorCriticOutput>::ActionTensorType, AmfiteatrError<DP>> {
         Err(AmfiteatrError::Custom("Action masking is not supported.".into()))
     }
 

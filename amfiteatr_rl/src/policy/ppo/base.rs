@@ -10,7 +10,7 @@ use amfiteatr_core::agent::{AgentStepView, AgentTrajectory, InformationSet};
 use amfiteatr_core::domain::DomainParameters;
 use amfiteatr_core::error::{AmfiteatrError, TensorError};
 use crate::error::AmfiteatrRlError;
-use crate::policy::{ConfigA2C, PolicyHelperA2C, PolicyTrainHelperA2C, RlPolicyConfigBasic};
+use crate::policy::{PolicyHelperA2C, RlPolicyConfigBasic};
 use crate::tensor_data::{ActionTensorFormat, ContextEncodeTensor, TensorEncoding};
 use crate::torch_net::{ActorCriticOutput, DeviceTransfer, NeuralNet};
 

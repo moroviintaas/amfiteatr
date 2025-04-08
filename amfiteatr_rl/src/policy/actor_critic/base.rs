@@ -1,15 +1,14 @@
 use std::cmp::min;
-use std::panic::resume_unwind;
 use getset::{Getters, Setters};
 use rand::prelude::SliceRandom;
 use tch::nn::Optimizer;
-use tch::{kind, Kind, TchError, Tensor};
+use tch::{Kind, TchError, Tensor};
 use tch::Kind::Float;
 use amfiteatr_core::agent::{AgentStepView, AgentTrajectory, InformationSet};
 use amfiteatr_core::domain::DomainParameters;
 use amfiteatr_core::error::{AmfiteatrError, LearningError, TensorError};
-use crate::error::{AmfiteatrRlError, TensorRepresentationError};
-use crate::policy::{categorical_dist_entropy, RlPolicyConfigBasic};
+use crate::error::AmfiteatrRlError;
+use crate::policy::RlPolicyConfigBasic;
 use crate::tensor_data::{ActionTensorFormat, ContextEncodeTensor, TensorEncoding};
 use crate::torch_net::{ActorCriticOutput, DeviceTransfer, NeuralNet};
 
@@ -339,12 +338,10 @@ pub trait PolicyTrainHelperA2C<DP: DomainParameters> : PolicyHelperA2C<DP, Confi
 
         let mut tmp_trajectory_state_tensor_vec = Vec::with_capacity(tmp_capacity_estimate);
         let mut tmp_trajectory_reward_vec = Vec::with_capacity(tmp_capacity_estimate);
-        let mut discounted_payoff_tensor_vec: Vec<Tensor> = Vec::with_capacity(tmp_capacity_estimate+1);
 
         let mut returns_vec = Vec::with_capacity(capacity_estimate);
         //let mut gae_returns_v = Vec::new();
         for t in trajectories {
-            let steps_in_trajectory = t.number_of_steps();
 
             t.view_step(0).inspect(|t|{
                 #[cfg(feature = "log_trace")]
@@ -396,15 +393,15 @@ pub trait PolicyTrainHelperA2C<DP: DomainParameters> : PolicyHelperA2C<DP, Confi
             let critic_t = net_out.critic();
             #[cfg(feature = "log_trace")]
             log::trace!("Tmp values_t shape = {:?}", critic_t.size());
-            let mut returns_t = Tensor::from(0.0);
+            //let mut returns_t = Tensor::from(0.0);
 
-            let mut advantages_t = Tensor::from(0.0);
+            //let mut advantages_t = Tensor::from(0.0);
 
-            if let Some(gae_lambda) = self.config().gae_lambda{
-                (advantages_t, returns_t) = tch::no_grad(||self.calculate_gae_advantages_and_returns(t, critic_t, &reward_f, gae_lambda))?;
+            let (advantages_t, returns_t) = if let Some(gae_lambda) = self.config().gae_lambda{
+                tch::no_grad(||self.calculate_gae_advantages_and_returns(t, critic_t, &reward_f, gae_lambda))?
             } else {
-                (advantages_t, returns_t) = tch::no_grad(||self.calculate_advantages_and_returns(t, critic_t, &reward_f))?;
-            }
+                tch::no_grad(||self.calculate_advantages_and_returns(t, critic_t, &reward_f))?
+            };
 
 
             state_tensor_vec.push(information_set_t);

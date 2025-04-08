@@ -83,7 +83,7 @@ pub fn bench_demo_game_mpsc_hashmap(c: &mut Criterion){
              |b|{
                  b.iter_batched(
                      ||{
-                         let bandits = vec![5.0, 11.5, 6.0, 7.0];
+                         let bandits = vec![(3.0, 5.0), (10.0, 11.5), (3.0, 6.0), (2.0, 7.0)];
                          let number_of_bandits = bandits.len();
 
                          let mut agents = Vec::new();
@@ -145,7 +145,7 @@ pub fn bench_demo_game_single_mpsc(c: &mut Criterion){
              |b|{
                  b.iter_batched(
                      ||{
-                         let bandits = vec![5.0, 11.5, 6.0, 7.0];
+                         let bandits = vec![(3.0, 5.0), (10.0, 11.5), (3.0, 6.0), (2.0, 7.0)];
                          let number_of_bandits = bandits.len();
 
                          let mut agents = Vec::new();
