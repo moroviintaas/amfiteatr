@@ -5,7 +5,7 @@
 //! It is designed to help model problems involving many players.
 //!
 //! ## Examples
-//! For examples look at [`amfiteatr_examples`](https://github.com/moroviintaas/amfiteatr_examples.git)
+//! For examples look at [`amfiteatr_examples`](https://github.com/moroviintaas/amfiteatr/tree/master/amfiteatr_examples)
 //! ## State
 //! The crate is in research/experimental state. API is dynamically changing on every release.
 //! U should probably avoid using it in production.

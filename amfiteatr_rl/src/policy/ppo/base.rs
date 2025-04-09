@@ -327,17 +327,7 @@ pub trait PolicyHelperPPO<DP: DomainParameters>
 
         #[cfg(feature = "log_trace")]
         log::trace!("Batch advantage shape = {:?}", batch_advantage_t.size());
-        /*
-        let batch_actions_t= multi_action_tensor_vec.iter().map(|cat|{
-            Tensor::f_stack(cat, 0)
-        }).collect::<Result<Vec<_>, TchError>>()?;
 
-        let batch_action_masks_t= multi_action_cat_mask_tensor_vec.iter().map(|cat|{
-
-            Tensor::f_stack(cat, 0)
-        }).collect::<Result<Vec<_>, TchError>>()?;
-
-         */
         let batch_actions_t = Self::NetworkOutput::stack_tensor_batch(&multi_action_tensor_vec)?
             .move_to_device(device);
         let batch_action_masks_t = Self::NetworkOutput::stack_tensor_batch(&multi_action_cat_mask_tensor_vec)?
@@ -348,13 +338,7 @@ pub trait PolicyHelperPPO<DP: DomainParameters>
         let batch_size = batch_info_sets_t.size()[0];
         let mut indices: Vec<i64> = (0..batch_size).collect();
 
-        /*
-        let action_forward_masks = match self.is_action_masking_supported(){
-            true => self.batch_generate_action_masks()
-            false => None,
-        }
 
-         */
 
         #[cfg(feature = "log_trace")]
         log::trace!("batch_actions_t: {:?}", batch_actions_t);

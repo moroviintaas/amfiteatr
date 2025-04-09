@@ -1,5 +1,12 @@
 # Changelog
 
+## Version 0.8.0
++ Added policies `PolicyDiscreteA2C`, `PolicyMaskingDiscreteA2C`, `PolicyMaskingMultiDiscreteA2C`
++ Added traits `PolicyHelperA2C`, `PolicyTrainHelperA2C` and `PolicyTrainHelperPPO` for building neural network policies 
+in a generic way.
++ Deprecated `PolicyHelperPPO`
++ Renamed `PolicyPpoDiscrete` to `PolicyDiscretePPO`, `PolicyMaskingPpoDiscrete` to `PolicyMaskingDiscretePPO`, `PolicyPpoMultiDiscrete` to `PolicyMultiDiscretePPO`, `PolicyMaskingPpoMultiDiscrete` to `PolicyMaskingMultiDiscretePPO` and `ConfigPpo` to `ConfigPPO`
+
 ## Version 0.7.0
 + Changed `select_action` method from `Policy` trait signature. From returning `Option<Action>` it now forces to return `Result<Action, AmfiteatrError<_>>`.
 The change is made because some policy algorithms may actually fail.

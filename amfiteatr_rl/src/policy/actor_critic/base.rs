@@ -343,9 +343,9 @@ pub trait PolicyTrainHelperA2C<DP: DomainParameters> : PolicyHelperA2C<DP, Confi
         //let mut gae_returns_v = Vec::new();
         for t in trajectories {
 
-            t.view_step(0).inspect(|t|{
+            t.view_step(0).inspect(|_t|{
                 #[cfg(feature = "log_trace")]
-                log::trace!("Training neural-network for agent {} (from first trace step entry).", t.information_set().agent_id());
+                log::trace!("Training neural-network for agent {} (from first trace step entry).", _t.information_set().agent_id());
 
             });
 

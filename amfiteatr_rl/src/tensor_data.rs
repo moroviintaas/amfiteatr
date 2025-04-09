@@ -115,7 +115,7 @@ pub trait ContextEncodeIndexI64<Ctx: TensorIndexI64Encoding> : Debug{
     /// Tries encoding data (from discrete space) into index using specific format.
     fn try_to_index(&self, encoding: &Ctx) -> Result<i64, ConvertError>;
 }
-/// For decoding data from index [`Tensot`] - usually discrete actions mapped to numbers.
+/// For decoding data from index [`Tensor`] - usually discrete actions mapped to numbers.
 pub trait ContextDecodeIndexI64<Ctx: TensorIndexI64Encoding> : Debug + Sized{
 
     fn try_from_index(index: i64, encoding: &Ctx) -> Result<Self, ConvertError>;

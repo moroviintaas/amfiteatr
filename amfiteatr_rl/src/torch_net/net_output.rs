@@ -77,7 +77,7 @@ pub trait ActorCriticOutput : NetOutput + Debug{
     /// For example look at [`TensorMultiParamActorCritic::push_to_vec_batch`].
     fn push_to_vec_batch(vec_batch: &mut Self::ActionBatchTensorType, data: Self::ActionTensorType);
 
-    /// This is analogous to [`Vec::append`] in the logic of [`ush_to_vec_batch`].
+    /// This is analogous to [`Vec::append`] in the logic of [`push_to_vec_batch`](ActorCriticOutput::push_to_vec_batch).
     fn append_vec_batch(dst: &mut Self::ActionBatchTensorType, source: &mut Self::ActionBatchTensorType);
     /*{
 

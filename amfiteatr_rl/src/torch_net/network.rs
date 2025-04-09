@@ -158,7 +158,7 @@ NeuralNetTemplate<O, N, F>{
     }*/
 
     /// When you  do something like this it will fail to compile
-    /// ```norun
+    /// ```compile_fail
     /// use tch::{Device, nn, Tensor};
     /// use tch::nn::VarStore;
     /// use amfiteatr_rl::torch_net::{NeuralNet, NeuralNetTemplate};
