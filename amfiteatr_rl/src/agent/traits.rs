@@ -1,10 +1,11 @@
+use std::iter::Sum;
 use tch::nn::VarStore;
 use amfiteatr_core::agent::*;
 use amfiteatr_core::comm::BidirectionalEndpoint;
 use amfiteatr_core::domain::{AgentMessage, DomainParameters, EnvironmentMessage, Renew};
 use amfiteatr_core::error::{CommunicationError};
 use crate::error::AmfiteatrRlError;
-use crate::policy::LearningNetworkPolicy;
+use crate::policy::{LearnSummary, LearningNetworkPolicy};
 use crate::tensor_data::FloatTensorReward;
 
 
@@ -77,10 +78,10 @@ AutomaticAgent<DP> + ReseedAgent<DP, Seed> + Send{
 
 }
 
-pub trait RlSimpleLearningAgent<DP: DomainParameters, Seed>:
+pub trait RlSimpleLearningAgent<DP: DomainParameters, Seed, LS: Send>:
 AutomaticAgent<DP> + ReseedAgent<DP, Seed> + Send + MultiEpisodeAutoAgent<DP, Seed>
 {
-    fn simple_apply_experience(&mut self) -> Result<(), AmfiteatrRlError<DP>>;
+    fn simple_apply_experience(&mut self) -> Result<LS, AmfiteatrRlError<DP>>;
     //fn clear_experience(&mut self) -> Result<(), AmfiteatrError<DP>>;
 
     fn set_exploration(&mut self, explore: bool);
@@ -95,16 +96,20 @@ AutomaticAgent<DP> + ReseedAgent<DP, Seed> + Send + MultiEpisodeAutoAgent<DP, Se
 impl<
     DP: DomainParameters,
     Seed,
-    P: LearningNetworkPolicy<DP>,
+    P: LearningNetworkPolicy<DP, Summary = LS >,
     Comm: BidirectionalEndpoint<
         OutwardType=AgentMessage<DP>,
         InwardType=EnvironmentMessage<DP>,
-        Error=CommunicationError<DP>> + Send> RlSimpleLearningAgent<DP, Seed> for TracingAgentGen<DP, P, Comm, >
+        Error=CommunicationError<DP>> + Send,
+    LS: Send,
+>
+
+RlSimpleLearningAgent<DP, Seed, LS> for TracingAgentGen<DP, P, Comm, >
     where <P as Policy<DP>>::InfoSetType: InformationSet<DP> + Renew<DP, Seed>,
           <DP as DomainParameters>::UniversalReward: FloatTensorReward,
     Self: AutomaticAgent<DP> + MultiEpisodeAutoAgent<DP, Seed> + PolicyAgent<DP, Policy=P>
     {
-    fn simple_apply_experience(&mut self) -> Result<(), AmfiteatrRlError<DP>> {
+    fn simple_apply_experience(&mut self) -> Result<LS, AmfiteatrRlError<DP>> {
         let episodes = self.take_episodes();
 
         self.policy_mut().train_on_trajectories_env_reward(&episodes)

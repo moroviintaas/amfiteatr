@@ -8,9 +8,11 @@ use amfiteatr_core::agent::{AgentStepView, AgentTrajectory, InformationSet};
 use amfiteatr_core::domain::DomainParameters;
 use amfiteatr_core::error::{AmfiteatrError, LearningError, TensorError};
 use crate::error::AmfiteatrRlError;
-use crate::policy::RlPolicyConfigBasic;
+use crate::policy::{LearnSummary, RlPolicyConfigBasic};
 use crate::tensor_data::{ActionTensorFormat, ContextEncodeTensor, TensorEncoding};
 use crate::torch_net::{ActorCriticOutput, DeviceTransfer, NeuralNet};
+
+
 
 /// Configuration structure for A2C
 #[derive(Copy, Clone, Debug, Getters, Setters)]
@@ -296,7 +298,7 @@ pub trait PolicyTrainHelperA2C<DP: DomainParameters> : PolicyHelperA2C<DP, Confi
     (
         &mut self, trajectories: &[AgentTrajectory<DP, Self::InfoSet>],
         reward_f: R
-    ) -> Result<(), AmfiteatrError<DP>>{
+    ) -> Result<LearnSummary, AmfiteatrError<DP>>{
         let mut rng = rand::rng();
 
         #[cfg(feature = "log_trace")]
@@ -501,7 +503,7 @@ pub trait PolicyTrainHelperA2C<DP: DomainParameters> : PolicyHelperA2C<DP, Confi
 
         }
 
-        Ok(())
+        Ok(Default::default())
     }
 
 }

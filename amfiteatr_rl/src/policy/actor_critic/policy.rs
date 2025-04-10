@@ -161,6 +161,7 @@ impl<
     where <DP as DomainParameters>::ActionType: TryFromTensor + TryIntoTensor,
 
 {
+    type Summary = ();
 
 
     /// Returns reference to underlying [`VarStore`]

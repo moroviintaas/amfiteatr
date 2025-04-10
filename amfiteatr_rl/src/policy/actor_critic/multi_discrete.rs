@@ -6,7 +6,7 @@ use amfiteatr_core::agent::{AgentStepView, AgentTrajectory, InformationSet, Poli
 use amfiteatr_core::domain::DomainParameters;
 use amfiteatr_core::error::{AmfiteatrError, TensorError};
 use crate::error::AmfiteatrRlError;
-use crate::policy::{ConfigA2C, LearningNetworkPolicy, PolicyHelperA2C, PolicyTrainHelperA2C};
+use crate::policy::{ConfigA2C, LearnSummary, LearningNetworkPolicy, PolicyHelperA2C, PolicyTrainHelperA2C};
 use crate::{tensor_data, MaskingInformationSetActionMultiParameter};
 use crate::tensor_data::{ContextDecodeMultiIndexI64, ContextEncodeMultiIndexI64, ContextEncodeTensor, MultiTensorDecoding, MultiTensorIndexI64Encoding, TensorEncoding};
 use crate::torch_net::{ActorCriticOutput, DeviceTransfer, NeuralNet, NeuralNetMultiActorCritic, TensorMultiParamActorCritic};
@@ -184,6 +184,8 @@ impl<
 where <DP as DomainParameters>::ActionType: ContextDecodeMultiIndexI64<ActionBuildContext>
 + ContextEncodeMultiIndexI64<ActionBuildContext>,
 {
+    type Summary = LearnSummary;
+
     fn var_store(&self) -> &VarStore {
         self.network.var_store()
     }
@@ -204,7 +206,7 @@ where <DP as DomainParameters>::ActionType: ContextDecodeMultiIndexI64<ActionBui
         &mut self, trajectories: &[AgentTrajectory<DP,
         <Self as Policy<DP>>::InfoSetType>],
         reward_f: R
-    ) -> Result<(), AmfiteatrRlError<DP>> {
+    ) -> Result<LearnSummary, AmfiteatrRlError<DP>> {
 
         Ok(self.a2c_train_on_trajectories(trajectories, reward_f)?)
 
@@ -357,6 +359,8 @@ where
     <DP as DomainParameters>::ActionType: ContextDecodeMultiIndexI64<ActionBuildContext>
     + ContextEncodeMultiIndexI64<ActionBuildContext>
 {
+    type Summary = LearnSummary;
+
     fn var_store(&self) -> &VarStore {
         self.base.var_store()
     }
@@ -369,7 +373,8 @@ where
         self.base.switch_explore(enabled)
     }
 
-    fn train_on_trajectories<R: Fn(&AgentStepView<DP, <Self as Policy<DP>>::InfoSetType>) -> Tensor>(&mut self, trajectories: &[AgentTrajectory<DP, <Self as Policy<DP>>::InfoSetType>], reward_f: R) -> Result<(), AmfiteatrRlError<DP>> {
+    fn train_on_trajectories<R: Fn(&AgentStepView<DP, <Self as Policy<DP>>::InfoSetType>) -> Tensor>(&mut self, trajectories: &[AgentTrajectory<DP, <Self as Policy<DP>>::InfoSetType>], reward_f: R)
+        -> Result<Self::Summary, AmfiteatrRlError<DP>> {
         Ok(self.a2c_train_on_trajectories(trajectories, reward_f)?)
     }
 }

@@ -10,7 +10,7 @@ use amfiteatr_core::agent::{AgentStepView, AgentTrajectory, InformationSet};
 use amfiteatr_core::domain::DomainParameters;
 use amfiteatr_core::error::{AmfiteatrError, TensorError};
 use crate::error::AmfiteatrRlError;
-use crate::policy::{PolicyHelperA2C, RlPolicyConfigBasic};
+use crate::policy::{LearnSummary, PolicyHelperA2C, RlPolicyConfigBasic};
 use crate::tensor_data::{ActionTensorFormat, ContextEncodeTensor, TensorEncoding};
 use crate::torch_net::{ActorCriticOutput, DeviceTransfer, NeuralNet};
 
@@ -484,7 +484,7 @@ pub trait PolicyTrainHelperPPO<DP: DomainParameters> : PolicyHelperA2C<DP, Confi
     (
         &mut self, trajectories: &[AgentTrajectory<DP, Self::InfoSet>],
         reward_f: R
-    ) -> Result<(), AmfiteatrError<DP>>{
+    ) -> Result<LearnSummary, AmfiteatrError<DP>>{
 
         #[cfg(feature = "log_trace")]
         log::trace!("Starting training PPO.");
@@ -818,7 +818,7 @@ pub trait PolicyTrainHelperPPO<DP: DomainParameters> : PolicyHelperA2C<DP, Confi
 
 
 
-        Ok(())
+        Ok(Default::default())
     }
 }
 

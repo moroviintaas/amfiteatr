@@ -16,10 +16,19 @@ use crate::tensor_data::FloatTensorReward;
 pub trait DiscountFactor {
     fn discount_factor(&self) -> f64;
 }
+
+#[derive(Clone, Debug, Default)]
+pub struct LearnSummary{
+    pub v_loss: Option<f64>,
+    // todo
+
+}
+
 /// Trait representing policy that uses neural network to select action and can be trained.
 pub trait LearningNetworkPolicy<DP: DomainParameters> : Policy<DP>
 where <Self as Policy<DP>>::InfoSetType: InformationSet<DP>
 {
+    type Summary: Send;
     //type Network;
     //type TrainConfig;
 
@@ -54,26 +63,16 @@ where <Self as Policy<DP>>::InfoSetType: InformationSet<DP>
         &mut self,
         trajectories: &[AgentTrajectory<DP, <Self as Policy<DP>>::InfoSetType>],
         reward_f: R,
-    ) -> Result<(), AmfiteatrRlError<DP>>;
+    ) -> Result<Self::Summary, AmfiteatrRlError<DP>>;
 
     /// Training implementation using environment distributed reward
     fn train_on_trajectories_env_reward(&mut self,
-                                        trajectories: &[AgentTrajectory<DP, <Self as Policy<DP>>::InfoSetType>]) -> Result<(), AmfiteatrRlError<DP>>
+                                        trajectories: &[AgentTrajectory<DP, <Self as Policy<DP>>::InfoSetType>]) -> Result<Self::Summary, AmfiteatrRlError<DP>>
     where <DP as DomainParameters>::UniversalReward: FloatTensorReward{
 
         self.train_on_trajectories(trajectories,  |step| step.reward().to_tensor())
     }
 
-    /*
-    /// Training implementation using self assessment calculated based on information set
-    fn train_on_trajectories_self_assessed(&mut self,
-                                           trajectories: &[AgentTrajectory<DP, <Self as Policy<DP>>::InfoSetType>],
-                                              ) -> Result<(), AmfiteatrRlError<DP>>
-    where <<Self as Policy<DP>>::InfoSetType as EvaluatedInformationSet<DP>>::RewardType: FloatTensorReward{
 
-        self.train_on_trajectories(trajectories,  |step| step.step_subjective_reward().to_tensor())
-    }
-
-     */
 
 }

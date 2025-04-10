@@ -19,7 +19,7 @@ use crate::tensor_data::{ContextEncodeTensor, TensorEncoding};
 use crate::torch_net::NeuralNet1;
 use rand::rng;
 use amfiteatr_core::error::AmfiteatrError;
-use crate::policy::LearningNetworkPolicy;
+use crate::policy::{LearnSummary, LearningNetworkPolicy};
 pub use crate::policy::TrainConfig;
 
 /// Enum used to select best action
@@ -145,6 +145,7 @@ impl
 where <<InfoSet as PresentPossibleActions<DP>>::ActionIteratorType as IntoIterator>::Item: ContextEncodeTensor<A2T>,
 //<DP as DomainParameters>::UniversalReward: FloatTensorReward,
 <DP as DomainParameters>::ActionType: ContextEncodeTensor<A2T> {
+    type Summary = LearnSummary;
     /*
     type Network = NeuralNet1;
     type TrainConfig = TrainConfig;
@@ -184,7 +185,7 @@ where <<InfoSet as PresentPossibleActions<DP>>::ActionIteratorType as IntoIterat
         &mut self,
         trajectories: &[AgentTrajectory<DP, <Self as Policy<DP>>::InfoSetType>],
         reward_f: R)
-        -> Result<(), AmfiteatrRlError<DP>> {
+        -> Result<Self::Summary, AmfiteatrRlError<DP>> {
 
         //#[cfg(feature = "log_info")]
         //log::info!("Starting Learning DQN policy for agent {}")
@@ -282,7 +283,7 @@ where <<InfoSet as PresentPossibleActions<DP>>::ActionIteratorType as IntoIterat
         self.optimizer.backward_step_clip(&loss, 0.5);
         #[cfg(feature = "log_debug")]
         log::debug!("After learning DQN policy");
-        Ok(())
+        Ok(Default::default())
     }
 }
 
