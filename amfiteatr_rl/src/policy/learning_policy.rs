@@ -19,8 +19,11 @@ pub trait DiscountFactor {
 
 #[derive(Clone, Debug, Default)]
 pub struct LearnSummary{
-    pub v_loss: Option<f64>,
-    // todo
+    pub value_loss: Option<f64>,
+    pub policy_gradient_loss: Option<f64>,
+    pub entropy_loss: Option<f64>,
+    pub approx_kl: Option<f64>,
+    //pub average_payoff
 
 }
 

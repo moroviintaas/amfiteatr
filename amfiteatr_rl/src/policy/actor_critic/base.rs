@@ -304,6 +304,9 @@ pub trait PolicyTrainHelperA2C<DP: DomainParameters> : PolicyHelperA2C<DP, Confi
         #[cfg(feature = "log_trace")]
         log::trace!("Starting a2c train session");
 
+        //let summary_len_estimation =
+
+
 
         let device = self.network().device();
         let capacity_estimate = trajectories.iter().fold(0, |acc, x|{
@@ -312,6 +315,12 @@ pub trait PolicyTrainHelperA2C<DP: DomainParameters> : PolicyHelperA2C<DP, Confi
         let tmp_capacity_estimate = trajectories.iter().map(|x|{
             x.number_of_steps()
         }).max().unwrap_or(0);
+
+        let mut summary_vec_vf_loss = Vec::with_capacity(capacity_estimate);
+        let mut summary_vec_pg_loss = Vec::with_capacity(capacity_estimate);
+        let mut summary_vec_entropy_loss = Vec::with_capacity(capacity_estimate);
+
+
 
         let step_example = trajectories.iter().find(|&trajectory|{
             trajectory.view_step(0).is_some()
@@ -488,22 +497,46 @@ pub trait PolicyTrainHelperA2C<DP: DomainParameters> : PolicyHelperA2C<DP, Confi
                 }})?;
 
             let value_loss = (&advantages * &advantages).mean(Float);
+
             let action_loss = (-advantages.detach() * log_probs).mean(Float);
             let entropy_loss = entropy.f_mean(Float)
                 .map_err(|e| TensorError::from_tch_with_context(e, "Calculating entropy loss".into()))?;
             let loss = action_loss
-                .f_add(&(value_loss * self.config().vf_coef))
+                .f_add(&(&value_loss * self.config().vf_coef))
                 .map_err(|e| TensorError::from_tch_with_context(e, "Calculating loss (adding value loss)".into()))?
-                .f_sub(&(entropy_loss * self.config().ent_coef))
+                .f_sub(&(&entropy_loss * self.config().ent_coef))
                 .map_err(|e| TensorError::from_tch_with_context(e, "Calculating loss (subtracting entropy loss)".into()))?;
 
             self.optimizer_mut().zero_grad();
 
             self.optimizer_mut().backward_step(&loss);
 
+            summary_vec_vf_loss.push(value_loss);
+            summary_vec_pg_loss.push(action_loss);
+            summary_vec_entropy_loss.push(-entropy_loss);
+
         }
 
-        Ok(Default::default())
+        let value_loss_avg = Tensor::vstack(&summary_vec_vf_loss).mean(Kind::Double);
+        let pg_loss_mean = Tensor::vstack(&summary_vec_pg_loss).mean(Kind::Double);
+        let entropy_loss_mean = Tensor::vstack(&summary_vec_entropy_loss).mean(Kind::Double);
+        #[cfg(feature = "log_debug")]
+        log::debug!("Mean Critic loss tensor after training: {value_loss_avg}");
+        #[cfg(feature = "log_debug")]
+        log::debug!("Mean Actor loss tensor after training: {pg_loss_mean}");
+        #[cfg(feature = "log_debug")]
+        log::debug!("Mean Value loss tensor after training: {entropy_loss_mean}");
+
+
+
+        Ok(LearnSummary{
+            value_loss: Some(value_loss_avg.double_value(&[])),
+            policy_gradient_loss: Some(pg_loss_mean.double_value(&[])),
+            entropy_loss: Some(entropy_loss_mean.double_value(&[])),
+            approx_kl: None,
+
+
+        })
     }
 
 }

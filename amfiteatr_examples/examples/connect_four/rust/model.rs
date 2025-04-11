@@ -18,7 +18,7 @@ use amfiteatr_rl::torch_net::{A2CNet, NeuralNetTemplate, TensorActorCritic};
 use crate::common::{ConnectFourDomain, ConnectFourPlayer, ErrorRL};
 use crate::rust::agent::{ConnectFourActionTensorRepresentation, ConnectFourInfoSet, ConnectFourTensorReprD1};
 
-
+use amfiteatr_rl::policy::LearnSummary;
 #[derive(Default, Copy, Clone)]
 
 pub struct Summary{
@@ -27,6 +27,7 @@ pub struct Summary{
     pub invalid_actions: [f64;2],
     pub game_steps: f64,
 }
+
 
 
 impl Summary{
@@ -322,14 +323,14 @@ pub type C4PPOPolicy = PolicyDiscretePPO<ConnectFourDomain, ConnectFourInfoSet, 
 pub type C4PPOPolicyMasking = PolicyMaskingDiscretePPO<ConnectFourDomain, ConnectFourInfoSet, ConnectFourTensorReprD1, ConnectFourActionTensorRepresentation>;
 type Environment<S> = HashMapEnvironment<ConnectFourDomain, S, StdEnvironmentEndpoint<ConnectFourDomain>>;
 type Agent<P> = TracingAgentGen<ConnectFourDomain, P, StdAgentEndpoint<ConnectFourDomain>>;
-pub struct ConnectFourModelRust<S: GameStateWithPayoffs<ConnectFourDomain>, P: LearningNetworkPolicy<ConnectFourDomain>>{
+pub struct ConnectFourModelRust<S: GameStateWithPayoffs<ConnectFourDomain>, P: LearningNetworkPolicy<ConnectFourDomain, Summary=LearnSummary>>{
 
     env: Environment<S>,
     agent1: Agent<P>,
     agent2: Agent<P>,
 
 }
-
+/*
 impl<
     S:  GameStateWithPayoffs<ConnectFourDomain> + Clone + Renew<ConnectFourDomain, ()>,
 > ConnectFourModelRust<S, C4A2CPolicyOld>{
@@ -358,6 +359,8 @@ impl<
         }
     }
 }
+*/
+
 impl<
     S:  GameStateWithPayoffs<ConnectFourDomain> + Clone + Renew<ConnectFourDomain, ()>,
 > ConnectFourModelRust<S, C4A2CPolicy>{
@@ -476,7 +479,7 @@ impl<
 
 impl<
     S:  GameStateWithPayoffs<ConnectFourDomain> + Clone + Renew<ConnectFourDomain, ()>,
-    P: LearningNetworkPolicy<ConnectFourDomain>
+    P: LearningNetworkPolicy<ConnectFourDomain, Summary = LearnSummary>
 > ConnectFourModelRust<S,P>
 where <P as Policy<ConnectFourDomain>>::InfoSetType: Renew<ConnectFourDomain, ()> + Clone{
 
@@ -549,14 +552,18 @@ where <P as Policy<ConnectFourDomain>>::InfoSetType: Renew<ConnectFourDomain, ()
         Ok(Summary::default())
     }
 
-    pub fn train_agents_on_experience(&mut self) -> Result<(), ErrorRL>{
+    //pub fn train_epoch(&mut self, number_of_games: usize) -> Result<Summary, AmfiteatrRlError<ConnectFourDomain>>{
+
+    //}
+
+    pub fn train_agents_on_experience(&mut self) -> Result<(LearnSummary,LearnSummary), ErrorRL>{
         let t1 = self.agent1.take_episodes();
-        self.agent1.policy_mut().train_on_trajectories_env_reward(&t1)?;
+        let s1 = self.agent1.policy_mut().train_on_trajectories_env_reward(&t1)?;
         let t2 = self.agent2.take_episodes();
-        self.agent2.policy_mut().train_on_trajectories_env_reward(&t2)?;
+        let s2 = self.agent2.policy_mut().train_on_trajectories_env_reward(&t2)?;
         //self.agent2.policy_mut().train_on_trajectories(&t2, |step| Tensor::from(-1.0 + (2.0 * step.reward())))?;
 
-        Ok(())
+        Ok((s1, s2))
     }
 
     pub fn train_agent1_on_experience(&mut self) -> Result<(), ErrorRL>{
@@ -576,7 +583,12 @@ where <P as Policy<ConnectFourDomain>>::InfoSetType: Renew<ConnectFourDomain, ()
 
         for e in 0..epochs{
             self.play_epoch(episodes, false, true)?;
-            self.train_agents_on_experience()?;
+            let (s1,s2) = self.train_agents_on_experience()?;
+            info!("Training epoch {}: Critic losses {:.3}, {:.3}; Actor loss {:.3}, {:.3}; entropy loss {:.3}, {:.3}",
+                e+1, s1.value_loss.unwrap(), s2.value_loss.unwrap(),
+                s1.policy_gradient_loss.unwrap(), s2.policy_gradient_loss.unwrap(),
+                s1.entropy_loss.unwrap(), s2.entropy_loss.unwrap()
+            );
             let s =self.play_epoch(test_episodes, true, false)?;
             info!("Summary of tests after epoch {}: {}", e+1, s.describe_as_collected())
         }
