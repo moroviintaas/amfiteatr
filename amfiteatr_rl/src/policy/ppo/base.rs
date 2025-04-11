@@ -187,6 +187,8 @@ pub trait PolicyHelperPPO<DP: DomainParameters>
         let device = self.ppo_network().device();
         let capacity_estimate = AgentTrajectory::sum_trajectories_steps(trajectories);
 
+
+
         //find single sample step
 
         let step_example = trajectories.iter().find(|&trajectory|{
@@ -209,9 +211,9 @@ pub trait PolicyHelperPPO<DP: DomainParameters>
 
         let tmp_capacity_estimate = AgentTrajectory::find_max_trajectory_len(trajectories);
 
-        let mut state_tensor_vec = Vec::<Tensor>::with_capacity(capacity_estimate);
+        let mut state_tensor_vec = Vec::<Tensor>::with_capacity(trajectories.len());
         //let mut reward_tensor_vec = Vec::<Tensor>::with_capacity(capacity_estimate);
-        let mut advantage_tensor_vec = Vec::<Tensor>::with_capacity(capacity_estimate);
+        let mut advantage_tensor_vec = Vec::<Tensor>::with_capacity(trajectories.len());
 
 
         let mut action_masks_vec = Self::NetworkOutput::new_batch_with_capacity(action_params ,capacity_estimate);
@@ -491,6 +493,13 @@ pub trait PolicyTrainHelperPPO<DP: DomainParameters> : PolicyHelperA2C<DP, Confi
 
         let device = self.network().device();
         let capacity_estimate = AgentTrajectory::sum_trajectories_steps(trajectories);
+
+        let estimated_summary_capacity = (capacity_estimate/self.config().mini_batch_size+1) * self.config().update_epochs;
+
+        let mut summary_vec_vf_loss = Vec::with_capacity(estimated_summary_capacity);
+        let mut summary_vec_pg_loss = Vec::with_capacity(estimated_summary_capacity);
+        let mut summary_vec_entropy_loss = Vec::with_capacity(estimated_summary_capacity);
+        let mut summary_kl_aprox = Vec::with_capacity(estimated_summary_capacity);
 
         //find single sample step
 
@@ -785,9 +794,9 @@ pub trait PolicyTrainHelperPPO<DP: DomainParameters> : PolicyHelperA2C<DP, Confi
                 #[cfg(feature = "log_debug")]
                 log::debug!("Entropy loss : {}", entropy_loss);
 
-                let loss = pg_loss
-                    - &(entropy_loss * self.config().ent_coef)
-                    + &(v_loss * self.config().vf_coef);
+                let loss = &pg_loss
+                    - &(&entropy_loss * self.config().ent_coef)
+                    + &(&v_loss * self.config().vf_coef);
 
                 self.optimizer_mut().zero_grad();
 
@@ -802,6 +811,11 @@ pub trait PolicyTrainHelperPPO<DP: DomainParameters> : PolicyHelperA2C<DP, Confi
                     }
                 }
 
+                summary_vec_vf_loss.push(v_loss.detach());
+                summary_vec_pg_loss.push(pg_loss.detach());
+                summary_vec_entropy_loss.push(-entropy_loss.detach());
+                summary_kl_aprox.push(approx_kl.detach())
+
 
 
             }
@@ -812,13 +826,32 @@ pub trait PolicyTrainHelperPPO<DP: DomainParameters> : PolicyHelperA2C<DP, Confi
 
         }
 
+        let value_loss_avg = Tensor::vstack(&summary_vec_vf_loss).mean(Kind::Double);
+        let pg_loss_mean = Tensor::vstack(&summary_vec_pg_loss).mean(Kind::Double);
+        let entropy_loss_mean = Tensor::vstack(&summary_vec_entropy_loss).mean(Kind::Double);
+        let kl_approx_mean = Tensor::vstack(&summary_kl_aprox).mean(Kind::Double);
+        #[cfg(feature = "log_debug")]
+        log::debug!("Mean Critic loss tensor after training: {value_loss_avg}");
+        #[cfg(feature = "log_debug")]
+        log::debug!("Mean Actor loss tensor after training: {pg_loss_mean}");
+        #[cfg(feature = "log_debug")]
+        log::debug!("Mean Value loss tensor after training: {entropy_loss_mean}");
+        #[cfg(feature = "log_debug")]
+        log::debug!("Mean KL approximation tensor after training: {kl_approx_mean}");
 
 
 
 
 
 
-        Ok(Default::default())
+        Ok(LearnSummary{
+            value_loss: Some(value_loss_avg.double_value(&[])),
+            policy_gradient_loss: Some(pg_loss_mean.double_value(&[])),
+            entropy_loss: Some(entropy_loss_mean.double_value(&[])),
+            approx_kl: Some(kl_approx_mean.double_value(&[])),
+
+
+        })
     }
 }
 
