@@ -22,6 +22,7 @@ generic-array = "1.2.0"
 getset = "0.1.4"
 
 amfiteatr_core = {version = "0.8.0", path = "../amfiteatr_core", features = ["demo", "torch"]}
+serde = { version = "1.0.219", features = ["derive"] }
 
 [features]
 log_error = ["dep:log"]

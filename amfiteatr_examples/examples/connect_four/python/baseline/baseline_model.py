@@ -12,7 +12,10 @@ import argparse
 from pettingzoo.utils import wrappers
 from pettingzoo.utils import env_logger
 from pettingzoo.classic import connect_four_v3
+
 import logging
+
+from a2c import *
 
 global dtype
 dtype  = torch.FloatTensor
@@ -37,9 +40,13 @@ def parse_args():
     parser.add_argument('-g', "--games", type=int, default=128, help="Number of games in epochs of training")
     parser.add_argument('-t', "--test_games", type=int, default=100, help="Number of games in epochs of testing")
     parser.add_argument('-p', "--penalty", type=float, default=-10, help="NPenalty for illegal actions")
-    parser.add_argument("--layer_sizes_1", metavar="LAYERS", type=int, nargs="*", default=[128, 256, 128], help = "Sizes of subsequent linear layers")
-    parser.add_argument("--layer_sizes_2", metavar="LAYERS", type=int, nargs="*", default=[128, 256, 128],
+    parser.add_argument("--layer-sizes-1", metavar="LAYERS", type=int, nargs="*", default=[64,64], help = "Sizes of subsequent linear layers")
+    parser.add_argument("--layer-sizes-2", metavar="LAYERS", type=int, nargs="*", default=[64,64],
                         help="Sizes of subsequent linear layers")
+    #parser.add_argument("--save-train-params-summary", dest = "save_path_train_param_summary", help = "File to save learn policy summary for epochs")
+    #parser.add_argument("--save-test-epoch-summary", dest = "save_path_test_epoch", help = "File to save test epoch average results")
+    #parser.add_argument("--save-train-epoch-summary", dest = "save_path_train_epoch", help = "File to save train epoch average results")
+
     parser.add_argument("--cuda",  action="store_true", help="enable cuda")
 
 

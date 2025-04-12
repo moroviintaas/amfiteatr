@@ -1,6 +1,9 @@
 use std::collections::HashMap;
+use std::fs::File;
+use std::io::Write;
 use std::ops::{Add, Div};
 use log::info;
+use serde::{Deserialize, Serialize};
 use amfiteatr_core::agent::{AutomaticAgent, MultiEpisodeAutoAgent, Policy, PolicyAgent, ReseedAgent, TracingAgentGen};
 use amfiteatr_core::comm::{
     StdAgentEndpoint,
@@ -19,9 +22,11 @@ use crate::common::{ConnectFourDomain, ConnectFourPlayer, ErrorRL};
 use crate::rust::agent::{ConnectFourActionTensorRepresentation, ConnectFourInfoSet, ConnectFourTensorReprD1};
 
 use amfiteatr_rl::policy::LearnSummary;
-#[derive(Default, Copy, Clone)]
+use crate::options::ConnectFourOptions;
 
-pub struct Summary{
+#[derive(Default, Copy, Clone, Serialize, Deserialize)]
+
+pub struct EpochSummary {
     pub games_played: f64,
     pub scores: [f64;2],
     pub invalid_actions: [f64;2],
@@ -30,7 +35,7 @@ pub struct Summary{
 
 
 
-impl Summary{
+impl EpochSummary {
     pub fn describe_as_collected(&self) -> String{
         format!("games played: {}, average game steps: {} | average score: P1: {}, P2: {}, number of illegal actions: P1: {}, P2: {}",
         self.games_played, self.game_steps, self.scores[0], self.scores[1], self.invalid_actions[0], self.invalid_actions[1])
@@ -45,11 +50,11 @@ impl Display for Summary{
 
  */
 
-impl Add<Summary> for Summary{
-    type Output = Summary;
+impl Add<EpochSummary> for EpochSummary {
+    type Output = EpochSummary;
 
-    fn add(self, rhs: Summary) -> Self::Output {
-        Summary{
+    fn add(self, rhs: EpochSummary) -> Self::Output {
+        EpochSummary {
             games_played: self.games_played + rhs.games_played,
             scores: [self.scores[0] + rhs.scores[0], self.scores[1] + rhs.scores[1]],
             invalid_actions: [self.invalid_actions[0] + rhs.invalid_actions[0], self.invalid_actions[1] + rhs.invalid_actions[1]],
@@ -57,11 +62,11 @@ impl Add<Summary> for Summary{
         }
     }
 }
-impl Add<&Summary> for &Summary{
-    type Output = Summary;
+impl Add<&EpochSummary> for &EpochSummary {
+    type Output = EpochSummary;
 
-    fn add(self, rhs: &Summary) -> Self::Output {
-        Summary{
+    fn add(self, rhs: &EpochSummary) -> Self::Output {
+        EpochSummary {
             games_played: self.games_played + rhs.games_played,
             scores: [self.scores[0] + rhs.scores[0], self.scores[1] + rhs.scores[1]],
             invalid_actions: [self.invalid_actions[0] + rhs.invalid_actions[0], self.invalid_actions[1] + rhs.invalid_actions[1]],
@@ -71,8 +76,8 @@ impl Add<&Summary> for &Summary{
 }
 
 
-impl Div<f64> for Summary{
-    type Output = Summary;
+impl Div<f64> for EpochSummary {
+    type Output = EpochSummary;
 
     fn div(self, rhs: f64) -> Self::Output {
         Self{
@@ -485,8 +490,8 @@ where <P as Policy<ConnectFourDomain>>::InfoSetType: Renew<ConnectFourDomain, ()
 
 
 
-    pub fn play_one_game(&mut self, store_episode: bool) -> Result<Summary, AmfiteatrRlError<ConnectFourDomain>>{
-        let mut summary = Summary::default();
+    pub fn play_one_game(&mut self, store_episode: bool) -> Result<EpochSummary, AmfiteatrRlError<ConnectFourDomain>>{
+        let mut summary = EpochSummary::default();
         self.env.reseed(())?;
         self.agent1.reseed(())?;
         self.agent2.reseed(())?;
@@ -526,7 +531,7 @@ where <P as Policy<ConnectFourDomain>>::InfoSetType: Renew<ConnectFourDomain, ()
         Ok(summary)
     }
 
-    pub fn play_epoch(&mut self, number_of_games: usize, summarize: bool, training_epoch: bool) -> Result<Summary, AmfiteatrRlError<ConnectFourDomain>>{
+    pub fn play_epoch(&mut self, number_of_games: usize, summarize: bool, training_epoch: bool) -> Result<EpochSummary, AmfiteatrRlError<ConnectFourDomain>>{
         self.agent1.clear_episodes();
         self.agent2.clear_episodes();
         let mut vec = match summarize{
@@ -540,16 +545,16 @@ where <P as Policy<ConnectFourDomain>>::InfoSetType: Renew<ConnectFourDomain, ()
             }
         }
         if summarize{
-            let summary_sum: Summary = vec.iter().fold(Summary::default(), |acc,x| &acc+x);
+            let summary_sum: EpochSummary = vec.iter().fold(EpochSummary::default(), |acc, x| &acc+x);
             let n = number_of_games as f64;
-            return Ok(Summary{
+            return Ok(EpochSummary {
                 games_played: summary_sum.games_played,
                 scores: [summary_sum.scores[0]/n, summary_sum.scores[1]/n],
                 invalid_actions: [summary_sum.invalid_actions[0], summary_sum.invalid_actions[1]],
                 game_steps: summary_sum.game_steps / n,
             });
         }
-        Ok(Summary::default())
+        Ok(EpochSummary::default())
     }
 
     //pub fn train_epoch(&mut self, number_of_games: usize) -> Result<Summary, AmfiteatrRlError<ConnectFourDomain>>{
@@ -566,39 +571,76 @@ where <P as Policy<ConnectFourDomain>>::InfoSetType: Renew<ConnectFourDomain, ()
         Ok((s1, s2))
     }
 
-    pub fn train_agent1_on_experience(&mut self) -> Result<(), ErrorRL>{
+    pub fn train_agent1_on_experience(&mut self) -> Result<LearnSummary, ErrorRL>{
         let t1 = self.agent1.take_episodes();
-        self.agent1.policy_mut().train_on_trajectories_env_reward(&t1)?;
+        let s1 = self.agent1.policy_mut().train_on_trajectories_env_reward(&t1)?;
         let _t2 = self.agent2.take_episodes();
         //self.agent2.policy_mut().train_on_trajectories_env_reward(&t2)?;
 
-        Ok(())
+        Ok(s1)
     }
 
 
-    pub fn run_session(&mut self, epochs: usize, episodes: usize, test_episodes: usize, extended_epochs: usize) -> Result<(), ErrorRL>{
+    pub fn run_session(&mut self, options: &ConnectFourOptions)
+        -> Result<(), ErrorRL>{
         info!("Starting session");
-        let pre_training_summary = self.play_epoch(test_episodes, true, false)?;
+        let pre_training_summary = self.play_epoch(options.num_test_episodes, true, false)?;
         info!("Summary before training: {}", pre_training_summary.describe_as_collected());
 
-        for e in 0..epochs{
-            self.play_epoch(episodes, false, true)?;
+        let mut results_learn = Vec::with_capacity(options.epochs);
+        let mut results_test = Vec::with_capacity(options.epochs);
+        let mut l_summaries_1 = Vec::with_capacity(options.epochs);
+        let mut l_summaries_2 = Vec::with_capacity(options.epochs);
+
+        for e in 0..options.epochs{
+            let s = self.play_epoch(options.num_episodes, true, true)?;
+            results_learn.push(s);
             let (s1,s2) = self.train_agents_on_experience()?;
             info!("Training epoch {}: Critic losses {:.3}, {:.3}; Actor loss {:.3}, {:.3}; entropy loss {:.3}, {:.3}",
                 e+1, s1.value_loss.unwrap(), s2.value_loss.unwrap(),
                 s1.policy_gradient_loss.unwrap(), s2.policy_gradient_loss.unwrap(),
                 s1.entropy_loss.unwrap(), s2.entropy_loss.unwrap()
             );
-            let s =self.play_epoch(test_episodes, true, false)?;
+            let s =self.play_epoch(options.num_test_episodes, true, false)?;
+            results_test.push(s);
+            l_summaries_1.push(s1);
+            l_summaries_2.push(s2);
+
+
+
             info!("Summary of tests after epoch {}: {}", e+1, s.describe_as_collected())
         }
+        if let Some(result_file) = &options.save_path_train_param_summary{
+            let yaml = serde_yaml::to_string(&(l_summaries_1, l_summaries_2)).unwrap();
+            let mut file = File::create(&result_file).map_err(|e| AmfiteatrError::IO { explanation: format!("{e}") })?;
+            write!(file, "{}", &yaml).map_err(|e| AmfiteatrError::IO { explanation: format!("{e}") })?;
+        }
 
-        for e in 0..extended_epochs{
-            self.play_epoch(episodes, false, true)?;
-            self.train_agent1_on_experience()?;
-            let s =self.play_epoch(test_episodes, true, false)?;
+        if let Some(result_file) = &options.save_path_test_epoch{
+            let yaml = serde_yaml::to_string(&results_test).unwrap();
+            let mut file = File::create(&result_file).map_err(|e| AmfiteatrError::IO { explanation: format!("{e}") })?;
+            write!(file, "{}", &yaml).map_err(|e| AmfiteatrError::IO { explanation: format!("{e}") })?;
+        }
+
+        if let Some(result_file) = &options.save_path_train_epoch{
+            let yaml = serde_yaml::to_string(&results_learn).unwrap();
+            let mut file = File::create(&result_file).map_err(|e| AmfiteatrError::IO { explanation: format!("{e}") })?;
+            write!(file, "{}", &yaml).map_err(|e| AmfiteatrError::IO { explanation: format!("{e}") })?;
+        }
+
+        for e in 0..options.extended_epochs{
+            let s = self.play_epoch(options.num_episodes, true, true)?;
+            let s1 = self.train_agent1_on_experience()?;
+            info!("Training only agent 1 epoch {}: Critic losses {:.3}; Actor loss {:.3}; entropy loss {:.3}",
+                e+1, s1.value_loss.unwrap(),
+                s1.policy_gradient_loss.unwrap(),
+                s1.entropy_loss.unwrap(),
+            );
+            let s =self.play_epoch(options.num_test_episodes, true, false)?;
             info!("Summary of tests after extended epoch {}: {}", e+1, s.describe_as_collected())
         }
+
+
 
 
         Ok(())

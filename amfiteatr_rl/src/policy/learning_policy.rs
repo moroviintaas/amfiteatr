@@ -8,6 +8,7 @@ use amfiteatr_core::agent::{
 };
 
 use amfiteatr_core::domain::DomainParameters;
+use serde::{Deserialize, Serialize};
 use crate::error::AmfiteatrRlError;
 use crate::tensor_data::FloatTensorReward;
 
@@ -17,7 +18,7 @@ pub trait DiscountFactor {
     fn discount_factor(&self) -> f64;
 }
 
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct LearnSummary{
     pub value_loss: Option<f64>,
     pub policy_gradient_loss: Option<f64>,

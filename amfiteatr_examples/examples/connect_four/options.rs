@@ -47,7 +47,7 @@ pub struct ConnectFourOptions{
     #[arg(short = 'e', long = "epochs", default_value = "100")]
     pub epochs: usize,
 
-    #[arg(short = 'E', long = "extended-epochs", default_value = "100")]
+    #[arg(short = 'E', long = "extended-epochs", default_value = "0")]
     pub extended_epochs: usize,
 
     #[arg(short = 'g', long = "games", default_value = "128")]
@@ -62,12 +62,19 @@ pub struct ConnectFourOptions{
     #[arg(short = 'm', long = "mode", default_value = "rust")]
     pub implementation: Implementation,
 
-    #[arg( long = "layer_sizes_1", value_delimiter = ',',  value_terminator = "!", num_args = 1.., default_value = "128,256,128")]
+    #[arg( long = "layer-sizes-1", value_delimiter = ',',  value_terminator = "!", num_args = 1.., default_value = "64,64")]
     pub layer_sizes_1: Vec<i64>,
-    #[arg( long = "layer_sizes_2", value_delimiter = ',', value_terminator = "!", num_args = 1.., default_value = "128,256,128")]
+    #[arg( long = "layer-sizes-2", value_delimiter = ',', value_terminator = "!", num_args = 1.., default_value = "64,64")]
     pub layer_sizes_2: Vec<i64>,
 
+    #[arg(long = "save-train-params-summary", help = "File to save learn policy summary for epochs")]
+    pub save_path_train_param_summary: Option<PathBuf>,
 
+    #[arg(long = "save-test-epoch-summary", help = "File to save test epoch average results")]
+    pub save_path_test_epoch: Option<PathBuf>,
+
+    #[arg(long = "save-train-epoch-summary", help = "File to save train epoch average results")]
+    pub save_path_train_epoch: Option<PathBuf>
 
 
     //#[arg(short = 'r', long = "reward", default_value = "env")]

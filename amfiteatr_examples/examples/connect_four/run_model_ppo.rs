@@ -59,7 +59,7 @@ fn main() -> Result<(), ErrorRL>{
             let mut model = ConnectFourModelRust::<ConnectFourRustEnvState, C4PPOPolicy>::new_ppo(
                 &cli.layer_sizes_1[..], &cli.layer_sizes_2[..], device, ppo_config
             );
-            model.run_session(cli.epochs, cli.num_episodes, cli.num_test_episodes, cli.extended_epochs)?;
+            model.run_session(&cli)?;
 
         },
 
@@ -73,7 +73,7 @@ fn main() -> Result<(), ErrorRL>{
                    .call_method0("suppress_output").unwrap();
 
             });
-            model.run_session(cli.epochs, cli.num_episodes, cli.num_test_episodes, cli.extended_epochs).unwrap();
+            model.run_session(&cli).unwrap();
 
 
         }
