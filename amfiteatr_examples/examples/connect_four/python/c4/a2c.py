@@ -28,6 +28,8 @@ class NetA2C(nn.Module):
 
 
 
+
+
 class PolicyA2C:
     def __init__(self, num_inputs, num_actions, hidden_layers, config, device=None):
         #super(ActorCritic, self).__init__()
