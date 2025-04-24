@@ -336,7 +336,7 @@ pub struct ConnectFourModelRust<S: GameStateWithPayoffs<ConnectFourDomain>, P: L
     agent0: Agent<P>,
     agent1: Agent<P>,
 
-    model_tboard: Option<tboard::EventWriter<File>>
+    //model_tboard: Option<tboard::EventWriter<File>>
 
 }
 /*
@@ -411,7 +411,7 @@ impl<
             env,
             agent0: agent_0,
             agent1: agent_1,
-            model_tboard,
+            //model_tboard,
         }
     }
 }
@@ -457,7 +457,7 @@ impl<
             env,
             agent0: agent_0,
             agent1: agent_1,
-            model_tboard,
+            //model_tboard,
         }
     }
 }
@@ -504,7 +504,7 @@ impl<
             env,
             agent0: agent_0,
             agent1: agent_1,
-            model_tboard,
+            //model_tboard,
         }
     }
 }
@@ -551,7 +551,7 @@ impl<
             env,
             agent0: agent_0,
             agent1: agent_1,
-            model_tboard,
+            //model_tboard,
         }
     }
 }

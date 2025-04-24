@@ -545,6 +545,7 @@ pub trait PolicyTrainHelperA2C<DP: DomainParameters> : PolicyHelperA2C<DP, Confi
 
         }
 
+        self.set_global_learning_step(self.global_learning_step()+1);
 
         Ok(LearnSummary{
             value_loss: Some(value_loss_avg.double_value(&[])),

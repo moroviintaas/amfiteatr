@@ -50,7 +50,7 @@ fn main() -> Result<(), ErrorRL>{
     match cli.implementation{
         Implementation::Rust => {
             let mut model = ConnectFourModelRust::<ConnectFourRustEnvState, C4A2CPolicyMasking>::new_a2c_masking(
-                &cli.layer_sizes_0[..], &cli.layer_sizes_1[..], device, cli.gae_lambda
+                &cli
             );
             model.run_session(&cli)?;
 
@@ -58,7 +58,7 @@ fn main() -> Result<(), ErrorRL>{
 
         Implementation::Wrap => {
             let mut model = ConnectFourModelRust::<PythonPettingZooStateWrap, C4A2CPolicyMasking>::new_a2c_masking(
-                &cli.layer_sizes_0[..], &cli.layer_sizes_1[..], device, cli.gae_lambda
+                &cli
             );
             Python::with_gil(|py|{
                 let pylogger = py.import("pettingzoo.utils.env_logger").unwrap();
@@ -66,7 +66,7 @@ fn main() -> Result<(), ErrorRL>{
                    .call_method0("suppress_output").unwrap();
 
             });
-            model.run_session(cli.epochs, cli.num_episodes, cli.num_test_episodes, cli.extended_epochs).unwrap();
+            model.run_session(&cli).unwrap();
 
 
         }

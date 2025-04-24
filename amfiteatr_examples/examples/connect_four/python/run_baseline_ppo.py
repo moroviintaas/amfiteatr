@@ -118,7 +118,7 @@ def main():
         w,c = model.play_epoch(args.games, True, args.penalty)
         print(f"Results train after epoch {e}: wins: {w}, illegal: {c}")
         for agent_id in model.agents_ids:
-            if tb_writer is not None:
+            if model.agents[agent_id].policy.tb_writer is not None:
                 #policy_id = model.agents[agent_id].policy.policy_id
                 model.agents[agent_id].policy.tb_writer.add_scalar(f"train_epoch/score", w[agent_id] - w[model.other_agent(agent_id)], e)
                 model.agents[agent_id].policy.tb_writer.add_scalar(f"train_epoch/illegal_moves", c[agent_id], e)
@@ -132,7 +132,7 @@ def main():
         w,c = model.play_epoch(args.games, True, args.penalty)
         print(f"Results train after extended epoch {e}: wins: {w}, illegal: {c}")
         for agent_id in model.agents_ids:
-            if tb_writer is not None:
+            if model.agents[agent_id].policy.tb_writer is not None:
                 #policy_id = model.agents[agent_id].policy.policy_id
                 model.agents[agent_id].policy.tb_writer.add_scalar(f"train_epoch/score", w[agent_id] - w[model.other_agent(agent_id)], args.epochs + e)
                 model.agents[agent_id].policy.tb_writer.add_scalar(f"train_epoch/illegal_moves", c[agent_id], args.epochs + e)

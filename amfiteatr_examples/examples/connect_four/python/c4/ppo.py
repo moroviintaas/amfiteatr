@@ -18,7 +18,7 @@ However we reduce number of environments to 1, because we collect trajectories f
 and therefore they might desynchronize when some environments end earlier than other.
 """
 class PolicyPPO:
-    def __init__(self, num_inputs, num_actions, hidden_layers, config, device=None, tb_writer=None):
+    def __init__(self, num_inputs, num_actions, hidden_layers, config, masking=False, device=None, tb_writer=None):
         ##__init__(self, num_inputs, num_actions, hidden_layers, config, action_space, device=None, ):
         #super(ActorCritic, self).__init__()
         self.device = device
@@ -28,6 +28,7 @@ class PolicyPPO:
         self.optimizer = torch.optim.Adam(self.network.parameters(), lr = config.learning_rate)
         self.tb_writer = tb_writer
         self.global_step = 0
+        self.masking = masking
 
         #self.action_space = action_space
 
@@ -57,7 +58,7 @@ class PolicyPPO:
         actor, critic = self.network.forward(x)
         #logits = self.actor(x)
         # We have defined singe actor,critic function (run network once)
-        if masks is None:
+        if masks is None or self.masking == False:
             logits = actor
         else:
             mask_value = torch.tensor(torch.finfo(actor.dtype).min, dtype=actor.dtype)
@@ -73,16 +74,6 @@ class PolicyPPO:
         #return action, probs.log_prob(action), probs.entropy(), critic
 
 
-    def get_masked_actor_and_critic(self, info_set_tensor, mask_tensor):
-        actor, critic = self.network.forward(info_set_tensor)
-        dist = actor.softmax(-1)
-
-        if mask_tensor is not None:
-            #dist = actor.
-            pass
-
-
-        return dist, critic
 
 
     def train_network(self, trajectories):
@@ -108,6 +99,7 @@ class PolicyPPO:
         batch_advantages = []
         batch_returns = []
         batch_values = []
+        batch_masks = []
 
         value_loses = []
         entropies = []
@@ -124,12 +116,18 @@ class PolicyPPO:
             states_tensor = torch.stack(states, dim=0)
             actions_tensor = torch.stack(actions, dim=0)
 
-            masks_tensor = torch.stack(masks, dim=0)
+
             rewards_tensor = torch.stack([torch.tensor(r) for r in rewards], dim =0)
             with torch.no_grad():
                 #_actor, critic = self.network.forward(states_tensor,  masks_tensor)
-                _action, logprob, entropy, critic = self.get_action_and_value(states_tensor, actions_tensor)
-                advantages = torch.zeros((len(rewards),1))
+                if self.masking:
+                    masks_tensor = torch.stack(masks, dim=0)
+                    batch_masks.append(masks_tensor)
+                else:
+                    masks_tensor = None
+
+                _action, logprob, entropy, critic = self.get_action_and_value(states_tensor, actions_tensor, masks_tensor)
+                advantages = torch.zeros((len(rewards),1)).to(self.device)
                 lastgaelam = 0
                 for t in reversed(range(len(states))):
                     if t == len(states) -1:
@@ -156,6 +154,8 @@ class PolicyPPO:
             batch_returns.append(returns)
             batch_values.append(critic)
 
+
+
         b_obs = torch.vstack(batch_obs)
         #for t in batch_logprobs:
         #    print(t.size())
@@ -167,6 +167,10 @@ class PolicyPPO:
 
         batch_size = b_obs.size()[0]
         b_inds = np.arange(batch_size)
+        if self.masking:
+            b_masks = torch.vstack(batch_masks)
+        else:
+            b_masks = None
         clipfracs = []
 
 
@@ -181,8 +185,10 @@ class PolicyPPO:
                 end = start +  self.config.minibatch_size
                 mb_inds = b_inds[start:end]
 
-                _, newlogprob, entropy, newvalue = self.get_action_and_value(b_obs[mb_inds], b_actions.long()[mb_inds])
-
+                if self.masking:
+                    _, newlogprob, entropy, newvalue = self.get_action_and_value(b_obs[mb_inds], b_actions.long()[mb_inds], b_masks[mb_inds])
+                else:
+                    _, newlogprob, entropy, newvalue = self.get_action_and_value(b_obs[mb_inds], b_actions.long()[mb_inds])
                 #print(f"Newlogprob: {newlogprob.shape}, b_logprobs: {b_logprobs[mb_inds].shape}")
                 logratio = newlogprob - b_logprobs[mb_inds]
                 ratio = logratio.exp()

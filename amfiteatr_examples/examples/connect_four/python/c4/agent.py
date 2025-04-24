@@ -1,8 +1,10 @@
 import torch
+from torch.masked import masked_tensor
+
 
 
 class Agent:
-    def __init__(self, id, policy, masking=False):
+    def __init__(self, id, policy):
         self.id = id
         self.policy = policy
 
@@ -23,23 +25,27 @@ class Agent:
         self.infos = []
         self.masks = []
 
-        self.masking = masking
+
 
         self.current_trajectory = []
 
     def policy_step(self, observation, score_before_step,  mask):
 
         #print(mask)
+        if self.policy.masking:
+            mask_tensor = torch.from_numpy(mask).bool().to(self.policy.device)
+        else:
+            mask_tensor = None
         observation_t = torch.from_numpy(observation.flatten()).float().to(self.policy.device)
 
-        selection = self.policy.select_action(observation, None).item()
+        selection = self.policy.select_action(observation, mask_tensor).item()
         #print("selection:", selection, type(selection))
 
         self.info_sets.append(observation_t)
         self.scores_before_step.append(score_before_step)
         #self.terminations.append(termination)
         #self.truncations.append(truncation)
-        self.masks.append(torch.from_numpy(mask).to(self.policy.device))
+        self.masks.append(mask_tensor)
         self.actions.append(torch.tensor(selection).to(self.policy.device))
 
 
