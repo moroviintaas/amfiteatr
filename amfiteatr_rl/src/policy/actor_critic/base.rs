@@ -1,4 +1,5 @@
 use std::cmp::min;
+use std::io::Write;
 use getset::{Getters, Setters};
 use rand::prelude::SliceRandom;
 use tch::nn::Optimizer;
@@ -66,6 +67,12 @@ pub trait PolicyHelperA2C<DP: DomainParameters>{
 
     /// Reference to policy neural-network.
     fn network(&self) ->  &NeuralNet<Self::NetworkOutput>;
+
+    //#[cfg(feature = "tensorboard")]
+    fn tboard_writer(&mut self) -> Option<&mut tboard::EventWriter<std::fs::File>>;
+
+    fn global_learning_step(&self) -> i64;
+    fn set_global_learning_step(&mut self, step: i64);
 
 
     /// Return tensor encoding context for information set
@@ -192,13 +199,13 @@ pub trait PolicyHelperA2C<DP: DomainParameters>{
                 //chgeck if last step
                 let (next_nonterminal, next_value) = match index == trajectory.number_of_steps() as i64 -1{
                     true => (0.0, Tensor::zeros(
-                        critic_t.f_get(0).map_err(|e|TensorError::from_tch_with_context(e, "ciritic tensor - get(0)".into()))?
+                        critic_t.f_get(0).map_err(|e|TensorError::from_tch_with_context(e, "critic tensor - get(0)".into()))?
                             .size(), (Kind::Float, device))
                     ),
                     false => (1.0, critic_t.f_get(index+1)
-                        .map_err(|e|TensorError::from_tch_with_context(e, format!("ciritic tensor - get({})", index + 1)))?)
+                        .map_err(|e|TensorError::from_tch_with_context(e, format!("critic tensor - get({})", index + 1)))?)
                 };
-                let delta   = rewards_t.get(index) + (next_value.f_mul_scalar(self.config().gamma()).unwrap().f_mul_scalar(next_nonterminal).unwrap()) - critic_t.f_get(index).unwrap();
+                let delta   = rewards_t.get(index) + (next_value * self.config().gamma() * next_nonterminal) - critic_t.f_get(index).unwrap();
 
                 //let delta = Self::calculate_delta(index, &rewards_t, &critic_t, &next_value, self.config().gamma(), next_nonterminal)
                     //.map_err(|e| TensorError::from_tch_with_context(e, "Calculating delta dor gae lambda".into()))?;
@@ -318,7 +325,7 @@ pub trait PolicyTrainHelperA2C<DP: DomainParameters> : PolicyHelperA2C<DP, Confi
 
         let mut summary_vec_vf_loss = Vec::with_capacity(capacity_estimate);
         let mut summary_vec_pg_loss = Vec::with_capacity(capacity_estimate);
-        let mut summary_vec_entropy_loss = Vec::with_capacity(capacity_estimate);
+        let mut summary_vec_entropy = Vec::with_capacity(capacity_estimate);
 
 
 
@@ -499,12 +506,12 @@ pub trait PolicyTrainHelperA2C<DP: DomainParameters> : PolicyHelperA2C<DP, Confi
             let value_loss = (&advantages * &advantages).mean(Float);
 
             let action_loss = (-advantages.detach() * log_probs).mean(Float);
-            let entropy_loss = entropy.f_mean(Float)
+            let entropy_mean = entropy.f_mean(Float)
                 .map_err(|e| TensorError::from_tch_with_context(e, "Calculating entropy loss".into()))?;
             let loss = action_loss
                 .f_add(&(&value_loss * self.config().vf_coef))
                 .map_err(|e| TensorError::from_tch_with_context(e, "Calculating loss (adding value loss)".into()))?
-                .f_sub(&(&entropy_loss * self.config().ent_coef))
+                .f_sub(&(&entropy_mean * self.config().ent_coef))
                 .map_err(|e| TensorError::from_tch_with_context(e, "Calculating loss (subtracting entropy loss)".into()))?;
 
             self.optimizer_mut().zero_grad();
@@ -513,26 +520,36 @@ pub trait PolicyTrainHelperA2C<DP: DomainParameters> : PolicyHelperA2C<DP, Confi
 
             summary_vec_vf_loss.push(value_loss);
             summary_vec_pg_loss.push(action_loss);
-            summary_vec_entropy_loss.push(-entropy_loss);
+            summary_vec_entropy.push(-entropy_mean);
 
         }
 
         let value_loss_avg = Tensor::vstack(&summary_vec_vf_loss).mean(Kind::Double);
         let pg_loss_mean = Tensor::vstack(&summary_vec_pg_loss).mean(Kind::Double);
-        let entropy_loss_mean = Tensor::vstack(&summary_vec_entropy_loss).mean(Kind::Double);
+        let entropy_mean = Tensor::vstack(&summary_vec_entropy).mean(Kind::Double);
         #[cfg(feature = "log_debug")]
         log::debug!("Mean Critic loss tensor after training: {value_loss_avg}");
         #[cfg(feature = "log_debug")]
         log::debug!("Mean Actor loss tensor after training: {pg_loss_mean}");
         #[cfg(feature = "log_debug")]
-        log::debug!("Mean Value loss tensor after training: {entropy_loss_mean}");
+        log::debug!("Mean Value loss tensor after training: {entropy_mean}");
 
+        let learning_step = self.global_learning_step();
+        if let Some(writer) = self.tboard_writer(){
+            writer.write_scalar(learning_step, "losses/policy_loss", pg_loss_mean.double_value(&[]) as f32)
+                .map_err(|e| AmfiteatrError::TboardFlattened {context: "Write policy loss".into(), error: format!("{e}")})?;
+            writer.write_scalar(learning_step, "losses/value_loss", value_loss_avg.double_value(&[]) as f32)
+                .map_err(|e| AmfiteatrError::TboardFlattened {context: "Write value loss".into(), error: format!("{e}")})?;
+            writer.write_scalar(learning_step, "losses/entropy", entropy_mean.double_value(&[]) as f32)
+                .map_err(|e| AmfiteatrError::TboardFlattened {context: "Write entropy".into(), error: format!("{e}")})?;
+
+        }
 
 
         Ok(LearnSummary{
             value_loss: Some(value_loss_avg.double_value(&[])),
             policy_gradient_loss: Some(pg_loss_mean.double_value(&[])),
-            entropy_loss: Some(entropy_loss_mean.double_value(&[])),
+            entropy_loss: Some(entropy_mean.double_value(&[])),
             approx_kl: None,
 
 

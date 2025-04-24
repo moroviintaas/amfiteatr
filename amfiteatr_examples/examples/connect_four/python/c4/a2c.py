@@ -1,5 +1,6 @@
 import torch
 from torch import nn
+from torch.distributions import Categorical
 
 
 class NetA2C(nn.Module):
@@ -10,7 +11,7 @@ class NetA2C(nn.Module):
             layers = []
             for layer_size in hidden_layers:
                 layers.append(nn.Linear(last_dim, layer_size, device=device))
-                layers += [nn.ReLU()]
+                layers += [nn.Tanh()]
                 last_dim = layer_size
             self.seq = nn.Sequential(*layers)
 
@@ -31,7 +32,7 @@ class NetA2C(nn.Module):
 
 
 class PolicyA2C:
-    def __init__(self, num_inputs, num_actions, hidden_layers, config, device=None):
+    def __init__(self, num_inputs, num_actions, hidden_layers, config, device=None, tb_writer=None):
         #super(ActorCritic, self).__init__()
         self.device = device
 
@@ -42,19 +43,19 @@ class PolicyA2C:
     def select_action(self, info_set, masks):
         info_set_tensor = torch.from_numpy(info_set.flatten()).float().to(self.device)
 
-        actor, _critic = self.network.forward(info_set_tensor)
+        with torch.no_grad():
+            actor, _critic = self.network.forward(info_set_tensor)
 
         if masks is None:
-            dist = actor.softmax(-1)
+            probs = Categorical(logits=actor)
         else:
-            print("Masks not supported yet")
-        #print("actor = ", actor)
-        #print("dist = ", dist)
+            mask_value = torch.tensor(torch.finfo(actor.dtype).min, dtype=actor.dtype)
+            logits = torch.where(masks, actor, mask_value)
+            probs = Categorical(logits=logits)
 
+        selection  =probs.sample()
 
-        selection = torch.multinomial(dist, 1).item()
-
-        return selection,
+        return selection
 
 
     def get_masked_actor_and_critic(self, info_set_tensor, mask_tensor):

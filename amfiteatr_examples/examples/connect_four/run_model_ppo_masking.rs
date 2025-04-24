@@ -55,7 +55,7 @@ fn main() -> Result<(), ErrorRL>{
     match cli.implementation{
         Implementation::Rust => {
             let mut model = ConnectFourModelRust::<ConnectFourRustEnvState, C4PPOPolicyMasking>::new_ppo_masking(
-                &cli.layer_sizes_1[..], &cli.layer_sizes_2[..], device, ppo_config
+                &cli.layer_sizes_0[..], &cli.layer_sizes_1[..], device, ppo_config
             );
             model.run_session(&cli)?;
 
@@ -63,7 +63,7 @@ fn main() -> Result<(), ErrorRL>{
 
         Implementation::Wrap => {
             let mut model = ConnectFourModelRust::<PythonPettingZooStateWrap, C4PPOPolicyMasking>::new_ppo_masking(
-                &cli.layer_sizes_1[..], &cli.layer_sizes_2[..], device, ppo_config
+                &cli.layer_sizes_0[..], &cli.layer_sizes_1[..], device, ppo_config
             );
             Python::with_gil(|py|{
                 let pylogger = py.import("pettingzoo.utils.env_logger").unwrap();

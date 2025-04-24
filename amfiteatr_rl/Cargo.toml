@@ -22,6 +22,7 @@ generic-array = "1.2.0"
 getset = "0.1.4"
 
 amfiteatr_core = {version = "0.8.0", path = "../amfiteatr_core", features = ["demo", "torch"]}
+tboard = { version = "0.1.1", optional = true }
 serde = { version = "1.0.219", features = ["derive"] }
 
 [features]
@@ -30,6 +31,7 @@ log_warn = ["log_error"]
 log_info = ["log_warn"]
 log_debug = ["log_info"]
 log_trace = ["log_debug"]
+tensorboard =["dep:tboard"]
 
 
 

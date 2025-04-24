@@ -76,6 +76,7 @@ amfiteatr_classic = { version = "0.8.0", path = "../amfiteatr_classic" }
 amfiteatr_net_ext = {version = "0.8.0", path = "../amfiteatr_net_ext" }
 ndarray = "0.16.1"
 numpy = "0.23.0"
+tboard = "0.1.1"
 
 [features]
 rl-python = ["pyo3"]
@@ -85,3 +86,4 @@ log_deep_warn = ["amfiteatr_core/log_warn", "amfiteatr_rl/log_warn", "log_deep_e
 log_deep_info = ["amfiteatr_core/log_info", "amfiteatr_rl/log_info", "log_deep_warn"]
 log_deep_debug = ["amfiteatr_core/log_debug", "amfiteatr_rl/log_debug", "log_deep_info"]
 log_deep_trace = ["amfiteatr_core/log_trace", "amfiteatr_rl/log_trace", "log_deep_debug"]
+tensorboard = ["amfiteatr_rl/tensorboard"]

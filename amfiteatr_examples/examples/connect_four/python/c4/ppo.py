@@ -4,6 +4,8 @@ from torch import nn
 from c4.a2c import NetA2C
 from torch.distributions.categorical import Categorical
 import numpy as np
+
+
 #from torch.utils.tensorboard import SummaryWriter
 
 
@@ -25,34 +27,50 @@ class PolicyPPO:
         self.network = NetA2C(num_inputs, num_actions, hidden_layers, device)
         self.optimizer = torch.optim.Adam(self.network.parameters(), lr = config.learning_rate)
         self.tb_writer = tb_writer
+        self.global_step = 0
+
         #self.action_space = action_space
 
     def select_action(self, info_set, masks):
         info_set_tensor = torch.from_numpy(info_set.flatten()).float().to(self.device)
 
-        actor, _critic = self.network.forward(info_set_tensor)
+        with torch.no_grad():
+            actor, _critic = self.network.forward(info_set_tensor)
 
         if masks is None:
-            dist = actor.softmax(-1)
+            probs = Categorical(logits=actor)
         else:
-            print("Masks not supported yet")
-        #print("actor = ", actor)
-        #print("dist = ", dist)
+            mask_value = torch.tensor(torch.finfo(actor.dtype).min, dtype=actor.dtype)
+            logits = torch.where(masks, actor, mask_value)
+            probs = Categorical(logits=logits)
 
 
-        selection = torch.multinomial(dist, 1).item()
 
-        return selection,
+        #selection = torch.multinomial(probs, 1).item()
+        #print(probs)
+        selection  =probs.sample()
+        #print(selection)
 
-    def get_action_and_value(self, x, action=None):
+        return selection
+
+    def get_action_and_value(self, x, action=None, masks=None):
         actor, critic = self.network.forward(x)
         #logits = self.actor(x)
         # We have defined singe actor,critic function (run network once)
-        logits = actor
+        if masks is None:
+            logits = actor
+        else:
+            mask_value = torch.tensor(torch.finfo(actor.dtype).min, dtype=actor.dtype)
+            logits = torch.where(masks, actor, mask_value)
+        #print(f"logits_shape: {logits.shape}")
+
         probs = Categorical(logits=logits)
         if action is None:
             action = probs.sample()
-        return action, probs.log_prob(action), probs.entropy(), critic
+        #print(f"Action_t: ({action.shape}) {action}, ")
+        #print(f"ALP: ({probs.log_prob(action.squeeze(-1)).shape}, {probs.log_prob(action.squeeze(-1))}")
+        return action, probs.log_prob(action.squeeze(-1)), probs.entropy(), critic
+        #return action, probs.log_prob(action), probs.entropy(), critic
 
 
     def get_masked_actor_and_critic(self, info_set_tensor, mask_tensor):
@@ -120,11 +138,16 @@ class PolicyPPO:
                     else:
                         nextnoterminal = 1.0
                         nextvalue = critic[t+1]
-                    delta = rewards[t] + self.config.gamma * nextvalue * nextnoterminal * lastgaelam
+                    delta = rewards[t] + self.config.gamma * nextvalue * nextnoterminal - critic[t]
                     advantages[t] = lastgaelam = delta + self.config.gamma * self.config.gae_lambda * nextnoterminal * lastgaelam
-                #print("A:", advantages)
-                #print("C:", critic)
+
+
                 returns = advantages + critic
+                # print("r:", rewards)
+                # print("A:", advantages)
+                # print("C:", critic)
+                # print("R:", returns)
+
 
             batch_obs.append(states_tensor)
             batch_logprobs.append(logprob.unsqueeze(1))
@@ -136,7 +159,7 @@ class PolicyPPO:
         b_obs = torch.vstack(batch_obs)
         #for t in batch_logprobs:
         #    print(t.size())
-        b_logprobs = torch.vstack(batch_logprobs)
+        b_logprobs = torch.vstack(batch_logprobs).squeeze(-1)
         b_actions = torch.vstack(batch_actions)
         b_advantages = torch.vstack(batch_advantages)
         b_returns = torch.vstack(batch_returns)
@@ -160,6 +183,7 @@ class PolicyPPO:
 
                 _, newlogprob, entropy, newvalue = self.get_action_and_value(b_obs[mb_inds], b_actions.long()[mb_inds])
 
+                #print(f"Newlogprob: {newlogprob.shape}, b_logprobs: {b_logprobs[mb_inds].shape}")
                 logratio = newlogprob - b_logprobs[mb_inds]
                 ratio = logratio.exp()
 
@@ -173,6 +197,7 @@ class PolicyPPO:
                     mb_advantages = (mb_advantages - mb_advantages.mean()) / (mb_advantages.std() + 1e-8)
 
                 pg_loss1 = -mb_advantages * ratio
+                #print(f"A: {advantages.shape}, ratio: {ratio.shape}")
                 pg_loss2 = -mb_advantages * torch.clamp(ratio, 1 - self.config.clip_coef, 1 + self.config.clip_coef)
                 pg_loss = torch.max(pg_loss1, pg_loss2).mean()
 
@@ -204,13 +229,14 @@ class PolicyPPO:
             if self.config.target_kl is not None and approx_kl > self.config.target_kl:
                 break
         if self.tb_writer is not None:
-            self.tb_writer.add_scalar("charts/learning_rate", self.optimizer.param_groups[0]["lr"])
-            self.tb_writer.add_scalar("losses/value_loss", v_loss.item())
-            self.tb_writer.add_scalar("losses/policy_loss", pg_loss.item())
-            self.tb_writer.add_scalar("losses/entropy", entropy_loss.item())
-            self.tb_writer.add_scalar("losses/old_approx_kl", old_approx_kl.item())
-            self.tb_writer.add_scalar("losses/approx_kl", approx_kl.item())
-            self.tb_writer.add_scalar("losses/clipfrac", np.mean(clipfracs))
+            self.tb_writer.add_scalar("charts/learning_rate", self.optimizer.param_groups[0]["lr"], self.global_step)
+            self.tb_writer.add_scalar("losses/value_loss", v_loss.item(), self.global_step)
+            self.tb_writer.add_scalar("losses/policy_loss", pg_loss.item(), self.global_step)
+            self.tb_writer.add_scalar("losses/entropy", entropy_loss.item(), self.global_step)
+            #self.tb_writer.add_scalar("losses/old_approx_kl", old_approx_kl.item(), self.global_step)
+            self.tb_writer.add_scalar("losses/kl_approximation", approx_kl.item(), self.global_step)
+            #self.tb_writer.add_scalar("losses/clipfrac", np.mean(clipfracs), self.global_step)
+        self.global_step += 1
             #self.tb_writer.add_scalar("losses/explained_variance", explained_var, global_step)
 
 

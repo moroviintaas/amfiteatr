@@ -1,6 +1,7 @@
 //! Based on [cleanrl PPO](https://github.com/vwxyzjn/cleanrl/blob/master/cleanrl/ppo.py)
 
 use std::cmp::min;
+use std::io::Write;
 use getset::{Getters, Setters};
 use rand::prelude::SliceRandom;
 use tch::{Kind, Tensor};
@@ -30,6 +31,7 @@ pub struct ConfigPPO {
     pub tensor_kind: tch::kind::Kind,
     pub update_epochs: usize,
     pub target_kl: Option<f64>,
+    //pub policy_identification_name: String
 }
 
 impl Default for ConfigPPO {
@@ -498,7 +500,7 @@ pub trait PolicyTrainHelperPPO<DP: DomainParameters> : PolicyHelperA2C<DP, Confi
 
         let mut summary_vec_vf_loss = Vec::with_capacity(estimated_summary_capacity);
         let mut summary_vec_pg_loss = Vec::with_capacity(estimated_summary_capacity);
-        let mut summary_vec_entropy_loss = Vec::with_capacity(estimated_summary_capacity);
+        let mut summary_vec_entropy_mean = Vec::with_capacity(estimated_summary_capacity);
         let mut summary_kl_aprox = Vec::with_capacity(estimated_summary_capacity);
 
         //find single sample step
@@ -782,20 +784,20 @@ pub trait PolicyTrainHelperPPO<DP: DomainParameters> : PolicyHelperA2C<DP, Confi
                     );
                     let v_loss_clipped = (v_clipped - &minibatch_returns_t).square();
                     let v_loss_max = v_loss_unclipped.max_other(&v_loss_clipped);
-                    v_loss_max.mean(tch::Kind::Float) * self.config().vf_coef
+                    v_loss_max.mean(tch::Kind::Float) * 0.5
                 } else {
-                    (newvalue -&minibatch_returns_t).square().mean(Float) * self.config().vf_coef
+                    (newvalue -&minibatch_returns_t).square().mean(Float) * 0.5
                 };
 
                 #[cfg(feature = "log_debug")]
                 log::debug!("Value loss : {}", v_loss);
 
-                let entropy_loss = entropy.mean(Float);
+                let mean_entropy = entropy.mean(Float);
                 #[cfg(feature = "log_debug")]
-                log::debug!("Entropy loss : {}", entropy_loss);
+                log::debug!("Entropy loss : {}", mean_entropy);
 
                 let loss = &pg_loss
-                    - &(&entropy_loss * self.config().ent_coef)
+                    - &(&mean_entropy * self.config().ent_coef)
                     + &(&v_loss * self.config().vf_coef);
 
                 self.optimizer_mut().zero_grad();
@@ -813,7 +815,7 @@ pub trait PolicyTrainHelperPPO<DP: DomainParameters> : PolicyHelperA2C<DP, Confi
 
                 summary_vec_vf_loss.push(v_loss.detach());
                 summary_vec_pg_loss.push(pg_loss.detach());
-                summary_vec_entropy_loss.push(-entropy_loss.detach());
+                summary_vec_entropy_mean.push(mean_entropy.detach());
                 summary_kl_aprox.push(approx_kl.detach())
 
 
@@ -828,26 +830,41 @@ pub trait PolicyTrainHelperPPO<DP: DomainParameters> : PolicyHelperA2C<DP, Confi
 
         let value_loss_avg = Tensor::vstack(&summary_vec_vf_loss).mean(Kind::Double);
         let pg_loss_mean = Tensor::vstack(&summary_vec_pg_loss).mean(Kind::Double);
-        let entropy_loss_mean = Tensor::vstack(&summary_vec_entropy_loss).mean(Kind::Double);
+        let entropy_mean = Tensor::vstack(&summary_vec_entropy_mean).mean(Kind::Double);
         let kl_approx_mean = Tensor::vstack(&summary_kl_aprox).mean(Kind::Double);
         #[cfg(feature = "log_debug")]
         log::debug!("Mean Critic loss tensor after training: {value_loss_avg}");
         #[cfg(feature = "log_debug")]
         log::debug!("Mean Actor loss tensor after training: {pg_loss_mean}");
         #[cfg(feature = "log_debug")]
-        log::debug!("Mean Value loss tensor after training: {entropy_loss_mean}");
+        log::debug!("Mean Value loss tensor after training: {entropy_mean}");
         #[cfg(feature = "log_debug")]
         log::debug!("Mean KL approximation tensor after training: {kl_approx_mean}");
 
 
+        //#[cfg(feature = "tensorboard")]
+        let learning_step = self.global_learning_step();
+        //let learning_rate = self.optimizer_mut().ra
+        if let Some(writer) = self.tboard_writer(){
+            writer.write_scalar(learning_step, "charts/learning_rate", pg_loss_mean.double_value(&[]) as f32)
+                .map_err(|e| AmfiteatrError::TboardFlattened {context: "Write policy loss".into(), error: format!("{e}")})?;
+            writer.write_scalar(learning_step, "losses/policy_loss", pg_loss_mean.double_value(&[]) as f32)
+                .map_err(|e| AmfiteatrError::TboardFlattened {context: "Write policy loss".into(), error: format!("{e}")})?;
+            writer.write_scalar(learning_step, "losses/value_loss", value_loss_avg.double_value(&[]) as f32)
+                .map_err(|e| AmfiteatrError::TboardFlattened {context: "Write value loss".into(), error: format!("{e}")})?;
+            writer.write_scalar(learning_step, "losses/entropy", entropy_mean.double_value(&[]) as f32)
+                .map_err(|e| AmfiteatrError::TboardFlattened {context: "Write entropy".into(), error: format!("{e}")})?;
+            writer.write_scalar(learning_step, "losses/kl_approximation", kl_approx_mean.double_value(&[]) as f32)
+                .map_err(|e| AmfiteatrError::TboardFlattened {context: "Write KL approximation".into(), error: format!("{e}")})?;
+        }
 
-
+        self.set_global_learning_step(self.global_learning_step()+1);
 
 
         Ok(LearnSummary{
             value_loss: Some(value_loss_avg.double_value(&[])),
             policy_gradient_loss: Some(pg_loss_mean.double_value(&[])),
-            entropy_loss: Some(entropy_loss_mean.double_value(&[])),
+            entropy_loss: Some(entropy_mean.double_value(&[])),
             approx_kl: Some(kl_approx_mean.double_value(&[])),
 
 

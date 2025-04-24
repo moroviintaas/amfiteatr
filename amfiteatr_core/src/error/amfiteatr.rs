@@ -96,6 +96,11 @@ pub enum AmfiteatrError<DP: DomainParameters>{
     Learning{
         #[source]
         error: LearningError,
+    },
+    #[error("Flattened tboard error")]
+    TboardFlattened{
+        context: String,
+        error: String,
     }
     //#[error("External: {0}")]
     //External(String)

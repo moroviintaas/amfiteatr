@@ -2,7 +2,7 @@ import torch
 
 
 class Agent:
-    def __init__(self, id, policy):
+    def __init__(self, id, policy, masking=False):
         self.id = id
         self.policy = policy
 
@@ -23,6 +23,8 @@ class Agent:
         self.infos = []
         self.masks = []
 
+        self.masking = masking
+
         self.current_trajectory = []
 
     def policy_step(self, observation, score_before_step,  mask):
@@ -30,7 +32,7 @@ class Agent:
         #print(mask)
         observation_t = torch.from_numpy(observation.flatten()).float().to(self.policy.device)
 
-        selection = self.policy.select_action(observation, None)[0]
+        selection = self.policy.select_action(observation, None).item()
         #print("selection:", selection, type(selection))
 
         self.info_sets.append(observation_t)
@@ -65,6 +67,9 @@ class Agent:
     def rewards(self):
         rewards = [self.scores_before_step[i+1] - self.scores_before_step[i] for i in range(len(self.scores_before_step)-1)]
         #print("rewards: ", rewards)
+        #if self.scores_before_step[-1] not in (-1.0, 0.0, 1.0):
+        #    print(f"Penalty: {self.scores_before_step[-1]}")
+
         return rewards
 
     def clear_batch_trajectories(self):

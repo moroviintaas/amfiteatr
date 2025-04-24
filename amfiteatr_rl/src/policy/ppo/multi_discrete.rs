@@ -1,6 +1,9 @@
 
 use std::fmt::Debug;
+use std::fs::File;
+use std::io::Write;
 use std::marker::PhantomData;
+use tboard::EventWriter;
 use tch::{Kind, TchError};
 use tch::nn::VarStore;
 use amfiteatr_core::agent::{AgentStepView, AgentTrajectory, InformationSet, Policy};
@@ -53,6 +56,9 @@ pub struct PolicyMultiDiscretePPO<
     info_set_encoding: InfoSetConversionContext,
     action_encoding: ActionBuildContext,
     exploration: bool,
+
+    tboard_writer: Option<tboard::EventWriter<File>>,
+    global_step: i64,
 
 
 
@@ -146,7 +152,18 @@ where <DP as DomainParameters>::ActionType: ContextDecodeMultiIndexI64<ActionBui
             info_set_encoding: info_set_conversion_context,
             action_encoding: action_build_context,
             exploration: true,
+            tboard_writer: None,
+            global_step: 0
         }
+    }
+
+    /// Creates [`tboard::EventWriter`].
+    pub fn create_tboard_writer<P: AsRef<std::path::Path>>(&mut self, path: P) -> Result<(), AmfiteatrError<DP>>{
+        let tboard = EventWriter::create(path).map_err(|e|{
+            AmfiteatrError::TboardFlattened {context: "Creating tboard EventWriter".into(), error: format!("{e}")}
+        })?;
+        self.tboard_writer = Some(tboard);
+        Ok(())
     }
 }
 
@@ -241,6 +258,18 @@ PolicyHelperA2C<DP> for PolicyMultiDiscretePPO<DP, InfoSet, InfoSetConversionCon
 
     fn network(&self) -> &NeuralNet<Self::NetworkOutput> {
         &self.network
+    }
+
+    fn tboard_writer(&mut self) -> Option<&mut EventWriter<std::fs::File>> {
+        self.tboard_writer.as_mut()
+    }
+
+    fn global_learning_step(&self) -> i64 {
+        self.global_step
+    }
+
+    fn set_global_learning_step(&mut self, step: i64) {
+        self.global_step = step;
     }
 
     fn info_set_encoding(&self) -> &Self::InfoSetConversionContext {
@@ -437,6 +466,10 @@ impl<
         }
     }
 
+    pub fn create_tboard_writer<P: AsRef<std::path::Path>>(&mut self, path: P) -> Result<(), AmfiteatrError<DP>> {
+        self.base.create_tboard_writer(path)
+    }
+
 }
 
 impl<
@@ -467,6 +500,18 @@ impl<
 
     fn network(&self) -> &NeuralNet<Self::NetworkOutput> {
         self.base.network()
+    }
+
+    fn tboard_writer(&mut self) -> Option<&mut EventWriter<std::fs::File>> {
+        self.base.tboard_writer()
+    }
+
+    fn global_learning_step(&self) -> i64 {
+        self.base.global_learning_step()
+    }
+
+    fn set_global_learning_step(&mut self, step: i64) {
+        self.base.set_global_learning_step(step)
     }
 
     fn info_set_encoding(&self) -> &Self::InfoSetConversionContext {

@@ -5,15 +5,18 @@ from c4.a2c import PolicyA2C
 from c4.agent import Agent
 from c4.model import my_env, TwoPlayerModel
 from pettingzoo.utils import env_logger
+from torch.utils.tensorboard import SummaryWriter
 
+from c4.common import PolicyConfig
 
 
 
 def parse_args():
-    parser = argparse.ArgumentParser(description = "Baseline A2C model for ConnectFour Game")
+    parser = argparse.ArgumentParser(description = "Baseline PPO model for ConnectFour Game")
     parser.add_argument('-e', "--epochs", type=int, default=100, help="Number of epochs of training")
+    parser.add_argument('-E', "--extended-epochs", type=int, default=100, help="Number of extended epochs of training (only agent0 trains)")
     parser.add_argument('-g', "--games", type=int, default=128, help="Number of games in epochs of training")
-    parser.add_argument('-s', "--steps", type=int,  dest="max_env_steps_in_epoch", help="Limit number of steps in train epoch (train epoch may be limited to certain number of steps to compare with models scaled with number of steps instead of full games)")
+    #parser.add_argument('-s', "--steps", type=int,  dest="max_env_steps_in_epoch", help="Limit number of steps in train epoch (train epoch may be limited to certain number of steps to compare with models scaled with number of steps instead of full games)")
     parser.add_argument('-t', "--test_games", type=int, default=100, help="Number of games in epochs of testing")
     parser.add_argument('-p', "--penalty", type=float, default=-10, help="NPenalty for illegal actions")
     parser.add_argument("--layer-sizes-0", metavar="LAYERS", type=int, nargs="*", default=[64,64], help = "Sizes of subsequent linear layers")
@@ -27,8 +30,17 @@ def parse_args():
 
     parser.add_argument("--cuda",  action="store_true", help="enable cuda")
     parser.add_argument("--gamma", dest="gamma", default = 0.99, help = "Discount factor gamma")
-    parser.add_argument("--value-coefficient", dest="vf_coef", default = 0.5, help = "Value loss coeficient")
+    parser.add_argument("--value-coefficient", dest="vf_coef", default = 0.5, help = "Value loss coefficient")
     parser.add_argument("--entropy-coefficient", dest="entropy_coef", type=float, default = 0.01, help = "Entropyloss coeficient")
+
+    parser.add_argument('-m', "--minibatch-size", type=int, default=64, help="Size of PPO minibatch")
+    parser.add_argument("--update-epochs", default=4, help="Nuber of update epochs inside PPO Policy")
+    parser.add_argument("-G", "--gae-lambda", default=0.95, help="Lambda for GAE calculation (Advantage)")
+    parser.add_argument("--clip-coefficient", default=0.2, help="Clipping coefficient for PPO")
+
+    parser.add_argument("--tensorboard", help="Directory to write summary")
+    parser.add_argument("--tensorboard-policy-agent-0", help="Directory to policy summary for agent 0")
+    parser.add_argument("--tensorboard-policy-agent-1", help="Directory to policy summary for agent 1")
 
     return parser.parse_args()
 
@@ -42,6 +54,30 @@ def main():
     #print(args.layers1)
     #print(args.layers2)
 
+
+    policy_config = PolicyConfig(entropy_coef=args.entropy_coef, vf_coef=args.vf_coef, gamma = args.gamma,
+                                 learning_rate=args.learning_rate, minibatch_size=args.minibatch_size,
+                                 update_epochs=args.update_epochs, gae_lambda=args.gae_lambda,
+                                 clip_coef=args.clip_coefficient)
+
+    if args.tensorboard is not None:
+        #tb_writter = None
+        tb_writer = SummaryWriter(f"{args.tensorboard}", )
+    else:
+        tb_writer = None
+
+    if args.tensorboard_policy_agent_0 is not None:
+        #tb_writter = None
+        tb_writer_policy_0 = SummaryWriter(f"{args.tensorboard_policy_agent_0}", )
+    else:
+        tb_writer_policy_0 = None
+
+    if args.tensorboard_policy_agent_1 is not None:
+        #tb_writter = None
+        tb_writer_policy_1 = SummaryWriter(f"{args.tensorboard_policy_agent_1}", )
+    else:
+        tb_writer_policy_1 = None
+
     if args.cuda:
         dev = "cuda:0"
         device = dev
@@ -49,11 +85,10 @@ def main():
         dev = "cpu"
         device = dev
 
-
     env = my_env(render_mode=None)
     env.reset()
-    policy0 = PolicyA2C(84, 7, args.layer_sizes_0, config=args, device=device )
-    policy1 = PolicyA2C(84, 7, args.layer_sizes_1, config=args, device=device )
+    policy0 = PolicyA2C(84, 7, args.layer_sizes_0, config=args, device=device, tb_writer=tb_writer_policy_0 )
+    policy1 = PolicyA2C(84, 7, args.layer_sizes_1, config=args, device=device, tb_writer=tb_writer_policy_1)
     agent0 = Agent("player_0", policy0)
     agent1 = Agent("player_1", policy1)
 
@@ -61,15 +96,39 @@ def main():
 
     #model.play_single_game(True, -3)
 
-    w,c = model.play_epoch(args.test_games, False, args.penalty)
-    print(f"Test after before training: wins: {w}, cheats: {c}")
+    if args.test_games > 0:
+        w,c = model.play_epoch(args.test_games, False, args.penalty)
+        print(f"Test after before training: wins: {w}, illegal: {c}")
     for e in range(args.epochs):
         w,c = model.play_epoch(args.games, True, args.penalty)
-        print(f"Results train after epoch {e}: wins: {w}, cheats: {c}")
-        ttrain_report = model.apply_experience()
-        print(ttrain_report)
-        w,c = model.play_epoch(args.test_games, False, args.penalty)
-        print(f"Test after epoch {e}: wins: {w}, cheats: {c}")
+        print(f"Results train after epoch {e}: wins: {w}, illegal: {c}")
+        for agent_id in model.agents_ids:
+            if tb_writer is not None:
+                #policy_id = model.agents[agent_id].policy.policy_id
+                model.agents[agent_id].policy.tb_writer.add_scalar(f"train_epoch/score/{agent_id}", w[agent_id], e)
+
+                model.agents[agent_id].policy.tb_writer.add_scalar(f"train_epoch/illegal_moves/{agent_id}", c[agent_id], e)
+        train_report = model.apply_experience()
+        print(train_report)
+        if args.test_games > 0:
+            w,c = model.play_epoch(args.test_games, False, args.penalty)
+            print(f"Test after epoch {e}: wins: {w}, illegal: {c}")
+
+    for e in range(args.extended_epochs):
+        w,c = model.play_epoch(args.games, True, args.penalty)
+        print(f"Results train after extended epoch {e}: wins: {w}, illegal: {c}")
+        for agent_id in model.agents_ids:
+            if tb_writer is not None:
+                #policy_id = model.agents[agent_id].policy.policy_id
+                model.agents[agent_id].policy.tb_writer.add_scalar(f"train_epoch/score/{agent_id}", w[agent_id], args.epochs + e)
+                model.agents[agent_id].policy.tb_writer.add_scalar(f"train_epoch/illegal_moves/{agent_id}", c[agent_id], e)
+        #train_report = model.apply_experience()
+        agent0 = model.agents[model.agents_ids[0]]
+        report_0 = model.agents[model.agents_ids[0]].policy.train_network(agent0.batch_trajectories)
+        print(report_0)
+        if args.test_games > 0:
+            w,c = model.play_epoch(args.test_games, False, args.penalty)
+            print(f"Test after epoch {e}: wins: {w}, illegal: {c}")
 
 
 

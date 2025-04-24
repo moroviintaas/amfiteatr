@@ -2,8 +2,10 @@ use std::collections::HashMap;
 use std::fs::File;
 use std::io::Write;
 use std::ops::{Add, Div};
+use std::path::PathBuf;
 use log::info;
 use serde::{Deserialize, Serialize};
+use tboard::EventWriter;
 use amfiteatr_core::agent::{AutomaticAgent, MultiEpisodeAutoAgent, Policy, PolicyAgent, ReseedAgent, TracingAgentGen};
 use amfiteatr_core::comm::{
     StdAgentEndpoint,
@@ -13,7 +15,7 @@ use amfiteatr_core::domain::Renew;
 use amfiteatr_core::env::{GameStateWithPayoffs, HashMapEnvironment, ReseedEnvironment, RoundRobinPenalisingUniversalEnvironment, StatefulEnvironment};
 use amfiteatr_core::error::AmfiteatrError;
 use amfiteatr_rl::error::AmfiteatrRlError;
-use amfiteatr_rl::policy::{ActorCriticPolicy, ConfigA2C, ConfigPPO, LearningNetworkPolicy, PolicyDiscreteA2C, PolicyMaskingDiscreteA2C, PolicyMaskingDiscretePPO, PolicyDiscretePPO, TrainConfig};
+use amfiteatr_rl::policy::{ActorCriticPolicy, ConfigA2C, ConfigPPO, LearningNetworkPolicy, PolicyDiscreteA2C, PolicyMaskingDiscreteA2C, PolicyMaskingDiscretePPO, PolicyDiscretePPO, TrainConfig, PolicyHelperA2C};
 use amfiteatr_rl::tch::{Device, nn, Tensor};
 use amfiteatr_rl::tch::nn::{Adam, OptimizerConfig, VarStore};
 use amfiteatr_rl::tensor_data::TensorEncoding;
@@ -22,7 +24,7 @@ use crate::common::{ConnectFourDomain, ConnectFourPlayer, ErrorRL};
 use crate::rust::agent::{ConnectFourActionTensorRepresentation, ConnectFourInfoSet, ConnectFourTensorReprD1};
 
 use amfiteatr_rl::policy::LearnSummary;
-use crate::options::ConnectFourOptions;
+use crate::options::{ComputeDevice, ConnectFourOptions};
 
 #[derive(Default, Copy, Clone, Serialize, Deserialize)]
 
@@ -143,7 +145,7 @@ fn build_a2c_policy_old(layer_sizes: &[i64], device: Device) -> Result<C4A2CPoli
     )
 }
 
-fn build_a2c_policy(layer_sizes: &[i64], device: Device, gae_lambda: Option<f64>) -> Result<C4A2CPolicy, AmfiteatrRlError<ConnectFourDomain>>{
+fn build_a2c_policy(layer_sizes: &[i64], device: Device, config: ConfigA2C, learning_rate: f64) -> Result<C4A2CPolicy, AmfiteatrRlError<ConnectFourDomain>>{
     let var_store = VarStore::new(device);
     let input_shape = ConnectFourTensorReprD1{}.desired_shape()[0];
     let hidden_layers = &layer_sizes;
@@ -186,11 +188,11 @@ fn build_a2c_policy(layer_sizes: &[i64], device: Device, gae_lambda: Option<f64>
     });
 
     let net = network_pattern.get_net_closure();
-    let optimiser = Adam::default().build(&var_store, 1e-4)?;
+    let optimiser = Adam::default().build(&var_store, learning_rate)?;
     let net = A2CNet::new(var_store, net, );
 
-    let mut config = ConfigA2C::default();
-    config.gae_lambda = gae_lambda;
+    //let mut config = ConfigA2C::default();
+    //config.gae_lambda = gae_lambda;
     Ok(PolicyDiscreteA2C::new(
         config,
         net,
@@ -201,7 +203,7 @@ fn build_a2c_policy(layer_sizes: &[i64], device: Device, gae_lambda: Option<f64>
     )
 }
 #[allow(dead_code)]
-fn build_a2c_policy_masking(layer_sizes: &[i64], device: Device, gae_lambda: Option<f64>) -> Result<C4A2CPolicyMasking, AmfiteatrRlError<ConnectFourDomain>>{
+fn build_a2c_policy_masking(layer_sizes: &[i64], device: Device, config: ConfigA2C, learning_rate: f64) -> Result<C4A2CPolicyMasking, AmfiteatrRlError<ConnectFourDomain>>{
     let var_store = VarStore::new(device);
     let input_shape = ConnectFourTensorReprD1{}.desired_shape()[0];
     let hidden_layers = &layer_sizes;
@@ -244,11 +246,11 @@ fn build_a2c_policy_masking(layer_sizes: &[i64], device: Device, gae_lambda: Opt
     });
 
     let net = network_pattern.get_net_closure();
-    let optimiser = Adam::default().build(&var_store, 1e-4)?;
+    let optimiser = Adam::default().build(&var_store, learning_rate)?;
     let net = A2CNet::new(var_store, net, );
 
-    let mut config = ConfigA2C::default();
-    config.gae_lambda = gae_lambda;
+    //let mut config = ConfigA2C::default();
+    // config.gae_lambda = gae_lambda;
     Ok(PolicyMaskingDiscreteA2C::new(
         config,
         net,
@@ -258,7 +260,7 @@ fn build_a2c_policy_masking(layer_sizes: &[i64], device: Device, gae_lambda: Opt
     )
     )
 }
-fn build_ppo_policy_masking(layer_sizes: &[i64], device: Device, config: ConfigPPO) -> Result<C4PPOPolicyMasking, AmfiteatrRlError<ConnectFourDomain>>{
+fn build_ppo_policy_masking(layer_sizes: &[i64], device: Device, config: ConfigPPO, learning_rate: f64) -> Result<C4PPOPolicyMasking, AmfiteatrRlError<ConnectFourDomain>>{
     let var_store = VarStore::new(device);
     //let var_store = VarStore::new(Device::Cuda(0));
     let input_shape = ConnectFourTensorReprD1{}.desired_shape()[0];
@@ -302,7 +304,7 @@ fn build_ppo_policy_masking(layer_sizes: &[i64], device: Device, config: ConfigP
     });
 
     let net = network_pattern.get_net_closure();
-    let optimiser = Adam::default().build(&var_store, 1e-4)?;
+    let optimiser = Adam::default().build(&var_store, learning_rate)?;
     let net = A2CNet::new(var_store, net, );
 
     Ok(PolicyMaskingDiscretePPO::new(
@@ -313,8 +315,8 @@ fn build_ppo_policy_masking(layer_sizes: &[i64], device: Device, config: ConfigP
         ConnectFourActionTensorRepresentation{})
     )
 }
-fn build_ppo_policy(layer_sizes: &[i64], device: Device, config: ConfigPPO) -> Result<C4PPOPolicy, AmfiteatrRlError<ConnectFourDomain>>{
-    Ok(build_ppo_policy_masking(layer_sizes, device, config)?.base)
+fn build_ppo_policy(layer_sizes: &[i64], device: Device, config: ConfigPPO, learning_rate: f64) -> Result<C4PPOPolicy, AmfiteatrRlError<ConnectFourDomain>>{
+    Ok(build_ppo_policy_masking(layer_sizes, device, config, learning_rate)?.base)
 
 }
 
@@ -331,8 +333,10 @@ type Agent<P> = TracingAgentGen<ConnectFourDomain, P, StdAgentEndpoint<ConnectFo
 pub struct ConnectFourModelRust<S: GameStateWithPayoffs<ConnectFourDomain>, P: LearningNetworkPolicy<ConnectFourDomain, Summary=LearnSummary>>{
 
     env: Environment<S>,
+    agent0: Agent<P>,
     agent1: Agent<P>,
-    agent2: Agent<P>,
+
+    model_tboard: Option<tboard::EventWriter<File>>
 
 }
 /*
@@ -370,9 +374,16 @@ impl<
     S:  GameStateWithPayoffs<ConnectFourDomain> + Clone + Renew<ConnectFourDomain, ()>,
 > ConnectFourModelRust<S, C4A2CPolicy>{
     #[allow(dead_code)]
-    pub fn new_a2c(agent_layers_1: &[i64], agent_layers_2: &[i64], device: Device, gae_lambda: Option<f64>) -> Self
+    pub fn new_a2c(options: &ConnectFourOptions) -> Self
         where S: Default{
 
+        let mut config_a2c = ConfigA2C::default();
+        config_a2c.gae_lambda = options.gae_lambda;
+
+        let device = match options.device{
+            ComputeDevice::Cpu => Device::Cpu,
+            ComputeDevice::Cuda => Device::Cuda(0),
+        };
         let (c_env1, c_a1) = StdEnvironmentEndpoint::new_pair();
         let (c_env2, c_a2) = StdEnvironmentEndpoint::new_pair();
 
@@ -382,15 +393,25 @@ impl<
 
 
         let env = Environment::new(S::default(), hm, );
-        let agent_policy_1 = build_a2c_policy(agent_layers_1, device, gae_lambda).unwrap();
-        let agent_policy_2 = build_a2c_policy(agent_layers_2, device, gae_lambda).unwrap();
-        let agent_1 = Agent::new(ConnectFourInfoSet::new(ConnectFourPlayer::One), c_a1, agent_policy_1);
-        let agent_2 = Agent::new(ConnectFourInfoSet::new(ConnectFourPlayer::Two), c_a2, agent_policy_2);
+        let mut agent_policy_0 = build_a2c_policy(&options.layer_sizes_0[..], device, config_a2c, options.learning_rate).unwrap();
+        let mut agent_policy_1 = build_a2c_policy(&options.layer_sizes_1[..], device, config_a2c, options.learning_rate).unwrap();
+        if let Some(t0) = &options.tboard_agent0{
+            agent_policy_0.create_tboard_writer(t0).unwrap()
+        }
+        if let Some(t1) = &options.tboard_agent1{
+            agent_policy_1.create_tboard_writer(t1).unwrap()
+        }
+        let agent_0 = Agent::new(ConnectFourInfoSet::new(ConnectFourPlayer::One), c_a1, agent_policy_0);
+        let agent_1 = Agent::new(ConnectFourInfoSet::new(ConnectFourPlayer::Two), c_a2, agent_policy_1);
+
+        let model_tboard = options.tboard.as_ref()
+            .and_then(|p| Some(EventWriter::create(p).unwrap()));
 
         Self{
             env,
+            agent0: agent_0,
             agent1: agent_1,
-            agent2: agent_2
+            model_tboard,
         }
     }
 }
@@ -399,9 +420,16 @@ impl<
     S:  GameStateWithPayoffs<ConnectFourDomain> + Clone + Renew<ConnectFourDomain, ()>,
 > ConnectFourModelRust<S, C4A2CPolicyMasking>{
     #[allow(dead_code)]
-    pub fn new_a2c_masking(agent_layers_1: &[i64], agent_layers_2: &[i64], device: Device, gae_lambda: Option<f64>) -> Self
+    pub fn new_a2c_masking(options: &ConnectFourOptions) -> Self
         where S: Default{
 
+        let mut config_a2c = ConfigA2C::default();
+        config_a2c.gae_lambda = options.gae_lambda;
+
+        let device = match options.device{
+            ComputeDevice::Cpu => Device::Cpu,
+            ComputeDevice::Cuda => Device::Cuda(0),
+        };
         let (c_env1, c_a1) = StdEnvironmentEndpoint::new_pair();
         let (c_env2, c_a2) = StdEnvironmentEndpoint::new_pair();
 
@@ -411,15 +439,25 @@ impl<
 
 
         let env = Environment::new(S::default(), hm, );
-        let agent_policy_1 = build_a2c_policy_masking(agent_layers_1, device, gae_lambda).unwrap();
-        let agent_policy_2 = build_a2c_policy_masking(agent_layers_2, device, gae_lambda).unwrap();
-        let agent_1 = Agent::new(ConnectFourInfoSet::new(ConnectFourPlayer::One), c_a1, agent_policy_1);
-        let agent_2 = Agent::new(ConnectFourInfoSet::new(ConnectFourPlayer::Two), c_a2, agent_policy_2);
+        let mut agent_policy_0 = build_a2c_policy_masking(&options.layer_sizes_0[..], device, config_a2c, options.learning_rate).unwrap();
+        let mut agent_policy_1 = build_a2c_policy_masking(&options.layer_sizes_1[..], device, config_a2c, options.learning_rate).unwrap();
+        if let Some(t0) = &options.tboard_agent0{
+            agent_policy_0.create_tboard_writer(t0).unwrap()
+        }
+        if let Some(t1) = &options.tboard_agent1{
+            agent_policy_1.create_tboard_writer(t1).unwrap()
+        }
+        let agent_0 = Agent::new(ConnectFourInfoSet::new(ConnectFourPlayer::One), c_a1, agent_policy_0);
+        let agent_1 = Agent::new(ConnectFourInfoSet::new(ConnectFourPlayer::Two), c_a2, agent_policy_1);
+
+        let model_tboard = options.tboard.as_ref()
+            .and_then(|p| Some(EventWriter::create(p).unwrap()));
 
         Self{
             env,
+            agent0: agent_0,
             agent1: agent_1,
-            agent2: agent_2
+            model_tboard,
         }
     }
 }
@@ -428,8 +466,16 @@ impl<
     S:  GameStateWithPayoffs<ConnectFourDomain> + Clone + Renew<ConnectFourDomain, ()>,
 > ConnectFourModelRust<S,C4PPOPolicy>{
     #[allow(dead_code)]
-    pub fn new_ppo(agent_layers_1: &[i64], agent_layers_2: &[i64], device: Device, config_ppo: ConfigPPO) -> Self
+    pub fn new_ppo(options: &ConnectFourOptions) -> Self
     where S: Default{
+
+        let mut config_ppo = ConfigPPO::default();
+        config_ppo.gae_lambda = options.gae_lambda;
+
+        let device = match options.device{
+            ComputeDevice::Cpu => Device::Cpu,
+            ComputeDevice::Cuda => Device::Cuda(0),
+        };
 
         let (c_env1, c_a1) = StdEnvironmentEndpoint::new_pair();
         let (c_env2, c_a2) = StdEnvironmentEndpoint::new_pair();
@@ -440,15 +486,25 @@ impl<
 
 
         let env = Environment::new(S::default(), hm, );
-        let agent_policy_1 = build_ppo_policy(agent_layers_1, device, config_ppo).unwrap();
-        let agent_policy_2 = build_ppo_policy(agent_layers_2, device, config_ppo).unwrap();
-        let agent_1 = Agent::new(ConnectFourInfoSet::new(ConnectFourPlayer::One), c_a1, agent_policy_1);
-        let agent_2 = Agent::new(ConnectFourInfoSet::new(ConnectFourPlayer::Two), c_a2, agent_policy_2);
+        let mut agent_policy_0 = build_ppo_policy(&options.layer_sizes_0[..], device, config_ppo, options.learning_rate).unwrap();
+        let mut agent_policy_1 = build_ppo_policy(&options.layer_sizes_1[..], device, config_ppo, options.learning_rate).unwrap();
+        if let Some(t0) = &options.tboard_agent0{
+            agent_policy_0.create_tboard_writer(t0).unwrap()
+        }
+        if let Some(t1) = &options.tboard_agent1{
+            agent_policy_1.create_tboard_writer(t1).unwrap()
+        }
+        let agent_0 = Agent::new(ConnectFourInfoSet::new(ConnectFourPlayer::One), c_a1, agent_policy_0);
+        let agent_1 = Agent::new(ConnectFourInfoSet::new(ConnectFourPlayer::Two), c_a2, agent_policy_1);
+
+        let model_tboard = options.tboard.as_ref()
+            .and_then(|p| Some(EventWriter::create(p).unwrap()));
 
         Self{
             env,
+            agent0: agent_0,
             agent1: agent_1,
-            agent2: agent_2
+            model_tboard,
         }
     }
 }
@@ -457,8 +513,16 @@ impl<
     S:  GameStateWithPayoffs<ConnectFourDomain> + Clone + Renew<ConnectFourDomain, ()>,
 > ConnectFourModelRust<S,C4PPOPolicyMasking>{
     #[allow(dead_code)]
-    pub fn new_ppo_masking(agent_layers_1: &[i64], agent_layers_2: &[i64], device: Device, config_ppo: ConfigPPO) -> Self
+    pub fn new_ppo_masking(options: &ConnectFourOptions) -> Self
     where S: Default{
+
+        let mut config_ppo = ConfigPPO::default();
+        config_ppo.gae_lambda = options.gae_lambda;
+
+        let device = match options.device{
+            ComputeDevice::Cpu => Device::Cpu,
+            ComputeDevice::Cuda => Device::Cuda(0),
+        };
 
         let (c_env1, c_a1) = StdEnvironmentEndpoint::new_pair();
         let (c_env2, c_a2) = StdEnvironmentEndpoint::new_pair();
@@ -469,22 +533,32 @@ impl<
 
 
         let env = Environment::new(S::default(), hm, );
-        let agent_policy_1 = build_ppo_policy_masking(agent_layers_1, device, config_ppo).unwrap();
-        let agent_policy_2 = build_ppo_policy_masking(agent_layers_2, device, config_ppo).unwrap();
-        let agent_1 = Agent::new(ConnectFourInfoSet::new(ConnectFourPlayer::One), c_a1, agent_policy_1);
-        let agent_2 = Agent::new(ConnectFourInfoSet::new(ConnectFourPlayer::Two), c_a2, agent_policy_2);
+        let mut agent_policy_0 = build_ppo_policy_masking(&options.layer_sizes_0[..], device, config_ppo, options.learning_rate).unwrap();
+        let mut agent_policy_1 = build_ppo_policy_masking(&options.layer_sizes_1[..], device, config_ppo, options.learning_rate).unwrap();
+        if let Some(t0) = &options.tboard_agent0{
+            agent_policy_0.create_tboard_writer(t0).unwrap()
+        }
+        if let Some(t1) = &options.tboard_agent1{
+            agent_policy_1.create_tboard_writer(t1).unwrap()
+        }
+        let agent_0 = Agent::new(ConnectFourInfoSet::new(ConnectFourPlayer::One), c_a1, agent_policy_0);
+        let agent_1 = Agent::new(ConnectFourInfoSet::new(ConnectFourPlayer::Two), c_a2, agent_policy_1);
+
+        let model_tboard = options.tboard.as_ref()
+            .and_then(|p| Some(EventWriter::create(p).unwrap()));
 
         Self{
             env,
+            agent0: agent_0,
             agent1: agent_1,
-            agent2: agent_2
+            model_tboard,
         }
     }
 }
 
 impl<
     S:  GameStateWithPayoffs<ConnectFourDomain> + Clone + Renew<ConnectFourDomain, ()>,
-    P: LearningNetworkPolicy<ConnectFourDomain, Summary = LearnSummary>
+    P: LearningNetworkPolicy<ConnectFourDomain, Summary = LearnSummary> + PolicyHelperA2C<ConnectFourDomain>
 > ConnectFourModelRust<S,P>
 where <P as Policy<ConnectFourDomain>>::InfoSetType: Renew<ConnectFourDomain, ()> + Clone{
 
@@ -493,8 +567,8 @@ where <P as Policy<ConnectFourDomain>>::InfoSetType: Renew<ConnectFourDomain, ()
     pub fn play_one_game(&mut self, store_episode: bool) -> Result<EpochSummary, AmfiteatrRlError<ConnectFourDomain>>{
         let mut summary = EpochSummary::default();
         self.env.reseed(())?;
+        self.agent0.reseed(())?;
         self.agent1.reseed(())?;
-        self.agent2.reseed(())?;
 
         std::thread::scope(|s|{
             s.spawn(|| {
@@ -508,10 +582,10 @@ where <P as Policy<ConnectFourDomain>>::InfoSetType: Renew<ConnectFourDomain, ()
                 }
             });
             s.spawn(||{
-                self.agent1.run().unwrap()
+                self.agent0.run().unwrap()
             });
             s.spawn(||{
-                self.agent2.run().unwrap()
+                self.agent1.run().unwrap()
             });
         });
 
@@ -524,16 +598,16 @@ where <P as Policy<ConnectFourDomain>>::InfoSetType: Renew<ConnectFourDomain, ()
         summary.game_steps = self.env.completed_steps() as f64;
 
         if store_episode{
+            self.agent0.store_episode();
             self.agent1.store_episode();
-            self.agent2.store_episode();
         }
 
         Ok(summary)
     }
 
     pub fn play_epoch(&mut self, number_of_games: usize, summarize: bool, training_epoch: bool) -> Result<EpochSummary, AmfiteatrRlError<ConnectFourDomain>>{
+        self.agent0.clear_episodes();
         self.agent1.clear_episodes();
-        self.agent2.clear_episodes();
         let mut vec = match summarize{
             true => Vec::with_capacity(number_of_games as usize),
             false => Vec::with_capacity(0),
@@ -550,7 +624,7 @@ where <P as Policy<ConnectFourDomain>>::InfoSetType: Renew<ConnectFourDomain, ()
             return Ok(EpochSummary {
                 games_played: summary_sum.games_played,
                 scores: [summary_sum.scores[0]/n, summary_sum.scores[1]/n],
-                invalid_actions: [summary_sum.invalid_actions[0], summary_sum.invalid_actions[1]],
+                invalid_actions: [summary_sum.invalid_actions[0]/n, summary_sum.invalid_actions[1]/n],
                 game_steps: summary_sum.game_steps / n,
             });
         }
@@ -562,19 +636,19 @@ where <P as Policy<ConnectFourDomain>>::InfoSetType: Renew<ConnectFourDomain, ()
     //}
 
     pub fn train_agents_on_experience(&mut self) -> Result<(LearnSummary,LearnSummary), ErrorRL>{
-        let t1 = self.agent1.take_episodes();
-        let s1 = self.agent1.policy_mut().train_on_trajectories_env_reward(&t1)?;
-        let t2 = self.agent2.take_episodes();
-        let s2 = self.agent2.policy_mut().train_on_trajectories_env_reward(&t2)?;
+        let t1 = self.agent0.take_episodes();
+        let s1 = self.agent0.policy_mut().train_on_trajectories_env_reward(&t1)?;
+        let t2 = self.agent1.take_episodes();
+        let s2 = self.agent1.policy_mut().train_on_trajectories_env_reward(&t2)?;
         //self.agent2.policy_mut().train_on_trajectories(&t2, |step| Tensor::from(-1.0 + (2.0 * step.reward())))?;
 
         Ok((s1, s2))
     }
 
     pub fn train_agent1_on_experience(&mut self) -> Result<LearnSummary, ErrorRL>{
-        let t1 = self.agent1.take_episodes();
-        let s1 = self.agent1.policy_mut().train_on_trajectories_env_reward(&t1)?;
-        let _t2 = self.agent2.take_episodes();
+        let t1 = self.agent0.take_episodes();
+        let s1 = self.agent0.policy_mut().train_on_trajectories_env_reward(&t1)?;
+        let _t2 = self.agent1.take_episodes();
         //self.agent2.policy_mut().train_on_trajectories_env_reward(&t2)?;
 
         Ok(s1)
@@ -594,8 +668,23 @@ where <P as Policy<ConnectFourDomain>>::InfoSetType: Renew<ConnectFourDomain, ()
 
         for e in 0..options.epochs{
             let s = self.play_epoch(options.num_episodes, true, true)?;
+            if let Some(tboard) = self.agent0.policy_mut().tboard_writer(){
+                tboard.write_scalar(e as i64, "train_epoch/score", s.scores[0] as f32)
+                    .map_err(|e| AmfiteatrError::TboardFlattened {context: "Saving Agent0 scores".into(), error: format!("{e}")})?;
+                tboard.write_scalar(e as i64, "train_epoch/illegal_moves", s.invalid_actions[0] as f32)
+                    .map_err(|e| AmfiteatrError::TboardFlattened {context: "Saving Agent0 bad action count".into(), error: format!("{e}")})?;
+
+            }
+            if let Some(tboard) = self.agent1.policy_mut().tboard_writer(){
+
+                tboard.write_scalar(e as i64, "train_epoch/score", s.scores[1] as f32)
+                    .map_err(|e| AmfiteatrError::TboardFlattened {context: "Saving Agent1 scores".into(), error: format!("{e}")})?;
+               tboard.write_scalar(e as i64, "train_epoch/illegal_moves", s.invalid_actions[1] as f32)
+                    .map_err(|e| AmfiteatrError::TboardFlattened {context: "Saving Agent1 bad action count".into(), error: format!("{e}")})?;
+            }
             results_learn.push(s);
             let (s1,s2) = self.train_agents_on_experience()?;
+
             info!("Training epoch {}: Critic losses {:.3}, {:.3}; Actor loss {:.3}, {:.3}; entropy loss {:.3}, {:.3}",
                 e+1, s1.value_loss.unwrap(), s2.value_loss.unwrap(),
                 s1.policy_gradient_loss.unwrap(), s2.policy_gradient_loss.unwrap(),
@@ -630,6 +719,20 @@ where <P as Policy<ConnectFourDomain>>::InfoSetType: Renew<ConnectFourDomain, ()
 
         for e in 0..options.extended_epochs{
             let s = self.play_epoch(options.num_episodes, true, true)?;
+            if let Some(tboard) = self.agent0.policy_mut().tboard_writer(){
+                tboard.write_scalar((options.epochs + e) as i64, "train_epoch/score", s.scores[0] as f32)
+                    .map_err(|e| AmfiteatrError::TboardFlattened {context: "Saving Agent0 scores".into(), error: format!("{e}")})?;
+                tboard.write_scalar((options.epochs + e) as i64, "train_epoch/illegal_moves", s.invalid_actions[0] as f32)
+                    .map_err(|e| AmfiteatrError::TboardFlattened {context: "Saving Agent0 bad action count".into(), error: format!("{e}")})?;
+
+            }
+            if let Some(tboard) = self.agent1.policy_mut().tboard_writer(){
+
+                tboard.write_scalar((options.epochs + e) as i64, "train_epoch/score", s.scores[1] as f32)
+                    .map_err(|e| AmfiteatrError::TboardFlattened {context: "Saving Agent1 scores".into(), error: format!("{e}")})?;
+                tboard.write_scalar((options.epochs + e) as i64, "train_epoch/illegal_moves", s.invalid_actions[1] as f32)
+                    .map_err(|e| AmfiteatrError::TboardFlattened {context: "Saving Agent1 bad action count".into(), error: format!("{e}")})?;
+            }
             let s1 = self.train_agent1_on_experience()?;
             info!("Training only agent 1 epoch {}: Critic losses {:.3}; Actor loss {:.3}; entropy loss {:.3}",
                 e+1, s1.value_loss.unwrap(),

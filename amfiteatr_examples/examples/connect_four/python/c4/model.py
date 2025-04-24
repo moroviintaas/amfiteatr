@@ -26,7 +26,7 @@ class TwoPlayerModel:
         self.agents = {agent0.id: agent0, agent1.id: agent1}
 
         self.env_step_counter = 0
-        self.max_env_steps_in_epoch = model_config.max_env_steps_in_epoch
+        #self.max_env_steps_in_epoch = model_config.max_env_steps_in_epoch
         self.masking = model_config.masking
 
 
@@ -36,6 +36,7 @@ class TwoPlayerModel:
             return  self.agents_ids[1]
         elif agent_id == self.agents_ids[1]:
             return self.agents_ids[0]
+
 
     def play_single_game(self, store_episode, illegal_reward):
 

@@ -18,7 +18,7 @@ def parse_args():
     parser.add_argument('-g', "--games", type=int, default=128, help="Number of games in epochs of training")
     #parser.add_argument('-s', "--steps", type=int,  dest="max_env_steps_in_epoch", help="Limit number of steps in train epoch (train epoch may be limited to certain number of steps to compare with models scaled with number of steps instead of full games)")
     parser.add_argument('-t', "--test_games", type=int, default=100, help="Number of games in epochs of testing")
-    parser.add_argument('-p', "--penalty", type=float, default=10, help="NPenalty for illegal actions")
+    parser.add_argument('-p', "--penalty", type=float, default=-10, help="NPenalty for illegal actions")
     parser.add_argument("--layer-sizes-0", metavar="LAYERS", type=int, nargs="*", default=[64,64], help = "Sizes of subsequent linear layers")
     parser.add_argument("--layer-sizes-1", metavar="LAYERS", type=int, nargs="*", default=[64,64],
                         help="Sizes of subsequent linear layers")
@@ -38,8 +38,7 @@ def parse_args():
     parser.add_argument("-G", "--gae-lambda", default=0.95, help="Lambda for GAE calculation (Advantage)")
     parser.add_argument("--clip-coefficient", default=0.2, help="Clipping coefficient for PPO")
 
-    parser.add_argument("--tensorboard", help="Directory to write summary for model")
-   # parser.add_argument("--tensorboard", help="Directory to write summary for agent0")
+    parser.add_argument("--tensorboard", help="Directory to write summary")
     parser.add_argument("--tensorboard-policy-agent-0", help="Directory to policy summary for agent 0")
     parser.add_argument("--tensorboard-policy-agent-1", help="Directory to policy summary for agent 1")
 
@@ -76,18 +75,6 @@ def main():
     else:
         tb_writer_policy_1 = None
 
-    # if args.tensorboard_agent_0 is not None:
-    #     #tb_writter = None
-    #     tb_writer_0 = SummaryWriter(f"{args.tensorboard_policy_agent_0}", )
-    # else:
-    #     tb_writer_0 = None
-#
-    # if args.tensorboard_agent_1 is not None:
-    #     #tb_writter = None
-    #     tb_writer_1 = SummaryWriter(f"{args.tensorboard_policy_agent_1}", )
-    # else:
-    #     tb_writer_1 = None
-
     #policy_config.entropy_coef = arg
     #print(args.layers1)
     #print(args.layers2)
@@ -99,14 +86,13 @@ def main():
         dev = "cpu"
         device = dev
 
-    #agent_ids = ("player_0", "player_1")
 
-    env = my_env(render_mode=None, illegal_reward=args.penalty)
+    env = my_env(render_mode=None)
     env.reset()
     policy0 = PolicyPPO(84, 7, args.layer_sizes_0, config=policy_config, device=device, tb_writer=tb_writer_policy_0 )
     policy1 = PolicyPPO(84, 7, args.layer_sizes_1, config=policy_config, device=device, tb_writer=tb_writer_policy_1 )
-    agent0 = Agent("player_0", policy0,)
-    agent1 = Agent("player_1", policy1)
+    agent0 = Agent("agent0", policy0,)
+    agent1 = Agent("agent1", policy1)
 
     model = TwoPlayerModel(env, agent0, agent1, args)
 
@@ -120,8 +106,8 @@ def main():
         for agent_id in model.agents_ids:
             if tb_writer is not None:
                 #policy_id = model.agents[agent_id].policy.policy_id
-                model.agents[agent_id].policy.tb_writer.add_scalar(f"train_epoch/score", w[agent_id] - w[model.other_agent(agent_id)], e)
-                model.agents[agent_id].policy.tb_writer.add_scalar(f"train_epoch/illegal_moves", c[agent_id], e)
+                model.agents[agent_id].policy.tb_writer.add_scalar(f"train_epoch/{agent_id}/wins", w[agent_id], e)
+                model.agents[agent_id].policy.tb_writer.add_scalar(f"train_epoch/{agent_id}/wins", w[agent_id], e)
         train_report = model.apply_experience()
         print(train_report)
         if args.test_games > 0:
@@ -134,12 +120,8 @@ def main():
         for agent_id in model.agents_ids:
             if tb_writer is not None:
                 #policy_id = model.agents[agent_id].policy.policy_id
-                model.agents[agent_id].policy.tb_writer.add_scalar(f"train_epoch/score", w[agent_id] - w[model.other_agent(agent_id)], args.epochs + e)
-                model.agents[agent_id].policy.tb_writer.add_scalar(f"train_epoch/illegal_moves", c[agent_id], args.epochs + e)
-        #if tb_writer_0 is not None:
-        #    #policy_id = model.agents[agent_id].policy.policy_id
-        #    model.agents[agent_id].policy.tb_writer.add_scalar(f"train_epoch/wins/{agent_id}", w[agent_id], args.epochs + e)
-        #    model.agents[agent_id].policy.tb_writer.add_scalar(f"train_epoch/illegal_moves/{agent_id}", c[agent_id], args.epochs + e)
+                model.agents[agent_id].policy.tb_writer.add_scalar(f"train_epoch/wins/{agent_id}", w[agent_id], args.epochs + e)
+                model.agents[agent_id].policy.tb_writer.add_scalar(f"train_epoch/wins/{agent_id}", w[agent_id], args.epochs + e)
         #train_report = model.apply_experience()
         agent0 = model.agents[model.agents_ids[0]]
         report_0 = model.agents[model.agents_ids[0]].policy.train_network(agent0.batch_trajectories)
