@@ -84,8 +84,8 @@ pub struct ConnectFourOptions{
     #[arg(long = "tensorboard-policy-agent-1", help = "Directory to save tensorboard output for agent 1")]
     pub tboard_agent1: Option<PathBuf>,
 
-    #[arg(long = "tensorboard", help = "Directory to save tensorboard output for epoch scores")]
-    pub tboard: Option<PathBuf>
+    //#[arg(long = "tensorboard", help = "Directory to save tensorboard output for epoch scores")]
+    //pub tboard: Option<PathBuf>
 
     //#[arg(short = 'r', long = "reward", default_value = "env")]
     //pub reward_source: RewardSource,

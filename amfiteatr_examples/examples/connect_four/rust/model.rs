@@ -404,8 +404,8 @@ impl<
         let agent_0 = Agent::new(ConnectFourInfoSet::new(ConnectFourPlayer::One), c_a1, agent_policy_0);
         let agent_1 = Agent::new(ConnectFourInfoSet::new(ConnectFourPlayer::Two), c_a2, agent_policy_1);
 
-        let model_tboard = options.tboard.as_ref()
-            .and_then(|p| Some(EventWriter::create(p).unwrap()));
+        //let model_tboard = options.tboard.as_ref()
+        //    .and_then(|p| Some(EventWriter::create(p).unwrap()));
 
         Self{
             env,
@@ -450,8 +450,8 @@ impl<
         let agent_0 = Agent::new(ConnectFourInfoSet::new(ConnectFourPlayer::One), c_a1, agent_policy_0);
         let agent_1 = Agent::new(ConnectFourInfoSet::new(ConnectFourPlayer::Two), c_a2, agent_policy_1);
 
-        let model_tboard = options.tboard.as_ref()
-            .and_then(|p| Some(EventWriter::create(p).unwrap()));
+        //let model_tboard = options.tboard.as_ref()
+        //    .and_then(|p| Some(EventWriter::create(p).unwrap()));
 
         Self{
             env,
@@ -497,8 +497,8 @@ impl<
         let agent_0 = Agent::new(ConnectFourInfoSet::new(ConnectFourPlayer::One), c_a1, agent_policy_0);
         let agent_1 = Agent::new(ConnectFourInfoSet::new(ConnectFourPlayer::Two), c_a2, agent_policy_1);
 
-        let model_tboard = options.tboard.as_ref()
-            .and_then(|p| Some(EventWriter::create(p).unwrap()));
+        //let model_tboard = options.tboard.as_ref()
+        //    .and_then(|p| Some(EventWriter::create(p).unwrap()));
 
         Self{
             env,
@@ -544,8 +544,8 @@ impl<
         let agent_0 = Agent::new(ConnectFourInfoSet::new(ConnectFourPlayer::One), c_a1, agent_policy_0);
         let agent_1 = Agent::new(ConnectFourInfoSet::new(ConnectFourPlayer::Two), c_a2, agent_policy_1);
 
-        let model_tboard = options.tboard.as_ref()
-            .and_then(|p| Some(EventWriter::create(p).unwrap()));
+        //let model_tboard = options.tboard.as_ref()
+        //    .and_then(|p| Some(EventWriter::create(p).unwrap()));
 
         Self{
             env,
