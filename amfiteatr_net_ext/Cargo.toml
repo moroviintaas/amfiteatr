@@ -14,10 +14,10 @@ harness = false
 
 
 [dependencies]
-log = "0.4.26"
+log = "0.4.27"
 speedy = "0.8.7"
 
-thiserror = "2.0.11"
+thiserror = "2.0.12"
 criterion = "0.5.1"
 zeroize = "1.8.1"
 

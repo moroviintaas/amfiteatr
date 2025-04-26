@@ -14,7 +14,7 @@ proc-macro = true
 
 [dependencies]
 
-syn = {version = "2.0.98", features = ["full", "fold", "parsing"]}
-quote = "1.0.38"
-proc-macro2 = { version =  "1.0.93", features = ["proc-macro"]}
+syn = {version = "2.0.100", features = ["full", "fold", "parsing"]}
+quote = "1.0.40"
+proc-macro2 = { version =  "1.0.95", features = ["proc-macro"]}
 enum-map-derive = "0.17.0"
