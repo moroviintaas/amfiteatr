@@ -396,10 +396,10 @@ impl<
         let mut agent_policy_0 = build_a2c_policy(&options.layer_sizes_0[..], device, config_a2c, options.learning_rate).unwrap();
         let mut agent_policy_1 = build_a2c_policy(&options.layer_sizes_1[..], device, config_a2c, options.learning_rate).unwrap();
         if let Some(t0) = &options.tboard_agent0{
-            agent_policy_0.create_tboard_writer(t0).unwrap()
+            agent_policy_0.add_tboard_directory(t0).unwrap()
         }
         if let Some(t1) = &options.tboard_agent1{
-            agent_policy_1.create_tboard_writer(t1).unwrap()
+            agent_policy_1.add_tboard_directory(t1).unwrap()
         }
         let agent_0 = Agent::new(ConnectFourInfoSet::new(ConnectFourPlayer::One), c_a1, agent_policy_0);
         let agent_1 = Agent::new(ConnectFourInfoSet::new(ConnectFourPlayer::Two), c_a2, agent_policy_1);
@@ -442,10 +442,10 @@ impl<
         let mut agent_policy_0 = build_a2c_policy_masking(&options.layer_sizes_0[..], device, config_a2c, options.learning_rate).unwrap();
         let mut agent_policy_1 = build_a2c_policy_masking(&options.layer_sizes_1[..], device, config_a2c, options.learning_rate).unwrap();
         if let Some(t0) = &options.tboard_agent0{
-            agent_policy_0.create_tboard_writer(t0).unwrap()
+            agent_policy_0.add_tboard_directory(t0).unwrap()
         }
         if let Some(t1) = &options.tboard_agent1{
-            agent_policy_1.create_tboard_writer(t1).unwrap()
+            agent_policy_1.add_tboard_directory(t1).unwrap()
         }
         let agent_0 = Agent::new(ConnectFourInfoSet::new(ConnectFourPlayer::One), c_a1, agent_policy_0);
         let agent_1 = Agent::new(ConnectFourInfoSet::new(ConnectFourPlayer::Two), c_a2, agent_policy_1);
@@ -489,10 +489,10 @@ impl<
         let mut agent_policy_0 = build_ppo_policy(&options.layer_sizes_0[..], device, config_ppo, options.learning_rate).unwrap();
         let mut agent_policy_1 = build_ppo_policy(&options.layer_sizes_1[..], device, config_ppo, options.learning_rate).unwrap();
         if let Some(t0) = &options.tboard_agent0{
-            agent_policy_0.create_tboard_writer(t0).unwrap()
+            agent_policy_0.add_tboard_directory(t0).unwrap()
         }
         if let Some(t1) = &options.tboard_agent1{
-            agent_policy_1.create_tboard_writer(t1).unwrap()
+            agent_policy_1.add_tboard_directory(t1).unwrap()
         }
         let agent_0 = Agent::new(ConnectFourInfoSet::new(ConnectFourPlayer::One), c_a1, agent_policy_0);
         let agent_1 = Agent::new(ConnectFourInfoSet::new(ConnectFourPlayer::Two), c_a2, agent_policy_1);
@@ -536,10 +536,10 @@ impl<
         let mut agent_policy_0 = build_ppo_policy_masking(&options.layer_sizes_0[..], device, config_ppo, options.learning_rate).unwrap();
         let mut agent_policy_1 = build_ppo_policy_masking(&options.layer_sizes_1[..], device, config_ppo, options.learning_rate).unwrap();
         if let Some(t0) = &options.tboard_agent0{
-            agent_policy_0.create_tboard_writer(t0).unwrap()
+            agent_policy_0.add_tboard_directory(t0).unwrap()
         }
         if let Some(t1) = &options.tboard_agent1{
-            agent_policy_1.create_tboard_writer(t1).unwrap()
+            agent_policy_1.add_tboard_directory(t1).unwrap()
         }
         let agent_0 = Agent::new(ConnectFourInfoSet::new(ConnectFourPlayer::One), c_a1, agent_policy_0);
         let agent_1 = Agent::new(ConnectFourInfoSet::new(ConnectFourPlayer::Two), c_a2, agent_policy_1);

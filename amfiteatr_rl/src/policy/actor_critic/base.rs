@@ -297,6 +297,10 @@ pub trait PolicyHelperA2C<DP: DomainParameters>{
 
 }
 
+/// Helper trait to build create training interface for A2C Policy.
+/// It provides automatic [`ppo_train_on_trajectories`](PolicyTrainHelperA2C::a2c_train_on_trajectories)
+/// implementation for any (policy) type implementing [`PolicyHelperA2C`].
+
 pub trait PolicyTrainHelperA2C<DP: DomainParameters> : PolicyHelperA2C<DP, Config=ConfigA2C>{
 
     fn a2c_train_on_trajectories<

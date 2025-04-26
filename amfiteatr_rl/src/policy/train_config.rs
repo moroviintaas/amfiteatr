@@ -9,6 +9,8 @@ pub struct TrainConfig{
     pub gamma: f64
 }
 
+/// Minimal interface for reinforcement learning policy configuration.
+/// To be expanded int the future, probably.
 pub trait RlPolicyConfigBasic{
     fn gamma(&self) -> f64;
     fn gae_lambda(&self) -> Option<f64>;

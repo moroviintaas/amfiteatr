@@ -13,6 +13,13 @@ use crate::{tensor_data, MaskingInformationSetActionMultiParameter};
 use crate::tensor_data::{ContextDecodeMultiIndexI64, ContextEncodeMultiIndexI64, ContextEncodeTensor, MultiTensorDecoding, MultiTensorIndexI64Encoding, TensorEncoding};
 use crate::torch_net::{ActorCriticOutput, DeviceTransfer, NeuralNet, NeuralNetMultiActorCritic, TensorMultiParamActorCritic};
 
+/// Experimental A2C policy for actions from discrete actions space but sampled from
+/// more than one parameter distribution.
+/// E.g. Action type is one parameter sampled from one distribution (with space size `N`).
+/// Then optionally some additional parameters like e.g. coordinates, tooling (or whatever) are sampled from
+/// different distributions.
+/// It is an __experimental__ approach disassembling cartesian action space of size `N x P1 x P2 x ... Pk` into
+/// `k + 1` distribution of action parameters.
 pub struct PolicyMultiDiscreteA2C<
     DP: DomainParameters,
     InfoSet: InformationSet<DP> + Debug + ContextEncodeTensor<InfoSetConversionContext>,
@@ -67,9 +74,11 @@ ContextDecodeMultiIndexI64<ActionBuildContext>
         }
     }
 
-    /// Creates [`tboard::EventWriter`].
-    pub fn create_tboard_writer<P: AsRef<std::path::Path>>(&mut self, path: P) -> Result<(), AmfiteatrError<DP>>{
-        let tboard = EventWriter::create(path).map_err(|e|{
+    /// Creates [`tboard::EventWriter`]. Initialy policy does not use `tensorboard` directory to store epoch
+    /// training results (like entropy, policy loss, value loss). However, you cen provide it with directory
+    /// to create tensorboard files.
+    pub fn add_tboard_directory<P: AsRef<std::path::Path>>(&mut self, directory_path: P) -> Result<(), AmfiteatrError<DP>>{
+        let tboard = EventWriter::create(directory_path).map_err(|e|{
             AmfiteatrError::TboardFlattened {context: "Creating tboard EventWriter".into(), error: format!("{e}")}
         })?;
         self.tboard_writer = Some(tboard);
@@ -273,8 +282,12 @@ where <DP as DomainParameters>::ActionType: ContextDecodeMultiIndexI64<ActionBui
             base: PolicyMultiDiscreteA2C::new(config, network, optimizer, info_set_conversion_context, action_build_context),
         }
     }
-    pub fn create_tboard_writer<P: AsRef<std::path::Path>>(&mut self, path: P) -> Result<(), AmfiteatrError<DP>> {
-        self.base.create_tboard_writer(path)
+
+    /// Creates [`tboard::EventWriter`]. Initialy policy does not use `tensorboard` directory to store epoch
+    /// training results (like entropy, policy loss, value loss). However, you cen provide it with directory
+    /// to create tensorboard files.
+    pub fn add_tboard_directory<P: AsRef<std::path::Path>>(&mut self, directory_path: P) -> Result<(), AmfiteatrError<DP>> {
+        self.base.add_tboard_directory(directory_path)
     }
 
 }

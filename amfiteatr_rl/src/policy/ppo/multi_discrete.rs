@@ -156,9 +156,11 @@ where <DP as DomainParameters>::ActionType: ContextDecodeMultiIndexI64<ActionBui
         }
     }
 
-    /// Creates [`tboard::EventWriter`].
-    pub fn create_tboard_writer<P: AsRef<std::path::Path>>(&mut self, path: P) -> Result<(), AmfiteatrError<DP>>{
-        let tboard = EventWriter::create(path).map_err(|e|{
+    /// Creates [`tboard::EventWriter`]. Initialy policy does not use `tensorboard` directory to store epoch
+    /// training results (like entropy, policy loss, value loss). However, you cen provide it with directory
+    /// to create tensorboard files.
+    pub fn add_tboard_directory<P: AsRef<std::path::Path>>(&mut self, directory_path: P) -> Result<(), AmfiteatrError<DP>>{
+        let tboard = EventWriter::create(directory_path).map_err(|e|{
             AmfiteatrError::TboardFlattened {context: "Creating tboard EventWriter".into(), error: format!("{e}")}
         })?;
         self.tboard_writer = Some(tboard);
@@ -465,8 +467,8 @@ impl<
         }
     }
 
-    pub fn create_tboard_writer<P: AsRef<std::path::Path>>(&mut self, path: P) -> Result<(), AmfiteatrError<DP>> {
-        self.base.create_tboard_writer(path)
+    pub fn add_tboard_directory<P: AsRef<std::path::Path>>(&mut self, directory_path: P) -> Result<(), AmfiteatrError<DP>> {
+        self.base.add_tboard_directory(directory_path)
     }
 
 }

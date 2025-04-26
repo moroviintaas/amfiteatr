@@ -14,6 +14,8 @@ use crate::{MaskingInformationSetAction, tensor_data};
 use crate::tensor_data::{ContextDecodeIndexI64, ContextEncodeIndexI64, ContextEncodeTensor, TensorDecoding, TensorEncoding, TensorIndexI64Encoding};
 use crate::torch_net::{ActorCriticOutput, NeuralNet, NeuralNetActorCritic, TensorActorCritic};
 
+/// Policy A2C for discrete action space with single distribution using [`tch`] crate for `torch` backed
+/// [`Tensors`](tch::Tensor).
 pub struct PolicyDiscreteA2C<
     DP: DomainParameters,
     InfoSet: InformationSet<DP> + Debug + ContextEncodeTensor<InfoSetConversionContext>,
@@ -60,48 +62,18 @@ impl<
             global_step: 0
         }
     }
-    /// Creates [`tboard::EventWriter`].
-    pub fn create_tboard_writer<P: AsRef<std::path::Path>>(&mut self, path: P) -> Result<(), AmfiteatrError<DP>>{
-        let tboard = EventWriter::create(path).map_err(|e|{
+    /// Creates [`tboard::EventWriter`]. Initialy policy does not use `tensorboard` directory to store epoch
+    /// training results (like entropy, policy loss, value loss). However, you cen provide it with directory
+    /// to create tensorboard files.
+    pub fn add_tboard_directory<P: AsRef<std::path::Path>>(&mut self, directory_path: P) -> Result<(), AmfiteatrError<DP>>{
+        let tboard = EventWriter::create(directory_path).map_err(|e|{
             AmfiteatrError::TboardFlattened {context: "Creating tboard EventWriter".into(), error: format!("{e}")}
         })?;
         self.tboard_writer = Some(tboard);
         Ok(())
     }
 
-    /*
-    fn batch_get_logprob_entropy_critic(
-        &self,
-        info_set_batch: &Tensor,
-        action_param_batches: &Tensor,
-        action_category_mask_batches: Option<&Tensor>,
-        action_forward_mask_batches: Option<&Tensor>,
-    ) -> Result<(Tensor, Tensor, Tensor), AmfiteatrError<DP>>{
 
-        let critic_actor= self.network.net()(info_set_batch);
-
-        let batch_logprob = critic_actor.batch_log_probability_of_action::<DP>(
-            action_param_batches,
-            action_forward_mask_batches,
-            action_category_mask_batches
-        )?;
-        let batch_entropy = critic_actor.batch_entropy_masked(
-            action_forward_mask_batches,
-            action_category_mask_batches
-
-        ).map_err(|e|AmfiteatrError::Tensor {
-            error: TensorError::Torch {
-                context: "batch_get_actor_critic_with_logprob_and_entropy".into(),
-                origin: format!("{e}")
-            }
-        })?;
-
-
-
-        Ok((batch_logprob, batch_entropy, critic_actor.critic))
-    }
-
-     */
 }
 
 impl<
@@ -276,8 +248,11 @@ impl <
         }
     }
 
-    pub fn create_tboard_writer<P: AsRef<std::path::Path>>(&mut self, path: P) -> Result<(), AmfiteatrError<DP>> {
-        self.base.create_tboard_writer(path)
+    /// Creates [`tboard::EventWriter`]. Initialy policy does not use `tensorboard` directory to store epoch
+    /// training results (like entropy, policy loss, value loss). However, you cen provide it with directory
+    /// to create tensorboard files.
+    pub fn add_tboard_directory<P: AsRef<std::path::Path>>(&mut self, directory_path: P) -> Result<(), AmfiteatrError<DP>> {
+        self.base.add_tboard_directory(directory_path)
     }
 }
 

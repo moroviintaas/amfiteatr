@@ -18,6 +18,8 @@ pub trait DiscountFactor {
     fn discount_factor(&self) -> f64;
 }
 
+
+/// Basic struct for data summarizing learning procedure.
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct LearnSummary{
     pub value_loss: Option<f64>,
