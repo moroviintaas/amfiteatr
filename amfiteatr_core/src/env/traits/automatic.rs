@@ -11,7 +11,7 @@ use crate::{
     },
 };
 
-use super::{StatefulEnvironment, CommunicatingAdapterEnvironment, BroadConnectedEnvironment};
+use super::{StatefulEnvironment, CommunicatingEnvironmentSingleQueue, BroadcastingEnvironmentSingleQueue};
 
 /// Trait for environment automatically running a game.
 pub trait AutoEnvironment<DP: DomainParameters>{
@@ -47,8 +47,8 @@ pub(crate) trait AutoEnvInternals<DP: DomainParameters>{
 impl <
     DP: DomainParameters,
     E: StatefulEnvironment<DP> 
-        + CommunicatingAdapterEnvironment<DP>
-        + BroadConnectedEnvironment<DP>
+        + CommunicatingEnvironmentSingleQueue<DP>
+        + BroadcastingEnvironmentSingleQueue<DP>
 > AutoEnvInternals<DP> for E{
     fn notify_error(&mut self, error: AmfiteatrError<DP>) -> Result<(), CommunicationError<DP>> {
         self.send_all(EnvironmentMessage::ErrorNotify(error))

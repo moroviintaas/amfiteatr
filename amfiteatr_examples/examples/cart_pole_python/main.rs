@@ -5,7 +5,7 @@ pub mod agent;
 use std::thread;
 use amfiteatr_core::agent::{PolicyAgent, TracingAgentGen};
 use amfiteatr_core::comm::EnvironmentMpscPort;
-use amfiteatr_core::env::{ AutoEnvironmentWithScores, BasicEnvironment, DirtyReseedEnvironment};
+use amfiteatr_core::env::{AutoEnvironmentWithScores, BasicEnvironment, ReseedEnvironmentWithObservation};
 use amfiteatr_core::error::AmfiteatrError;
 use amfiteatr_rl::agent::RlModelAgent;
 use amfiteatr_rl::error::AmfiteatrRlError;
@@ -26,7 +26,7 @@ where <R as PolicyAgent<CartPoleDomain>>::Policy: LearningNetworkPolicy<CartPole
 
     let mut result_sum = 0.0f64;
     for _ in 0..number_of_tests{
-        let mut observation = env.dirty_reseed(())?;
+        let mut observation = env.reseed_with_observation(())?;
         let observation = observation.remove(&SINGLE_PLAYER_ID)
             .ok_or(AmfiteatrRlError::Amfiteatr{source: AmfiteatrError::Custom(
                 String::from("No observation for only player in resetting game")
@@ -57,7 +57,7 @@ where <R as PolicyAgent<CartPoleDomain>>::Policy: LearningNetworkPolicy<CartPole
 
     agent.clear_episodes();
     for _ in 0..number_of_games{
-        let mut observation = env.dirty_reseed(())?;
+        let mut observation = env.reseed_with_observation(())?;
         let observation = observation.remove(&SINGLE_PLAYER_ID)
             .ok_or(AmfiteatrRlError::Amfiteatr{source: AmfiteatrError::Custom(
                 String::from("No observation for only player in resetting game")

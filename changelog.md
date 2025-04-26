@@ -7,6 +7,8 @@
 in a generic way.
 + Deprecated `PolicyHelperPPO`
 + Renamed `PolicyPpoDiscrete` to `PolicyDiscretePPO`, `PolicyMaskingPpoDiscrete` to `PolicyMaskingDiscretePPO`, `PolicyPpoMultiDiscrete` to `PolicyMultiDiscretePPO`, `PolicyMaskingPpoMultiDiscrete` to `PolicyMaskingMultiDiscretePPO` and `ConfigPpo` to `ConfigPPO`
++ Renamed `CommunicatingAdapterEnvironment` to `CommunicatingEnvironmentSingleQueue`,`BroadConnectedEnvironment` to `BroadcastingEnvironmentSingleQueue`.
++ Renamed `DirtyReseedEnvironment` to `ReseedEnvironmentWithObservation` and it's method `dirty_reseed` to `reseed_with_observation`.
 + Changed `NetworkLearningPolicy` trait to have associated type for summary of learning session.
 Also changed methods `train_on_trajectories` and `train_on_trajectories_env_reward` to return `Result<Self::Summary,_>`.
 + Fixed GAE calculation in policy PPO.

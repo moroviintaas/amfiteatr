@@ -103,7 +103,7 @@ impl <
     CP: BroadcastingEnvironmentAdapter<DP>,
     Seed,
     AgentSeed
-> DirtyReseedEnvironment<DP, Seed> for BasicEnvironment<DP, S, CP>
+> ReseedEnvironmentWithObservation<DP, Seed> for BasicEnvironment<DP, S, CP>
 where <Self as StatefulEnvironment<DP>>::State: RenewWithEffect<DP, Seed>,
  <<Self as StatefulEnvironment<DP>>::State as RenewWithEffect<DP, Seed>>::Effect:
        IntoIterator<Item=(DP::AgentId, AgentSeed)>{
@@ -111,7 +111,7 @@ where <Self as StatefulEnvironment<DP>>::State: RenewWithEffect<DP, Seed>,
     type Observation = AgentSeed;
     type InitialObservations = HashMap<DP::AgentId, Self::Observation>;
 
-    fn dirty_reseed(&mut self, seed: Seed) -> Result<Self::InitialObservations, AmfiteatrError<DP>>{
+    fn reseed_with_observation(&mut self, seed: Seed) -> Result<Self::InitialObservations, AmfiteatrError<DP>>{
         self.game_steps = 0;
         self.game_state.renew_with_effect_from(seed)
             .map(|agent_observation_iter|
@@ -154,7 +154,7 @@ impl <
     DP: DomainParameters,
     S: SequentialGameState<DP>,
     CP: BroadcastingEnvironmentAdapter<DP>
-> CommunicatingAdapterEnvironment<DP> for BasicEnvironment<DP, S, CP>{
+> CommunicatingEnvironmentSingleQueue<DP> for BasicEnvironment<DP, S, CP>{
     fn send(&mut self, agent_id: &<DP as DomainParameters>::AgentId,  message: crate::domain::EnvironmentMessage<DP>)
         -> Result<(), crate::error::CommunicationError<DP>> {
         self.adapter.send( agent_id, message)
@@ -176,7 +176,7 @@ impl <
     DP: DomainParameters,
     S: SequentialGameState<DP>,
     CP: BroadcastingEnvironmentAdapter<DP>
-> BroadConnectedEnvironment<DP> for BasicEnvironment<DP, S, CP>{
+> BroadcastingEnvironmentSingleQueue<DP> for BasicEnvironment<DP, S, CP>{
     
 
     fn send_all(&mut self, message: crate::domain::EnvironmentMessage<DP>) -> Result<(), crate::error::CommunicationError<DP>> {

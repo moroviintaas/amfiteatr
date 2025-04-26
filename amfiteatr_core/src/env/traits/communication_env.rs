@@ -3,7 +3,7 @@ use std::error::Error;
 use crate::{domain::{AgentMessage, EnvironmentMessage, DomainParameters}, error::CommunicationError};
 
 pub(crate) type AgentStampedMessage<DP> = (<DP as DomainParameters>::AgentId, AgentMessage<DP>);
-/// Environment communicating with agent using endpoints.
+/// Environment communicating with agent using 1-1 endpoints.
 /// This mean environment can receive from specified endpoint
 /// (from certain agent)
 pub trait CommunicatingEndpointEnvironment<DP: DomainParameters>{
@@ -25,10 +25,10 @@ pub trait BroadcastingEndpointEnvironment<Spec: DomainParameters>: Communicating
     fn send_to_all(&mut self, message: EnvironmentMessage<Spec>) -> Result<(), Self::CommunicationError>;
 
 }
-/// Environment communicating with multi-agent adapter.
+/// Environment communicating with multi-agent (1-N) communication port.
 /// Receiving does not require to specify agent and first queued will be
 /// returned.
-pub trait CommunicatingAdapterEnvironment<DP: DomainParameters>{
+pub trait CommunicatingEnvironmentSingleQueue<DP: DomainParameters>{
     
     fn send(&mut self, agent_id: &DP::AgentId,  message: EnvironmentMessage<DP>)
         -> Result<(), CommunicationError<DP>>;
@@ -38,7 +38,7 @@ pub trait CommunicatingAdapterEnvironment<DP: DomainParameters>{
                            -> Result<Option<AgentStampedMessage<DP>>, CommunicationError<DP>>;
         
 }
-/// Broadcasting extension to trait [`CommunicatingAdapterEnvironment`](CommunicatingAdapterEnvironment)
-pub trait BroadConnectedEnvironment<DP: DomainParameters>{
+/// Broadcasting extension to trait [`CommunicatingAdapterEnvironment`](CommunicatingEnvironmentSingleQueue)
+pub trait BroadcastingEnvironmentSingleQueue<DP: DomainParameters>{
     fn send_all(&mut self, message: EnvironmentMessage<DP>) -> Result<(), CommunicationError<DP>>;
 }

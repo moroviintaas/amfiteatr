@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 use crate::comm::{EnvironmentEndpoint};
-use crate::env::{BroadcastingEndpointEnvironment, CommunicatingEndpointEnvironment, SequentialGameState, GameStateWithPayoffs, EnvironmentWithAgents, ScoreEnvironment, StatefulEnvironment, ReinitEnvironment, TracingEnvironment, ReseedEnvironment, DirtyReseedEnvironment, GameTrajectory, AutoEnvironment, RoundRobinEnvironment, AutoEnvironmentWithScores, RoundRobinUniversalEnvironment};
+use crate::env::{BroadcastingEndpointEnvironment, CommunicatingEndpointEnvironment, SequentialGameState, GameStateWithPayoffs, EnvironmentWithAgents, ScoreEnvironment, StatefulEnvironment, ReinitEnvironment, TracingEnvironment, ReseedEnvironment, ReseedEnvironmentWithObservation, GameTrajectory, AutoEnvironment, RoundRobinEnvironment, AutoEnvironmentWithScores, RoundRobinUniversalEnvironment};
 use crate::env::generic::{HashMapEnvironment};
 use crate::error::{AmfiteatrError, CommunicationError};
 use crate::domain::{AgentMessage, DomainParameters, EnvironmentMessage, Renew, RenewWithEffect};
@@ -226,7 +226,7 @@ impl <
     CP: EnvironmentEndpoint<DP>,
     Seed,
     AgentSeed
-> DirtyReseedEnvironment<DP, Seed> for TracingHashMapEnvironment<DP, S, CP>
+> ReseedEnvironmentWithObservation<DP, Seed> for TracingHashMapEnvironment<DP, S, CP>
     where <Self as StatefulEnvironment<DP>>::State: RenewWithEffect<DP, Seed>,
           <<Self as StatefulEnvironment<DP>>::State as RenewWithEffect<DP, Seed>>::Effect:
           IntoIterator<Item=(DP::AgentId, AgentSeed)>{
@@ -234,8 +234,8 @@ impl <
     type Observation = AgentSeed;
     type InitialObservations = HashMap<DP::AgentId, Self::Observation>;
 
-    fn dirty_reseed(&mut self, seed: Seed) -> Result<Self::InitialObservations, AmfiteatrError<DP>>{
-        self.base_environment.dirty_reseed(seed)
+    fn reseed_with_observation(&mut self, seed: Seed) -> Result<Self::InitialObservations, AmfiteatrError<DP>>{
+        self.base_environment.reseed_with_observation(seed)
     }
 }
 

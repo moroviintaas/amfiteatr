@@ -1,7 +1,7 @@
 use std::collections::{HashMap};
 use crate::env::{
     BroadcastingEndpointEnvironment,
-    CommunicatingEndpointEnvironment, DirtyReseedEnvironment, EnvironmentBuilderTrait,
+    CommunicatingEndpointEnvironment, ReseedEnvironmentWithObservation, EnvironmentBuilderTrait,
     SequentialGameState, GameStateWithPayoffs, EnvironmentWithAgents, ReinitEnvironment,
     ReseedEnvironment, ScoreEnvironment, StatefulEnvironment, ListPlayers, AutoEnvironment,
     RoundRobinEnvironment,
@@ -321,7 +321,7 @@ impl <
     CP: EnvironmentEndpoint<DP>,
     Seed,
     AgentSeed
-> DirtyReseedEnvironment<DP, Seed> for HashMapEnvironment<DP, S, CP>
+> ReseedEnvironmentWithObservation<DP, Seed> for HashMapEnvironment<DP, S, CP>
     where <Self as StatefulEnvironment<DP>>::State: RenewWithEffect<DP, Seed>,
           <<Self as StatefulEnvironment<DP>>::State as RenewWithEffect<DP, Seed>>::Effect:
           IntoIterator<Item=(DP::AgentId, AgentSeed)>{
@@ -329,7 +329,7 @@ impl <
     type Observation = AgentSeed;
     type InitialObservations = HashMap<DP::AgentId, Self::Observation>;
 
-    fn dirty_reseed(&mut self, seed: Seed) -> Result<Self::InitialObservations, AmfiteatrError<DP>>{
+    fn reseed_with_observation(&mut self, seed: Seed) -> Result<Self::InitialObservations, AmfiteatrError<DP>>{
         self.game_steps = 0;
         self.game_state.renew_with_effect_from(seed)
             .map(|agent_observation_iter|

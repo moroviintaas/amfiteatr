@@ -119,7 +119,7 @@ impl <
     CP: BroadcastingEnvironmentAdapter<DP>,
     Seed,
     AgentSeed
-> DirtyReseedEnvironment<DP, Seed> for TracingBasicEnvironment<DP, S, CP>
+> ReseedEnvironmentWithObservation<DP, Seed> for TracingBasicEnvironment<DP, S, CP>
     where <Self as StatefulEnvironment<DP>>::State: RenewWithEffect<DP, Seed>,
           <<Self as StatefulEnvironment<DP>>::State as RenewWithEffect<DP, Seed>>::Effect:
           IntoIterator<Item=(DP::AgentId, AgentSeed)>{
@@ -127,8 +127,8 @@ impl <
     type Observation = AgentSeed;
     type InitialObservations = HashMap<DP::AgentId, Self::Observation>;
 
-    fn dirty_reseed(&mut self, seed: Seed) -> Result<Self::InitialObservations, AmfiteatrError<DP>>{
-        self.base_environment.dirty_reseed(seed)
+    fn reseed_with_observation(&mut self, seed: Seed) -> Result<Self::InitialObservations, AmfiteatrError<DP>>{
+        self.base_environment.reseed_with_observation(seed)
     }
 }
 
@@ -178,7 +178,7 @@ impl <
     DP: DomainParameters,
     S: SequentialGameState<DP>,
     CP: BroadcastingEnvironmentAdapter<DP>
-> CommunicatingAdapterEnvironment<DP> for TracingBasicEnvironment<DP, S, CP>{
+> CommunicatingEnvironmentSingleQueue<DP> for TracingBasicEnvironment<DP, S, CP>{
     fn send(&mut self, agent_id: &<DP as DomainParameters>::AgentId,  message: crate::domain::EnvironmentMessage<DP>)
         -> Result<(), crate::error::CommunicationError<DP>> {
         self.base_environment.send(agent_id, message)
@@ -200,7 +200,7 @@ impl <
     DP: DomainParameters,
     S: SequentialGameState<DP>,
     CP: BroadcastingEnvironmentAdapter<DP>
-> BroadConnectedEnvironment<DP> for TracingBasicEnvironment<DP, S, CP>{
+> BroadcastingEnvironmentSingleQueue<DP> for TracingBasicEnvironment<DP, S, CP>{
 
 
     fn send_all(&mut self, message: crate::domain::EnvironmentMessage<DP>) -> Result<(), crate::error::CommunicationError<DP>> {

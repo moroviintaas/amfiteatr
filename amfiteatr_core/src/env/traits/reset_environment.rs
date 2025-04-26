@@ -41,12 +41,12 @@ pub trait ReseedEnvironment<DP: DomainParameters, Seed>
 /// > and this information can be used to initialize their information set. Or when constructing similar environment
 /// > to [`Gymnasium`](https://gymnasium.farama.org/), while reseeding environment player observes the same data type
 /// > as when he makes _step_.
-pub trait DirtyReseedEnvironment<DP: DomainParameters, Seed>{
+pub trait ReseedEnvironmentWithObservation<DP: DomainParameters, Seed>{
     /// Observation type for one player (probably corresponding to `ReseedAgent's` [Seed](crate::agent::ReseedAgent)
     /// parameter
     type Observation;
     /// Aggregator for initial observations (e.g. [`HashMap<AgentId, Self::Observation`](std::collections::HashMap))
     type InitialObservations: IntoIterator<Item=(DP::AgentId, Self::Observation)>;
 
-    fn dirty_reseed(&mut self, seed: Seed) -> Result<Self::InitialObservations, AmfiteatrError<DP>>;
+    fn reseed_with_observation(&mut self, seed: Seed) -> Result<Self::InitialObservations, AmfiteatrError<DP>>;
 }
