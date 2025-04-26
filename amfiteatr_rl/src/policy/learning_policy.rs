@@ -1,4 +1,3 @@
-use std::io::Write;
 use tch::nn::VarStore;
 use tch::Tensor;
 use amfiteatr_core::agent::{

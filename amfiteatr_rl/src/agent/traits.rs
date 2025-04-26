@@ -1,11 +1,10 @@
-use std::iter::Sum;
 use tch::nn::VarStore;
 use amfiteatr_core::agent::*;
 use amfiteatr_core::comm::BidirectionalEndpoint;
 use amfiteatr_core::domain::{AgentMessage, DomainParameters, EnvironmentMessage, Renew};
 use amfiteatr_core::error::{CommunicationError};
 use crate::error::AmfiteatrRlError;
-use crate::policy::{LearnSummary, LearningNetworkPolicy};
+use crate::policy::LearningNetworkPolicy;
 use crate::tensor_data::FloatTensorReward;
 
 

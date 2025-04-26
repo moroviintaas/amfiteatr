@@ -1,7 +1,6 @@
 
 use std::fmt::Debug;
 use std::fs::File;
-use std::io::Write;
 use std::marker::PhantomData;
 use tboard::EventWriter;
 use tch::{Kind, TchError};

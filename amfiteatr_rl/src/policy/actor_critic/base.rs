@@ -1,5 +1,4 @@
 use std::cmp::min;
-use std::io::Write;
 use getset::{Getters, Setters};
 use rand::prelude::SliceRandom;
 use tch::nn::Optimizer;

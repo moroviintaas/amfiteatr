@@ -1,7 +1,6 @@
 //! Based on [cleanrl PPO](https://github.com/vwxyzjn/cleanrl/blob/master/cleanrl/ppo.py)
 
 use std::cmp::min;
-use std::io::Write;
 use getset::{Getters, Setters};
 use rand::prelude::SliceRandom;
 use tch::{Kind, Tensor};

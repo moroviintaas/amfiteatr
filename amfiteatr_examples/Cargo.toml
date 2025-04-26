@@ -63,7 +63,6 @@ anyhow = "1.0.96"
 serde = {version = "1.0.197", features = ["derive", "rc"]}
 enum-map = {version = "2.7.3", features = ["serde"]}
 plotters = "0.3.5"
-#plotlib = "0.5.1"
 
 serde_json = "1.0.139"
 serde_yaml = "0.9.34-deprecated"
@@ -86,4 +85,3 @@ log_deep_warn = ["amfiteatr_core/log_warn", "amfiteatr_rl/log_warn", "log_deep_e
 log_deep_info = ["amfiteatr_core/log_info", "amfiteatr_rl/log_info", "log_deep_warn"]
 log_deep_debug = ["amfiteatr_core/log_debug", "amfiteatr_rl/log_debug", "log_deep_info"]
 log_deep_trace = ["amfiteatr_core/log_trace", "amfiteatr_rl/log_trace", "log_deep_debug"]
-tensorboard = ["amfiteatr_rl/tensorboard"]

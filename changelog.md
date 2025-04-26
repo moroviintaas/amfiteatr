@@ -2,13 +2,15 @@
 
 ## Version 0.8.0
 + Added policies `PolicyDiscreteA2C`, `PolicyMaskingDiscreteA2C`, `PolicyMaskingMultiDiscreteA2C`
++ Added `tboard` writer support for `PolicyDiscretePPO` and `PolicyMultiDiscretePPO`;
 + Added traits `PolicyHelperA2C`, `PolicyTrainHelperA2C` and `PolicyTrainHelperPPO` for building neural network policies 
 in a generic way.
 + Deprecated `PolicyHelperPPO`
 + Renamed `PolicyPpoDiscrete` to `PolicyDiscretePPO`, `PolicyMaskingPpoDiscrete` to `PolicyMaskingDiscretePPO`, `PolicyPpoMultiDiscrete` to `PolicyMultiDiscretePPO`, `PolicyMaskingPpoMultiDiscrete` to `PolicyMaskingMultiDiscretePPO` and `ConfigPpo` to `ConfigPPO`
 + Changed `NetworkLearningPolicy` trait to have associated type for summary of learning session.
 Also changed methods `train_on_trajectories` and `train_on_trajectories_env_reward` to return `Result<Self::Summary,_>`.
-
++ Fixed GAE calculation in policy PPO.
++ Added `tensorboard` support in example "connect\_four" python baseline.
 ## Version 0.7.0
 + Changed `select_action` method from `Policy` trait signature. From returning `Option<Action>` it now forces to return `Result<Action, AmfiteatrError<_>>`.
 The change is made because some policy algorithms may actually fail.
