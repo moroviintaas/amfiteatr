@@ -136,7 +136,11 @@ class PolicyPPO:
                     else:
                         nextnoterminal = 1.0
                         nextvalue = critic[t+1]
-                    delta = rewards[t] + self.config.gamma * nextvalue * nextnoterminal - critic[t]
+                    #print(type(self.config.gamma))
+                    #print(type(self.config.gae_lambda))
+                    #print(type(nextvalue))
+                    #print(type(rewards[t]))
+                    delta = rewards[t] + (self.config.gamma * nextvalue * nextnoterminal) - critic[t]
                     advantages[t] = lastgaelam = delta + self.config.gamma * self.config.gae_lambda * nextnoterminal * lastgaelam
 
 

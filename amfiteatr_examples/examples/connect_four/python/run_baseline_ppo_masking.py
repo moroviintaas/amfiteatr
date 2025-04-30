@@ -35,7 +35,7 @@ def parse_args():
 
     parser.add_argument('-m', "--minibatch-size", type=int, default=64, help="Size of PPO minibatch")
     parser.add_argument("--update-epochs", default=4, help="Nuber of update epochs inside PPO Policy")
-    parser.add_argument("-G", "--gae-lambda", default=0.95, help="Lambda for GAE calculation (Advantage)")
+    parser.add_argument("-G", "--gae-lambda", default=0.95, type=float, help="Lambda for GAE calculation (Advantage)")
     parser.add_argument("--clip-coefficient", default=0.2, help="Clipping coefficient for PPO")
 
     parser.add_argument("--tensorboard", help="Directory to write summary for model")
