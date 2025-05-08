@@ -22,9 +22,9 @@ pub trait AutoEnvironment<DP: DomainParameters>{
     /// With `None` no truncation is made.
     ///
     /// Returns the number of all game steps made.
-    fn run_truncating(&mut self, truncate_steps: Option<usize>) -> Result<usize, AmfiteatrError<DP>>;
+    fn run_truncating(&mut self, truncate_steps: Option<usize>) -> Result<(), AmfiteatrError<DP>>;
     /// Just like [`run_truncating`]`(None`), left for compatibility reasons.
-    fn run(&mut self) -> Result<usize, AmfiteatrError<DP>>{
+    fn run(&mut self) -> Result<(), AmfiteatrError<DP>>{
         self.run_truncating(None)
     }
 }
@@ -38,10 +38,10 @@ pub trait AutoEnvironmentWithScores<DP: DomainParameters>{
     /// With `None` no truncation is made.
     ///
     /// Returns the number of all game steps made.
-    fn run_with_scores_truncating(&mut self, truncate_steps: Option<usize>) -> Result<usize, AmfiteatrError<DP>>;
+    fn run_with_scores_truncating(&mut self, truncate_steps: Option<usize>) -> Result<(), AmfiteatrError<DP>>;
 
     /// Just like [`run_with_scores_truncating`]`(None)`, left for compatibility reasons.
-    fn run_with_scores(&mut self) -> Result<usize, AmfiteatrError<DP>>{
+    fn run_with_scores(&mut self) -> Result<(), AmfiteatrError<DP>>{
         self.run_with_scores_truncating(None)
     }
     //fn run_with_scores_and_penalties<P: Fn(&DP::AgentId) -> DP::UniversalReward>(&mut self, penalty: P) -> Result<(), AmfiError<DP>>;
@@ -51,13 +51,13 @@ pub trait AutoEnvironmentWithScores<DP: DomainParameters>{
 /// perform illegal (wrong) actions.
 pub trait AutoEnvironmentWithScoresAndPenalties<DP: DomainParameters>: StatefulEnvironment<DP>{
     fn run_with_scores_and_penalties_truncating<P: Fn(&<Self as StatefulEnvironment<DP>>::State, &DP::AgentId)
-        -> DP::UniversalReward>(&mut self, penalty: P, truncate_steps: Option<usize>) -> Result<usize, AmfiteatrError<DP>>;
+        -> DP::UniversalReward>(&mut self, penalty: P, truncate_steps: Option<usize>) -> Result<(), AmfiteatrError<DP>>;
 
     /// Returns the number of all game steps made.
     ///
     /// Just like [`run_with_scores_and_penalties_truncating`]`(None)`, left for compatibility reasons.
     fn run_with_scores_and_penalties<P: Fn(&<Self as StatefulEnvironment<DP>>::State, &DP::AgentId)
-        -> DP::UniversalReward>(&mut self, penalty: P) -> Result<usize, AmfiteatrError<DP>>{
+        -> DP::UniversalReward>(&mut self, penalty: P) -> Result<(), AmfiteatrError<DP>>{
         self.run_with_scores_and_penalties_truncating(penalty, None)
     }
 }

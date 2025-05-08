@@ -242,7 +242,7 @@ impl <
 > AutoEnvironment<DP> for TracingBasicEnvironment<DP, S, CP>{
 
     #[inline]
-    fn run_truncating(&mut self, truncate_steps: Option<usize>) -> Result<usize, AmfiteatrError<DP>> {
+    fn run_truncating(&mut self, truncate_steps: Option<usize>) -> Result<(), AmfiteatrError<DP>> {
         self.base_environment.run_truncating(truncate_steps)
     }
 }
@@ -254,7 +254,7 @@ impl <
     CP: EnvironmentAdapter<DP> + ListPlayers<DP> + BroadcastingEnvironmentAdapter<DP>
 > AutoEnvironmentWithScores<DP> for TracingBasicEnvironment<DP, S, CP>{
     #[inline]
-    fn run_with_scores_truncating(&mut self, truncate_steps: Option<usize>) -> Result<usize, AmfiteatrError<DP>> {
+    fn run_with_scores_truncating(&mut self, truncate_steps: Option<usize>) -> Result<(), AmfiteatrError<DP>> {
         self.base_environment.run_with_scores_truncating(truncate_steps)
     }
 }
@@ -267,7 +267,7 @@ impl <
 where {
     #[inline]
     fn run_with_scores_and_penalties_truncating<P: Fn(&<Self as StatefulEnvironment<DP>>::State, &DP::AgentId) -> DP::UniversalReward>
-    (&mut self, penalty: P, truncate_steps: Option<usize>) -> Result<usize, AmfiteatrError<DP>> {
+    (&mut self, penalty: P, truncate_steps: Option<usize>) -> Result<(), AmfiteatrError<DP>> {
         self.base_environment.run_with_scores_and_penalties_truncating(penalty, truncate_steps)
     }
 }

@@ -9,16 +9,17 @@ use crate::domain::EnvironmentMessage::ErrorNotify;
 /// Interface for environment using round robin strategy for listening to agents' messages.
 pub trait RoundRobinEnvironment<DP: DomainParameters>{
 
-    fn run_round_robin_truncating(&mut self, truncate_steps: Option<usize>) -> Result<usize, AmfiteatrError<DP>>;
-    fn run_round_robin(&mut self) -> Result<usize, AmfiteatrError<DP>>{
+    fn run_round_robin_truncating(&mut self, truncate_steps: Option<usize>) -> Result<(), AmfiteatrError<DP>>;
+    fn run_round_robin(&mut self) -> Result<(), AmfiteatrError<DP>>{
         self.run_round_robin_truncating(None)
     }
 
 }
 /// Similar interface to [`RoundRobinEnvironment`], but it must ensure agents receive rewards.
 pub trait RoundRobinUniversalEnvironment<DP: DomainParameters> : RoundRobinEnvironment<DP>{
-    fn run_round_robin_with_rewards_truncating(&mut self, truncate_steps: Option<usize>) -> Result<usize, AmfiteatrError<DP>>;
-    fn run_round_robin_with_rewards(&mut self) -> Result<usize, AmfiteatrError<DP>>{
+    fn run_round_robin_with_rewards_truncating(&mut self, truncate_steps: Option<usize>)
+        -> Result<(), AmfiteatrError<DP>>;
+    fn run_round_robin_with_rewards(&mut self) -> Result<(), AmfiteatrError<DP>>{
         self.run_round_robin_with_rewards_truncating(None)
     }
 }
@@ -30,8 +31,8 @@ pub trait RoundRobinPenalisingUniversalEnvironment<
     P: Fn(&<Self as StatefulEnvironment<DP>>::State, &DP::AgentId) -> DP::UniversalReward
 >: RoundRobinUniversalEnvironment<DP> + StatefulEnvironment<DP>{
     fn run_round_robin_with_rewards_penalise_truncating(&mut self, penalty_f: P, truncate_steps: Option<usize>)
-        -> Result<usize, AmfiteatrError<DP>>;
-    fn run_round_robin_with_rewards_penalise(&mut self, penalty_f: P) -> Result<usize, AmfiteatrError<DP>>{
+        -> Result<(), AmfiteatrError<DP>>;
+    fn run_round_robin_with_rewards_penalise(&mut self, penalty_f: P) -> Result<(), AmfiteatrError<DP>>{
         self.run_round_robin_with_rewards_penalise_truncating(penalty_f, None)
     }
 }
@@ -81,13 +82,13 @@ where Env: CommunicatingEndpointEnvironment<DP, CommunicationError=Communication
  + StatefulEnvironment<DP> + 'a
  + EnvironmentWithAgents<DP>
  + BroadcastingEndpointEnvironment<DP>, DP: DomainParameters {
-    fn run_round_robin_truncating(&mut self,  truncate_steps: Option<usize>) -> Result<usize, AmfiteatrError<DP>> {
+    fn run_round_robin_truncating(&mut self,  truncate_steps: Option<usize>) -> Result<(), AmfiteatrError<DP>> {
         let mut current_step = 0;
         let first_player = match self.current_player(){
             None => {
                 #[cfg(feature = "log_warn")]
                 log::warn!("No first player, stopping environment.");
-                return Ok(current_step)
+                return Ok(())
             }
             Some(n) => n
         };
@@ -128,7 +129,7 @@ where Env: CommunicatingEndpointEnvironment<DP, CommunicationError=Communication
                                 #[cfg(feature = "log_info")]
                                 log::info!("Game reached finished state");
                                 self.send_to_all(EnvironmentMessage::GameFinished)?;
-                                return Ok(current_step);
+                                return Ok(());
 
                             }
 
@@ -137,7 +138,7 @@ where Env: CommunicatingEndpointEnvironment<DP, CommunicationError=Communication
                                     #[cfg(feature = "log_info")]
                                     log::info!("Game reached truncation boundary");
                                     self.send_to_all(EnvironmentMessage::GameTruncated)?;
-                                    return Ok(current_step);
+                                    return Ok(());
                                 }
                             }
 
@@ -195,7 +196,7 @@ where Env: CommunicatingEndpointEnvironment<DP, CommunicationError=Communication
  + ScoreEnvironment<DP> + 'a
  + EnvironmentWithAgents<DP>
  + BroadcastingEndpointEnvironment<DP>, DP: DomainParameters {
-    fn run_round_robin_with_rewards_truncating(&mut self, truncate_steps: Option<usize>) -> Result<usize, AmfiteatrError<DP>> {
+    fn run_round_robin_with_rewards_truncating(&mut self, truncate_steps: Option<usize>) -> Result<(), AmfiteatrError<DP>> {
         let mut current_step = 0;
         let mut actual_universal_scores: HashMap<DP::AgentId, DP::UniversalReward> = self.players().into_iter()
             .map(|id|{
@@ -205,7 +206,7 @@ where Env: CommunicatingEndpointEnvironment<DP, CommunicationError=Communication
             None => {
                 #[cfg(feature = "log_warn")]
                 log::warn!("No first player, stopping environment.");
-                return Ok(current_step)
+                return Ok(())
             }
             Some(n) => n
         };
@@ -257,7 +258,7 @@ where Env: CommunicatingEndpointEnvironment<DP, CommunicationError=Communication
                                 #[cfg(feature = "log_info")]
                                 log::info!("Game reached finished state");
                                 self.send_to_all(EnvironmentMessage::GameFinished)?;
-                                return Ok(current_step);
+                                return Ok(());
 
                             }
 
@@ -266,7 +267,7 @@ where Env: CommunicatingEndpointEnvironment<DP, CommunicationError=Communication
                                     #[cfg(feature = "log_info")]
                                     log::info!("Game reached truncation boundary");
                                     self.send_to_all(EnvironmentMessage::GameTruncated)?;
-                                    return Ok(current_step);
+                                    return Ok(());
                                 }
                             }
 
@@ -323,7 +324,9 @@ where Env: CommunicatingEndpointEnvironment<DP, CommunicationError=Communication
  + EnvironmentWithAgents<DP>
  + BroadcastingEndpointEnvironment<DP>, DP: DomainParameters,
 P: Fn(&<Self as StatefulEnvironment<DP>>::State, &DP::AgentId) -> DP::UniversalReward{
-    fn run_round_robin_with_rewards_penalise_truncating(&mut self, penalty_fn: P, truncate_steps: Option<usize>) -> Result<usize, AmfiteatrError<DP>> {
+    fn run_round_robin_with_rewards_penalise_truncating(&mut self, penalty_fn: P, truncate_steps: Option<usize>)
+        -> Result<(), AmfiteatrError<DP>>
+    {
         let mut current_step = 0;
         let mut actual_universal_scores: HashMap<DP::AgentId, DP::UniversalReward> = self.players().into_iter()
             .map(|id|{
@@ -333,7 +336,7 @@ P: Fn(&<Self as StatefulEnvironment<DP>>::State, &DP::AgentId) -> DP::UniversalR
             None => {
                 #[cfg(feature = "log_warn")]
                 log::warn!("No first player, stopping environment.");
-                return Ok(current_step)
+                return Ok(())
             }
             Some(n) => n
         };
@@ -384,7 +387,7 @@ P: Fn(&<Self as StatefulEnvironment<DP>>::State, &DP::AgentId) -> DP::UniversalR
                                 #[cfg(feature = "log_info")]
                                 log::info!("Game reached finished state");
                                 self.send_to_all(EnvironmentMessage::GameFinished)?;
-                                return Ok(current_step);
+                                return Ok(());
 
                             }
 
@@ -393,7 +396,7 @@ P: Fn(&<Self as StatefulEnvironment<DP>>::State, &DP::AgentId) -> DP::UniversalR
                                     #[cfg(feature = "log_info")]
                                     log::info!("Game reached truncation boundary");
                                     self.send_to_all(EnvironmentMessage::GameTruncated)?;
-                                    return Ok(current_step);
+                                    return Ok(());
                                 }
                             }
 

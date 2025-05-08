@@ -345,7 +345,7 @@ where Self: CommunicatingEndpointEnvironment<DP, CommunicationError=Communicatio
 + StatefulEnvironment<DP>
 + EnvironmentWithAgents<DP>
 + BroadcastingEndpointEnvironment<DP>, DP: DomainParameters {
-    fn run_truncating(&mut self, truncate_steps: Option<usize>) -> Result<usize, AmfiteatrError<DP>> {
+    fn run_truncating(&mut self, truncate_steps: Option<usize>) -> Result<(), AmfiteatrError<DP>> {
         self.run_round_robin_truncating(truncate_steps)
     }
 }
@@ -360,7 +360,7 @@ AutoEnvironmentWithScores<DP> for HashMapEnvironment<DP, S, C>
     + EnvironmentWithAgents<DP>
     + BroadcastingEndpointEnvironment<DP>
 {
-    fn run_with_scores_truncating(&mut self, truncate_steps: Option<usize>) -> Result<usize, AmfiteatrError<DP>> {
-        self.run_round_robin_with_rewards()
+    fn run_with_scores_truncating(&mut self, truncate_steps: Option<usize>) -> Result<(), AmfiteatrError<DP>> {
+        self.run_round_robin_with_rewards_truncating(truncate_steps)
     }
 }

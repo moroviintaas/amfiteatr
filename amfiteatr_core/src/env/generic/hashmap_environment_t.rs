@@ -245,7 +245,7 @@ impl<DP: DomainParameters,
     C: EnvironmentEndpoint<DP>>
 AutoEnvironment<DP> for TracingHashMapEnvironment<DP, S, C>
 where  HashMapEnvironment<DP, S, C>: AutoEnvironment<DP>{
-    fn run_truncating(&mut self, truncate_steps: Option<usize>) -> Result<usize, AmfiteatrError<DP>> {
+    fn run_truncating(&mut self, truncate_steps: Option<usize>) -> Result<(), AmfiteatrError<DP>> {
         self.base_environment.run_round_robin_truncating(truncate_steps)
     }
 }
@@ -258,7 +258,7 @@ AutoEnvironmentWithScores<DP> for TracingHashMapEnvironment<DP, S, C>
 Self: ScoreEnvironment<DP>
 
 {
-    fn run_with_scores_truncating(&mut self, truncate_steps: Option<usize>) -> Result<usize, AmfiteatrError<DP>> {
+    fn run_with_scores_truncating(&mut self, truncate_steps: Option<usize>) -> Result<(), AmfiteatrError<DP>> {
         self.base_environment.run_round_robin_with_rewards_truncating(truncate_steps)
     }
 }
