@@ -10,6 +10,7 @@ pub enum EnvironmentMessage<DP: DomainParameters>{
     YourMove,
     MoveRefused,
     GameFinished,
+    GameTruncated,
     #[cfg_attr(feature = "serde", serde(bound(serialize = "DP::AgentId: serde::Serialize")))]
     #[cfg_attr(feature = "serde", serde(bound(deserialize = "DP::AgentId: serde::Deserialize<'de>")))]
     GameFinishedWithIllegalAction(DP::AgentId),

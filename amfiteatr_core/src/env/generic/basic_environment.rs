@@ -203,13 +203,14 @@ impl <
     S: SequentialGameState<DP>,
     CP: BroadcastingEnvironmentAdapter<DP>
 > AutoEnvironment<DP> for BasicEnvironment<DP, S, CP>{
-    fn run(&mut self) -> Result<(), AmfiteatrError<DP>> {
+    fn run_truncating(&mut self, truncate_steps: Option<usize>) -> Result<usize, AmfiteatrError<DP>> {
 
+        let mut current_step = 0;
         let first_player = match self.current_player(){
             None => {
                 #[cfg(feature = "log_warn")]
                 log::warn!("No first player, stopping environment.");
-                return Ok(())
+                return Ok(current_step)
             }
             Some(n) => n
         };
@@ -226,6 +227,7 @@ impl <
 
                             match self.process_action(&player, &action){
                                 Ok(updates) => {
+                                    current_step += 1;
                                     for (ag, update) in updates{
                                         self.send_message(&ag, EnvironmentMessage::UpdateState(update))
                                             .inspect_err(|e| {
@@ -243,6 +245,23 @@ impl <
                                     return Err(e);
                                 }
                             }
+
+                            if self.state().is_finished(){
+                                #[cfg(feature = "log_info")]
+                                log::info!("Game reached finished state");
+                                self.send_all(EnvironmentMessage::GameFinished)?;
+                                return Ok(current_step);
+
+                            }
+                            if let Some(truncation_limit) = truncate_steps{
+                                if current_step >= truncation_limit{
+                                    #[cfg(feature = "log_info")]
+                                    log::info!("Game reached truncation boundary");
+                                    self.send_all(EnvironmentMessage::GameTruncated)?;
+                                    return Ok(current_step);
+                                }
+                            }
+
                             if let Some(next_player) = self.current_player(){
                                 self.send_message(&next_player, EnvironmentMessage::YourMove)
                                     .map_err(|e| {
@@ -252,13 +271,8 @@ impl <
 
                                     })?;
                             }
-                            if self.state().is_finished(){
-                                #[cfg(feature = "log_info")]
-                                log::info!("Game reached finished state");
-                                self.send_all(EnvironmentMessage::GameFinished)?;
-                                return Ok(());
 
-                            }
+
 
 
                         },
@@ -304,7 +318,8 @@ impl <
     S: GameStateWithPayoffs<DP>,
     CP: EnvironmentAdapter<DP> + ListPlayers<DP> + BroadcastingEnvironmentAdapter<DP>
 > AutoEnvironmentWithScores<DP> for BasicEnvironment<DP, S, CP>{
-    fn run_with_scores(&mut self) -> Result<(), AmfiteatrError<DP>> {
+    fn run_with_scores_truncating(&mut self, truncate_steps: Option<usize>) -> Result<usize, AmfiteatrError<DP>> {
+        let mut current_step = 0;
         let mut actual_universal_scores: HashMap<DP::AgentId, DP::UniversalReward> = self.players()
             .map(|id|{
                 (id, DP::UniversalReward::neutral())
@@ -313,7 +328,7 @@ impl <
             None => {
                 #[cfg(feature = "log_warn")]
                 log::warn!("No first player, stopping environment.");
-                return Ok(())
+                return Ok(current_step)
             }
             Some(n) => n
         };
@@ -330,6 +345,7 @@ impl <
 
                             match self.process_action(&player, &action){
                                 Ok(updates) => {
+                                    current_step += 1;
                                     for (ag, update) in updates{
                                         self.send_message(&ag, EnvironmentMessage::UpdateState(update))
                                             .inspect_err(|e| {
@@ -353,6 +369,23 @@ impl <
                                     return Err(e);
                                 }
                             }
+
+                            if self.state().is_finished(){
+                                #[cfg(feature = "log_info")]
+                                log::info!("Game reached finished state");
+                                self.send_all(EnvironmentMessage::GameFinished)?;
+                                return Ok(current_step);
+
+                            }
+                            if let Some(truncation_limit) = truncate_steps{
+                                if current_step >= truncation_limit{
+                                    #[cfg(feature = "log_info")]
+                                    log::info!("Game reached truncation boundary");
+                                    self.send_all(EnvironmentMessage::GameTruncated)?;
+                                    return Ok(current_step);
+                                }
+                            }
+
                             if let Some(next_player) = self.current_player(){
                                 self.send_message(&next_player, EnvironmentMessage::YourMove)
                                     .map_err(|e| {
@@ -361,13 +394,6 @@ impl <
                                         er
 
                                     })?;
-                            }
-                            if self.state().is_finished(){
-                                #[cfg(feature = "log_info")]
-                                log::info!("Game reached finished state");
-                                self.send_all(EnvironmentMessage::GameFinished)?;
-                                return Ok(());
-
                             }
 
 
@@ -413,8 +439,10 @@ impl <
     S: GameStateWithPayoffs<DP>,
     CP: EnvironmentAdapter<DP> + ListPlayers<DP> + BroadcastingEnvironmentAdapter<DP>
 > AutoEnvironmentWithScoresAndPenalties<DP> for BasicEnvironment<DP, S, CP> {
-    fn run_with_scores_and_penalties<P: Fn(&<Self as StatefulEnvironment<DP>>::State,&DP::AgentId)
-        -> DP::UniversalReward>(&mut self, penalty: P) -> Result<(), AmfiteatrError<DP>> {
+    fn run_with_scores_and_penalties_truncating<P: Fn(&<Self as StatefulEnvironment<DP>>::State,&DP::AgentId)
+        -> DP::UniversalReward>(&mut self, penalty: P, truncate_steps: Option<usize>) -> Result<usize, AmfiteatrError<DP>> {
+
+        let mut current_step = 0;
         let mut actual_universal_scores: HashMap<DP::AgentId, DP::UniversalReward> = self.players()
             .map(|id|{
                 (id, DP::UniversalReward::neutral())
@@ -423,7 +451,7 @@ impl <
             None => {
                 #[cfg(feature = "log_warn")]
                 log::warn!("No first player, stopping environment.");
-                return Ok(())
+                return Ok(current_step)
             }
             Some(n) => n
         };
@@ -440,6 +468,7 @@ impl <
 
                             match self.process_action(&player, &action){
                                 Ok(updates) => {
+                                    current_step += 1;
                                     for (ag, update) in updates{
                                         self.send_message(&ag, EnvironmentMessage::UpdateState(update))
                                             .inspect_err(|e| {
@@ -470,6 +499,23 @@ impl <
                                     return Err(e);
                                 }
                             }
+
+                            if self.state().is_finished(){
+                                #[cfg(feature = "log_info")]
+                                log::info!("Game reached finished state");
+                                self.send_all(EnvironmentMessage::GameFinished)?;
+                                return Ok(current_step);
+
+                            }
+                            if let Some(truncation_limit) = truncate_steps{
+                                if current_step >= truncation_limit{
+                                    #[cfg(feature = "log_info")]
+                                    log::info!("Game reached truncation boundary");
+                                    self.send_all(EnvironmentMessage::GameTruncated)?;
+                                    return Ok(current_step);
+                                }
+                            }
+
                             if let Some(next_player) = self.current_player(){
                                 self.send_message(&next_player, EnvironmentMessage::YourMove)
                                     .map_err(|e| {
@@ -478,13 +524,6 @@ impl <
                                         er
 
                                     })?;
-                            }
-                            if self.state().is_finished(){
-                                #[cfg(feature = "log_info")]
-                                log::info!("Game reached finished state");
-                                self.send_all(EnvironmentMessage::GameFinished)?;
-                                return Ok(());
-
                             }
 
 

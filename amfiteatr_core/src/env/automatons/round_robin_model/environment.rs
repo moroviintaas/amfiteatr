@@ -8,11 +8,19 @@ use crate::domain::EnvironmentMessage::ErrorNotify;
 
 /// Interface for environment using round robin strategy for listening to agents' messages.
 pub trait RoundRobinEnvironment<DP: DomainParameters>{
-    fn run_round_robin(&mut self) -> Result<(), AmfiteatrError<DP>>;
+
+    fn run_round_robin_truncating(&mut self, truncate_steps: Option<usize>) -> Result<usize, AmfiteatrError<DP>>;
+    fn run_round_robin(&mut self) -> Result<usize, AmfiteatrError<DP>>{
+        self.run_round_robin_truncating(None)
+    }
+
 }
 /// Similar interface to [`RoundRobinEnvironment`], but it must ensure agents receive rewards.
 pub trait RoundRobinUniversalEnvironment<DP: DomainParameters> : RoundRobinEnvironment<DP>{
-    fn run_round_robin_with_rewards(&mut self) -> Result<(), AmfiteatrError<DP>>;
+    fn run_round_robin_with_rewards_truncating(&mut self, truncate_steps: Option<usize>) -> Result<usize, AmfiteatrError<DP>>;
+    fn run_round_robin_with_rewards(&mut self) -> Result<usize, AmfiteatrError<DP>>{
+        self.run_round_robin_with_rewards_truncating(None)
+    }
 }
 /// Similar interface to [`RoundRobinEnvironment`] and [`RoundRobinUniversalEnvironment`],
 /// in addition to rewards based on current game state, penalties for illegal actions are sent.
@@ -21,7 +29,11 @@ pub trait RoundRobinPenalisingUniversalEnvironment<
     DP: DomainParameters,
     P: Fn(&<Self as StatefulEnvironment<DP>>::State, &DP::AgentId) -> DP::UniversalReward
 >: RoundRobinUniversalEnvironment<DP> + StatefulEnvironment<DP>{
-    fn run_round_robin_with_rewards_penalise(&mut self, penalty_f: P) -> Result<(), AmfiteatrError<DP>>;
+    fn run_round_robin_with_rewards_penalise_truncating(&mut self, penalty_f: P, truncate_steps: Option<usize>)
+        -> Result<usize, AmfiteatrError<DP>>;
+    fn run_round_robin_with_rewards_penalise(&mut self, penalty_f: P) -> Result<usize, AmfiteatrError<DP>>{
+        self.run_round_robin_with_rewards_penalise_truncating(penalty_f, None)
+    }
 }
 
 
@@ -69,12 +81,13 @@ where Env: CommunicatingEndpointEnvironment<DP, CommunicationError=Communication
  + StatefulEnvironment<DP> + 'a
  + EnvironmentWithAgents<DP>
  + BroadcastingEndpointEnvironment<DP>, DP: DomainParameters {
-    fn run_round_robin(&mut self) -> Result<(), AmfiteatrError<DP>> {
+    fn run_round_robin_truncating(&mut self,  truncate_steps: Option<usize>) -> Result<usize, AmfiteatrError<DP>> {
+        let mut current_step = 0;
         let first_player = match self.current_player(){
             None => {
                 #[cfg(feature = "log_warn")]
                 log::warn!("No first player, stopping environment.");
-                return Ok(())
+                return Ok(current_step)
             }
             Some(n) => n
         };
@@ -90,7 +103,9 @@ where Env: CommunicatingEndpointEnvironment<DP, CommunicationError=Communication
                             log::info!("Player {} performs action: {:#}", &player, &action);
 
                             match self.process_action(&player, &action){
+
                                 Ok(updates) => {
+                                    current_step += 1;
                                     for (ag, update) in updates{
                                         self.send_message(&ag, EnvironmentMessage::UpdateState(update))
                                             .inspect_err(|e| {
@@ -98,6 +113,7 @@ where Env: CommunicatingEndpointEnvironment<DP, CommunicationError=Communication
                                             })?;
 
                                     }
+
                                 }
                                 Err(e) => {
                                     #[cfg(feature = "log_error")]
@@ -107,6 +123,24 @@ where Env: CommunicatingEndpointEnvironment<DP, CommunicationError=Communication
                                     return Err(e);
                                 }
                             }
+
+                            if self.state().is_finished(){
+                                #[cfg(feature = "log_info")]
+                                log::info!("Game reached finished state");
+                                self.send_to_all(EnvironmentMessage::GameFinished)?;
+                                return Ok(current_step);
+
+                            }
+
+                            if let Some(truncation_limit) = truncate_steps{
+                                if current_step >= truncation_limit{
+                                    #[cfg(feature = "log_info")]
+                                    log::info!("Game reached truncation boundary");
+                                    self.send_to_all(EnvironmentMessage::GameTruncated)?;
+                                    return Ok(current_step);
+                                }
+                            }
+
                             if let Some(next_player) = self.current_player(){
                                 self.send_message(&next_player, EnvironmentMessage::YourMove)
                                     .map_err(|e| {
@@ -115,13 +149,6 @@ where Env: CommunicatingEndpointEnvironment<DP, CommunicationError=Communication
                                         er
 
                                     })?;
-                            }
-                            if self.state().is_finished(){
-                                #[cfg(feature = "log_info")]
-                                log::info!("Game reached finished state");
-                                self.send_to_all(EnvironmentMessage::GameFinished)?;
-                                return Ok(());
-
                             }
 
 
@@ -168,7 +195,8 @@ where Env: CommunicatingEndpointEnvironment<DP, CommunicationError=Communication
  + ScoreEnvironment<DP> + 'a
  + EnvironmentWithAgents<DP>
  + BroadcastingEndpointEnvironment<DP>, DP: DomainParameters {
-    fn run_round_robin_with_rewards(&mut self) -> Result<(), AmfiteatrError<DP>> {
+    fn run_round_robin_with_rewards_truncating(&mut self, truncate_steps: Option<usize>) -> Result<usize, AmfiteatrError<DP>> {
+        let mut current_step = 0;
         let mut actual_universal_scores: HashMap<DP::AgentId, DP::UniversalReward> = self.players().into_iter()
             .map(|id|{
                 (id, DP::UniversalReward::neutral())
@@ -177,7 +205,7 @@ where Env: CommunicatingEndpointEnvironment<DP, CommunicationError=Communication
             None => {
                 #[cfg(feature = "log_warn")]
                 log::warn!("No first player, stopping environment.");
-                return Ok(())
+                return Ok(current_step)
             }
             Some(n) => n
         };
@@ -196,6 +224,7 @@ where Env: CommunicatingEndpointEnvironment<DP, CommunicationError=Communication
 
                             match self.process_action(&player, &action){
                                 Ok(updates) => {
+                                    current_step += 1;
                                     for (ag, update) in updates{
                                         self.send_message(&ag, EnvironmentMessage::UpdateState(update))
                                             .inspect_err(|e|{
@@ -210,6 +239,7 @@ where Env: CommunicatingEndpointEnvironment<DP, CommunicationError=Communication
                                         *score = self.actual_score_of_player(player);
                                         self.send_to(player, EnvironmentMessage::RewardFragment(reward))?;
                                     }
+
                                 }
                                 Err(e) => {
                                     #[cfg(feature = "log_error")]
@@ -222,6 +252,24 @@ where Env: CommunicatingEndpointEnvironment<DP, CommunicationError=Communication
                             }
 
 
+
+                            if self.state().is_finished(){
+                                #[cfg(feature = "log_info")]
+                                log::info!("Game reached finished state");
+                                self.send_to_all(EnvironmentMessage::GameFinished)?;
+                                return Ok(current_step);
+
+                            }
+
+                            if let Some(truncation_limit) = truncate_steps{
+                                if current_step >= truncation_limit{
+                                    #[cfg(feature = "log_info")]
+                                    log::info!("Game reached truncation boundary");
+                                    self.send_to_all(EnvironmentMessage::GameTruncated)?;
+                                    return Ok(current_step);
+                                }
+                            }
+
                             if let Some(next_player) = self.current_player(){
                                 self.send_message(&next_player, EnvironmentMessage::YourMove)
                                     .map_err(|e| {
@@ -229,13 +277,6 @@ where Env: CommunicatingEndpointEnvironment<DP, CommunicationError=Communication
                                         let _ = self.send_to_all(ErrorNotify(er.clone().into()));
                                         er
                                     })?;
-                            }
-                            if self.state().is_finished(){
-                                #[cfg(feature = "log_info")]
-                                log::info!("Game reached finished state");
-                                self.send_to_all(EnvironmentMessage::GameFinished)?;
-                                return Ok(());
-
                             }
 
 
@@ -282,7 +323,8 @@ where Env: CommunicatingEndpointEnvironment<DP, CommunicationError=Communication
  + EnvironmentWithAgents<DP>
  + BroadcastingEndpointEnvironment<DP>, DP: DomainParameters,
 P: Fn(&<Self as StatefulEnvironment<DP>>::State, &DP::AgentId) -> DP::UniversalReward{
-    fn run_round_robin_with_rewards_penalise(&mut self, penalty_fn: P) -> Result<(), AmfiteatrError<DP>> {
+    fn run_round_robin_with_rewards_penalise_truncating(&mut self, penalty_fn: P, truncate_steps: Option<usize>) -> Result<usize, AmfiteatrError<DP>> {
+        let mut current_step = 0;
         let mut actual_universal_scores: HashMap<DP::AgentId, DP::UniversalReward> = self.players().into_iter()
             .map(|id|{
                 (id, DP::UniversalReward::neutral())
@@ -291,7 +333,7 @@ P: Fn(&<Self as StatefulEnvironment<DP>>::State, &DP::AgentId) -> DP::UniversalR
             None => {
                 #[cfg(feature = "log_warn")]
                 log::warn!("No first player, stopping environment.");
-                return Ok(())
+                return Ok(current_step)
             }
             Some(n) => n
         };
@@ -307,12 +349,14 @@ P: Fn(&<Self as StatefulEnvironment<DP>>::State, &DP::AgentId) -> DP::UniversalR
                             log::info!("Player {} performs action: {:#}", &player, &action);
                             match self.process_action(&player, &action){
                                 Ok(updates) => {
+                                    current_step += 1;
                                     for (ag, update) in updates{
                                         self.send_message(&ag, EnvironmentMessage::UpdateState(update))
                                             .inspect_err(|e|{
                                                 let _ = self.send_to_all(ErrorNotify(e.clone().into()));
                                             })?;
                                     }
+
                                     for (player, score) in actual_universal_scores.iter_mut(){
 
                                         let reward = self.actual_score_of_player(player) - score.clone();
@@ -335,6 +379,24 @@ P: Fn(&<Self as StatefulEnvironment<DP>>::State, &DP::AgentId) -> DP::UniversalR
                                     return Err(e);
                                 }
                             }
+
+                            if self.state().is_finished(){
+                                #[cfg(feature = "log_info")]
+                                log::info!("Game reached finished state");
+                                self.send_to_all(EnvironmentMessage::GameFinished)?;
+                                return Ok(current_step);
+
+                            }
+
+                            if let Some(truncation_limit) = truncate_steps{
+                                if current_step >= truncation_limit{
+                                    #[cfg(feature = "log_info")]
+                                    log::info!("Game reached truncation boundary");
+                                    self.send_to_all(EnvironmentMessage::GameTruncated)?;
+                                    return Ok(current_step);
+                                }
+                            }
+
                             if let Some(next_player) = self.current_player(){
                                 self.send_message(&next_player, EnvironmentMessage::YourMove)
                                     .map_err(|e| {
@@ -342,13 +404,6 @@ P: Fn(&<Self as StatefulEnvironment<DP>>::State, &DP::AgentId) -> DP::UniversalR
                                         let _ = self.send_to_all(ErrorNotify(er.clone().into()));
                                         er
                                     })?;
-                            }
-                            if self.state().is_finished(){
-                                #[cfg(feature = "log_info")]
-                                log::info!("Game reached finished state");
-                                self.send_to_all(EnvironmentMessage::GameFinished)?;
-                                return Ok(());
-
                             }
 
 

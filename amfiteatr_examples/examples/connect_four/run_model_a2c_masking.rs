@@ -27,7 +27,8 @@ pub fn setup_logger(options: &ConnectFourOptions) -> Result<(), fern::InitError>
         })
         .level(options.log_level)
         .level_for("amfiteatr_examples", options.log_level)
-        .level_for("amfiteatr_core", options.log_level_amfiteatr);
+        .level_for("amfiteatr_core", options.log_level_amfiteatr)
+        .level_for("amfiteatr_rl", options.log_level_amfiteatr_rl);
 
     match &options.log_file{
         None => dispatch.chain(std::io::stdout()),

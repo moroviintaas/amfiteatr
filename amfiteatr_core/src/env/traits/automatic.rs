@@ -18,7 +18,15 @@ pub trait AutoEnvironment<DP: DomainParameters>{
     /// This method is meant to automatically run game and communicate with agents
     /// until is the game is finished.
     /// This method is not required to send agents messages with their scores.
-    fn run(&mut self) -> Result<(), AmfiteatrError<DP>>;
+    /// Argument `truncate_steps` determines if game should be truncated after certain number of steps.
+    /// With `None` no truncation is made.
+    ///
+    /// Returns the number of all game steps made.
+    fn run_truncating(&mut self, truncate_steps: Option<usize>) -> Result<usize, AmfiteatrError<DP>>;
+    /// Just like [`run_truncating`]`(None`), left for compatibility reasons.
+    fn run(&mut self) -> Result<usize, AmfiteatrError<DP>>{
+        self.run_truncating(None)
+    }
 }
 
 /// Trait for environment automatically running a game with informing agents about their
@@ -26,15 +34,32 @@ pub trait AutoEnvironment<DP: DomainParameters>{
 pub trait AutoEnvironmentWithScores<DP: DomainParameters>{
     /// Method analogous to [`AutoEnvironment::run`](AutoEnvironment::run),
     /// but it should implement sending rewards to agents.
-    fn run_with_scores(&mut self) -> Result<(), AmfiteatrError<DP>>;
+    /// Argument `truncate_steps` determines if game should be truncated after certain number of steps.
+    /// With `None` no truncation is made.
+    ///
+    /// Returns the number of all game steps made.
+    fn run_with_scores_truncating(&mut self, truncate_steps: Option<usize>) -> Result<usize, AmfiteatrError<DP>>;
+
+    /// Just like [`run_with_scores_truncating`]`(None)`, left for compatibility reasons.
+    fn run_with_scores(&mut self) -> Result<usize, AmfiteatrError<DP>>{
+        self.run_with_scores_truncating(None)
+    }
     //fn run_with_scores_and_penalties<P: Fn(&DP::AgentId) -> DP::UniversalReward>(&mut self, penalty: P) -> Result<(), AmfiError<DP>>;
 }
 /// Trait for environment automatically running a game with informing agents about their
 /// rewards during game and applying penalties to agents who
 /// perform illegal (wrong) actions.
 pub trait AutoEnvironmentWithScoresAndPenalties<DP: DomainParameters>: StatefulEnvironment<DP>{
+    fn run_with_scores_and_penalties_truncating<P: Fn(&<Self as StatefulEnvironment<DP>>::State, &DP::AgentId)
+        -> DP::UniversalReward>(&mut self, penalty: P, truncate_steps: Option<usize>) -> Result<usize, AmfiteatrError<DP>>;
+
+    /// Returns the number of all game steps made.
+    ///
+    /// Just like [`run_with_scores_and_penalties_truncating`]`(None)`, left for compatibility reasons.
     fn run_with_scores_and_penalties<P: Fn(&<Self as StatefulEnvironment<DP>>::State, &DP::AgentId)
-        -> DP::UniversalReward>(&mut self, penalty: P) -> Result<(), AmfiteatrError<DP>>;
+        -> DP::UniversalReward>(&mut self, penalty: P) -> Result<usize, AmfiteatrError<DP>>{
+        self.run_with_scores_and_penalties_truncating(penalty, None)
+    }
 }
 
 

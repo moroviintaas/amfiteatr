@@ -17,7 +17,7 @@ def parse_args():
     parser.add_argument('-E', "--extended-epochs", type=int, default=100, help="Number of extended epochs of training (only agent0 trains)")
     parser.add_argument('-g', "--games", type=int, default=128, help="Number of games in epochs of training")
     #parser.add_argument('-s', "--steps", type=int,  dest="max_env_steps_in_epoch", help="Limit number of steps in train epoch (train epoch may be limited to certain number of steps to compare with models scaled with number of steps instead of full games)")
-    parser.add_argument('-t', "--test_games", type=int, default=100, help="Number of games in epochs of testing")
+    parser.add_argument('-t', "--test-games", type=int, default=100, help="Number of games in epochs of testing")
     parser.add_argument('-p', "--penalty", type=float, default=10, help="NPenalty for illegal actions")
     parser.add_argument("--layer-sizes-0", metavar="LAYERS", type=int, nargs="*", default=[64,64], help = "Sizes of subsequent linear layers")
     parser.add_argument("--layer-sizes-1", metavar="LAYERS", type=int, nargs="*", default=[64,64],
@@ -33,9 +33,10 @@ def parse_args():
     parser.add_argument("--value-coefficient", dest="vf_coef", default = 0.5, help = "Value loss coeficient")
     parser.add_argument("--entropy-coefficient", dest="entropy_coef", type=float, default = 0.01, help = "Entropyloss coeficient")
 
-    parser.add_argument('-m', "--minibatch-size", type=int, default=64, help="Size of PPO minibatch")
+    parser.add_argument('-m', "--minibatch-size", type=int, default=16, help="Size of PPO minibatch")
     parser.add_argument("--update-epochs", default=4, help="Nuber of update epochs inside PPO Policy")
     parser.add_argument("-G", "--gae-lambda", default=0.95, type=float, help="Lambda for GAE calculation (Advantage)")
+    parser.add_argument("-u", "--update-epochs", default=4, help="Nuber of update epochs inside PPO Policy")
     parser.add_argument("--clip-coefficient", default=0.2, help="Clipping coefficient for PPO")
 
     parser.add_argument("--tensorboard", help="Directory to write summary for model")

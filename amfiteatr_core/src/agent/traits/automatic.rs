@@ -51,6 +51,13 @@ pub trait ProcedureAgent<DP: DomainParameters>: RewardedAgent<DP> + IdAgent<DP>
                         return Ok(())
 
                     }
+                    EnvironmentMessage::GameTruncated => {
+                        #[cfg(feature = "log_info")]
+                        log::info!("Agent {} received information that game is truncated.", self.id());
+                        self.finalize().map_err(|e| self.and_send_error(e))?;
+                        return Ok(())
+
+                    }
                     EnvironmentMessage::GameFinishedWithIllegalAction(_id)=> {
                         #[cfg(feature = "log_warn")]
                         log::warn!("Agent {} received information that game is finished with agent {_id:} performing illegal action.", self.id());

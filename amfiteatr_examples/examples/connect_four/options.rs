@@ -19,17 +19,23 @@ pub enum ComputeDevice{
 #[command(author, version, about, long_about = None)]
 pub struct ConnectFourOptions{
 
-    #[arg(short = 'v', long = "log_level", value_enum, default_value = "info")]
+    #[arg(short = 'v', long = "log-level", value_enum, default_value = "info")]
     pub log_level: LevelFilter,
 
-    #[arg(short = 'a', long = "log_level_amfiteatr", value_enum, default_value = "OFF")]
+    #[arg(short = 'a', long = "log-level-amfiteatr", value_enum, default_value = "OFF")]
     pub log_level_amfiteatr: LevelFilter,
+
+    #[arg(short = 'A', long = "log-level-amfiteatr-rl", value_enum, default_value = "OFF")]
+    pub log_level_amfiteatr_rl: LevelFilter,
 
     #[arg(short = 'o', long = "logfile")]
     pub log_file: Option<PathBuf>,
 
     #[arg(short = 'l', long = "gae-lambda")]
     pub gae_lambda: Option<f64>,
+
+    #[arg(short = 'm', long = "mini-batch-size", default_value = "16")]
+    pub mini_batch_size: usize,
 
     /*
     #[arg(short = 's', long = "save")]
@@ -47,11 +53,17 @@ pub struct ConnectFourOptions{
     #[arg(short = 'e', long = "epochs", default_value = "100")]
     pub epochs: usize,
 
+    #[arg(long = "limit-steps-in-epoch")]
+    pub limit_steps_in_epochs: Option<usize>,
+
     #[arg(short = 'E', long = "extended-epochs", default_value = "0")]
     pub extended_epochs: usize,
 
     #[arg(short = 'g', long = "games", default_value = "128")]
     pub num_episodes: usize,
+
+    #[arg(short = 'u', long = "updates-per-epoch", default_value = "4")]
+    pub ppo_update_epochs: usize,
 
     #[arg(short = 't', long = "test-games", default_value = "100")]
     pub num_test_episodes: usize,
@@ -84,8 +96,8 @@ pub struct ConnectFourOptions{
     #[arg(long = "tensorboard-policy-agent-1", help = "Directory to save tensorboard output for agent 1")]
     pub tboard_agent1: Option<PathBuf>,
 
-    //#[arg(long = "tensorboard", help = "Directory to save tensorboard output for epoch scores")]
-    //pub tboard: Option<PathBuf>
+    #[arg(long = "tensorboard", help = "Directory to save tensorboard output for epoch scores")]
+    pub tboard: Option<PathBuf>
 
     //#[arg(short = 'r', long = "reward", default_value = "env")]
     //pub reward_source: RewardSource,

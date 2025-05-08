@@ -17,8 +17,9 @@ def parse_args():
     parser.add_argument('-E', "--extended-epochs", type=int, default=100, help="Number of extended epochs of training (only agent0 trains)")
     parser.add_argument('-g', "--games", type=int, default=128, help="Number of games in epochs of training")
     #parser.add_argument('-s', "--steps", type=int,  dest="max_env_steps_in_epoch", help="Limit number of steps in train epoch (train epoch may be limited to certain number of steps to compare with models scaled with number of steps instead of full games)")
-    parser.add_argument('-t', "--test_games", type=int, default=100, help="Number of games in epochs of testing")
-    parser.add_argument('-p', "--penalty", type=float, default=10, help="NPenalty for illegal actions")
+    parser.add_argument("--limit-steps-in-epoch", type=int, default=None, help = "Limit number of all steps in all epoch")
+    parser.add_argument('-t', "--test-games", type=int, default=100, help="Number of games in epochs of testing")
+    parser.add_argument('-p', "--penalty", type=float, default=-10, help="NPenalty for illegal actions")
     parser.add_argument("--layer-sizes-0", metavar="LAYERS", type=int, nargs="*", default=[64,64], help = "Sizes of subsequent linear layers")
     parser.add_argument("--layer-sizes-1", metavar="LAYERS", type=int, nargs="*", default=[64,64],
                         help="Sizes of subsequent linear layers")
@@ -34,12 +35,11 @@ def parse_args():
     parser.add_argument("--entropy-coefficient", dest="entropy_coef", type=float, default = 0.01, help = "Entropyloss coeficient")
 
     parser.add_argument('-m', "--minibatch-size", type=int, default=64, help="Size of PPO minibatch")
-    parser.add_argument("--update-epochs", default=4, help="Nuber of update epochs inside PPO Policy")
+    parser.add_argument("-u", "--update-epochs", default=4, type=int, help="Nuber of update epochs inside PPO Policy")
     parser.add_argument("-G", "--gae-lambda", default=0.95, type=float, help="Lambda for GAE calculation (Advantage)")
     parser.add_argument("--clip-coefficient", default=0.2, help="Clipping coefficient for PPO")
 
     parser.add_argument("--tensorboard", help="Directory to write summary for model")
-   # parser.add_argument("--tensorboard", help="Directory to write summary for agent0")
     parser.add_argument("--tensorboard-policy-agent-0", help="Directory to policy summary for agent 0")
     parser.add_argument("--tensorboard-policy-agent-1", help="Directory to policy summary for agent 1")
 
@@ -76,11 +76,11 @@ def main():
     else:
         tb_writer_policy_1 = None
 
-    # if args.tensorboard_agent_0 is not None:
-    #     #tb_writter = None
-    #     tb_writer_0 = SummaryWriter(f"{args.tensorboard_policy_agent_0}", )
-    # else:
-    #     tb_writer_0 = None
+    if args.tensorboard is not None:
+        #tb_writter = None
+        tb_writer = SummaryWriter(f"{args.tensorboard_policy_agent_0}", )
+    else:
+        tb_writer = None
 #
     # if args.tensorboard_agent_1 is not None:
     #     #tb_writter = None
@@ -103,8 +103,8 @@ def main():
 
     env = my_env(render_mode=None, illegal_reward=args.penalty)
     env.reset()
-    policy0 = PolicyPPO(84, 7, args.layer_sizes_0, config=policy_config, device=device, tb_writer=tb_writer_policy_0 )
-    policy1 = PolicyPPO(84, 7, args.layer_sizes_1, config=policy_config, device=device, tb_writer=tb_writer_policy_1 )
+    policy0 = PolicyPPO(84, 7, args.layer_sizes_0, config=policy_config, device=device, tb_writer=tb_writer_policy_0, masking=args.masking )
+    policy1 = PolicyPPO(84, 7, args.layer_sizes_1, config=policy_config, device=device, tb_writer=tb_writer_policy_1, masking=args.masking )
     agent0 = Agent("player_0", policy0,)
     agent1 = Agent("player_1", policy1)
 
@@ -112,10 +112,10 @@ def main():
 
     #model.play_single_game(True, -3)
     if args.test_games > 0:
-        w,c = model.play_epoch(args.test_games, False, args.penalty)
+        w,c, games, total_steps = model.play_epoch(args.test_games, False, args.penalty, args.limit_steps_in_epoch)
         print(f"Test after before training: wins: {w}, illegal: {c}")
     for e in range(args.epochs):
-        w,c = model.play_epoch(args.games, True, args.penalty)
+        w,c, games, total_steps = model.play_epoch(args.games, True, args.penalty, args.limit_steps_in_epoch)
         print(f"Results train after epoch {e}: wins: {w}, illegal: {c}")
         for agent_id in model.agents_ids:
             if model.agents[agent_id].policy.tb_writer is not None:
@@ -124,12 +124,15 @@ def main():
                 model.agents[agent_id].policy.tb_writer.add_scalar(f"train_epoch/illegal_moves", c[agent_id], e)
         train_report = model.apply_experience()
         print(train_report)
+        if tb_writer is not None:
+            tb_writer.add_scalar(f"train_epoch/number_of_games", games, e)
+            tb_writer.add_scalar(f"train_epoch/number_of_steps_in_game", total_steps/games, e)
         if args.test_games > 0:
-            w,c = model.play_epoch(args.test_games, False, args.penalty)
+            w,c, games, total_steps = model.play_epoch(args.test_games, False, args.penalty)
             print(f"Test after epoch {e}: wins: {w}, illegal: {c}")
 
     for e in range(args.extended_epochs):
-        w,c = model.play_epoch(args.games, True, args.penalty)
+        w,c, games, total_steps = model.play_epoch(args.games, True, args.penalty, args.limit_steps_in_epoch)
         print(f"Results train after extended epoch {e}: wins: {w}, illegal: {c}")
         for agent_id in model.agents_ids:
             if model.agents[agent_id].policy.tb_writer is not None:
@@ -144,8 +147,11 @@ def main():
         agent0 = model.agents[model.agents_ids[0]]
         report_0 = model.agents[model.agents_ids[0]].policy.train_network(agent0.batch_trajectories)
         print(report_0)
+        if tb_writer is not None:
+            tb_writer.add_scalar(f"train_epoch/number_of_games", games, e + args.epochs)
+            tb_writer.add_scalar(f"train_epoch/number_of_steps_in_game", total_steps/games, e + args.epochs)
         if args.test_games > 0:
-            w,c = model.play_epoch(args.test_games, False, args.penalty)
+            w,c, games, total_steps = model.play_epoch(args.test_games, False, args.penalty, args.limit_steps_in_epoch)
             print(f"Test after epoch {e}: wins: {w}, illegal: {c}")
 
 

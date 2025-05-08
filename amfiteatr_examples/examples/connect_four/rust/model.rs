@@ -14,6 +14,7 @@ use amfiteatr_core::comm::{
 use amfiteatr_core::domain::Renew;
 use amfiteatr_core::env::{GameStateWithPayoffs, HashMapEnvironment, ReseedEnvironment, RoundRobinPenalisingUniversalEnvironment, StatefulEnvironment};
 use amfiteatr_core::error::AmfiteatrError;
+use amfiteatr_core::reexport::nom::combinator::opt;
 use amfiteatr_rl::error::AmfiteatrRlError;
 use amfiteatr_rl::policy::{ActorCriticPolicy, ConfigA2C, ConfigPPO, LearningNetworkPolicy, PolicyDiscreteA2C, PolicyMaskingDiscreteA2C, PolicyMaskingDiscretePPO, PolicyDiscretePPO, TrainConfig, PolicyHelperA2C};
 use amfiteatr_rl::tch::{Device, nn, Tensor};
@@ -335,6 +336,7 @@ pub struct ConnectFourModelRust<S: GameStateWithPayoffs<ConnectFourDomain>, P: L
     env: Environment<S>,
     agent0: Agent<P>,
     agent1: Agent<P>,
+    tboard_writer: Option<tboard::EventWriter<File>>,
 
     //model_tboard: Option<tboard::EventWriter<File>>
 
@@ -406,11 +408,19 @@ impl<
 
         //let model_tboard = options.tboard.as_ref()
         //    .and_then(|p| Some(EventWriter::create(p).unwrap()));
+        let tboard_writer = match &options.tboard{
+            Some(b) => {
+                let event_writer = EventWriter::create(b).unwrap();
+                Some(event_writer)
 
+            }
+            None => None,
+        };
         Self{
             env,
             agent0: agent_0,
             agent1: agent_1,
+            tboard_writer,
             //model_tboard,
         }
     }
@@ -425,6 +435,7 @@ impl<
 
         let mut config_a2c = ConfigA2C::default();
         config_a2c.gae_lambda = options.gae_lambda;
+        //config_a2c.mini_batch_size = options.mini_batch_size;
 
         let device = match options.device{
             ComputeDevice::Cpu => Device::Cpu,
@@ -453,10 +464,20 @@ impl<
         //let model_tboard = options.tboard.as_ref()
         //    .and_then(|p| Some(EventWriter::create(p).unwrap()));
 
+        let tboard_writer = match &options.tboard{
+            Some(b) => {
+                let event_writer = EventWriter::create(b).unwrap();
+                Some(event_writer)
+
+            }
+            None => None,
+        };
+
         Self{
             env,
             agent0: agent_0,
             agent1: agent_1,
+            tboard_writer,
             //model_tboard,
         }
     }
@@ -471,6 +492,8 @@ impl<
 
         let mut config_ppo = ConfigPPO::default();
         config_ppo.gae_lambda = options.gae_lambda;
+        config_ppo.update_epochs = options.ppo_update_epochs;
+        config_ppo.mini_batch_size = options.mini_batch_size;
 
         let device = match options.device{
             ComputeDevice::Cpu => Device::Cpu,
@@ -497,13 +520,20 @@ impl<
         let agent_0 = Agent::new(ConnectFourInfoSet::new(ConnectFourPlayer::One), c_a1, agent_policy_0);
         let agent_1 = Agent::new(ConnectFourInfoSet::new(ConnectFourPlayer::Two), c_a2, agent_policy_1);
 
-        //let model_tboard = options.tboard.as_ref()
-        //    .and_then(|p| Some(EventWriter::create(p).unwrap()));
+        let tboard_writer = match &options.tboard{
+            Some(b) => {
+                let event_writer = EventWriter::create(b).unwrap();
+                Some(event_writer)
+
+            }
+            None => None,
+        };
 
         Self{
             env,
             agent0: agent_0,
             agent1: agent_1,
+            tboard_writer,
             //model_tboard,
         }
     }
@@ -518,6 +548,8 @@ impl<
 
         let mut config_ppo = ConfigPPO::default();
         config_ppo.gae_lambda = options.gae_lambda;
+        config_ppo.update_epochs = options.ppo_update_epochs;
+        config_ppo.mini_batch_size = options.mini_batch_size;
 
         let device = match options.device{
             ComputeDevice::Cpu => Device::Cpu,
@@ -547,10 +579,20 @@ impl<
         //let model_tboard = options.tboard.as_ref()
         //    .and_then(|p| Some(EventWriter::create(p).unwrap()));
 
+        let tboard_writer = match &options.tboard{
+            Some(b) => {
+                let event_writer = EventWriter::create(b).unwrap();
+                Some(event_writer)
+
+            }
+            None => None,
+        };
+
         Self{
             env,
             agent0: agent_0,
             agent1: agent_1,
+            tboard_writer,
             //model_tboard,
         }
     }
@@ -562,9 +604,15 @@ impl<
 > ConnectFourModelRust<S,P>
 where <P as Policy<ConnectFourDomain>>::InfoSetType: Renew<ConnectFourDomain, ()> + Clone{
 
+    pub fn add_tboard_directory<B: AsRef<std::path::Path>>(&mut self, directory_path: B) -> Result<(), AmfiteatrError<ConnectFourDomain>>{
+        let tboard = EventWriter::create(directory_path).map_err(|e|{
+            AmfiteatrError::TboardFlattened {context: "Creating tboard EventWriter".into(), error: format!("{e}")}
+        })?;
+        self.tboard_writer = Some(tboard);
+        Ok(())
+    }
 
-
-    pub fn play_one_game(&mut self, store_episode: bool) -> Result<EpochSummary, AmfiteatrRlError<ConnectFourDomain>>{
+    pub fn play_one_game(&mut self, store_episode: bool, truncate_at_step: Option<usize>) -> Result<EpochSummary, AmfiteatrRlError<ConnectFourDomain>>{
         let mut summary = EpochSummary::default();
         self.env.reseed(())?;
         self.agent0.reseed(())?;
@@ -572,7 +620,7 @@ where <P as Policy<ConnectFourDomain>>::InfoSetType: Renew<ConnectFourDomain, ()
 
         std::thread::scope(|s|{
             s.spawn(|| {
-                let r = self.env.run_round_robin_with_rewards_penalise(|_,_| -10.0);
+                let r = self.env.run_round_robin_with_rewards_penalise_truncating(|_,_| -10.0, truncate_at_step);
                 if let Err(e) = r{
                     if let AmfiteatrError::Game {source: game_error} = e{
                         if let Some(fauler) = game_error.fault_of_player(){
@@ -605,22 +653,44 @@ where <P as Policy<ConnectFourDomain>>::InfoSetType: Renew<ConnectFourDomain, ()
         Ok(summary)
     }
 
-    pub fn play_epoch(&mut self, number_of_games: usize, summarize: bool, training_epoch: bool) -> Result<EpochSummary, AmfiteatrRlError<ConnectFourDomain>>{
+    pub fn play_epoch(
+        &mut self,
+        number_of_games: usize,
+        summarize: bool,
+        training_epoch: bool,
+        max_steps: Option<usize>
+    ) -> Result<EpochSummary, AmfiteatrRlError<ConnectFourDomain>>
+    {
+        let mut steps_left = max_steps;
+        let mut number_of_games_played = 0;
         self.agent0.clear_episodes();
         self.agent1.clear_episodes();
         let mut vec = match summarize{
             true => Vec::with_capacity(number_of_games as usize),
             false => Vec::with_capacity(0),
         };
-        for _ in 0..number_of_games{
-            let summary = self.play_one_game(training_epoch)?;
+        for i in 0..number_of_games{
+            let summary = self.play_one_game(training_epoch, steps_left)?;
+
             if summarize{
                 vec.push(summary);
             }
+            number_of_games_played = i;
+            if let Some(step_pool) = steps_left{
+
+                let remaining_steps = step_pool.saturating_sub(self.env.completed_steps() as usize);
+                steps_left = Some(remaining_steps);
+                log::debug!("Remaining {} steps for epoch", step_pool);
+                if remaining_steps == 0{
+                    break;
+                }
+            }
+
+
         }
         if summarize{
             let summary_sum: EpochSummary = vec.iter().fold(EpochSummary::default(), |acc, x| &acc+x);
-            let n = number_of_games as f64;
+            let n = number_of_games_played as f64;
             return Ok(EpochSummary {
                 games_played: summary_sum.games_played,
                 scores: [summary_sum.scores[0]/n, summary_sum.scores[1]/n],
@@ -658,7 +728,7 @@ where <P as Policy<ConnectFourDomain>>::InfoSetType: Renew<ConnectFourDomain, ()
     pub fn run_session(&mut self, options: &ConnectFourOptions)
         -> Result<(), ErrorRL>{
         info!("Starting session");
-        let pre_training_summary = self.play_epoch(options.num_test_episodes, true, false)?;
+        let pre_training_summary = self.play_epoch(options.num_test_episodes, true, false, options.limit_steps_in_epochs)?;
         info!("Summary before training: {}", pre_training_summary.describe_as_collected());
 
         let mut results_learn = Vec::with_capacity(options.epochs);
@@ -667,7 +737,7 @@ where <P as Policy<ConnectFourDomain>>::InfoSetType: Renew<ConnectFourDomain, ()
         let mut l_summaries_2 = Vec::with_capacity(options.epochs);
 
         for e in 0..options.epochs{
-            let s = self.play_epoch(options.num_episodes, true, true)?;
+            let s = self.play_epoch(options.num_episodes, true, true, options.limit_steps_in_epochs)?;
             if let Some(tboard) = self.agent0.policy_mut().tboard_writer(){
                 tboard.write_scalar(e as i64, "train_epoch/score", s.scores[0] as f32)
                     .map_err(|e| AmfiteatrError::TboardFlattened {context: "Saving Agent0 scores".into(), error: format!("{e}")})?;
@@ -682,22 +752,40 @@ where <P as Policy<ConnectFourDomain>>::InfoSetType: Renew<ConnectFourDomain, ()
                tboard.write_scalar(e as i64, "train_epoch/illegal_moves", s.invalid_actions[1] as f32)
                     .map_err(|e| AmfiteatrError::TboardFlattened {context: "Saving Agent1 bad action count".into(), error: format!("{e}")})?;
             }
+            if let Some(ref mut tboard) = self.tboard_writer{
+                tboard.write_scalar(e as i64, "train_epoch/number_of_games", s.games_played as f32)
+                    .map_err(|e| AmfiteatrError::TboardFlattened {context: "Saving games in epoch (train)".into(), error: format!("{e}")})?;
+                tboard.write_scalar(e as i64, "train_epoch/number_of_steps_in_game", s.game_steps as f32)
+                    .map_err(|e| AmfiteatrError::TboardFlattened {context: "Saving average game steps in epoch (train)".into(), error: format!("{e}")})?;
+
+            }
             results_learn.push(s);
             let (s1,s2) = self.train_agents_on_experience()?;
-
+            info!("Summary of games in epoch {}: {}", e+1, s.describe_as_collected());
             info!("Training epoch {}: Critic losses {:.3}, {:.3}; Actor loss {:.3}, {:.3}; entropy loss {:.3}, {:.3}",
                 e+1, s1.value_loss.unwrap(), s2.value_loss.unwrap(),
                 s1.policy_gradient_loss.unwrap(), s2.policy_gradient_loss.unwrap(),
                 s1.entropy_loss.unwrap(), s2.entropy_loss.unwrap()
             );
-            let s =self.play_epoch(options.num_test_episodes, true, false)?;
-            results_test.push(s);
-            l_summaries_1.push(s1);
-            l_summaries_2.push(s2);
+            if options.num_test_episodes > 0{
+                let s =self.play_epoch(options.num_test_episodes, true, false, options.limit_steps_in_epochs)?;
+                results_test.push(s);
+                l_summaries_1.push(s1);
+                l_summaries_2.push(s2);
 
 
 
-            info!("Summary of tests after epoch {}: {}", e+1, s.describe_as_collected())
+                info!("Summary of tests after epoch {}: {}", e+1, s.describe_as_collected());
+                if let Some(ref mut tboard) = self.tboard_writer{
+                    tboard.write_scalar(e as i64, "test_epoch/number_of_games", s.games_played as f32)
+                        .map_err(|e| AmfiteatrError::TboardFlattened {context: "Saving games in epoch (test)".into(), error: format!("{e}")})?;
+                    tboard.write_scalar(e as i64, "test_epoch/number_of_steps_in_game", s.game_steps as f32)
+                        .map_err(|e| AmfiteatrError::TboardFlattened {context: "Saving average game steps in epoch (test)".into(), error: format!("{e}")})?;
+
+                }
+
+            }
+
         }
         if let Some(result_file) = &options.save_path_train_param_summary{
             let yaml = serde_yaml::to_string(&(l_summaries_1, l_summaries_2)).unwrap();
@@ -718,7 +806,7 @@ where <P as Policy<ConnectFourDomain>>::InfoSetType: Renew<ConnectFourDomain, ()
         }
 
         for e in 0..options.extended_epochs{
-            let s = self.play_epoch(options.num_episodes, true, true)?;
+            let s = self.play_epoch(options.num_episodes, true, true, options.limit_steps_in_epochs)?;
             if let Some(tboard) = self.agent0.policy_mut().tboard_writer(){
                 tboard.write_scalar((options.epochs + e) as i64, "train_epoch/score", s.scores[0] as f32)
                     .map_err(|e| AmfiteatrError::TboardFlattened {context: "Saving Agent0 scores".into(), error: format!("{e}")})?;
@@ -733,14 +821,37 @@ where <P as Policy<ConnectFourDomain>>::InfoSetType: Renew<ConnectFourDomain, ()
                 tboard.write_scalar((options.epochs + e) as i64, "train_epoch/illegal_moves", s.invalid_actions[1] as f32)
                     .map_err(|e| AmfiteatrError::TboardFlattened {context: "Saving Agent1 bad action count".into(), error: format!("{e}")})?;
             }
+
+            if let Some(ref mut tboard) = self.tboard_writer{
+                tboard.write_scalar((options.epochs + e) as i64, "train_epoch/number_of_games", s.games_played as f32)
+                    .map_err(|e| AmfiteatrError::TboardFlattened {context: "Saving games in epoch (train)".into(), error: format!("{e}")})?;
+                tboard.write_scalar((options.epochs + e) as i64, "train_epoch/number_of_steps_in_game", s.game_steps as f32)
+                    .map_err(|e| AmfiteatrError::TboardFlattened {context: "Saving average game steps in epoch (train)".into(), error: format!("{e}")})?;
+
+            }
+
+
             let s1 = self.train_agent1_on_experience()?;
+            info!("Summary of games in extended epoch {}: {}", e+1, s.describe_as_collected());
             info!("Training only agent 1 epoch {}: Critic losses {:.3}; Actor loss {:.3}; entropy loss {:.3}",
                 e+1, s1.value_loss.unwrap(),
                 s1.policy_gradient_loss.unwrap(),
                 s1.entropy_loss.unwrap(),
             );
-            let s =self.play_epoch(options.num_test_episodes, true, false)?;
-            info!("Summary of tests after extended epoch {}: {}", e+1, s.describe_as_collected())
+            if options.num_test_episodes > 0 {
+                let s =self.play_epoch(options.num_test_episodes, true, false, options.limit_steps_in_epochs)?;
+                info!("Summary of tests after extended epoch {}: {}", e+1, s.describe_as_collected());
+
+                if let Some(ref mut tboard) = self.tboard_writer{
+                    tboard.write_scalar((options.epochs + e) as i64, "test_epoch/number_of_games", s.games_played as f32)
+                        .map_err(|e| AmfiteatrError::TboardFlattened {context: "Saving games in epoch (test)".into(), error: format!("{e}")})?;
+                    tboard.write_scalar((options.epochs + e) as i64, "test_epoch/number_of_steps_in_game", s.game_steps as f32)
+                        .map_err(|e| AmfiteatrError::TboardFlattened {context: "Saving average game steps in epoch (test)".into(), error: format!("{e}")})?;
+
+                }
+
+            }
+
         }
 
 

@@ -17,7 +17,7 @@ def parse_args():
     parser.add_argument('-E', "--extended-epochs", type=int, default=100, help="Number of extended epochs of training (only agent0 trains)")
     parser.add_argument('-g', "--games", type=int, default=128, help="Number of games in epochs of training")
     #parser.add_argument('-s', "--steps", type=int,  dest="max_env_steps_in_epoch", help="Limit number of steps in train epoch (train epoch may be limited to certain number of steps to compare with models scaled with number of steps instead of full games)")
-    parser.add_argument('-t', "--test_games", type=int, default=100, help="Number of games in epochs of testing")
+    parser.add_argument('-t', "--test-games", type=int, default=100, help="Number of games in epochs of testing")
     parser.add_argument('-p', "--penalty", type=float, default=-10, help="NPenalty for illegal actions")
     parser.add_argument("--layer-sizes-0", metavar="LAYERS", type=int, nargs="*", default=[64,64], help = "Sizes of subsequent linear layers")
     parser.add_argument("--layer-sizes-1", metavar="LAYERS", type=int, nargs="*", default=[64,64],

@@ -92,7 +92,9 @@ class Agent:
     def store_trajectory(self):
 
         #print(f"storing rewards {self.id}: ",  self.rewards())
-
+        #print(self.info_sets)
+        #if len(self.info_sets) >= 0 :
         self.batch_trajectories.append((self.info_sets, self.actions, self.rewards(), self.masks))
+
 
         #print("bt", len(self.batch_trajectories), [x[2] for x in self.batch_trajectories])

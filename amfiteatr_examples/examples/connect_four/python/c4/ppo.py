@@ -113,6 +113,8 @@ class PolicyPPO:
         #values = torch.zeros((num_steps, num_envs)).to(device)
 
         for (states, actions, rewards, masks) in trajectories:
+            if len(states) == 0:
+                break
             states_tensor = torch.stack(states, dim=0)
             actions_tensor = torch.stack(actions, dim=0)
 
