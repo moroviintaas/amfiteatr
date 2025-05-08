@@ -34,7 +34,7 @@ pub struct ConnectFourOptions{
     #[arg(short = 'l', long = "gae-lambda")]
     pub gae_lambda: Option<f64>,
 
-    #[arg(short = 'm', long = "mini-batch-size", default_value = "16")]
+    #[arg(short = 'm', long = "minibatch-size", default_value = "16")]
     pub mini_batch_size: usize,
 
     /*
