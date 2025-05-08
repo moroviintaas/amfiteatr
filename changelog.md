@@ -1,5 +1,11 @@
 # Changelog
 
+## Version 0.9.0
++ Changes in traits `RoundRobinEnvironment` `RoundRobinEnvironmentUniversalEnvironment`
+`RoundRobinPenalisingUniversalEnvironment` - added respectively `run_round_robin_truncating`, 
+`run_round_robin_with_rewards_truncating` and `run_round_robin_with_rewards_penalise_truncating` 
+that introduce truncating act certain number of steps. Previous methods are auto implemented using these new with `None` argument.
+
 ## Version 0.8.0
 + Added policies `PolicyDiscreteA2C`, `PolicyMaskingDiscreteA2C`, `PolicyMaskingMultiDiscreteA2C`
 + Added `tboard` writer support for `PolicyDiscretePPO` and `PolicyMultiDiscretePPO`;

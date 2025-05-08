@@ -8,7 +8,10 @@ use crate::domain::EnvironmentMessage::ErrorNotify;
 
 /// Interface for environment using round robin strategy for listening to agents' messages.
 pub trait RoundRobinEnvironment<DP: DomainParameters>{
-
+    /// Runs environment listening to agents in RoundRobin order.
+    ///
+    /// Argument `truncate_steps` is the number of steps after which the game is truncated.
+    /// Set to `None` to disable.
     fn run_round_robin_truncating(&mut self, truncate_steps: Option<usize>) -> Result<(), AmfiteatrError<DP>>;
     fn run_round_robin(&mut self) -> Result<(), AmfiteatrError<DP>>{
         self.run_round_robin_truncating(None)
@@ -17,6 +20,10 @@ pub trait RoundRobinEnvironment<DP: DomainParameters>{
 }
 /// Similar interface to [`RoundRobinEnvironment`], but it must ensure agents receive rewards.
 pub trait RoundRobinUniversalEnvironment<DP: DomainParameters> : RoundRobinEnvironment<DP>{
+    /// Runs environment listening to agents in RoundRobin order.
+    ///
+    /// Argument `truncate_steps` is the number of steps after which the game is truncated.
+    /// Set to `None` to disable.
     fn run_round_robin_with_rewards_truncating(&mut self, truncate_steps: Option<usize>)
         -> Result<(), AmfiteatrError<DP>>;
     fn run_round_robin_with_rewards(&mut self) -> Result<(), AmfiteatrError<DP>>{
@@ -30,6 +37,10 @@ pub trait RoundRobinPenalisingUniversalEnvironment<
     DP: DomainParameters,
     P: Fn(&<Self as StatefulEnvironment<DP>>::State, &DP::AgentId) -> DP::UniversalReward
 >: RoundRobinUniversalEnvironment<DP> + StatefulEnvironment<DP>{
+    /// Runs environment listening to agents in RoundRobin order.
+    ///
+    /// Argument `truncate_steps` is the number of steps after which the game is truncated.
+    /// Set to `None` to disable.
     fn run_round_robin_with_rewards_penalise_truncating(&mut self, penalty_f: P, truncate_steps: Option<usize>)
         -> Result<(), AmfiteatrError<DP>>;
     fn run_round_robin_with_rewards_penalise(&mut self, penalty_f: P) -> Result<(), AmfiteatrError<DP>>{

@@ -1,6 +1,6 @@
 [package]
 name = "amfiteatr"
-version = "0.8.0"
+version = "0.9.0"
 edition = "2024"
 
 repository = "https://github.com/moroviintaas/amfiteatr"
@@ -11,7 +11,7 @@ description = "Placeholder crate to gather developed crates to help modeling gam
 
 [dependencies]
 
-amfiteatr_core = "0.8.0"
-amfiteatr_rl = "0.8.0"
-amfiteatr_classic = "0.8.0"
-amfiteatr_net_ext = "0.8.0"
+amfiteatr_core = "0.9.0"
+amfiteatr_rl = "0.9.0"
+amfiteatr_classic = "0.9.0"
+amfiteatr_net_ext = "0.9.0"
