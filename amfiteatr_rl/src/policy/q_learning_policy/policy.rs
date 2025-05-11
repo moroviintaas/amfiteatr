@@ -131,6 +131,14 @@ where <<InfoSet as PresentPossibleActions<DP>>::ActionIteratorType as IntoIterat
             explore_enabled: true}
     }
 
+    pub fn var_store(&self) -> &VarStore {
+        self.network.var_store()
+    }
+
+    pub fn var_store_mut(&mut self) -> &mut VarStore {
+        self.network.var_store_mut()
+    }
+
 }
 
 
@@ -160,13 +168,7 @@ where <<InfoSet as PresentPossibleActions<DP>>::ActionIteratorType as IntoIterat
 
      */
 
-    fn var_store(&self) -> &VarStore {
-        self.network.var_store()
-    }
 
-    fn var_store_mut(&mut self) -> &mut VarStore {
-        self.network.var_store_mut()
-    }
 
     fn switch_explore(&mut self, enabled: bool) {
         self.explore_enabled = enabled;

@@ -35,20 +35,14 @@ pub trait LearningNetworkPolicy<DP: DomainParameters> : Policy<DP>
 where <Self as Policy<DP>>::InfoSetType: InformationSet<DP>
 {
     type Summary: Send;
-    //type Network;
-    //type TrainConfig;
 
     /*
-    /// Returns reference to underlying neural network
-    fn network(&self) -> &Self::Network;
-    /// Returns mutable reference to underlying neural network
-    fn network_mut(&mut self) -> &mut Self::Network;
-
-     */
     /// Returns reference to underlying [`VarStore`]
     fn var_store(&self) -> &VarStore;
     /// Returns mutable reference to underlying [`VarStore`]
     fn var_store_mut(&mut self) -> &mut VarStore;
+
+     */
 
     /// Switch exploring on and off
     fn switch_explore(&mut self, enabled: bool);

@@ -73,6 +73,14 @@ impl<
         Ok(())
     }
 
+    pub fn var_store(&self) -> &VarStore {
+        self.network.var_store()
+    }
+
+    pub fn var_store_mut(&mut self) -> &mut VarStore {
+        self.network.var_store_mut()
+    }
+
 
 }
 
@@ -198,6 +206,7 @@ impl<
     ContextDecodeIndexI64<ActionEncoding> + ContextEncodeIndexI64<ActionEncoding>{
     type Summary = LearnSummary;
 
+    /*
     fn var_store(&self) -> &VarStore {
         self.network().var_store()
     }
@@ -205,6 +214,8 @@ impl<
     fn var_store_mut(&mut self) -> &mut VarStore {
         self.network.var_store_mut()
     }
+
+     */
 
     fn switch_explore(&mut self, enabled: bool) {
         self.exploration = enabled
@@ -364,13 +375,7 @@ impl <
     ContextDecodeIndexI64<ActionEncoding> + ContextEncodeIndexI64<ActionEncoding>{
     type Summary = LearnSummary;
 
-    fn var_store(&self) -> &VarStore {
-        self.base.var_store()
-    }
 
-    fn var_store_mut(&mut self) -> &mut VarStore {
-        self.base.var_store_mut()
-    }
 
     fn switch_explore(&mut self, enabled: bool) {
         self.base.switch_explore(enabled)

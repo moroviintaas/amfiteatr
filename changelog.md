@@ -1,4 +1,6 @@
 # Changelog
+## Version 0.10.0
++ From trait `LearningNetworkPolicy` removed methods `var_store()` and `var_store_mut_methods()` because they were returning reference to internal `VarStore` which is specific to `tch` and what's more important it prevents from making `Arc<Mutex<impl LearningNetworkPolicy>>`
 
 ## Version 0.9.0
 + Changes in traits `RoundRobinEnvironment` `RoundRobinEnvironmentUniversalEnvironment`

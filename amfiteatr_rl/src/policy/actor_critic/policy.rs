@@ -164,6 +164,7 @@ impl<
     type Summary = ();
 
 
+    /*
     /// Returns reference to underlying [`VarStore`]
     fn var_store(&self) -> &VarStore{
         self.network.var_store()
@@ -172,6 +173,8 @@ impl<
     fn var_store_mut(&mut self) -> &mut VarStore{
         self.network.var_store_mut()
     }
+
+     */
 
     /// For now A2C always explore and switching it off is pointless, in future it will probably
     /// select maximal probability without sampling distribution

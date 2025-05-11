@@ -85,6 +85,14 @@ ContextDecodeMultiIndexI64<ActionBuildContext>
         Ok(())
     }
 
+    pub fn var_store(&self) -> &VarStore {
+        self.network.var_store()
+    }
+
+    pub fn var_store_mut(&mut self) -> &mut VarStore {
+        self.network.var_store_mut()
+    }
+
 }
 
 impl<
@@ -225,13 +233,6 @@ where <DP as DomainParameters>::ActionType: ContextDecodeMultiIndexI64<ActionBui
 {
     type Summary = LearnSummary;
 
-    fn var_store(&self) -> &VarStore {
-        self.network.var_store()
-    }
-
-    fn var_store_mut(&mut self) -> &mut VarStore {
-        self.network.var_store_mut()
-    }
 
     fn switch_explore(&mut self, enabled: bool) {
         self.exploration = enabled;
@@ -288,6 +289,14 @@ where <DP as DomainParameters>::ActionType: ContextDecodeMultiIndexI64<ActionBui
     /// to create tensorboard files.
     pub fn add_tboard_directory<P: AsRef<std::path::Path>>(&mut self, directory_path: P) -> Result<(), AmfiteatrError<DP>> {
         self.base.add_tboard_directory(directory_path)
+    }
+
+    fn var_store(&self) -> &VarStore {
+        self.base.var_store()
+    }
+
+    fn var_store_mut(&mut self) -> &mut VarStore {
+        self.base.var_store_mut()
     }
 
 }
@@ -419,13 +428,7 @@ where
 {
     type Summary = LearnSummary;
 
-    fn var_store(&self) -> &VarStore {
-        self.base.var_store()
-    }
 
-    fn var_store_mut(&mut self) -> &mut VarStore {
-        self.base.var_store_mut()
-    }
 
     fn switch_explore(&mut self, enabled: bool) {
         self.base.switch_explore(enabled)

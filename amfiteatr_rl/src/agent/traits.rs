@@ -85,7 +85,7 @@ AutomaticAgent<DP> + ReseedAgent<DP, Seed> + Send + MultiEpisodeAutoAgent<DP, Se
 
     fn set_exploration(&mut self, explore: bool);
 
-    fn get_var_store(&self) -> &VarStore;
+    //fn get_var_store(&self) -> &VarStore;
 
 }
 
@@ -117,9 +117,13 @@ RlSimpleLearningAgent<DP, Seed, LS> for TracingAgentGen<DP, P, Comm, >
     fn set_exploration(&mut self, explore: bool) {
         self.policy_mut().switch_explore(explore)
     }
+
+        /*
     fn get_var_store(&self) -> &VarStore{
         self.policy().var_store()
     }
+
+         */
 
 
 }
