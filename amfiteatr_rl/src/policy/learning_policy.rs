@@ -1,3 +1,4 @@
+use std::sync::{Arc, Mutex};
 use tch::Tensor;
 use amfiteatr_core::agent::{
     Policy,
@@ -8,6 +9,7 @@ use amfiteatr_core::agent::{
 
 use amfiteatr_core::domain::DomainParameters;
 use serde::{Deserialize, Serialize};
+use amfiteatr_core::error::AmfiteatrError;
 use crate::error::AmfiteatrRlError;
 use crate::tensor_data::FloatTensorReward;
 
@@ -78,4 +80,29 @@ where <Self as Policy<DP>>::InfoSetType: InformationSet<DP>
 
 
 
+}
+
+
+impl<DP: DomainParameters, T: LearningNetworkPolicy<DP>> LearningNetworkPolicy<DP> for Arc<Mutex<T>>{
+    type Summary = T::Summary;
+
+    fn switch_explore(&mut self, enabled: bool) {
+        match self.lock(){
+            Ok(mut internal_policy) => {
+                internal_policy.switch_explore(enabled)
+            }
+            Err(e) => {
+                panic!("Failed switching explre in policy due to Mutex error {e}")
+            }
+        }
+    }
+
+    fn train_on_trajectories<R: Fn(&AgentStepView<DP, <Self as Policy<DP>>::InfoSetType>) -> Tensor>(&mut self, trajectories: &[AgentTrajectory<DP, <Self as Policy<DP>>::InfoSetType>], reward_f: R) -> Result<Self::Summary, AmfiteatrRlError<DP>> {
+        match self.as_ref().lock(){
+            Ok(mut internal_policy) => {
+                internal_policy.train_on_trajectories(trajectories, reward_f)
+            }
+            Err(e) => Err(AmfiteatrRlError::Amfiteatr{source: AmfiteatrError::Lock { description: e.to_string(), object: "Learning policy".to_string() }})
+        }
+    }
 }

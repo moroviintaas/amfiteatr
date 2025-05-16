@@ -295,7 +295,7 @@ where <DP as DomainParameters>::ActionType: ContextDecodeMultiIndexI64<ActionBui
         self.base.var_store()
     }
 
-    pub  xfn var_store_mut(&mut self) -> &mut VarStore {
+    pub  fn var_store_mut(&mut self) -> &mut VarStore {
         self.base.var_store_mut()
     }
 

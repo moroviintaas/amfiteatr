@@ -1,4 +1,5 @@
 use std::marker::PhantomData;
+use std::sync::{Arc, Mutex};
 use rand::seq::IteratorRandom;
 use crate::agent::info_set::InformationSet;
 use crate::agent::PresentPossibleActions;
@@ -18,6 +19,20 @@ pub trait Policy<DP: DomainParameters>: Send{
     ///
     /// Migration from previous version: use `ok_or`
     fn select_action(&self, state: &Self::InfoSetType) -> Result<DP::ActionType, AmfiteatrError<DP>>;
+}
+
+impl<DP: DomainParameters, P: Policy<DP>> Policy<DP> for Arc<Mutex<P>>{
+    type InfoSetType = P::InfoSetType;
+
+    fn select_action(&self, state: &Self::InfoSetType) -> Result<DP::ActionType, AmfiteatrError<DP>> {
+
+        match self.as_ref().lock(){
+            Ok(internal_policy) => {
+                internal_policy.select_action(state)
+            }
+            Err(e) => Err(AmfiteatrError::Lock { description: e.to_string(), object: "Policy (select_action)".to_string() })
+        }
+    }
 }
 
 
