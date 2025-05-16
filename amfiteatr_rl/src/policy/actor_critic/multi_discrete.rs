@@ -291,11 +291,11 @@ where <DP as DomainParameters>::ActionType: ContextDecodeMultiIndexI64<ActionBui
         self.base.add_tboard_directory(directory_path)
     }
 
-    fn var_store(&self) -> &VarStore {
+    pub fn var_store(&self) -> &VarStore {
         self.base.var_store()
     }
 
-    fn var_store_mut(&mut self) -> &mut VarStore {
+    pub  xfn var_store_mut(&mut self) -> &mut VarStore {
         self.base.var_store_mut()
     }
 

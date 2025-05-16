@@ -1,4 +1,3 @@
-use tch::nn::VarStore;
 use amfiteatr_core::agent::*;
 use amfiteatr_core::comm::BidirectionalEndpoint;
 use amfiteatr_core::domain::{AgentMessage, DomainParameters, EnvironmentMessage, Renew};

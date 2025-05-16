@@ -1,7 +1,7 @@
 use std::fmt::Debug;
 use std::marker::PhantomData;
 use tch::Kind::{Float};
-use tch::nn::{Optimizer, VarStore};
+use tch::nn::Optimizer;
 use tch::{Kind, kind, Tensor};
 use amfiteatr_core::agent::{
     InformationSet,
