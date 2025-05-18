@@ -42,7 +42,7 @@ pub struct EpochSummary {
 
 impl EpochSummary {
     pub fn describe_as_collected(&self) -> String{
-        format!("games played: {}, average game steps: {} | average score: P1: {}, P2: {}, number of illegal actions: P1: {}, P2: {}",
+        format!("games played: {}, average game steps: {:.2} | average score: P1: {:.2}, P2: {:.2}, number of illegal actions: P1: {:.2}, P2: {:.2}",
         self.games_played, self.game_steps, self.scores[0], self.scores[1], self.invalid_actions[0], self.invalid_actions[1])
     }
 }
@@ -323,7 +323,7 @@ fn build_ppo_policy(layer_sizes: &[i64], device: Device, config: ConfigPPO, lear
 
 }
 
-pub fn build_ppo_policy_masking_shared(layer_sizes: &[i64], device: Device, config: ConfigPPO, learning_rate: f64) -> Result<crate::rust::model::C4PPOPolicyMaskingShared, AmfiteatrRlError<ConnectFourDomain>>{
+pub fn build_ppo_masking_policy_shared(layer_sizes: &[i64], device: Device, config: ConfigPPO, learning_rate: f64) -> Result<crate::rust::model::C4PPOPolicyMaskingShared, AmfiteatrRlError<ConnectFourDomain>>{
     Ok(Arc::new(Mutex::new(build_ppo_policy_masking(layer_sizes, device, config, learning_rate)?)))
 
 }
@@ -660,7 +660,7 @@ impl<
 
 impl<
     S:  GameStateWithPayoffs<ConnectFourDomain> + Clone + Renew<ConnectFourDomain, ()>,
-    P: LearningNetworkPolicy<ConnectFourDomain, Summary = LearnSummary> + PolicyHelperA2C<ConnectFourDomain>
+    P: LearningNetworkPolicy<ConnectFourDomain, Summary = LearnSummary> + TensorboardSupport<ConnectFourDomain>
 > ConnectFourModelRust<S,P>
 where <P as Policy<ConnectFourDomain>>::InfoSetType: Renew<ConnectFourDomain, ()> + Clone{
 
@@ -811,6 +811,7 @@ where <P as Policy<ConnectFourDomain>>::InfoSetType: Renew<ConnectFourDomain, ()
 
         for e in 0..options.epochs{
             let s = self.play_epoch(options.num_episodes, true, true, options.limit_steps_in_epochs)?;
+            /*
             if let Some(tboard) = self.agent0.policy_mut().tboard_writer(){
                 tboard.write_scalar(e as i64, "train_epoch/score", s.scores[0] as f32)
                     .map_err(|e| AmfiteatrError::TboardFlattened {context: "Saving Agent0 scores".into(), error: format!("{e}")})?;
@@ -825,6 +826,14 @@ where <P as Policy<ConnectFourDomain>>::InfoSetType: Renew<ConnectFourDomain, ()
                 tboard.write_scalar(e as i64, "train_epoch/illegal_moves", s.invalid_actions[1] as f32)
                     .map_err(|e| AmfiteatrError::TboardFlattened {context: "Saving Agent1 bad action count".into(), error: format!("{e}")})?;
             }
+
+             */
+            self.agent0.policy_mut().t_write_scalar((options.epochs + e) as i64, "train_epoch/score", s.scores[0] as f32)?;
+            self.agent0.policy_mut().t_write_scalar((options.epochs + e) as i64, "train_epoch/illegal_moves", s.invalid_actions[0] as f32)?;
+
+            self.agent1.policy_mut().t_write_scalar((options.epochs + e) as i64, "train_epoch/score", s.scores[1] as f32)?;
+            self.agent1.policy_mut().t_write_scalar((options.epochs + e) as i64, "train_epoch/illegal_moves", s.invalid_actions[1] as f32)?;
+
             if let Some(ref mut tboard) = self.tboard_writer{
                 tboard.write_scalar(e as i64, "train_epoch/number_of_games", s.games_played as f32)
                     .map_err(|e| AmfiteatrError::TboardFlattened {context: "Saving games in epoch (train)".into(), error: format!("{e}")})?;
@@ -887,6 +896,7 @@ where <P as Policy<ConnectFourDomain>>::InfoSetType: Renew<ConnectFourDomain, ()
 
         for e in 0..options.extended_epochs{
             let s = self.play_epoch(options.num_episodes, true, true, options.limit_steps_in_epochs)?;
+            /*
             if let Some(tboard) = self.agent0.policy_mut().tboard_writer(){
                 tboard.write_scalar((options.epochs + e) as i64, "train_epoch/score", s.scores[0] as f32)
                     .map_err(|e| AmfiteatrError::TboardFlattened {context: "Saving Agent0 scores".into(), error: format!("{e}")})?;
@@ -902,6 +912,14 @@ where <P as Policy<ConnectFourDomain>>::InfoSetType: Renew<ConnectFourDomain, ()
                     .map_err(|e| AmfiteatrError::TboardFlattened {context: "Saving Agent1 bad action count".into(), error: format!("{e}")})?;
             }
 
+
+            */
+            self.agent0.policy_mut().t_write_scalar((options.epochs + e) as i64, "train_epoch/score", s.scores[0] as f32)?;
+            self.agent0.policy_mut().t_write_scalar((options.epochs + e) as i64, "train_epoch/illegal_moves", s.invalid_actions[0] as f32)?;
+
+            self.agent1.policy_mut().t_write_scalar((options.epochs + e) as i64, "train_epoch/score", s.scores[1] as f32)?;
+            self.agent1.policy_mut().t_write_scalar((options.epochs + e) as i64, "train_epoch/illegal_moves", s.invalid_actions[1] as f32)?;
+
             if let Some(ref mut tboard) = self.tboard_writer{
                 tboard.write_scalar((options.epochs + e) as i64, "train_epoch/number_of_games", s.games_played as f32)
                     .map_err(|e| AmfiteatrError::TboardFlattened {context: "Saving games in epoch (train)".into(), error: format!("{e}")})?;
@@ -909,8 +927,6 @@ where <P as Policy<ConnectFourDomain>>::InfoSetType: Renew<ConnectFourDomain, ()
                     .map_err(|e| AmfiteatrError::TboardFlattened {context: "Saving average game steps in epoch (train)".into(), error: format!("{e}")})?;
 
             }
-
-
             let s1 = self.train_agent0_only()?;
             info!("Summary of games in extended epoch {}: {}", e+1, s.describe_as_collected());
             info!("Training only agent 1 epoch {}: Critic losses {:.3}; Actor loss {:.3}; entropy loss {:.3}",

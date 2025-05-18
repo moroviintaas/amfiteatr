@@ -65,15 +65,15 @@ pub struct ConnectFourOptions{
     #[arg(short = 'u', long = "updates-per-epoch", default_value = "4")]
     pub ppo_update_epochs: usize,
 
-    #[arg(short = 't', long = "test-games", default_value = "100")]
+    #[arg(short = 't', long = "test-games", default_value = "0")]
     pub num_test_episodes: usize,
 
     #[arg(short = 'P', long = "penalty", default_value = "-10")]
     pub penalty_for_illegal: f32,
 
-    #[arg(short = 'm', long = "mode", default_value = "rust")]
+    #[arg(short = 'M', long = "mode", default_value = "rust")]
     pub implementation: Implementation,
-    #[arg(long = "--learning-rate", default_value = "1e-4")]
+    #[arg(long = "learning-rate", default_value = "1e-4")]
     pub learning_rate: f64,
 
     #[arg( long = "layer-sizes-0", value_delimiter = ',',  value_terminator = "!", num_args = 1.., default_value = "64,64")]

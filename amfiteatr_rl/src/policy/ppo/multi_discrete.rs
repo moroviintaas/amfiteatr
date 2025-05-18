@@ -499,18 +499,16 @@ impl<
         self.tboard_writer = Some(tboard);
         Ok(())
     }
-    fn t_write_scalar(&mut self, step: i64, tag: &str, value: f32) -> Result<(), AmfiteatrError<DP>> {
+    fn t_write_scalar(&mut self, step: i64, tag: &str, value: f32) -> Result<bool, AmfiteatrError<DP>> {
         match &mut self.tboard_writer{
-            None => Err(AmfiteatrError::TboardFlattened {
-                context: "Tboard - writing scalar (PPO)".to_string(),
-                error: "Writer not initialised".to_string(),
-            }),
+            None => Ok(false),
             Some(writer) => {
                 writer.write_scalar(step, tag, value)
                     .map_err(|e| AmfiteatrError::TboardFlattened {
                         context: "Tboard - writing scalar (PPO)".to_string(),
                         error: "Writer not initialised".to_string(),
-                    })
+                    })?;
+                Ok(true)
             }
         }
     }
@@ -529,7 +527,7 @@ impl<
     fn add_tboard_directory<P: AsRef<std::path::Path>>(&mut self, directory_path: P) -> Result<(), AmfiteatrError<DP>> {
         self.base.add_tboard_directory(directory_path)
     }
-    fn t_write_scalar(&mut self, step: i64, tag: &str, value: f32) -> Result<(), AmfiteatrError<DP>> {
+    fn t_write_scalar(&mut self, step: i64, tag: &str, value: f32) -> Result<bool, AmfiteatrError<DP>> {
         self.base.t_write_scalar(step, tag, value)
     }
 
