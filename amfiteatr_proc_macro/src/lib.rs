@@ -1,6 +1,7 @@
 mod token_parsed;
 //mod str_parsed;
 mod token_variant;
+mod tensorboard_support;
 
 use quote::quote;
 
@@ -78,3 +79,12 @@ pub fn derive_token_variant(item: proc_macro::TokenStream) -> proc_macro::TokenS
     let input = parse_macro_input!(item as DeriveInput);
     derive_code_token_variant(input)
 }
+
+/*
+#[proc_macro_derive(TensorboardSupport, attributes(tboard_writer))]
+pub fn derive_tensorboard_support(item: proc_macro::TokenStream) -> proc_macro::TokenStream{
+    let input = parse_macro_input!(item as DeriveInput);
+    derive_code_token_variant(input)
+}
+
+ */

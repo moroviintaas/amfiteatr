@@ -7,6 +7,7 @@ use tch::Tensor;
 use amfiteatr_core::agent::{AgentStepView, AgentTrajectory, InformationSet, Policy};
 use amfiteatr_core::domain::DomainParameters;
 use amfiteatr_core::error::{AmfiteatrError, TensorError};
+use amfiteatr_core::util::TensorboardSupport;
 use crate::error::AmfiteatrRlError;
 use crate::policy::{ConfigPPO, LearnSummary, LearningNetworkPolicy, PolicyHelperA2C, PolicyTrainHelperPPO};
 use crate::{tensor_data, MaskingInformationSetAction};
@@ -94,16 +95,6 @@ impl<
         }
     }
 
-    /// Creates [`tboard::EventWriter`]. Initialy policy does not use `tensorboard` directory to store epoch
-    /// training results (like entropy, policy loss, value loss). However, you cen provide it with directory
-    /// to create tensorboard files.
-    pub fn add_tboard_directory<P: AsRef<std::path::Path>>(&mut self, directory_path: P) -> Result<(), AmfiteatrError<DP>>{
-        let tboard = EventWriter::create(directory_path).map_err(|e|{
-            AmfiteatrError::TboardFlattened {context: "Creating tboard EventWriter".into(), error: format!("{e}")}
-        })?;
-        self.tboard_writer = Some(tboard);
-        Ok(())
-    }
 
     /// Returns three tensors for respectively log probability of each action, entropy of this distribution
     /// and critic value.
@@ -151,6 +142,39 @@ impl<
     }
 }
 
+impl <
+    DP: DomainParameters,
+    InfoSet: InformationSet<DP> + Debug + ContextEncodeTensor<InfoSetConversionContext>,
+    InfoSetConversionContext: TensorEncoding,
+    ActionBuildContext: TensorDecoding,
+> TensorboardSupport<DP> for PolicyDiscretePPO<DP, InfoSet, InfoSetConversionContext, ActionBuildContext>{
+
+    /// Creates [`tboard::EventWriter`]. Initially policy does not use `tensorboard` directory to store epoch
+    /// training results (like entropy, policy loss, value loss). However, you cen provide it with directory
+    /// to create tensorboard files.
+    fn add_tboard_directory<P: AsRef<std::path::Path>>(&mut self, directory_path: P) -> Result<(), AmfiteatrError<DP>> {
+        let tboard = EventWriter::create(directory_path).map_err(|e| {
+            AmfiteatrError::TboardFlattened { context: "Creating tboard EventWriter".into(), error: format!("{e}") }
+        })?;
+        self.tboard_writer = Some(tboard);
+        Ok(())
+    }
+    fn t_write_scalar(&mut self, step: i64, tag: &str, value: f32) -> Result<(), AmfiteatrError<DP>> {
+        match &mut self.tboard_writer{
+            None => Err(AmfiteatrError::TboardFlattened {
+                context: "Tboard - writing scalar (PPO)".to_string(),
+                error: "Writer not initialised".to_string(),
+            }),
+            Some(writer) => {
+                writer.write_scalar(step, tag, value)
+                    .map_err(|e| AmfiteatrError::TboardFlattened {
+                        context: "Tboard - writing scalar (PPO)".to_string(),
+                        error: "Writer not initialised".to_string(),
+                    })
+            }
+        }
+    }
+}
 
 
 impl<
@@ -331,12 +355,15 @@ impl<
             base: PolicyDiscretePPO::new(config, network, optimizer, info_set_conversion_context, action_build_context),
         }
     }
+    /*
     /// Creates [`tboard::EventWriter`]. Initialy policy does not use `tensorboard` directory to store epoch
     /// training results (like entropy, policy loss, value loss). However, you cen provide it with directory
     /// to create tensorboard files.
     pub fn add_tboard_directory<P: AsRef<std::path::Path>>(&mut self, directory_path: P) -> Result<(), AmfiteatrError<DP>> {
         self.base.add_tboard_directory(directory_path)
     }
+
+     */
 
     pub fn var_store(&self) -> &VarStore {
         self.base.var_store()
@@ -347,6 +374,24 @@ impl<
     }
 
 }
+impl <
+    DP: DomainParameters,
+    InfoSet: InformationSet<DP> + Debug + ContextEncodeTensor<InfoSetConversionContext> + MaskingInformationSetAction<DP, ActionBuildContext>,
+    InfoSetConversionContext: TensorEncoding,
+    ActionBuildContext: TensorDecoding + tensor_data::TensorIndexI64Encoding,
+> TensorboardSupport<DP> for PolicyMaskingDiscretePPO<DP, InfoSet, InfoSetConversionContext, ActionBuildContext> {
+
+    /// Creates [`tboard::EventWriter`]. Initially policy does not use `tensorboard` directory to store epoch
+    /// training results (like entropy, policy loss, value loss). However, you cen provide it with directory
+    /// to create tensorboard files.
+    fn add_tboard_directory<P: AsRef<std::path::Path>>(&mut self, directory_path: P) -> Result<(), AmfiteatrError<DP>> {
+        self.base.add_tboard_directory(directory_path)
+    }
+    fn t_write_scalar(&mut self, step: i64, tag: &str, value: f32) -> Result<(), AmfiteatrError<DP>> {
+        self.base.t_write_scalar(step, tag, value)
+    }
+}
+
 impl<
     DP: DomainParameters,
     InfoSet: InformationSet<DP> + Debug + ContextEncodeTensor<InfoSetConversionContext> + MaskingInformationSetAction<DP, ActionBuildContext>,

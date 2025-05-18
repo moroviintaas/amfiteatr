@@ -21,7 +21,7 @@ rand = "0.9.0"
 generic-array = "1.2.0"
 getset = "0.1.4"
 
-amfiteatr_core = {version = "0.10.0",  features = ["demo", "torch"]}
+amfiteatr_core = {version = "0.10.0",  features = ["demo", "torch", "tboard"]}
 tboard = { version = "0.1.1"}
 serde = { version = "1.0.219", features = ["derive"] }
 

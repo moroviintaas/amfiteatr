@@ -27,6 +27,7 @@ use crate::rust::agent::{ConnectFourActionTensorRepresentation, ConnectFourInfoS
 
 use amfiteatr_rl::policy::LearnSummary;
 use crate::options::{ComputeDevice, ConnectFourOptions};
+use amfiteatr_core::util::TensorboardSupport;
 
 #[derive(Default, Copy, Clone, Serialize, Deserialize)]
 

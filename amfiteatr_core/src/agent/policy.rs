@@ -19,6 +19,7 @@ pub trait Policy<DP: DomainParameters>: Send{
     ///
     /// Migration from previous version: use `ok_or`
     fn select_action(&self, state: &Self::InfoSetType) -> Result<DP::ActionType, AmfiteatrError<DP>>;
+
 }
 
 impl<DP: DomainParameters, P: Policy<DP>> Policy<DP> for Arc<Mutex<P>>{
