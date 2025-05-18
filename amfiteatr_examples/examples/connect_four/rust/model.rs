@@ -3,6 +3,7 @@ use std::fs::File;
 use std::io::Write;
 use std::ops::{Add, Div};
 use std::path::PathBuf;
+use std::sync::{Arc, Mutex};
 use log::info;
 use serde::{Deserialize, Serialize};
 use tboard::EventWriter;
@@ -321,6 +322,15 @@ fn build_ppo_policy(layer_sizes: &[i64], device: Device, config: ConfigPPO, lear
 
 }
 
+pub fn build_ppo_policy_masking_shared(layer_sizes: &[i64], device: Device, config: ConfigPPO, learning_rate: f64) -> Result<crate::rust::model::C4PPOPolicyMaskingShared, AmfiteatrRlError<ConnectFourDomain>>{
+    Ok(Arc::new(Mutex::new(build_ppo_policy_masking(layer_sizes, device, config, learning_rate)?)))
+
+}
+
+pub fn build_ppo_policy_shared(layer_sizes: &[i64], device: Device, config: ConfigPPO, learning_rate: f64) -> Result<crate::rust::model::C4PPOPolicyShared, AmfiteatrRlError<ConnectFourDomain>>{
+    Ok(Arc::new(Mutex::new(build_ppo_policy(layer_sizes, device, config, learning_rate)?)))
+}
+
 
 pub type C4A2CPolicyOld = ActorCriticPolicy<ConnectFourDomain, ConnectFourInfoSet, ConnectFourTensorReprD1>;
 pub type C4A2CPolicy = PolicyDiscreteA2C<ConnectFourDomain, ConnectFourInfoSet, ConnectFourTensorReprD1, ConnectFourActionTensorRepresentation>;
@@ -328,7 +338,9 @@ pub type C4A2CPolicy = PolicyDiscreteA2C<ConnectFourDomain, ConnectFourInfoSet, 
 pub type C4A2CPolicyMasking = PolicyMaskingDiscreteA2C<ConnectFourDomain, ConnectFourInfoSet, ConnectFourTensorReprD1, ConnectFourActionTensorRepresentation>;
 #[allow(dead_code)]
 pub type C4PPOPolicy = PolicyDiscretePPO<ConnectFourDomain, ConnectFourInfoSet, ConnectFourTensorReprD1, ConnectFourActionTensorRepresentation>;
+pub type C4PPOPolicyShared = Arc<Mutex<C4PPOPolicy>>;
 pub type C4PPOPolicyMasking = PolicyMaskingDiscretePPO<ConnectFourDomain, ConnectFourInfoSet, ConnectFourTensorReprD1, ConnectFourActionTensorRepresentation>;
+pub type C4PPOPolicyMaskingShared = Arc<Mutex<C4PPOPolicyMasking>>;
 type Environment<S> = HashMapEnvironment<ConnectFourDomain, S, StdEnvironmentEndpoint<ConnectFourDomain>>;
 type Agent<P> = TracingAgentGen<ConnectFourDomain, P, StdAgentEndpoint<ConnectFourDomain>>;
 pub struct ConnectFourModelRust<S: GameStateWithPayoffs<ConnectFourDomain>, P: LearningNetworkPolicy<ConnectFourDomain, Summary=LearnSummary>>{
@@ -337,6 +349,7 @@ pub struct ConnectFourModelRust<S: GameStateWithPayoffs<ConnectFourDomain>, P: L
     agent0: Agent<P>,
     agent1: Agent<P>,
     tboard_writer: Option<tboard::EventWriter<File>>,
+    shared_policy: bool,
 
     //model_tboard: Option<tboard::EventWriter<File>>
 
@@ -371,6 +384,48 @@ impl<
     }
 }
 */
+
+impl<
+    S:  Default + GameStateWithPayoffs<ConnectFourDomain> + Clone + Renew<ConnectFourDomain, ()>,
+    P: LearningNetworkPolicy<ConnectFourDomain, InfoSetType=ConnectFourInfoSet, Summary=LearnSummary>
+> ConnectFourModelRust<S, P>{
+    pub fn new_ppo_generic(options: &ConnectFourOptions, agent_0_policy: P, agent_1_policy: P, shared_policy: bool) -> Self{
+
+
+        let (c_env1, c_a1) = StdEnvironmentEndpoint::new_pair();
+        let (c_env2, c_a2) = StdEnvironmentEndpoint::new_pair();
+
+        let mut hm = HashMap::new();
+        hm.insert(ConnectFourPlayer::One, c_env1);
+        hm.insert(ConnectFourPlayer::Two, c_env2);
+
+
+        let env = Environment::new(S::default(), hm, );
+        let agent_0 = Agent::new(ConnectFourInfoSet::new(ConnectFourPlayer::One), c_a1, agent_0_policy);
+        let agent_1 = Agent::new(ConnectFourInfoSet::new(ConnectFourPlayer::Two), c_a2, agent_1_policy);
+
+        //let model_tboard = options.tboard.as_ref()
+        //    .and_then(|p| Some(EventWriter::create(p).unwrap()));
+        let tboard_writer = match &options.tboard{
+            Some(b) => {
+                let event_writer = EventWriter::create(b).unwrap();
+                Some(event_writer)
+
+            }
+            None => None,
+        };
+
+        Self{
+            env,
+            agent0: agent_0,
+            agent1: agent_1,
+            tboard_writer,
+            shared_policy,
+            //model_tboard,
+        }
+    }
+
+}
 
 impl<
     S:  GameStateWithPayoffs<ConnectFourDomain> + Clone + Renew<ConnectFourDomain, ()>,
@@ -422,6 +477,7 @@ impl<
             agent1: agent_1,
             tboard_writer,
             //model_tboard,
+            shared_policy: false,
         }
     }
 }
@@ -479,6 +535,7 @@ impl<
             agent1: agent_1,
             tboard_writer,
             //model_tboard,
+            shared_policy: false,
         }
     }
 }
@@ -535,6 +592,7 @@ impl<
             agent1: agent_1,
             tboard_writer,
             //model_tboard,
+            shared_policy: false,
         }
     }
 }
@@ -594,6 +652,7 @@ impl<
             agent1: agent_1,
             tboard_writer,
             //model_tboard,
+            shared_policy: false,
         }
     }
 }
@@ -715,7 +774,7 @@ where <P as Policy<ConnectFourDomain>>::InfoSetType: Renew<ConnectFourDomain, ()
         Ok((s1, s2))
     }
 
-    pub fn train_agent1_on_experience(&mut self) -> Result<LearnSummary, ErrorRL>{
+    pub fn train_agent0_only(&mut self) -> Result<LearnSummary, ErrorRL>{
         let t1 = self.agent0.take_episodes();
         let s1 = self.agent0.policy_mut().train_on_trajectories_env_reward(&t1)?;
         let _t2 = self.agent1.take_episodes();
@@ -723,6 +782,19 @@ where <P as Policy<ConnectFourDomain>>::InfoSetType: Renew<ConnectFourDomain, ()
 
         Ok(s1)
     }
+
+    pub fn train_agent0_on_both_experiences(&mut self) -> Result<(LearnSummary,LearnSummary), ErrorRL>{
+        let mut t1 = self.agent0.take_episodes();
+        let mut t2 = self.agent1.take_episodes();
+        //let chain = t1.iter().chain(t2);
+        t1.append(&mut t2);
+        let s1 = self.agent0.policy_mut().train_on_trajectories_env_reward(&t1)?;
+
+        //self.agent2.policy_mut().train_on_trajectories_env_reward(&t2)?;
+
+        Ok((s1.clone(), s1))
+    }
+
 
 
     pub fn run_session(&mut self, options: &ConnectFourOptions)
@@ -749,7 +821,7 @@ where <P as Policy<ConnectFourDomain>>::InfoSetType: Renew<ConnectFourDomain, ()
 
                 tboard.write_scalar(e as i64, "train_epoch/score", s.scores[1] as f32)
                     .map_err(|e| AmfiteatrError::TboardFlattened {context: "Saving Agent1 scores".into(), error: format!("{e}")})?;
-               tboard.write_scalar(e as i64, "train_epoch/illegal_moves", s.invalid_actions[1] as f32)
+                tboard.write_scalar(e as i64, "train_epoch/illegal_moves", s.invalid_actions[1] as f32)
                     .map_err(|e| AmfiteatrError::TboardFlattened {context: "Saving Agent1 bad action count".into(), error: format!("{e}")})?;
             }
             if let Some(ref mut tboard) = self.tboard_writer{
@@ -760,7 +832,14 @@ where <P as Policy<ConnectFourDomain>>::InfoSetType: Renew<ConnectFourDomain, ()
 
             }
             results_learn.push(s);
-            let (s1,s2) = self.train_agents_on_experience()?;
+
+            //let (s1,s2) = self.train_agents_on_experience()?;
+            let (s1,s2) = match self.shared_policy{
+                false => self.train_agents_on_experience(),
+                true => self.train_agent0_on_both_experiences()
+            }?;
+
+
             info!("Summary of games in epoch {}: {}", e+1, s.describe_as_collected());
             info!("Training epoch {}: Critic losses {:.3}, {:.3}; Actor loss {:.3}, {:.3}; entropy loss {:.3}, {:.3}",
                 e+1, s1.value_loss.unwrap(), s2.value_loss.unwrap(),
@@ -831,7 +910,7 @@ where <P as Policy<ConnectFourDomain>>::InfoSetType: Renew<ConnectFourDomain, ()
             }
 
 
-            let s1 = self.train_agent1_on_experience()?;
+            let s1 = self.train_agent0_only()?;
             info!("Summary of games in extended epoch {}: {}", e+1, s.describe_as_collected());
             info!("Training only agent 1 epoch {}: Critic losses {:.3}; Actor loss {:.3}; entropy loss {:.3}",
                 e+1, s1.value_loss.unwrap(),

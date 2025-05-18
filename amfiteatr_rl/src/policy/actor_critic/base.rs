@@ -1,6 +1,9 @@
 use std::cmp::min;
+use std::fs::File;
+use std::sync::{Arc, Mutex};
 use getset::{Getters, Setters};
 use rand::prelude::SliceRandom;
+use tboard::EventWriter;
 use tch::nn::Optimizer;
 use tch::{Kind, TchError, Tensor};
 use tch::Kind::Float;
@@ -561,6 +564,8 @@ pub trait PolicyTrainHelperA2C<DP: DomainParameters> : PolicyHelperA2C<DP, Confi
     }
 
 }
+
+
 
 impl<T, DP: DomainParameters> PolicyTrainHelperA2C<DP> for T
     where T: PolicyHelperA2C<DP, Config=ConfigA2C>{}
