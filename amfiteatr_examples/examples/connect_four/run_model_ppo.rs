@@ -7,7 +7,7 @@ use crate::common::ErrorRL;
 use crate::options::{ComputeDevice, ConnectFourOptions, Implementation};
 use crate::rust::env::ConnectFourRustEnvState;
 use crate::rust::env_wrapped::PythonPettingZooStateWrap;
-use crate::rust::model::{C4PPOPolicy, ConnectFourModelRust};
+use crate::rust::model::{build_ppo_masking_policy_shared, build_ppo_policy_shared, C4PPOPolicy, C4PPOPolicyMaskingShared, C4PPOPolicyShared, ConnectFourModelRust};
 
 mod rust;
 pub mod common;
@@ -54,18 +54,25 @@ fn main() -> Result<(), ErrorRL>{
         ComputeDevice::Cuda => Device::Cuda(0),
     };
 
+    let policy = build_ppo_masking_policy_shared(&cli.layer_sizes_0[..], device, ppo_config, cli.learning_rate)?;
     match cli.implementation{
         Implementation::Rust => {
-            let mut model = ConnectFourModelRust::<ConnectFourRustEnvState, C4PPOPolicy>::new_ppo(
-                &cli
+            let mut model = ConnectFourModelRust::<ConnectFourRustEnvState, C4PPOPolicyMaskingShared>::new_ppo_generic(
+                &cli,
+                policy.clone(),
+                policy,
+                true
             );
             model.run_session(&cli)?;
 
         },
 
         Implementation::Wrap => {
-            let mut model = ConnectFourModelRust::<PythonPettingZooStateWrap, C4PPOPolicy>::new_ppo(
-                &cli
+            let mut model = ConnectFourModelRust::<PythonPettingZooStateWrap, C4PPOPolicyMaskingShared>::new_ppo_generic(
+                &cli,
+                policy.clone(),
+                policy,
+                true
             );
             Python::with_gil(|py|{
                 let pylogger = py.import("pettingzoo.utils.env_logger").unwrap();

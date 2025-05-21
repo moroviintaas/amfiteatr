@@ -2,22 +2,41 @@ use std::collections::HashMap;
 use std::fs::File;
 use std::io::Write;
 use std::ops::{Add, Div};
-use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 use log::info;
 use serde::{Deserialize, Serialize};
 use tboard::EventWriter;
-use amfiteatr_core::agent::{AutomaticAgent, MultiEpisodeAutoAgent, Policy, PolicyAgent, ReseedAgent, TracingAgentGen};
+use amfiteatr_core::agent::{
+    AutomaticAgent,
+    MultiEpisodeAutoAgent,
+    Policy,
+    PolicyAgent,
+    ReseedAgent,
+    TracingAgentGen
+};
 use amfiteatr_core::comm::{
     StdAgentEndpoint,
     StdEnvironmentEndpoint
 };
 use amfiteatr_core::domain::Renew;
-use amfiteatr_core::env::{GameStateWithPayoffs, HashMapEnvironment, ReseedEnvironment, RoundRobinPenalisingUniversalEnvironment, StatefulEnvironment};
+use amfiteatr_core::env::{
+    GameStateWithPayoffs,
+    HashMapEnvironment,
+    ReseedEnvironment,
+    RoundRobinPenalisingUniversalEnvironment,
+    StatefulEnvironment
+};
 use amfiteatr_core::error::AmfiteatrError;
-use amfiteatr_core::reexport::nom::combinator::opt;
 use amfiteatr_rl::error::AmfiteatrRlError;
-use amfiteatr_rl::policy::{ActorCriticPolicy, ConfigA2C, ConfigPPO, LearningNetworkPolicy, PolicyDiscreteA2C, PolicyMaskingDiscreteA2C, PolicyMaskingDiscretePPO, PolicyDiscretePPO, TrainConfig, PolicyHelperA2C};
+use amfiteatr_rl::policy::{
+    ConfigA2C,
+    ConfigPPO,
+    LearningNetworkPolicy,
+    PolicyDiscreteA2C,
+    PolicyMaskingDiscreteA2C,
+    PolicyMaskingDiscretePPO,
+    PolicyDiscretePPO
+};
 use amfiteatr_rl::tch::{Device, nn, Tensor};
 use amfiteatr_rl::tch::nn::{Adam, OptimizerConfig, VarStore};
 use amfiteatr_rl::tensor_data::TensorEncoding;
@@ -94,6 +113,7 @@ impl Div<f64> for EpochSummary {
     }
 }
 
+/*
 fn build_a2c_policy_old(layer_sizes: &[i64], device: Device) -> Result<C4A2CPolicyOld, AmfiteatrRlError<ConnectFourDomain>>{
     let var_store = VarStore::new(device);
     let input_shape = ConnectFourTensorReprD1{}.desired_shape()[0];
@@ -147,7 +167,7 @@ fn build_a2c_policy_old(layer_sizes: &[i64], device: Device) -> Result<C4A2CPoli
         TrainConfig{gamma: 0.9})
     )
 }
-
+*/
 fn build_a2c_policy(layer_sizes: &[i64], device: Device, config: ConfigA2C, learning_rate: f64) -> Result<C4A2CPolicy, AmfiteatrRlError<ConnectFourDomain>>{
     let var_store = VarStore::new(device);
     let input_shape = ConnectFourTensorReprD1{}.desired_shape()[0];
@@ -322,25 +342,26 @@ fn build_ppo_policy(layer_sizes: &[i64], device: Device, config: ConfigPPO, lear
     Ok(build_ppo_policy_masking(layer_sizes, device, config, learning_rate)?.base)
 
 }
-
+#[allow(dead_code)]
 pub fn build_ppo_masking_policy_shared(layer_sizes: &[i64], device: Device, config: ConfigPPO, learning_rate: f64) -> Result<crate::rust::model::C4PPOPolicyMaskingShared, AmfiteatrRlError<ConnectFourDomain>>{
     Ok(Arc::new(Mutex::new(build_ppo_policy_masking(layer_sizes, device, config, learning_rate)?)))
 
 }
-
+#[allow(dead_code)]
 pub fn build_ppo_policy_shared(layer_sizes: &[i64], device: Device, config: ConfigPPO, learning_rate: f64) -> Result<crate::rust::model::C4PPOPolicyShared, AmfiteatrRlError<ConnectFourDomain>>{
     Ok(Arc::new(Mutex::new(build_ppo_policy(layer_sizes, device, config, learning_rate)?)))
 }
 
 
-pub type C4A2CPolicyOld = ActorCriticPolicy<ConnectFourDomain, ConnectFourInfoSet, ConnectFourTensorReprD1>;
 pub type C4A2CPolicy = PolicyDiscreteA2C<ConnectFourDomain, ConnectFourInfoSet, ConnectFourTensorReprD1, ConnectFourActionTensorRepresentation>;
 #[allow(dead_code)]
 pub type C4A2CPolicyMasking = PolicyMaskingDiscreteA2C<ConnectFourDomain, ConnectFourInfoSet, ConnectFourTensorReprD1, ConnectFourActionTensorRepresentation>;
 #[allow(dead_code)]
 pub type C4PPOPolicy = PolicyDiscretePPO<ConnectFourDomain, ConnectFourInfoSet, ConnectFourTensorReprD1, ConnectFourActionTensorRepresentation>;
+#[allow(dead_code)]
 pub type C4PPOPolicyShared = Arc<Mutex<C4PPOPolicy>>;
 pub type C4PPOPolicyMasking = PolicyMaskingDiscretePPO<ConnectFourDomain, ConnectFourInfoSet, ConnectFourTensorReprD1, ConnectFourActionTensorRepresentation>;
+#[allow(dead_code)]
 pub type C4PPOPolicyMaskingShared = Arc<Mutex<C4PPOPolicyMasking>>;
 type Environment<S> = HashMapEnvironment<ConnectFourDomain, S, StdEnvironmentEndpoint<ConnectFourDomain>>;
 type Agent<P> = TracingAgentGen<ConnectFourDomain, P, StdAgentEndpoint<ConnectFourDomain>>;
@@ -390,6 +411,7 @@ impl<
     S:  Default + GameStateWithPayoffs<ConnectFourDomain> + Clone + Renew<ConnectFourDomain, ()>,
     P: LearningNetworkPolicy<ConnectFourDomain, InfoSetType=ConnectFourInfoSet, Summary=LearnSummary>
 > ConnectFourModelRust<S, P>{
+    #[allow(dead_code)]
     pub fn new_ppo_generic(options: &ConnectFourOptions, agent_0_policy: P, agent_1_policy: P, shared_policy: bool) -> Self{
 
 
@@ -664,6 +686,8 @@ impl<
 > ConnectFourModelRust<S,P>
 where <P as Policy<ConnectFourDomain>>::InfoSetType: Renew<ConnectFourDomain, ()> + Clone{
 
+
+    /*
     pub fn add_tboard_directory<B: AsRef<std::path::Path>>(&mut self, directory_path: B) -> Result<(), AmfiteatrError<ConnectFourDomain>>{
         let tboard = EventWriter::create(directory_path).map_err(|e|{
             AmfiteatrError::TboardFlattened {context: "Creating tboard EventWriter".into(), error: format!("{e}")}
@@ -671,6 +695,11 @@ where <P as Policy<ConnectFourDomain>>::InfoSetType: Renew<ConnectFourDomain, ()
         self.tboard_writer = Some(tboard);
         Ok(())
     }
+
+
+     */
+
+
 
     pub fn play_one_game(&mut self, store_episode: bool, truncate_at_step: Option<usize>) -> Result<EpochSummary, AmfiteatrRlError<ConnectFourDomain>>{
         let mut summary = EpochSummary::default();

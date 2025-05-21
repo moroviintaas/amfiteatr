@@ -1,5 +1,5 @@
 use std::path::Path;
-use std::sync::{Arc, LockResult, Mutex};
+use std::sync::{Arc, Mutex};
 use crate::domain::DomainParameters;
 use crate::error::AmfiteatrError;
 

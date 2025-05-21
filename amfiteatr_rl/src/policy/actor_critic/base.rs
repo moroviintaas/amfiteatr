@@ -1,9 +1,6 @@
 use std::cmp::min;
-use std::fs::File;
-use std::sync::{Arc, Mutex};
 use getset::{Getters, Setters};
 use rand::prelude::SliceRandom;
-use tboard::EventWriter;
 use tch::nn::Optimizer;
 use tch::{Kind, TchError, Tensor};
 use tch::Kind::Float;

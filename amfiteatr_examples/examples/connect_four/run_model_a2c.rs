@@ -1,9 +1,8 @@
 use clap::Parser;
 use pyo3::prelude::PyAnyMethods;
 use pyo3::Python;
-use amfiteatr_rl::tch::Device;
 use crate::common::ErrorRL;
-use crate::options::{ComputeDevice, ConnectFourOptions, Implementation};
+use crate::options::{ConnectFourOptions, Implementation};
 use crate::rust::env::ConnectFourRustEnvState;
 use crate::rust::env_wrapped::PythonPettingZooStateWrap;
 use crate::rust::model::{C4A2CPolicy, ConnectFourModelRust};
@@ -44,10 +43,13 @@ fn main() -> Result<(), ErrorRL>{
     let cli = ConnectFourOptions::parse();
     setup_logger(&cli).unwrap();
 
+    /*
     let device = match cli.device{
         ComputeDevice::Cpu => Device::Cpu,
         ComputeDevice::Cuda => Device::Cuda(0),
     };
+
+     */
 
     match cli.implementation{
         Implementation::Rust => {

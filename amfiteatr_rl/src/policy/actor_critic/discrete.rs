@@ -109,7 +109,7 @@ impl<
                 writer.write_scalar(step, tag, value)
                     .map_err(|e| AmfiteatrError::TboardFlattened {
                         context: "Tboard - writing scalar (PPO)".to_string(),
-                        error: "Writer not initialised".to_string(),
+                        error: e.to_string(),
                     })?;
                 Ok(true)
             }
