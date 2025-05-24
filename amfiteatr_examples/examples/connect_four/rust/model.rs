@@ -338,7 +338,7 @@ fn build_ppo_policy_masking(layer_sizes: &[i64], device: Device, config: ConfigP
         ConnectFourActionTensorRepresentation{})
     )
 }
-fn build_ppo_policy(layer_sizes: &[i64], device: Device, config: ConfigPPO, learning_rate: f64) -> Result<C4PPOPolicy, AmfiteatrRlError<ConnectFourDomain>>{
+pub fn build_ppo_policy(layer_sizes: &[i64], device: Device, config: ConfigPPO, learning_rate: f64) -> Result<C4PPOPolicy, AmfiteatrRlError<ConnectFourDomain>>{
     Ok(build_ppo_policy_masking(layer_sizes, device, config, learning_rate)?.base)
 
 }

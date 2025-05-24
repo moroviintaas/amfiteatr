@@ -7,7 +7,7 @@ use crate::common::ErrorRL;
 use crate::options::{ComputeDevice, ConnectFourOptions, Implementation};
 use crate::rust::env::ConnectFourRustEnvState;
 use crate::rust::env_wrapped::PythonPettingZooStateWrap;
-use crate::rust::model::{build_ppo_masking_policy_shared, build_ppo_policy_shared, C4PPOPolicy, C4PPOPolicyMaskingShared, C4PPOPolicyShared, ConnectFourModelRust};
+use crate::rust::model::{build_ppo_masking_policy_shared, build_ppo_policy, C4PPOPolicy, C4PPOPolicyMaskingShared, C4PPOPolicyShared, ConnectFourModelRust};
 
 mod rust;
 pub mod common;
@@ -53,14 +53,15 @@ fn main() -> Result<(), ErrorRL>{
         ComputeDevice::Cpu => Device::Cpu,
         ComputeDevice::Cuda => Device::Cuda(0),
     };
+    let agent_policy_0 = build_ppo_policy(&cli.layer_sizes_0[..], device, ppo_config, cli.learning_rate).unwrap();
+    let agent_policy_1 = build_ppo_policy(&cli.layer_sizes_1[..], device, ppo_config, cli.learning_rate).unwrap();
 
-    let policy = build_ppo_masking_policy_shared(&cli.layer_sizes_0[..], device, ppo_config, cli.learning_rate)?;
     match cli.implementation{
         Implementation::Rust => {
-            let mut model = ConnectFourModelRust::<ConnectFourRustEnvState, C4PPOPolicyMaskingShared>::new_ppo_generic(
+            let mut model = ConnectFourModelRust::<ConnectFourRustEnvState, C4PPOPolicy>::new_ppo_generic(
                 &cli,
-                policy.clone(),
-                policy,
+                agent_policy_0,
+                agent_policy_1,
                 true
             );
             model.run_session(&cli)?;
@@ -68,10 +69,10 @@ fn main() -> Result<(), ErrorRL>{
         },
 
         Implementation::Wrap => {
-            let mut model = ConnectFourModelRust::<PythonPettingZooStateWrap, C4PPOPolicyMaskingShared>::new_ppo_generic(
+            let mut model = ConnectFourModelRust::<PythonPettingZooStateWrap, C4PPOPolicy>::new_ppo_generic(
                 &cli,
-                policy.clone(),
-                policy,
+                agent_policy_0,
+                agent_policy_1,
                 true
             );
             Python::with_gil(|py|{
