@@ -4,12 +4,6 @@ from torch import nn
 from c4.a2c import NetA2C
 from torch.distributions.categorical import Categorical
 import numpy as np
-
-
-#from torch.utils.tensorboard import SummaryWriter
-
-
-
 """
 This Policy is based on cleanrl implementation.
 You can find implementation here: https://github.com/vwxyzjn/cleanrl/blob/v1.0.0/cleanrl/ppo.py
