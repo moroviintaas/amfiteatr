@@ -22,10 +22,10 @@ pub struct ConnectFourOptions{
     #[arg(short = 'v', long = "log-level", value_enum, default_value = "info")]
     pub log_level: LevelFilter,
 
-    #[arg(short = 'a', long = "log-level-amfiteatr", value_enum, default_value = "OFF")]
+    #[arg(short = 'a', long = "log-level-amfiteatr", value_enum, default_value = "warn")]
     pub log_level_amfiteatr: LevelFilter,
 
-    #[arg(short = 'A', long = "log-level-amfiteatr-rl", value_enum, default_value = "OFF")]
+    #[arg(short = 'A', long = "log-level-amfiteatr-rl", value_enum, default_value = "warn")]
     pub log_level_amfiteatr_rl: LevelFilter,
 
     #[arg(short = 'o', long = "logfile")]

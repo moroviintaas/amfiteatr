@@ -146,7 +146,7 @@ impl ActorCriticOutput for TensorActorCritic{
         let p_log_p = Tensor::f_einsum("ij, ij -> ij", &[self.actor.f_softmax(-1, Float)?, self.actor.f_log_softmax(-1, Float)?], None::<i64>)?;
         let mut element = p_log_p;
         if let Some(fm) = forward_masks{
-            element = element.f_where_self(&fm.ne(0.0), &Tensor::from(0.0))?
+            element = element.f_where_self(fm, &Tensor::from(0.0))?
         }
         let elem = match reverse_masks{
             Some(rev_mask) => {

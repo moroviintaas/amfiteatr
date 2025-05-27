@@ -1,6 +1,6 @@
 [package]
 name = "amfiteatr_classic"
-version = "0.10.0"
+version = "0.11.0"
 edition = "2024"
 repository = "https://github.com/moroviintaas/amfiteatr"
 license-file = "LICENSE"
@@ -19,5 +19,5 @@ serde = {version = "1.0.218", features = ["rc", "derive"]}
 thiserror = "2.0.11"
 speedy = {version = "0.8.7"}
 
-amfiteatr_core = {version = "0.10.0" }
-amfiteatr_rl = {version = "0.10.0" }
+amfiteatr_core = {version = "0.11.0" }
+amfiteatr_rl = {version = "0.11.0" }

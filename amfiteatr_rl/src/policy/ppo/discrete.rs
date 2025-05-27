@@ -445,7 +445,7 @@ impl<
 
         let masks = info_set.try_build_mask(&self.action_encoding())?;
 
-        let product = softmax.f_mul(&masks)
+        let product = softmax.f_where_self(&masks, &Tensor::from(0.0))
             .map_err(|e| TensorError::from_tch_with_context(e, "PPO distribution (softmax * mask)".into())
             )?;
         Ok(product)

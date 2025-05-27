@@ -1,6 +1,6 @@
 [package]
 name = "amfiteatr_examples"
-version = "0.10.0"
+version = "0.11.0"
 edition = "2024"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
@@ -89,11 +89,11 @@ serde_json = "1.0.139"
 serde_yaml = "0.9.34-deprecated"
 pyo3 = { version = "0.23.4", features = ["auto-initialize", "py-clone"], optional = true}
 
-amfiteatr_core = {version = "0.10.0", features = ["serde", "tboard"] }
-amfiteatr_proc_macro = {version = "0.10.0"}
-amfiteatr_rl = {version = "0.10.0",  features = []}
-amfiteatr_classic = { version = "0.10.0" }
-amfiteatr_net_ext = {version = "0.10.0"}
+amfiteatr_core = {version = "0.11.0", features = ["serde", "tboard"] }
+amfiteatr_proc_macro = {version = "0.11.0"}
+amfiteatr_rl = {version = "0.11.0",  features = []}
+amfiteatr_classic = { version = "0.11.0" }
+amfiteatr_net_ext = {version = "0.11.0"}
 ndarray = "0.16.1"
 numpy = "0.23.0"
 tboard = "0.1.1"

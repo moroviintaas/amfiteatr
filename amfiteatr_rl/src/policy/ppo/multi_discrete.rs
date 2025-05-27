@@ -585,9 +585,7 @@ impl<
     fn dist(&self, info_set: &Self::InfoSet, network_output: &Self::NetworkOutput) -> Result<<Self::NetworkOutput as ActorCriticOutput>::ActionTensorType, AmfiteatrError<DP>> {
         let masks = info_set.try_build_masks(self.action_encoding())?.move_to_device(network_output.device());
         let masked: Vec<_> = network_output.actor.iter().zip(masks).map(|(t,m)|{
-            t.f_softmax(-1, tch::Kind::Float)?.f_mul(
-                &m
-            )
+            t.f_softmax(-1, tch::Kind::Float)?.f_where_self(&m, &Tensor::from(0.0))
         }).collect::<Result<Vec<Tensor>, TchError>>()
             .map_err(|e| AmfiteatrError::Tensor {
                 error: TensorError::Torch {
