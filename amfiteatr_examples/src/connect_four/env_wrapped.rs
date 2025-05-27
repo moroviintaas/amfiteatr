@@ -4,7 +4,7 @@ use pyo3::types::PyDict;
 use amfiteatr_core::domain::{DomainParameters, Renew};
 use amfiteatr_core::env::{SequentialGameState, GameStateWithPayoffs};
 use amfiteatr_core::error::AmfiteatrError;
-use crate::common::{
+use crate::connect_four::common::{
     ConnectFourBinaryObservation,
     ConnectFourDomain,
     ConnectFourError,

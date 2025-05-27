@@ -61,6 +61,16 @@ path = "examples/connect_four/run_model_ppo_masking.rs"
 [[example]]
 name = "communication_choice"
 
+[[example]]
+name = "masking_simple"
+path = "examples/connect_four/masking_simple.rs"
+
+[[bench]]
+name  = "c4_ppo_masking"
+path = "benches/c4_ppo_masking.rs"
+required-features = ["rl-python"]
+harness = false
+
 [dependencies]
 
 
@@ -87,6 +97,7 @@ amfiteatr_net_ext = {version = "0.10.0"}
 ndarray = "0.16.1"
 numpy = "0.23.0"
 tboard = "0.1.1"
+criterion = "0.6.0"
 
 [features]
 rl-python = ["pyo3"]

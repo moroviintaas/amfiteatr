@@ -2,7 +2,7 @@ use log::warn;
 use amfiteatr_core::domain::{DomainParameters, Renew};
 use amfiteatr_core::env::{SequentialGameState, GameStateWithPayoffs};
 use amfiteatr_core::error::AmfiteatrError;
-use crate::common::{Board, ConnectFourAction, ConnectFourBinaryObservation, ConnectFourDomain, ConnectFourError, ConnectFourPlayer};
+use crate::connect_four::common::{Board, ConnectFourAction, ConnectFourBinaryObservation, ConnectFourDomain, ConnectFourError, ConnectFourPlayer};
 
 
 #[derive(Clone, Debug)]

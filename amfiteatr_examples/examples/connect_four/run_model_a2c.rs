@@ -1,15 +1,14 @@
 use clap::Parser;
 use pyo3::prelude::PyAnyMethods;
 use pyo3::Python;
-use crate::common::ErrorRL;
-use crate::options::{ConnectFourOptions, Implementation};
-use crate::rust::env::ConnectFourRustEnvState;
-use crate::rust::env_wrapped::PythonPettingZooStateWrap;
-use crate::rust::model::{C4A2CPolicy, ConnectFourModelRust};
+use amfiteatr_examples::connect_four::common::ErrorRL;
+use amfiteatr_examples::connect_four::env::ConnectFourRustEnvState;
+use amfiteatr_examples::connect_four::env_wrapped::PythonPettingZooStateWrap;
+use amfiteatr_examples::connect_four::model::{build_ppo_policy, C4A2CPolicy, C4PPOPolicy, ConnectFourModelRust};
+use amfiteatr_examples::connect_four::options::{ComputeDevice, ConnectFourOptions, Implementation};
+use amfiteatr_rl::policy::ConfigPPO;
+use amfiteatr_rl::tch::Device;
 
-mod rust;
-pub mod common;
-mod options;
 
 
 pub fn setup_logger(options: &ConnectFourOptions) -> Result<(), fern::InitError> {

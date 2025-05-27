@@ -4,7 +4,7 @@ use amfiteatr_core::error::{AmfiteatrError, ConvertError, TensorError};
 use amfiteatr_rl::MaskingInformationSetAction;
 use amfiteatr_rl::tch::Tensor;
 use amfiteatr_rl::tensor_data::{TensorEncoding, ContextEncodeTensor, ContextDecodeTensor, TensorDecoding, ContextEncodeIndexI64, TensorIndexI64Encoding, ContextDecodeIndexI64};
-use crate::common::{ConnectFourAction, ConnectFourBinaryObservation, ConnectFourDomain, ConnectFourPlayer};
+use crate::connect_four::common::{ConnectFourAction, ConnectFourBinaryObservation, ConnectFourDomain, ConnectFourPlayer};
 
 #[derive(Clone, Debug)]
 pub struct ConnectFourInfoSet{

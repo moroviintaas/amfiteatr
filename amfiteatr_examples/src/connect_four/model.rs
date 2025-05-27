@@ -41,12 +41,13 @@ use amfiteatr_rl::tch::{Device, nn, Tensor};
 use amfiteatr_rl::tch::nn::{Adam, OptimizerConfig, VarStore};
 use amfiteatr_rl::tensor_data::TensorEncoding;
 use amfiteatr_rl::torch_net::{A2CNet, NeuralNetTemplate, TensorActorCritic};
-use crate::common::{ConnectFourDomain, ConnectFourPlayer, ErrorRL};
-use crate::rust::agent::{ConnectFourActionTensorRepresentation, ConnectFourInfoSet, ConnectFourTensorReprD1};
+use crate::connect_four::common::{ConnectFourDomain, ConnectFourPlayer, ErrorRL};
+use crate::connect_four::agent::{ConnectFourActionTensorRepresentation, ConnectFourInfoSet, ConnectFourTensorReprD1};
 
 use amfiteatr_rl::policy::LearnSummary;
-use crate::options::{ComputeDevice, ConnectFourOptions};
+
 use amfiteatr_core::util::TensorboardSupport;
+use crate::connect_four::options::{ComputeDevice, ConnectFourOptions};
 
 #[derive(Default, Copy, Clone, Serialize, Deserialize)]
 
@@ -283,7 +284,7 @@ fn build_a2c_policy_masking(layer_sizes: &[i64], device: Device, config: ConfigA
     )
     )
 }
-fn build_ppo_policy_masking(layer_sizes: &[i64], device: Device, config: ConfigPPO, learning_rate: f64) -> Result<C4PPOPolicyMasking, AmfiteatrRlError<ConnectFourDomain>>{
+pub fn build_ppo_policy_masking(layer_sizes: &[i64], device: Device, config: ConfigPPO, learning_rate: f64) -> Result<C4PPOPolicyMasking, AmfiteatrRlError<ConnectFourDomain>>{
     let var_store = VarStore::new(device);
     //let var_store = VarStore::new(Device::Cuda(0));
     let input_shape = ConnectFourTensorReprD1{}.desired_shape()[0];
@@ -343,12 +344,12 @@ pub fn build_ppo_policy(layer_sizes: &[i64], device: Device, config: ConfigPPO, 
 
 }
 #[allow(dead_code)]
-pub fn build_ppo_masking_policy_shared(layer_sizes: &[i64], device: Device, config: ConfigPPO, learning_rate: f64) -> Result<crate::rust::model::C4PPOPolicyMaskingShared, AmfiteatrRlError<ConnectFourDomain>>{
+pub fn build_ppo_masking_policy_shared(layer_sizes: &[i64], device: Device, config: ConfigPPO, learning_rate: f64) -> Result<crate::connect_four::model::C4PPOPolicyMaskingShared, AmfiteatrRlError<ConnectFourDomain>>{
     Ok(Arc::new(Mutex::new(build_ppo_policy_masking(layer_sizes, device, config, learning_rate)?)))
 
 }
 #[allow(dead_code)]
-pub fn build_ppo_policy_shared(layer_sizes: &[i64], device: Device, config: ConfigPPO, learning_rate: f64) -> Result<crate::rust::model::C4PPOPolicyShared, AmfiteatrRlError<ConnectFourDomain>>{
+pub fn build_ppo_policy_shared(layer_sizes: &[i64], device: Device, config: ConfigPPO, learning_rate: f64) -> Result<crate::connect_four::model::C4PPOPolicyShared, AmfiteatrRlError<ConnectFourDomain>>{
     Ok(Arc::new(Mutex::new(build_ppo_policy(layer_sizes, device, config, learning_rate)?)))
 }
 
@@ -363,8 +364,8 @@ pub type C4PPOPolicyShared = Arc<Mutex<C4PPOPolicy>>;
 pub type C4PPOPolicyMasking = PolicyMaskingDiscretePPO<ConnectFourDomain, ConnectFourInfoSet, ConnectFourTensorReprD1, ConnectFourActionTensorRepresentation>;
 #[allow(dead_code)]
 pub type C4PPOPolicyMaskingShared = Arc<Mutex<C4PPOPolicyMasking>>;
-type Environment<S> = HashMapEnvironment<ConnectFourDomain, S, StdEnvironmentEndpoint<ConnectFourDomain>>;
-type Agent<P> = TracingAgentGen<ConnectFourDomain, P, StdAgentEndpoint<ConnectFourDomain>>;
+pub type Environment<S> = HashMapEnvironment<ConnectFourDomain, S, StdEnvironmentEndpoint<ConnectFourDomain>>;
+pub type Agent<P> = TracingAgentGen<ConnectFourDomain, P, StdAgentEndpoint<ConnectFourDomain>>;
 pub struct ConnectFourModelRust<S: GameStateWithPayoffs<ConnectFourDomain>, P: LearningNetworkPolicy<ConnectFourDomain, Summary=LearnSummary>>{
 
     env: Environment<S>,
