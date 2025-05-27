@@ -1,4 +1,8 @@
 # Changelog
+## Version 0.11.0
++ Changed masking in A2C and PPO policies to use `f_where_self` instead of `f_mul`,
+now masks must be `Tensor` with datatype `Bool`
+
 ## Version 0.10.0
 + From trait `LearningNetworkPolicy` removed methods `var_store()` and `var_store_mut_methods()` because they were returning reference to internal `VarStore` which is specific to `tch` and what's more important it prevents from making `Arc<Mutex<impl LearningNetworkPolicy>>`
 + Added blanket implementation for `LearningNetworkPolicy` for `Arc<Mutex<impl LearningNetworkPolicy>>
