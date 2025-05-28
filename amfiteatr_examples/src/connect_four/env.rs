@@ -62,7 +62,7 @@ impl ConnectFourRustEnvState{
                 return false
             }
         }
-        return true
+        true
     }
     #[inline]
     fn check_for_winner(&self, player: ConnectFourPlayer) -> bool{
@@ -175,7 +175,7 @@ impl SequentialGameState<ConnectFourDomain> for ConnectFourRustEnvState{
 
         if self.render{
             //#[no_mangle]
-            warn!("Rendering is not suppoerted, this is operation placeholder")
+            warn!("Rendering is not supported, this is operation placeholder")
         }
 
         Ok([(agent.other(), ConnectFourBinaryObservation::build_from(&self.board, agent.other()))])

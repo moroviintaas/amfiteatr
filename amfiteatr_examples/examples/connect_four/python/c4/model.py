@@ -160,6 +160,7 @@ class TwoPlayerModel:
 
         wins = {None: 0, self.agents_ids[0]: 0, self.agents_ids[1]: 0 }
         cheats = {None: 0, self.agents_ids[0]: 0, self.agents_ids[1]: 0}
+        scores = {None: 0, self.agents_ids[0]: 0, self.agents_ids[1]: 0}
 
         for g in range(number_of_games):
             #print(steps_left)
@@ -167,6 +168,7 @@ class TwoPlayerModel:
             total_steps += game_steps
             games_played += 1
             wins[winner] = wins[winner] + 1
+            #scores[winner] =
             cheats[cheater] = cheats[cheater] + 1
 
             if steps_left is not None:
@@ -175,9 +177,9 @@ class TwoPlayerModel:
                     break
 
         for (p, score) in wins.items():
-            wins[p] = score/number_of_games
+            wins[p] = score/games_played
         for (p, illegal) in cheats.items():
-            cheats[p] = illegal/number_of_games
+            cheats[p] = illegal/games_played
 
 
 

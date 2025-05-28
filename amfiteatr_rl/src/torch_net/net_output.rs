@@ -171,7 +171,7 @@ impl ActorCriticOutput for TensorActorCritic{
             Some(mask) => {
 
                 self.actor.f_log_softmax(-1, Float)
-                    .and_then(|t| t.f_where_self(&mask.ne(0.0), &Tensor::from(1.0)))
+                    .and_then(|t| t.f_where_self(&mask.ne(0.0), &Tensor::from(f32::NEG_INFINITY)))
                 .map_err(|e| TensorError::Torch {
                     origin: format!("{e}"),
                     context: "batch_log_probability_of_action".into()
@@ -232,7 +232,7 @@ impl ActorCriticOutput for TensorActorCritic{
     }
 
     fn perform_choice(dist: &Self::ActionTensorType, apply: impl Fn(&Tensor) -> Result<Tensor, TchError>) -> Result<Self::ActionTensorType, TensorError> {
-        apply(dist).map_err(|e| TensorError::Torch { origin: format!("{e}"), context: "Performing action choice".into()})
+        apply(dist).map_err(|e| TensorError::Torch { origin: format!("{e}"), context: format!("Performing action choice from dist {dist:}")})
     }
 
     fn index_select(data: &Self::ActionTensorType, indices: &Tensor) -> Result<Self::ActionTensorType, TchError> {
@@ -550,7 +550,7 @@ impl ActorCriticOutput for TensorMultiParamActorCritic {
                 self.actor.iter().zip(masks).enumerate().map(|(i, (a, m))|{
                     //let Tensor::f_einsum("i,i->i", &[a,m], None::<i64>)
                     let log_softmax = a.f_log_softmax(-1, Kind::Float)?;
-                    let masked = log_softmax.f_where_self(&m.ne(0.0), &Tensor::from(1.0))?;
+                    let masked = log_softmax.f_where_self(&m.ne(0.0), &Tensor::from(f32::NEG_INFINITY))?;
                     masked.f_gather(1, &param_indices[i].to_device(self.device()).f_unsqueeze(1)?, false)?
                         .f_flatten(0, -1)
 

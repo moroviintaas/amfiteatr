@@ -1,13 +1,11 @@
 use clap::Parser;
 use pyo3::prelude::PyAnyMethods;
 use pyo3::Python;
-use amfiteatr_rl::policy::ConfigPPO;
-use amfiteatr_rl::tch::Device;
 use amfiteatr_examples::connect_four::common::ErrorRL;
 use amfiteatr_examples::connect_four::env::ConnectFourRustEnvState;
 use amfiteatr_examples::connect_four::env_wrapped::PythonPettingZooStateWrap;
-use amfiteatr_examples::connect_four::model::{build_ppo_policy, C4PPOPolicy, C4PPOPolicyMasking, ConnectFourModelRust};
-use amfiteatr_examples::connect_four::options::{ComputeDevice, ConnectFourOptions, Implementation};
+use amfiteatr_examples::connect_four::model::{ C4PPOPolicyMasking, ConnectFourModelRust};
+use amfiteatr_examples::connect_four::options::{ConnectFourOptions, Implementation};
 
 
 
@@ -41,13 +39,7 @@ fn main() -> Result<(), ErrorRL>{
     let cli = ConnectFourOptions::parse();
     setup_logger(&cli).unwrap();
 
-    let ppo_config = ConfigPPO::default();
 
-
-    let device = match cli.device{
-        ComputeDevice::Cpu => Device::Cpu,
-        ComputeDevice::Cuda => Device::Cuda(0),
-    };
 
     match cli.implementation{
         Implementation::Rust => {
