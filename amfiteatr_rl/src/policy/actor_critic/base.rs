@@ -134,18 +134,16 @@ pub trait PolicyHelperA2C<DP: DomainParameters>{
     fn a2c_select_action(&self, info_set: &Self::InfoSet) -> Result<DP::ActionType, AmfiteatrError<DP>>{
         let state_tensor = info_set.to_tensor(self.info_set_encoding());
         let out = tch::no_grad(|| (self.network().net())(&state_tensor));
-        //let actor = out.actor;
-        //println!("out: {:?}", out);
-        let probs = self.dist(info_set, &out)?;
-        //println!("probs: {:?}", probs);
-        let choices = match self.is_exploration_on(){
+
+        let probs = tch::no_grad(||self.dist(info_set, &out))?;
+        let choices = tch::no_grad(|| match self.is_exploration_on(){
             true => {
 
-                Self::NetworkOutput::perform_choice(&probs, |t| t.f_multinomial(1, true))?
+                Self::NetworkOutput::perform_choice(&probs, |t| t.f_multinomial(1, true))
             },
 
-            false => Self::NetworkOutput::perform_choice(&probs, |t| t.f_argmax(None, false)?.f_unsqueeze(-1))?,
-        };
+            false => Self::NetworkOutput::perform_choice(&probs, |t| t.f_argmax(None, false)?.f_unsqueeze(-1)),
+        })?;
 
         self.try_action_from_choice_tensor( &choices).map_err(|err| {
             #[cfg(feature = "log_error")]

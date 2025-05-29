@@ -32,19 +32,15 @@ class PolicyPPO:
         with torch.no_grad():
             actor, _critic = self.network.forward(info_set_tensor)
 
-        if masks is None:
-            probs = Categorical(logits=actor)
-        else:
-            mask_value = torch.tensor(torch.finfo(actor.dtype).min, dtype=actor.dtype)
-            logits = torch.where(masks, actor, mask_value)
-            probs = Categorical(logits=logits)
+            if masks is None:
+                probs = Categorical(logits=actor)
+            else:
+                mask_value = torch.tensor(torch.finfo(actor.dtype).min, dtype=actor.dtype)
+                logits = torch.where(masks, actor, mask_value)
+                probs = Categorical(logits=logits)
 
-
-
-        #selection = torch.multinomial(probs, 1).item()
-        #print(probs)
         selection  =probs.sample()
-        #print(selection)
+
 
         return selection
 
@@ -55,6 +51,7 @@ class PolicyPPO:
         if masks is None or self.masking == False:
             logits = actor
         else:
+
             mask_value = torch.tensor(torch.finfo(actor.dtype).min, dtype=actor.dtype)
             logits = torch.where(masks, actor, mask_value)
         #print(f"logits_shape: {logits.shape}")

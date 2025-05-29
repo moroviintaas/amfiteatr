@@ -4,7 +4,7 @@ use std::marker::PhantomData;
 use log::warn;
 use tboard::EventWriter;
 use tch::nn::{Optimizer,VarStore};
-use tch::{Kind, Tensor};
+use tch::Tensor;
 use amfiteatr_core::agent::{AgentStepView, AgentTrajectory, InformationSet, Policy};
 use amfiteatr_core::domain::DomainParameters;
 use amfiteatr_core::error::{AmfiteatrError, TensorError};

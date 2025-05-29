@@ -4,7 +4,7 @@ use pyo3::Python;
 use amfiteatr_examples::connect_four::common::ErrorRL;
 use amfiteatr_examples::connect_four::env::ConnectFourRustEnvState;
 use amfiteatr_examples::connect_four::env_wrapped::PythonPettingZooStateWrap;
-use amfiteatr_examples::connect_four::model::{build_ppo_policy, build_ppo_policy_shared, C4PPOPolicy, C4PPOPolicyShared, ConnectFourModelRust};
+use amfiteatr_examples::connect_four::model::{build_ppo_policy_shared, C4PPOPolicyShared, ConnectFourModelRust};
 use amfiteatr_examples::connect_four::options::{ComputeDevice, ConnectFourOptions, Implementation};
 use amfiteatr_rl::policy::ConfigPPO;
 use amfiteatr_rl::tch::Device;

@@ -4,11 +4,8 @@ use pyo3::Python;
 use amfiteatr_examples::connect_four::common::ErrorRL;
 use amfiteatr_examples::connect_four::env::ConnectFourRustEnvState;
 use amfiteatr_examples::connect_four::env_wrapped::PythonPettingZooStateWrap;
-use amfiteatr_examples::connect_four::model::{build_ppo_policy, C4A2CPolicy, C4PPOPolicy, ConnectFourModelRust};
-use amfiteatr_examples::connect_four::options::{ComputeDevice, ConnectFourOptions, Implementation};
-use amfiteatr_rl::policy::ConfigPPO;
-use amfiteatr_rl::tch::Device;
-
+use amfiteatr_examples::connect_four::model::{C4A2CPolicy, ConnectFourModelRust};
+use amfiteatr_examples::connect_four::options::{ConnectFourOptions, Implementation};
 
 
 pub fn setup_logger(options: &ConnectFourOptions) -> Result<(), fern::InitError> {

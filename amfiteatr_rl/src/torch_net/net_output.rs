@@ -1,4 +1,5 @@
 use std::fmt::Debug;
+use std::ops::Mul;
 use tch::{Device, Kind, TchError, Tensor};
 use tch::Kind::Float;
 use amfiteatr_core::domain::DomainParameters;
@@ -143,16 +144,18 @@ impl ActorCriticOutput for TensorActorCritic{
 
     fn batch_entropy_masked(&self, forward_masks: Option<&Self::ActionTensorType>, reverse_masks: Option<&Self::ActionTensorType>) -> Result<Tensor, TchError> {
 
-        let p_log_p = Tensor::f_einsum("ij, ij -> ij", &[self.actor.f_softmax(-1, Float)?, self.actor.f_log_softmax(-1, Float)?], None::<i64>)?;
+        let p_log_p = self.actor.f_softmax(-1, Float)?.mul(self.actor.f_log_softmax(-1, Float)?);
         let mut element = p_log_p;
         if let Some(fm) = forward_masks{
             element = element.f_where_self(fm, &Tensor::from(0.0))?
         }
         let elem = match reverse_masks{
             Some(rev_mask) => {
-                let t = [&element, &rev_mask.to_device(self.device())];
+                //let t = [&element, &rev_mask.to_device(self.device())];
 
-                Tensor::f_einsum("ij, ij -> ij", &t, None::<i64>)?
+                //Tensor::f_einsum("ij, ij -> ij", &t, None::<i64>)?
+
+                element.f_mul(&rev_mask.to_device(self.device()))?
             },
             None => element
         };
@@ -381,9 +384,7 @@ impl ActorCriticOutput for TensorMultiParamActorCritic {
         for a in self.actor.iter(){
 
 
-            p_log_p.push(Tensor::f_einsum("ij, ij -> ij",
-                                          &[a.f_softmax(-1, Float)?, a.f_log_softmax(-1, Float)?],
-                                          None::<i64>)?)
+            p_log_p.push( a.f_softmax(-1, Float)? * a.f_log_softmax(-1, Float)?  )
         }
 
         let mut elements = p_log_p;
@@ -396,9 +397,13 @@ impl ActorCriticOutput for TensorMultiParamActorCritic {
             Some(rm) => {
                 let mut v = Vec::new();
                 for (i,e) in elements.into_iter().enumerate(){
+
                     let t = [&e, &rm[i].to_device(self.device())];
 
                     v.push(Tensor::f_einsum("ij,i->ij", &t, Option::<i64>::None)?);
+
+
+                    //v.push(e.f_mul( &rm[i].to_device(self.device()))?)
                 }
                 v
 
@@ -582,7 +587,7 @@ impl ActorCriticOutput for TensorMultiParamActorCritic {
                         // we set log probability to 0 (probability =1) so it does not change entropy
                         #[cfg(feature = "log_trace")]
                         log::trace!("Category:  mask: {mask}",);
-                        Tensor::f_einsum("i,i -> i", &[logp, &mask.to_device(self.device())], Option::<i64>::None)
+                        logp.f_mul(&mask.to_device(self.device()))
                     }).collect::<Result<Vec<Tensor>, TchError>>().map_err(|e|{
                     TensorError::Torch { origin: format!("{}", e),
                         context: "Calculating batch log-probability of action - during log probs of masked".into() }
