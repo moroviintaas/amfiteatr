@@ -1,7 +1,6 @@
 use std::fmt::Debug;
 use std::fs::File;
 use std::marker::PhantomData;
-use log::warn;
 use tboard::EventWriter;
 use tch::nn::{Optimizer,VarStore};
 use tch::Tensor;
@@ -480,7 +479,7 @@ impl<
         #[cfg(feature = "log_debug")]
         {
             if softmax.nonzero().size()[0] == 0{
-                warn!("Distribution of action is all zeros!, policy dist: {softmax}, masks: {masks}.");
+                log::warn!("Distribution of action is all zeros!, policy dist: {softmax}, masks: {masks}.");
             }
         }
         Ok(softmax)
