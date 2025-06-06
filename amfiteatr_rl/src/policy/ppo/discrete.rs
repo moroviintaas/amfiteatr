@@ -462,7 +462,7 @@ impl<
         Ok(product)
 
          */
-        let masks = info_set.try_build_mask(&self.action_encoding())?;
+        let masks = info_set.try_build_mask(self.action_encoding())?;
         let masked_actor = network_output.actor.f_where_self(&masks, &Tensor::from(f32::NEG_INFINITY))
             .map_err(|e| TensorError::from_tch_with_context(e, format!("PPO masking actor network output masks: {masks}, actor: {}", &network_output.actor)))?;
         let softmax = masked_actor.f_softmax(-1, tch::Kind::Float)

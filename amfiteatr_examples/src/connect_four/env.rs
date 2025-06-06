@@ -51,7 +51,7 @@ impl ConnectFourRustEnvState{
         if self.winner[1] {
             return Some(ConnectFourPlayer::Two);
         }
-        return None
+        None
 
     }
 
@@ -122,7 +122,7 @@ impl ConnectFourRustEnvState{
 
 
 
-        return false
+        false
     }
 }
 

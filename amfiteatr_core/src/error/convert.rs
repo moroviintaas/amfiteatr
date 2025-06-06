@@ -56,7 +56,6 @@ impl<DP: DomainParameters> From<ConvertError> for AmfiteatrError<DP>{
 
 
 #[cfg(feature = "torch")]
-
 impl From<tch::TchError> for ConvertError{
     fn from(value: TchError) -> Self {
         Self::TorchStr {origin: format!("{value}")}

@@ -172,8 +172,7 @@ pub trait PolicyHelperA2C<DP: DomainParameters>{
 
         let device = critic_t.device();
 
-        if let Some(last_reward) = trajectory.last_view_step()
-            .and_then(|ref t| Some(reward_f(t))){
+        if let Some(last_reward) = trajectory.last_view_step().map(|ref t| reward_f(t)){
 
 
             let mut last_reward_shape = last_reward.size();
@@ -239,8 +238,7 @@ pub trait PolicyHelperA2C<DP: DomainParameters>{
     ) -> Result<(Tensor, Tensor), AmfiteatrError<DP>>{
         let device = self.network().device();
 
-        if let Some(last_reward) = trajectory.last_view_step()
-            .and_then(|ref t| Some(reward_f(t))){
+        if let Some(last_reward) = trajectory.last_view_step().map(|ref t| reward_f(t)){
             #[cfg(feature = "log_trace")]
             log::trace!("Last reward size: {:?}, last reward: {}", last_reward.size(), last_reward);
             let mut discounted_payoffs = (0..=trajectory.number_of_steps())
@@ -274,7 +272,7 @@ pub trait PolicyHelperA2C<DP: DomainParameters>{
             #[cfg(feature = "log_trace")]
             log::trace!("Payoff tensor: {}", payoff_tensor);
             let advantage =
-            payoff_tensor.f_sub(&critic).map_err(|e| AmfiteatrError::Tensor {
+            payoff_tensor.f_sub(critic).map_err(|e| AmfiteatrError::Tensor {
                 error: TensorError::Torch {
                     origin: format!("{e}"),
                     context: "Calculating advantage from critic tensor and discounted payoffs tensor".to_string(),
@@ -298,7 +296,6 @@ pub trait PolicyHelperA2C<DP: DomainParameters>{
 /// Helper trait to build create training interface for A2C Policy.
 /// It provides automatic [`ppo_train_on_trajectories`](PolicyTrainHelperA2C::a2c_train_on_trajectories)
 /// implementation for any (policy) type implementing [`PolicyHelperA2C`].
-
 pub trait PolicyTrainHelperA2C<DP: DomainParameters> : PolicyHelperA2C<DP, Config=ConfigA2C>{
 
     fn a2c_train_on_trajectories<

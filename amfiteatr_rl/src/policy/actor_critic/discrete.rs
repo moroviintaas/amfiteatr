@@ -360,7 +360,7 @@ impl <
         let softmax = network_output.actor.f_softmax(-1, tch::Kind::Float)
             .map_err(|e| TensorError::from_tch_with_context(e, "PPO distribution (softmax)".into()))?;
 
-        let masks = info_set.try_build_mask(&self.action_encoding())?;
+        let masks = info_set.try_build_mask(self.action_encoding())?;
 
         let product = softmax.f_where_self(&masks, &Tensor::from(0.0))
             .map_err(|e| TensorError::from_tch_with_context(e, "PPO distribution (softmax * mask)".into())

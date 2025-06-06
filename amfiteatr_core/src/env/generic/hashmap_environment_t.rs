@@ -174,7 +174,7 @@ BroadcastingEndpointEnvironment<DP> for TracingHashMapEnvironment<DP, S, C>{
     }
 }
 
-impl<'a, DP: DomainParameters + 'a,
+impl<DP: DomainParameters,
     S: SequentialGameState<DP>,
     C: EnvironmentEndpoint<DP>>
  EnvironmentWithAgents<DP> for TracingHashMapEnvironment<DP, S, C>{
@@ -186,7 +186,7 @@ impl<'a, DP: DomainParameters + 'a,
 }
 
 
-impl<'a, DP: DomainParameters + 'a,
+impl<DP: DomainParameters,
     S: SequentialGameState<DP>,
     C: EnvironmentEndpoint<DP>>
 TracingEnvironment<DP, S> for TracingHashMapEnvironment<DP, S, C>{

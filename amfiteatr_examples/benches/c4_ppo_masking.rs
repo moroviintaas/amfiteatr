@@ -32,8 +32,8 @@ fn benchmarked_run(net_size: &[i64]){
     config_ppo.mini_batch_size = 16;
 
     let mut env = Environment::new(ConnectFourRustEnvState::default(), hm, );
-    let agent_policy_0 = build_ppo_policy_masking(&net_size, Device::Cpu, config_ppo, learning_rate).unwrap();
-    let agent_policy_1 = build_ppo_policy_masking(&net_size, Device::Cpu, config_ppo, learning_rate).unwrap();
+    let agent_policy_0 = build_ppo_policy_masking(net_size, Device::Cpu, config_ppo, learning_rate).unwrap();
+    let agent_policy_1 = build_ppo_policy_masking(net_size, Device::Cpu, config_ppo, learning_rate).unwrap();
 
     let mut agent_0 = Agent::new(ConnectFourInfoSet::new(ConnectFourPlayer::One), c_a1, agent_policy_0);
     let mut agent_1 = Agent::new(ConnectFourInfoSet::new(ConnectFourPlayer::Two), c_a2, agent_policy_1);

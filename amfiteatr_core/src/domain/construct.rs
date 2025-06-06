@@ -18,7 +18,6 @@ pub trait Renew<DP: DomainParameters, S>{
 /// you would like to give them unfair advantage and show other players' cards before the game. W
 /// Fair game protocol does not have [`UpdateType`](crate::domain::DomainParameters::UpdateType) to do such
 /// nasty thing.
-
 pub trait RenewWithEffect<DP: DomainParameters, S>{
 
     type Effect;

@@ -226,7 +226,7 @@ impl <
 
 
 
-impl<'a, DP: DomainParameters + 'a,
+impl<DP: DomainParameters,
     S: SequentialGameState<DP>,
     CP: EnvironmentAdapter<DP>>
 TracingEnvironment<DP, S> for TracingBasicEnvironment<DP, S, CP>{

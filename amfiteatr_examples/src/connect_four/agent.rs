@@ -115,10 +115,7 @@ impl ContextEncodeIndexI64<ConnectFourActionTensorRepresentation> for ConnectFou
 impl MaskingInformationSetAction<ConnectFourDomain, ConnectFourActionTensorRepresentation> for ConnectFourInfoSet{
     fn try_build_mask(&self, _ctx: &ConnectFourActionTensorRepresentation) -> Result<Tensor, AmfiteatrError<ConnectFourDomain>> {
         let top_row_is_empty: [bool; 7] =  self.latest_observation.board[0].map(|[u1,u2]| {
-            match (u1,u2) {
-                (0,0) => true,
-                _ => false,
-            }
+            matches!((u1,u2), (0,0))
         });
         Ok(Tensor::f_from_slice(&top_row_is_empty)
             .map_err(|e| TensorError::from_tch_with_context(e, "Masking for connect four.".into()))?)

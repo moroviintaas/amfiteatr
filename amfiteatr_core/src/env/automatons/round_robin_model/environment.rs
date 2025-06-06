@@ -56,9 +56,9 @@ pub(crate) trait EnvironmentRRInternal<DP: DomainParameters>{
 
 }
 
-impl<'a, Env, DP: DomainParameters + 'a> EnvironmentRRInternal<DP> for Env
+impl<Env, DP: DomainParameters> EnvironmentRRInternal<DP> for Env
 where Env: CommunicatingEndpointEnvironment<DP, CommunicationError=CommunicationError<DP>>
- + StatefulEnvironment<DP> + 'a
+ + StatefulEnvironment<DP>
  + EnvironmentWithAgents<DP>
  + BroadcastingEndpointEnvironment<DP>,
 
@@ -88,9 +88,9 @@ as some macro.
  */
 
 
-impl<'a, Env, DP: DomainParameters + 'a> RoundRobinEnvironment<DP> for Env
+impl<Env, DP: DomainParameters> RoundRobinEnvironment<DP> for Env
 where Env: CommunicatingEndpointEnvironment<DP, CommunicationError=CommunicationError<DP>>
- + StatefulEnvironment<DP> + 'a
+ + StatefulEnvironment<DP>
  + EnvironmentWithAgents<DP>
  + BroadcastingEndpointEnvironment<DP>, DP: DomainParameters {
     fn run_round_robin_truncating(&mut self,  truncate_steps: Option<usize>) -> Result<(), AmfiteatrError<DP>> {
@@ -202,9 +202,9 @@ where Env: CommunicatingEndpointEnvironment<DP, CommunicationError=Communication
 }
 
 
-impl<'a, Env, DP: DomainParameters + 'a> RoundRobinUniversalEnvironment<DP> for Env
+impl<Env, DP: DomainParameters> RoundRobinUniversalEnvironment<DP> for Env
 where Env: CommunicatingEndpointEnvironment<DP, CommunicationError=CommunicationError<DP>>
- + ScoreEnvironment<DP> + 'a
+ + ScoreEnvironment<DP>
  + EnvironmentWithAgents<DP>
  + BroadcastingEndpointEnvironment<DP>, DP: DomainParameters {
     fn run_round_robin_with_rewards_truncating(&mut self, truncate_steps: Option<usize>) -> Result<(), AmfiteatrError<DP>> {
@@ -329,9 +329,9 @@ where Env: CommunicatingEndpointEnvironment<DP, CommunicationError=Communication
     }
 }
 
-impl<'a, Env, DP: DomainParameters + 'a, P> RoundRobinPenalisingUniversalEnvironment<DP, P> for Env
+impl<Env, DP: DomainParameters, P> RoundRobinPenalisingUniversalEnvironment<DP, P> for Env
 where Env: CommunicatingEndpointEnvironment<DP, CommunicationError=CommunicationError<DP>>
- + ScoreEnvironment<DP> + 'a
+ + ScoreEnvironment<DP>
  + EnvironmentWithAgents<DP>
  + BroadcastingEndpointEnvironment<DP>, DP: DomainParameters,
 P: Fn(&<Self as StatefulEnvironment<DP>>::State, &DP::AgentId) -> DP::UniversalReward{

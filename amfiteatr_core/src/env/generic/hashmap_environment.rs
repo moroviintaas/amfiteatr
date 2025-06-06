@@ -194,7 +194,7 @@ BroadcastingEndpointEnvironment<DP> for HashMapEnvironment<DP, S, C>{
     }
 }
 
-impl<'a, DP: DomainParameters + 'a,
+impl<DP: DomainParameters,
     S: SequentialGameState<DP>,
     C: EnvironmentEndpoint<DP>>
  EnvironmentWithAgents<DP> for HashMapEnvironment<DP, S, C>{

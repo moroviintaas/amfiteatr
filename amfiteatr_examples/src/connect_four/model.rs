@@ -458,8 +458,7 @@ impl<
     pub fn new_a2c(options: &ConnectFourOptions) -> Self
         where S: Default{
 
-        let mut config_a2c = ConfigA2C::default();
-        config_a2c.gae_lambda = options.gae_lambda;
+        let config_a2c = ConfigA2C { gae_lambda: options.gae_lambda, ..Default::default() };
 
         let device = match options.device{
             ComputeDevice::Cpu => Device::Cpu,
@@ -513,9 +512,7 @@ impl<
     pub fn new_a2c_masking(options: &ConnectFourOptions) -> Self
         where S: Default{
 
-        let mut config_a2c = ConfigA2C::default();
-        config_a2c.gae_lambda = options.gae_lambda;
-        //config_a2c.mini_batch_size = options.mini_batch_size;
+        let config_a2c = ConfigA2C{ gae_lambda: options.gae_lambda, ..Default::default() };
 
         let device = match options.device{
             ComputeDevice::Cpu => Device::Cpu,
@@ -571,11 +568,12 @@ impl<
     pub fn new_ppo(options: &ConnectFourOptions) -> Self
     where S: Default{
 
-        let mut config_ppo = ConfigPPO::default();
-        config_ppo.gae_lambda = options.gae_lambda;
-        config_ppo.update_epochs = options.ppo_update_epochs;
-        config_ppo.mini_batch_size = options.mini_batch_size;
-
+        let config_ppo = ConfigPPO {
+            gae_lambda: options.gae_lambda,
+            update_epochs: options.ppo_update_epochs,
+            mini_batch_size: options.mini_batch_size,
+            ..Default::default()
+        };
         let device = match options.device{
             ComputeDevice::Cpu => Device::Cpu,
             ComputeDevice::Cuda => Device::Cuda(0),
@@ -628,10 +626,12 @@ impl<
     pub fn new_ppo_masking(options: &ConnectFourOptions) -> Self
     where S: Default{
 
-        let mut config_ppo = ConfigPPO::default();
-        config_ppo.gae_lambda = options.gae_lambda;
-        config_ppo.update_epochs = options.ppo_update_epochs;
-        config_ppo.mini_batch_size = options.mini_batch_size;
+        let config_ppo = ConfigPPO {
+            gae_lambda: options.gae_lambda,
+            update_epochs: options.ppo_update_epochs,
+            mini_batch_size: options.mini_batch_size,
+            ..Default::default()
+        };
 
         let device = match options.device{
             ComputeDevice::Cpu => Device::Cpu,
@@ -711,12 +711,11 @@ where <P as Policy<ConnectFourDomain>>::InfoSetType: Renew<ConnectFourDomain, ()
         std::thread::scope(|s|{
             s.spawn(|| {
                 let r = self.env.run_round_robin_with_rewards_penalise_truncating(|_,_| -10.0, truncate_at_step);
-                if let Err(e) = r{
-                    if let AmfiteatrError::Game {source: game_error} = e{
-                        if let Some(fauler) = game_error.fault_of_player(){
-                            summary.invalid_actions[fauler.index()] = 1.0;
-                        }
+                if let Err(AmfiteatrError::Game {source: game_error}) = r{
+                    if let Some(fauler) = game_error.fault_of_player(){
+                        summary.invalid_actions[fauler.index()] = 1.0;
                     }
+
                 }
             });
             s.spawn(||{
@@ -756,7 +755,7 @@ where <P as Policy<ConnectFourDomain>>::InfoSetType: Renew<ConnectFourDomain, ()
         self.agent0.clear_episodes();
         self.agent1.clear_episodes();
         let mut vec = match summarize{
-            true => Vec::with_capacity(number_of_games as usize),
+            true => Vec::with_capacity(number_of_games),
             false => Vec::with_capacity(0),
         };
         for i in 0..number_of_games{
@@ -908,19 +907,19 @@ where <P as Policy<ConnectFourDomain>>::InfoSetType: Renew<ConnectFourDomain, ()
         }
         if let Some(result_file) = &options.save_path_train_param_summary{
             let yaml = serde_yaml::to_string(&(l_summaries_1, l_summaries_2)).unwrap();
-            let mut file = File::create(&result_file).map_err(|e| AmfiteatrError::IO { explanation: format!("{e}") })?;
+            let mut file = File::create(result_file).map_err(|e| AmfiteatrError::IO { explanation: format!("{e}") })?;
             write!(file, "{}", &yaml).map_err(|e| AmfiteatrError::IO { explanation: format!("{e}") })?;
         }
 
         if let Some(result_file) = &options.save_path_test_epoch{
             let yaml = serde_yaml::to_string(&results_test).unwrap();
-            let mut file = File::create(&result_file).map_err(|e| AmfiteatrError::IO { explanation: format!("{e}") })?;
+            let mut file = File::create(result_file).map_err(|e| AmfiteatrError::IO { explanation: format!("{e}") })?;
             write!(file, "{}", &yaml).map_err(|e| AmfiteatrError::IO { explanation: format!("{e}") })?;
         }
 
         if let Some(result_file) = &options.save_path_train_epoch{
             let yaml = serde_yaml::to_string(&results_learn).unwrap();
-            let mut file = File::create(&result_file).map_err(|e| AmfiteatrError::IO { explanation: format!("{e}") })?;
+            let mut file = File::create(result_file).map_err(|e| AmfiteatrError::IO { explanation: format!("{e}") })?;
             write!(file, "{}", &yaml).map_err(|e| AmfiteatrError::IO { explanation: format!("{e}") })?;
         }
 

@@ -56,8 +56,8 @@ type Domain = ClassicGameDomain<AgentNum>;
 
 pub fn run_game(
     env: &mut (impl AutoEnvironmentWithScores<Domain> + Send + ReseedEnvironment<Domain, ()>),
-    agent0: &mut (impl AutomaticAgent<Domain> + Send + ReseedAgent<Domain , ()> + MultiEpisodeAutoAgent<Domain, ()>),
-    agent1: &mut (impl AutomaticAgent<Domain> + Send + ReseedAgent<Domain, ()> + MultiEpisodeAutoAgent<Domain, ()>))
+    agent0: &mut (impl Send + MultiEpisodeAutoAgent<Domain, ()>),
+    agent1: &mut (impl Send + MultiEpisodeAutoAgent<Domain, ()>))
     -> Result<(), AmfiteatrError<Domain>>{
 
     thread::scope(|s|{
