@@ -2,7 +2,7 @@ use std::marker::PhantomData;
 use std::sync::{Arc, Mutex};
 use rand::seq::IteratorRandom;
 use crate::agent::info_set::InformationSet;
-use crate::agent::PresentPossibleActions;
+use crate::agent::{AgentTrajectory, PresentPossibleActions};
 use crate::domain::DomainParameters;
 use crate::error::AmfiteatrError;
 
@@ -19,6 +19,37 @@ pub trait Policy<DP: DomainParameters>: Send{
     ///
     /// Migration from previous version: use `ok_or`
     fn select_action(&self, state: &Self::InfoSetType) -> Result<DP::ActionType, AmfiteatrError<DP>>;
+
+    /// This method is meant to be called at the beginning of the episode.
+    /// It is not crucial for game protocol, yet you can use it to set something in policy for the episode.
+    /// For example select one variant of mixed policy or entity from genetic population.
+    fn call_on_episode_start(&mut self) -> Result<(), AmfiteatrError<DP>>{
+        #[cfg(feature = "log_trace")]
+        log::trace!("Initial setting of policy.");
+        Ok(())
+    }
+
+    /// This method is meant to be called at the beginning of the episode.
+    /// It is not crucial for game protocol, yet you can use it to set something in policy after the episode.
+    /// For example note something about policy and performance of choice at the beginning of the episode.
+    fn call_on_episode_finish(&mut self,
+                              final_env_reward: DP::UniversalReward,
+    ) -> Result<(), AmfiteatrError<DP>>
+    {
+        #[cfg(feature = "log_trace")]
+        log::trace!("End of episode setting of policy.");
+        Ok(())
+    }
+
+    /// This method is meant to be called at the beginning of the episode.
+    /// It is not crucial for game protocol, yet you can use it to set something in policy between epochs
+    /// For example clean episode notation.
+    fn call_between_epochs(&mut self)  -> Result<(), AmfiteatrError<DP>>{
+        #[cfg(feature = "log_trace")]
+        log::trace!("Between epochs setting of policy.");
+        Ok(())
+    }
+
 
 }
 

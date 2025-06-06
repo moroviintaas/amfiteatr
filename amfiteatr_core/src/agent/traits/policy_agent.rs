@@ -1,4 +1,4 @@
-use crate::agent::{Policy, StatefulAgent};
+use crate::agent::{AgentTrajectory, Policy, StatefulAgent};
 use crate::domain::DomainParameters;
 use crate::error::AmfiteatrError;
 
@@ -41,4 +41,5 @@ pub trait PolicyAgent<DP: DomainParameters>: StatefulAgent<DP>{
         -> Result<DP::ActionType, AmfiteatrError<DP>>{
         self.policy().select_action(self.info_set())
     }
+
 }

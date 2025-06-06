@@ -222,11 +222,17 @@ MultiEpisodeAutoAgent<DP, Seed> for AgentGen<DP, P, Comm>
     where Self: ReseedAgent<DP, Seed> + AutomaticAgent<DP>,
           <P as Policy<DP>>::InfoSetType: InformationSet<DP>,
 {
-    fn store_episode(&mut self) {
-
+    fn initialize_episode(&mut self) -> Result<(), AmfiteatrError<DP>> {
+        self.policy_mut().call_on_episode_start()
     }
 
-    fn clear_episodes(&mut self) {
+    fn store_episode(&mut self)  -> Result<(), AmfiteatrError<DP>> {
+        let payoff = self.committed_universal_score.clone();
+        self.policy_mut().call_on_episode_finish(payoff)
+    }
+
+    fn clear_episodes(&mut self)  -> Result<(), AmfiteatrError<DP>> {
+        self.policy_mut().call_between_epochs()
     }
 }
 

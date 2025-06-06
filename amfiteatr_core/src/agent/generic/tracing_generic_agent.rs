@@ -316,15 +316,24 @@ MultiEpisodeAutoAgent<DP, Seed> for TracingAgentGen<DP, P, Comm>
 where Self: ReseedAgent<DP, Seed> + AutomaticAgent<DP>,
       <P as Policy<DP>>::InfoSetType: InformationSet<DP> + Clone,
 {
-    fn store_episode(&mut self) {
+    fn initialize_episode(&mut self) -> Result<(), AmfiteatrError<DP>> {
+        self.policy_mut().call_on_episode_start()
+    }
+
+    fn store_episode(&mut self) -> Result<(), AmfiteatrError<DP>> {
+        let payoff = self.committed_universal_score.clone();
+        self.policy_mut().call_on_episode_finish(payoff)?;
         let mut new_trajectory = AgentTrajectory::with_capacity(self.game_trajectory.number_of_steps());
         std::mem::swap(&mut new_trajectory, &mut self.game_trajectory);
         self.episodes.push(new_trajectory);
+        Ok(())
 
     }
 
-    fn clear_episodes(&mut self) {
+    fn clear_episodes(&mut self) -> Result<(), AmfiteatrError<DP>> {
+        self.policy_mut().call_between_epochs()?;
         self.episodes.clear();
+        Ok(())
     }
 }
 
