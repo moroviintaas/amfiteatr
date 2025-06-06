@@ -201,8 +201,8 @@ fn main() -> Result<(), AmfiteatrError<ClassicGameDomain<AgentNum>>>{
 
 
     for e in 0..args.epochs{
-        agent_0.clear_episodes();
-        agent_1.clear_episodes();
+        agent_0.clear_episodes()?;
+        agent_1.clear_episodes()?;
         info!("Starting epoch {e:}");
         for _g in 0..args.batch_size{
             run_game(&mut environment, &mut agent_0, &mut agent_1)?;

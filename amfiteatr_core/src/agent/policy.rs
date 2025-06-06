@@ -2,7 +2,7 @@ use std::marker::PhantomData;
 use std::sync::{Arc, Mutex};
 use rand::seq::IteratorRandom;
 use crate::agent::info_set::InformationSet;
-use crate::agent::{AgentTrajectory, PresentPossibleActions};
+use crate::agent::{PresentPossibleActions};
 use crate::domain::DomainParameters;
 use crate::error::AmfiteatrError;
 
@@ -32,6 +32,7 @@ pub trait Policy<DP: DomainParameters>: Send{
     /// This method is meant to be called at the beginning of the episode.
     /// It is not crucial for game protocol, yet you can use it to set something in policy after the episode.
     /// For example note something about policy and performance of choice at the beginning of the episode.
+    #[allow(unused_variables)]
     fn call_on_episode_finish(&mut self,
                               final_env_reward: DP::UniversalReward,
     ) -> Result<(), AmfiteatrError<DP>>

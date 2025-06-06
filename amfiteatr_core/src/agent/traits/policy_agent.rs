@@ -1,4 +1,4 @@
-use crate::agent::{AgentTrajectory, Policy, StatefulAgent};
+use crate::agent::{Policy, StatefulAgent};
 use crate::domain::DomainParameters;
 use crate::error::AmfiteatrError;
 
