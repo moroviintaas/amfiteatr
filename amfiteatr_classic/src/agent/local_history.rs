@@ -54,6 +54,10 @@ impl<ID: UsizeAgentId> LocalHistoryInfoSet<ID>{
     pub fn action_counter(&self) -> &ActionPairMapper<i64>{
         &self.count_actions
     }
+
+    
+
+
 }
 
 impl<ID: UsizeAgentId> Display for LocalHistoryInfoSet<ID> {
