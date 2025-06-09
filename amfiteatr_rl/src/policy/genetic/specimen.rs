@@ -11,5 +11,4 @@ pub trait PolicySpecimen<DP: DomainParameters>: Policy<DP>{
 
     fn mutate(&mut self, mutagen: &Self::Mutagen) -> Result<(), AmfiteatrError<DP>>;
 
-    }
 }
