@@ -46,7 +46,7 @@ fn main() -> Result<(), ErrorRL>{
             let mut model = ConnectFourModelRust::<ConnectFourRustEnvState, C4PPOPolicyMasking>::new_ppo_masking(
                 &cli
             );
-            model.run_session(&cli)?;
+            model.run_session(&cli).unwrap();
 
         },
 

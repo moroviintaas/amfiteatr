@@ -229,8 +229,8 @@ class PolicyPPO:
 
 
 
-            if self.config.target_kl is not None and approx_kl > self.config.target_kl:
-                break
+            #if self.config.target_kl is not None and approx_kl > self.config.target_kl:
+            #    break
         if self.tb_writer is not None:
             self.tb_writer.add_scalar("charts/learning_rate", self.optimizer.param_groups[0]["lr"], self.global_step)
             self.tb_writer.add_scalar("losses/value_loss", v_loss.item(), self.global_step)

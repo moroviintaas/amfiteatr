@@ -735,8 +735,8 @@ where <P as Policy<ConnectFourDomain>>::InfoSetType: Renew<ConnectFourDomain, ()
         summary.game_steps = self.env.completed_steps() as f64;
 
         if store_episode{
-            self.agent0.store_episode();
-            self.agent1.store_episode();
+            self.agent0.store_episode()?;
+            self.agent1.store_episode()?;
         }
 
         Ok(summary)
@@ -752,8 +752,8 @@ where <P as Policy<ConnectFourDomain>>::InfoSetType: Renew<ConnectFourDomain, ()
     {
         let mut steps_left = max_steps;
         let mut number_of_games_played = 0;
-        self.agent0.clear_episodes();
-        self.agent1.clear_episodes();
+        self.agent0.clear_episodes()?;
+        self.agent1.clear_episodes()?;
         let mut vec = match summarize{
             true => Vec::with_capacity(number_of_games),
             false => Vec::with_capacity(0),

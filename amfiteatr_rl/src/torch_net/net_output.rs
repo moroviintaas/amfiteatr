@@ -245,11 +245,12 @@ impl ActorCriticOutput for TensorActorCritic{
     fn batch_get_logprob_and_entropy<DP: DomainParameters>(
         &self,
         action_param_batches: &Self::ActionTensorType,
-        action_category_mask_batches: Option<&Self::ActionTensorType>,
+        _action_category_mask_batches: Option<&Self::ActionTensorType>,
         action_forward_mask_batches: Option<&Self::ActionTensorType>
     ) -> Result<(Tensor, Tensor), AmfiteatrError<DP>> {
         //let critic_actor= .net()(info_set_batch);
 
+        /*
         let batch_logprob = self.batch_log_probability_of_action::<DP>(
             action_param_batches,
             action_forward_mask_batches,
@@ -259,13 +260,51 @@ impl ActorCriticOutput for TensorActorCritic{
             action_forward_mask_batches,
             action_category_mask_batches
 
+
         ).map_err(|e|AmfiteatrError::Tensor {
             error: TensorError::Torch {
                 context: "batch_get_actor_critic_with_logprob_and_entropy".into(),
                 origin: format!("{e}")
             }
         })?;
+        */
+        let (p, log_p) = match action_forward_mask_batches{
+            Some(mask) => {
+                let new_logits = self.actor.f_where_self(mask, &Tensor::from(f32::NEG_INFINITY))
+                    .map_err(|e| AmfiteatrError::Tensor {
+                        error: TensorError::Torch {
+                            context: "masking action logits".into(),
+                            origin: format!("{e}")
+                        }
+                    })?;
+                (new_logits.softmax(-1, Float), new_logits.log_softmax(-1, Float))
 
+            },
+            None => (self.actor.softmax(-1, Float), self.actor.log_softmax(-1, Float))
+        };
+
+        let p_log_p = p.mul(&log_p);
+        let sum_p_log_p = p_log_p.sum_dim_intlist(Some(-1), false, Kind::Float);
+        let batch_entropy = sum_p_log_p * tch::Tensor::from(-1.0);
+
+        let choice = log_p.f_gather(1, action_param_batches, false)
+            .and_then(|t| t.f_flatten(0, -1))
+            .map_err(|e| AmfiteatrError::Tensor {
+                error: TensorError::Torch {
+                    origin: format!("{e}"),
+                    context: "batch_log_probability_of_action (gathering)".into()
+                }
+            })?;
+
+       let batch_logprob =  match choice.size().first(){
+            None => Err(ZeroBatchSize {
+                context: format!("Batch log probability error. Indexes tensor: {action_param_batches}, choice tensor: {choice}")
+            }),
+            Some(i) if i <= &0 => Err(ZeroBatchSize {
+                context: format!("Batch log probability error. Indexes tensor: {action_param_batches}, choice tensor: {choice}")
+            }),
+            Some(_) => Ok(choice)
+        }?;
 
 
         Ok((batch_logprob, batch_entropy))
@@ -491,25 +530,6 @@ impl ActorCriticOutput for TensorMultiParamActorCritic {
     ///     Tensor::from_slice(&[0i64, 2i64]),
     ///     Tensor::from_slice(&[2i64, 1i64]),
     ///     Tensor::from_slice(&[0i64, 1i64]),
-    /// /*
-    ///     {
-    ///         let s1 = Tensor::from(0i64);
-    ///         let s2 = Tensor::from(2i64);
-    ///         Tensor::vstack(&[s1, s2])
-    ///     },
-    ///     {
-    ///         let s1 = Tensor::from(2i64);
-    ///         let s2 = Tensor::from(1i64);
-    ///         //Tensor::from_slice(&[2i64, 1])
-    ///         Tensor::vstack(&[s1, s2])
-    ///     },
-    ///     {
-    ///         let s1 = Tensor::from(0i64);
-    ///         let s2 = Tensor::from(1i64);
-    ///         //Tensor::from_slice(&[0i64, 1])
-    ///         Tensor::vstack(&[s1, s2])
-    ///     },
-    /// */
     ///
     /// ];
     /// let probs_unmasked = mca.batch_log_probability_of_action::<DemoDomain>(&action_params_selected_tensors, None, None).unwrap();
@@ -770,7 +790,12 @@ impl ActorCriticOutput for TensorMultiParamActorCritic {
         }).collect::<Result<Vec<_>, TchError>>()
     }
 
+
+    /// TODO refactor it so it does not call [`batch_log_probability_of_action`] and [`batch_entropy_masked`],
+    /// similarly to single parameter version.
     fn batch_get_logprob_and_entropy<DP: DomainParameters>(&self, action_param_batches: &Self::ActionTensorType, action_category_mask_batches: Option<&Self::ActionTensorType>, action_forward_mask_batches: Option<&Self::ActionTensorType>) -> Result<(Tensor, Tensor), AmfiteatrError<DP>> {
+
+
         let batch_logprob = self.batch_log_probability_of_action::<DP>(
             action_param_batches,
             action_forward_mask_batches,
@@ -785,6 +810,9 @@ impl ActorCriticOutput for TensorMultiParamActorCritic {
             context: "batch_get_actor_critic_with_logprob_and_entropy (entropy)".into(),
         })?;
 
+
+
+
         let batch_entropy_avg = batch_entropy.f_sum_dim_intlist(
             Some(1),
             false,
@@ -797,8 +825,7 @@ impl ActorCriticOutput for TensorMultiParamActorCritic {
                 }
             }
             )?;
-        //println!("batch entropy: {}", batch_entropy);
-        //println!("batch entropy avg: {}", batch_entropy_avg);
+
 
         Ok((batch_logprob, batch_entropy_avg))
     }
