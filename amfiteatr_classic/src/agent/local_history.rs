@@ -6,7 +6,7 @@ use amfiteatr_core::agent::{InformationSet, PresentPossibleActions, EvaluatedInf
 use amfiteatr_core::domain::{Renew};
 use amfiteatr_core::error::{AmfiteatrError, ConvertError};
 use amfiteatr_rl::tensor_data::{ContextEncodeTensor, TensorEncoding};
-use crate::agent::{ActionPairMapper, AgentAssessmentClassic};
+use crate::agent::{ActionPairMapper, AgentAssessmentClassic, EventCounts};
 use crate::AsymmetricRewardTableInt;
 use crate::domain::{AgentNum, AsUsize, ClassicAction, ClassicGameDomain, ClassicGameError, ClassicGameUpdate, EncounterReport, UsizeAgentId};
 use crate::domain::ClassicAction::{Down, Up};
@@ -55,7 +55,62 @@ impl<ID: UsizeAgentId> LocalHistoryInfoSet<ID>{
         &self.count_actions
     }
 
-    
+    pub fn calculate_past_event_probabilities(&self) -> EventCounts {
+        let mut counts = EventCounts::new();
+
+        let mut previous = (None, None);
+        let mut past_prev = (None, None);
+
+        for report in self.previous_encounters{
+            todo!();
+            match (report.own_action, report.other_player_action){
+                (Up, Up) => {
+                    counts.count_up_v_up += 1.0;
+                    past_prev = previous.clone();
+                    previous = (Some(Up), Some(Up))
+                },
+                (Up, Down) =>{
+                    counts.count_up_v_down += 1.0;
+                    past_prev = previous.clone();
+                    previous = (Some(Up), Some(Down));
+                },
+                (Down, Up) => {
+                    counts.count_down_v_up += 1.0;
+                    past_prev = previous.clone();
+                    previous = (Some(Down), Some(Up));
+                },
+                (Down, Down) => {
+                    counts.count_down_v_down += 1.0;
+                    past_prev = previous.clone();
+                    previous = (Some(Down), Some(Down))
+                }
+            }
+        }
+        /*
+        if let Some(first) =self.previous_encounters.first(){
+            match (first.own_action,first.own_action){
+                (Up, Up) => {
+                    counts.count_up_v_up += 1.0;
+                    previous = (Up, Up)
+                },
+                (Up, Down) =>{
+                    counts.count_up_v_down += 1.0;
+                    previous = (Up, Down);
+                },
+                (Down, Up) => {
+                    counts.count_down_v_up += 1.0;
+                    previous = (Down, Up);
+                },
+                (Down, Down) => {
+                    counts.count_down_v_down += 1.0;
+                    previous = (Down, Down)
+                }
+            }
+        }
+
+         */
+        
+    }
 
 
 }
