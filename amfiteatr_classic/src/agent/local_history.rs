@@ -61,6 +61,7 @@ impl<ID: UsizeAgentId> LocalHistoryInfoSet<ID>{
         let mut previous = (None, None);
         let mut past_prev = (None, None);
 
+        todo!();
         for report in self.previous_encounters{
             todo!();
             match (report.own_action, report.other_player_action){
@@ -86,6 +87,7 @@ impl<ID: UsizeAgentId> LocalHistoryInfoSet<ID>{
                 }
             }
         }
+        counts
         /*
         if let Some(first) =self.previous_encounters.first(){
             match (first.own_action,first.own_action){
@@ -109,7 +111,7 @@ impl<ID: UsizeAgentId> LocalHistoryInfoSet<ID>{
         }
 
          */
-        
+
     }
 
 

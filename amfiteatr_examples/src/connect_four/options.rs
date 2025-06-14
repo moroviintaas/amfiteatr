@@ -97,8 +97,10 @@ pub struct ConnectFourOptions{
     pub tboard_agent1: Option<PathBuf>,
 
     #[arg(long = "tensorboard", help = "Directory to save tensorboard output for epoch scores")]
-    pub tboard: Option<PathBuf>
+    pub tboard: Option<PathBuf>,
 
+    #[arg(short = 'p', long = "rayon-pool-size", help = "Use threading pool of rayon with N threads") ]
+    pub rayon_pool: Option<usize>
     //#[arg(short = 'r', long = "reward", default_value = "env")]
     //pub reward_source: RewardSource,
 

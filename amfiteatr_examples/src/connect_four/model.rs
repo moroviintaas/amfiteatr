@@ -373,6 +373,7 @@ pub struct ConnectFourModelRust<S: GameStateWithPayoffs<ConnectFourDomain>, P: L
     agent1: Agent<P>,
     tboard_writer: Option<tboard::EventWriter<File>>,
     shared_policy: bool,
+    thread_pool: Option<rayon::ThreadPool>
 
     //model_tboard: Option<tboard::EventWriter<File>>
 
@@ -439,12 +440,17 @@ impl<
             None => None,
         };
 
+        let thread_pool = options.rayon_pool.and_then(|s|
+            Some(rayon::ThreadPoolBuilder::new().num_threads(s).build().unwrap())
+        );
+
         Self{
             env,
             agent0: agent_0,
             agent1: agent_1,
             tboard_writer,
             shared_policy,
+            thread_pool
             //model_tboard,
         }
     }
@@ -494,6 +500,9 @@ impl<
             }
             None => None,
         };
+        let thread_pool = options.rayon_pool.and_then(|s|
+            Some(rayon::ThreadPoolBuilder::new().num_threads(s).build().unwrap())
+        );
         Self{
             env,
             agent0: agent_0,
@@ -501,6 +510,7 @@ impl<
             tboard_writer,
             //model_tboard,
             shared_policy: false,
+            thread_pool
         }
     }
 }
@@ -549,6 +559,9 @@ impl<
             }
             None => None,
         };
+        let thread_pool = options.rayon_pool.and_then(|s|
+            Some(rayon::ThreadPoolBuilder::new().num_threads(s).build().unwrap())
+        );
 
         Self{
             env,
@@ -557,6 +570,7 @@ impl<
             tboard_writer,
             //model_tboard,
             shared_policy: false,
+            thread_pool
         }
     }
 }
@@ -607,6 +621,9 @@ impl<
             }
             None => None,
         };
+        let thread_pool = options.rayon_pool.and_then(|s|
+            Some(rayon::ThreadPoolBuilder::new().num_threads(s).build().unwrap())
+        );
 
         Self{
             env,
@@ -615,6 +632,7 @@ impl<
             tboard_writer,
             //model_tboard,
             shared_policy: false,
+            thread_pool
         }
     }
 }
@@ -670,6 +688,10 @@ impl<
             None => None,
         };
 
+        let thread_pool = options.rayon_pool.and_then(|s|
+            Some(rayon::ThreadPoolBuilder::new().num_threads(s).build().unwrap())
+        );
+
         Self{
             env,
             agent0: agent_0,
@@ -677,6 +699,7 @@ impl<
             tboard_writer,
             //model_tboard,
             shared_policy: false,
+            thread_pool
         }
     }
 }
@@ -708,23 +731,48 @@ where <P as Policy<ConnectFourDomain>>::InfoSetType: Renew<ConnectFourDomain, ()
         self.agent0.reseed(())?;
         self.agent1.reseed(())?;
 
-        std::thread::scope(|s|{
-            s.spawn(|| {
-                let r = self.env.run_round_robin_with_rewards_penalise_truncating(|_,_| -10.0, truncate_at_step);
-                if let Err(AmfiteatrError::Game {source: game_error}) = r{
-                    if let Some(fauler) = game_error.fault_of_player(){
-                        summary.invalid_actions[fauler.index()] = 1.0;
-                    }
 
-                }
-            });
-            s.spawn(||{
-                self.agent0.run().unwrap()
-            });
-            s.spawn(||{
-                self.agent1.run().unwrap()
-            });
-        });
+        match &self.thread_pool{
+            None => {
+                std::thread::scope(|s|{
+                    s.spawn(|| {
+                        let r = self.env.run_round_robin_with_rewards_penalise_truncating(|_,_| -10.0, truncate_at_step);
+                        if let Err(AmfiteatrError::Game {source: game_error}) = r{
+                            if let Some(fauler) = game_error.fault_of_player(){
+                                summary.invalid_actions[fauler.index()] = 1.0;
+                            }
+
+                        }
+                    });
+                    s.spawn(||{
+                        self.agent0.run().unwrap()
+                    });
+                    s.spawn(||{
+                        self.agent1.run().unwrap()
+                    });
+                });
+            },
+            Some(pool) => {
+                pool.scope(|s|{
+                    s.spawn(|_| {
+                        let r = self.env.run_round_robin_with_rewards_penalise_truncating(|_,_| -10.0, truncate_at_step);
+                        if let Err(AmfiteatrError::Game {source: game_error}) = r{
+                            if let Some(fauler) = game_error.fault_of_player(){
+                                summary.invalid_actions[fauler.index()] = 1.0;
+                            }
+
+                        }
+                    });
+                    s.spawn(|_|{
+                        self.agent0.run().unwrap()
+                    });
+                    s.spawn(|_|{
+                        self.agent1.run().unwrap()
+                    });
+                });
+            }
+        }
+
 
         summary.scores = [
             self.env.state().state_payoff_of_player(&ConnectFourPlayer::One) as f64,
