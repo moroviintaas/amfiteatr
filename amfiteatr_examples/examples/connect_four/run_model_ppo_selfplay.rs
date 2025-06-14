@@ -66,7 +66,7 @@ fn main() -> Result<(), ErrorRL>{
 
         },
         Implementation::RustNd => {
-            let mut model = ConnectFourModelRust::<ConnectFourRustNdEnvState, C4PPOPolicyMaskingShared>::new_ppo_generic(
+            let mut model = ConnectFourModelRust::<ConnectFourRustNdEnvState, C4PPOPolicyShared>::new_ppo_generic(
                 &cli,
                 policy.clone(),
                 policy,

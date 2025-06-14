@@ -65,7 +65,10 @@ fn main() -> Result<(), ErrorRL>{
         },
         Implementation::RustNd => {
             let mut model = ConnectFourModelRust::<ConnectFourRustNdEnvState, C4PPOPolicy>::new_ppo_generic(
-                &cli
+                &cli,
+                agent_policy_0,
+                agent_policy_1,
+                false
             );
             model.run_session(&cli).unwrap();
 
