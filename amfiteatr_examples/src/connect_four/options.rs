@@ -6,7 +6,8 @@ use clap::ValueEnum;
 #[derive(ValueEnum, Copy, Clone, Debug)]
 pub enum Implementation{
     Rust,
-    Wrap
+    Wrap,
+    RustNd,
 }
 
 #[derive(ValueEnum, Copy, Clone, Debug)]

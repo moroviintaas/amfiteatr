@@ -1,4 +1,5 @@
 use std::fmt::{Display, Formatter};
+use ndarray::{Array2, Array3, Axis};
 use pyo3::PyErr;
 use amfiteatr_core::agent::AgentIdentifier;
 use amfiteatr_core::domain::{Action, DomainParameters};
@@ -150,9 +151,18 @@ pub type BoardRow = [Option<ConnectFourPlayer>;7];
 pub type Board = [BoardRow;6];
 
 
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug)]
 pub struct ConnectFourBinaryObservation{
-    pub board: [[[u8;2];7];6]
+    //pub board: [[[u8;2];7];6]
+    pub board: Array3<u8>
+}
+
+impl Default for ConnectFourBinaryObservation{
+    fn default() -> Self {
+        Self{
+            board: Array3::zeros((6,7,2))
+        }
+    }
 }
 
 
@@ -162,21 +172,49 @@ impl ConnectFourBinaryObservation{
     pub fn build_from(board: &Board, for_agent: ConnectFourPlayer) -> Self{
 
 
-        let mut b: [[[u8;2];7];6] = Default::default();
+        //let mut b: [[[u8;2];7];6] = Default::default();
+        let mut observation = ConnectFourBinaryObservation::default();
         for row in 0..board.len(){
             for column in 0..board[row].len(){
-                b[row][column] = match board[row][column]{
+                /*
+                observation.board[row][column] = match board[row][column]{
                     None => [0,0],
                     Some(own) if  own == for_agent => [1,0],
                     Some(_other) => [0,1]
                 };
 
+                 */
+                match board[row][column] {
+                    None => {
+                        //observation.board(row, column, 0)
+                    },
+                    Some(own) if own == for_agent => {
+                        observation.board[(row, column, 0)] = 1
+                    },
+                    Some(_other) => {
+                        observation.board[(row, column, 1)] = 1
+                    }
+                }
+
             }
         }
-        Self{board: b}
+        observation
 
 
 
+    }
+
+    pub fn build_from_nd(board: &Array2<u8>, for_agent: ConnectFourPlayer) -> Self{
+        let agent_val = for_agent as u8 + 1;
+        let other_val = for_agent.other() as u8 + 1;
+        let a = board.mapv(|v| if v== agent_val {1} else {0});
+        let b = board.mapv(|v| if v == other_val { 1} else {0});
+
+        let sta = ndarray::stack(Axis(2), &[a.view(), b.view()]).unwrap();
+
+        Self{
+            board: sta,
+        }
     }
 }
 

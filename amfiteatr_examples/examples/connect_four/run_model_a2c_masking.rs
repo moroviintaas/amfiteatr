@@ -3,6 +3,7 @@ use pyo3::prelude::PyAnyMethods;
 use pyo3::Python;
 use amfiteatr_examples::connect_four::common::ErrorRL;
 use amfiteatr_examples::connect_four::env::ConnectFourRustEnvState;
+use amfiteatr_examples::connect_four::env_nd::ConnectFourRustNdEnvState;
 use amfiteatr_examples::connect_four::env_wrapped::PythonPettingZooStateWrap;
 use amfiteatr_examples::connect_four::model::{C4A2CPolicyMasking, ConnectFourModelRust};
 use amfiteatr_examples::connect_four::options::{ConnectFourOptions, Implementation};
@@ -43,6 +44,13 @@ fn main() -> Result<(), ErrorRL>{
     match cli.implementation{
         Implementation::Rust => {
             let mut model = ConnectFourModelRust::<ConnectFourRustEnvState, C4A2CPolicyMasking>::new_a2c_masking(
+                &cli
+            );
+            model.run_session(&cli)?;
+
+        },
+        Implementation::RustNd => {
+            let mut model = ConnectFourModelRust::<ConnectFourRustNdEnvState, C4A2CPolicyMasking>::new_a2c_masking(
                 &cli
             );
             model.run_session(&cli)?;

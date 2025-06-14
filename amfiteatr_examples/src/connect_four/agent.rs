@@ -1,3 +1,4 @@
+use ndarray::{Array, Array1, Axis};
 use amfiteatr_core::agent::InformationSet;
 use amfiteatr_core::domain::{DomainParameters, Renew};
 use amfiteatr_core::error::{AmfiteatrError, ConvertError, TensorError};
@@ -26,7 +27,8 @@ impl InformationSet<ConnectFourDomain> for ConnectFourInfoSet{
     }
 
     fn is_action_valid(&self, action: &ConnectFourAction) -> bool {
-        self.latest_observation.board[0][action.index()] == [0,0]
+        self.latest_observation.board[(0, action.index(), 0)] == 0 &&
+            self.latest_observation.board[(0, action.index(), 1)] == 0
     }
 
     fn update(&mut self, update: <ConnectFourDomain as DomainParameters>::UpdateType) -> Result<(), <ConnectFourDomain as DomainParameters>::GameErrorType> {
@@ -56,12 +58,16 @@ impl TensorEncoding for ConnectFourTensorReprD1{
 impl ContextEncodeTensor<ConnectFourTensorReprD1> for ConnectFourInfoSet{
     fn try_to_tensor(&self, way: &ConnectFourTensorReprD1) -> Result<Tensor, ConvertError> {
 
+        /*
         let mut vec = Vec::with_capacity(way.desired_shape()[0] as usize);
         for r in 0..self.latest_observation.board.len(){
             for c in 0..self.latest_observation.board[r].len(){
                 vec.extend(self.latest_observation.board[r][c].map(|u| u as f32));
             }
         }
+
+         */
+        let vec: Vec<f32> = self.latest_observation.board.iter().map(|&x| x as f32).collect();
         Tensor::f_from_slice(&vec[..]).map_err(|e| ConvertError::TorchStr { origin: format!("Converting information set: {:?} ({e})", &self) })
 
     }
@@ -114,10 +120,16 @@ impl ContextEncodeIndexI64<ConnectFourActionTensorRepresentation> for ConnectFou
 
 impl MaskingInformationSetAction<ConnectFourDomain, ConnectFourActionTensorRepresentation> for ConnectFourInfoSet{
     fn try_build_mask(&self, _ctx: &ConnectFourActionTensorRepresentation) -> Result<Tensor, AmfiteatrError<ConnectFourDomain>> {
-        let top_row_is_empty: [bool; 7] =  self.latest_observation.board[0].map(|[u1,u2]| {
-            matches!((u1,u2), (0,0))
-        });
-        Ok(Tensor::f_from_slice(&top_row_is_empty)
+        /*let top_row_is_empty: [bool; 7] =  self.latest_observation.board[0].map(|c| {
+            c[0] == c[1] && c[1] == 0
+        }).collect();
+
+         */
+        let top_row_is_empty: Vec<bool>= self.latest_observation.board.axis_iter(Axis(1)).map(|slice|{
+            slice[(0,0)] == 0 && slice[(0,1)]==0
+        }).collect();
+
+            Ok(Tensor::f_from_slice(&top_row_is_empty)
             .map_err(|e| TensorError::from_tch_with_context(e, "Masking for connect four.".into()))?)
 
     }

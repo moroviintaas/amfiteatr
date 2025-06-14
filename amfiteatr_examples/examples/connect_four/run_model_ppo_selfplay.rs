@@ -3,8 +3,9 @@ use pyo3::prelude::PyAnyMethods;
 use pyo3::Python;
 use amfiteatr_examples::connect_four::common::ErrorRL;
 use amfiteatr_examples::connect_four::env::ConnectFourRustEnvState;
+use amfiteatr_examples::connect_four::env_nd::ConnectFourRustNdEnvState;
 use amfiteatr_examples::connect_four::env_wrapped::PythonPettingZooStateWrap;
-use amfiteatr_examples::connect_four::model::{build_ppo_policy_shared, C4PPOPolicyShared, ConnectFourModelRust};
+use amfiteatr_examples::connect_four::model::{build_ppo_policy_shared, C4PPOPolicyMaskingShared, C4PPOPolicyShared, ConnectFourModelRust};
 use amfiteatr_examples::connect_four::options::{ComputeDevice, ConnectFourOptions, Implementation};
 use amfiteatr_rl::policy::ConfigPPO;
 use amfiteatr_rl::tch::Device;
@@ -64,6 +65,17 @@ fn main() -> Result<(), ErrorRL>{
             model.run_session(&cli)?;
 
         },
+        Implementation::RustNd => {
+            let mut model = ConnectFourModelRust::<ConnectFourRustNdEnvState, C4PPOPolicyMaskingShared>::new_ppo_generic(
+                &cli,
+                policy.clone(),
+                policy,
+                true
+            );
+            model.run_session(&cli)?;
+
+        },
+
 
         Implementation::Wrap => {
             let mut model = ConnectFourModelRust::<PythonPettingZooStateWrap, C4PPOPolicyShared>::new_ppo_generic(
