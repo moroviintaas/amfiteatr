@@ -59,34 +59,95 @@ impl<ID: UsizeAgentId> LocalHistoryInfoSet<ID>{
         let mut counts = EventCounts::new();
 
         let mut previous = (None, None);
-        let mut past_prev = (None, None);
+        let mut past_previous = (None, None);
 
-        todo!();
+
         for report in self.previous_encounters{
-            todo!();
+
+            if let (Some(p1), Some(p2)) = previous{
+                if p2 == Up{
+                    // other upped
+                    if report.own_action == Up{
+                        // we punish
+                        counts.count_i_punish_immediately += 1.0;
+                        if let (_, Some(pp2)) = past_previous{
+                            if pp2 == Up{
+                                counts.count_i_punish_after2 += 1.0;
+                            }
+                        }
+                    }
+
+                }
+                if p1 == Up {
+                    if report.other_player_action == Up{
+                        counts.count_im_punished_immediately += 1.0;
+                        if let (Some(pp1), _) = past_previous{
+                            if pp1 == Up{
+                                counts.count_im_punished_after2 += 1.0;
+                            }
+                        }
+                    }
+
+
+                }
+
+                if p1 == Down && report.other_player_action == Down{
+                    counts.count_im_absoluted_immediately += 1.0;
+                }
+                if p2 == Down && report.own_action == Down{
+                    counts.count_i_absolute_immediately += 1.0;
+                }
+
+            }
+
             match (report.own_action, report.other_player_action){
                 (Up, Up) => {
                     counts.count_up_v_up += 1.0;
-                    past_prev = previous.clone();
+                    past_previous = previous.clone();
                     previous = (Some(Up), Some(Up))
                 },
                 (Up, Down) =>{
                     counts.count_up_v_down += 1.0;
-                    past_prev = previous.clone();
+                    past_previous = previous.clone();
                     previous = (Some(Up), Some(Down));
                 },
                 (Down, Up) => {
                     counts.count_down_v_up += 1.0;
-                    past_prev = previous.clone();
+                    past_previous = previous.clone();
                     previous = (Some(Down), Some(Up));
                 },
                 (Down, Down) => {
                     counts.count_down_v_down += 1.0;
-                    past_prev = previous.clone();
+                    past_previous = previous.clone();
                     previous = (Some(Down), Some(Down))
                 }
             }
         }
+        let factor = self.previous_encounters.len() as f64;
+
+        if self.previous_encounters.len() > 0{
+
+            counts.count_up_v_up /= factor;
+            counts.count_down_v_up /= factor;
+            counts.count_up_v_down /= factor;
+            counts.count_down_v_down /= factor;
+
+        }
+
+        let f1 = factor - 1.0;
+        if f1 > 0.0{
+            counts.count_i_absolute_immediately /= f1;
+            counts.count_im_absoluted_immediately /= f1;
+            counts.count_i_punish_immediately /=f1;
+            counts.count_im_punished_immediately /=f1;
+        }
+
+        let f2 = factor -2.0;
+        if f2 >=0.0{
+            counts.count_i_punish_after2 /=f2;
+            counts.count_im_punished_after2 /= f2;
+        }
+
         counts
         /*
         if let Some(first) =self.previous_encounters.first(){
