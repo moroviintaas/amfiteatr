@@ -91,7 +91,7 @@ impl GpClassic{
     }
 
     pub fn new_rand<R: Rng + ?Sized>(rng: &mut R) -> Self{
-        rand::distr::StandardUniform{}.sample(&mut rng)
+        rand::distr::StandardUniform{}.sample(rng)
     }
 }
 

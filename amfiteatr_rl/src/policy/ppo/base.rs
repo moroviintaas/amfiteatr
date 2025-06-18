@@ -842,22 +842,26 @@ pub trait PolicyTrainHelperPPO<DP: DomainParameters> : PolicyHelperA2C<DP, Confi
 
 
         //#[cfg(feature = "tensorboard")]
-        let learning_step = self.global_learning_step();
-        //let learning_rate = self.optimizer_mut().ra
-        if let Some(writer) = self.tboard_writer(){
-            writer.write_scalar(learning_step, "charts/learning_rate", pg_loss_mean.double_value(&[]) as f32)
-                .map_err(|e| AmfiteatrError::TboardFlattened {context: "Write policy loss".into(), error: format!("{e}")})?;
-            writer.write_scalar(learning_step, "losses/policy_loss", pg_loss_mean.double_value(&[]) as f32)
-                .map_err(|e| AmfiteatrError::TboardFlattened {context: "Write policy loss".into(), error: format!("{e}")})?;
-            writer.write_scalar(learning_step, "losses/value_loss", value_loss_avg.double_value(&[]) as f32)
-                .map_err(|e| AmfiteatrError::TboardFlattened {context: "Write value loss".into(), error: format!("{e}")})?;
-            writer.write_scalar(learning_step, "losses/entropy", entropy_mean.double_value(&[]) as f32)
-                .map_err(|e| AmfiteatrError::TboardFlattened {context: "Write entropy".into(), error: format!("{e}")})?;
-            writer.write_scalar(learning_step, "losses/kl_approximation", kl_approx_mean.double_value(&[]) as f32)
-                .map_err(|e| AmfiteatrError::TboardFlattened {context: "Write KL approximation".into(), error: format!("{e}")})?;
-        }
+        tch::no_grad(||{
+            let learning_step = self.global_learning_step();
+            //let learning_rate = self.optimizer_mut().ra
+            if let Some(writer) = self.tboard_writer(){
+                writer.write_scalar(learning_step, "charts/learning_rate", pg_loss_mean.double_value(&[]) as f32)
+                    .map_err(|e| AmfiteatrError::TboardFlattened {context: "Write policy loss".into(), error: format!("{e}")})?;
+                writer.write_scalar(learning_step, "losses/policy_loss", pg_loss_mean.double_value(&[]) as f32)
+                    .map_err(|e| AmfiteatrError::TboardFlattened {context: "Write policy loss".into(), error: format!("{e}")})?;
+                writer.write_scalar(learning_step, "losses/value_loss", value_loss_avg.double_value(&[]) as f32)
+                    .map_err(|e| AmfiteatrError::TboardFlattened {context: "Write value loss".into(), error: format!("{e}")})?;
+                writer.write_scalar(learning_step, "losses/entropy", entropy_mean.double_value(&[]) as f32)
+                    .map_err(|e| AmfiteatrError::TboardFlattened {context: "Write entropy".into(), error: format!("{e}")})?;
+                writer.write_scalar(learning_step, "losses/kl_approximation", kl_approx_mean.double_value(&[]) as f32)
+                    .map_err(|e| AmfiteatrError::TboardFlattened {context: "Write KL approximation".into(), error: format!("{e}")})?;
+            }
 
-        self.set_global_learning_step(self.global_learning_step()+1);
+            self.set_global_learning_step(self.global_learning_step()+1);
+            Result::<(), AmfiteatrError<DP>>::Ok(())
+        })?;
+
 
 
         Ok(LearnSummary{

@@ -411,10 +411,10 @@ impl<
 
 impl<
     S:  Default + GameStateWithPayoffs<ConnectFourDomain> + Clone + Renew<ConnectFourDomain, ()>,
-    P: LearningNetworkPolicy<ConnectFourDomain, InfoSetType=ConnectFourInfoSet, Summary=LearnSummary>
+    P: LearningNetworkPolicy<ConnectFourDomain, InfoSetType=ConnectFourInfoSet, Summary=LearnSummary> + TensorboardSupport<ConnectFourDomain>
 > ConnectFourModelRust<S, P>{
     #[allow(dead_code)]
-    pub fn new_ppo_generic(options: &ConnectFourOptions, agent_0_policy: P, agent_1_policy: P, shared_policy: bool) -> Self{
+    pub fn new_ppo_generic(options: &ConnectFourOptions, mut agent_0_policy: P, mut agent_1_policy: P, shared_policy: bool) -> Self{
 
 
         let (c_env1, c_a1) = StdEnvironmentEndpoint::new_pair();
@@ -423,6 +423,13 @@ impl<
         let mut hm = HashMap::new();
         hm.insert(ConnectFourPlayer::One, c_env1);
         hm.insert(ConnectFourPlayer::Two, c_env2);
+
+        if let Some(t0) = &options.tboard_agent0{
+            agent_0_policy.add_tboard_directory(t0).unwrap()
+        }
+        if let Some(t1) = &options.tboard_agent1{
+            agent_1_policy.add_tboard_directory(t1).unwrap()
+        }
 
 
         let env = Environment::new(S::default(), hm, );
@@ -861,6 +868,15 @@ where <P as Policy<ConnectFourDomain>>::InfoSetType: Renew<ConnectFourDomain, ()
         Ok(s1)
     }
 
+    pub fn train_agent1_only(&mut self) -> Result<LearnSummary, ErrorRL>{
+        let t1 = self.agent1.take_episodes();
+        let s1 = self.agent1.policy_mut().train_on_trajectories_env_reward(&t1)?;
+        let _t2 = self.agent0.take_episodes();
+        //self.agent2.policy_mut().train_on_trajectories_env_reward(&t2)?;
+
+        Ok(s1)
+    }
+
     pub fn train_agent0_on_both_experiences(&mut self) -> Result<(LearnSummary,LearnSummary), ErrorRL>{
         let mut t1 = self.agent0.take_episodes();
         let mut t2 = self.agent1.take_episodes();
@@ -905,11 +921,11 @@ where <P as Policy<ConnectFourDomain>>::InfoSetType: Renew<ConnectFourDomain, ()
             }
 
              */
-            self.agent0.policy_mut().t_write_scalar((options.epochs + e) as i64, "train_epoch/score", s.scores[0] as f32)?;
-            self.agent0.policy_mut().t_write_scalar((options.epochs + e) as i64, "train_epoch/illegal_moves", s.invalid_actions[0] as f32)?;
+            self.agent0.policy_mut().t_write_scalar(e as i64, "train_epoch/score", s.scores[0] as f32)?;
+            self.agent0.policy_mut().t_write_scalar( e as i64, "train_epoch/illegal_moves", s.invalid_actions[0] as f32)?;
 
-            self.agent1.policy_mut().t_write_scalar((options.epochs + e) as i64, "train_epoch/score", s.scores[1] as f32)?;
-            self.agent1.policy_mut().t_write_scalar((options.epochs + e) as i64, "train_epoch/illegal_moves", s.invalid_actions[1] as f32)?;
+            self.agent1.policy_mut().t_write_scalar(e as i64, "train_epoch/score", s.scores[1] as f32)?;
+            self.agent1.policy_mut().t_write_scalar(e as i64, "train_epoch/illegal_moves", s.invalid_actions[1] as f32)?;
 
             if let Some(ref mut tboard) = self.tboard_writer{
                 tboard.write_scalar(e as i64, "train_epoch/number_of_games", s.games_played as f32)
@@ -1004,7 +1020,7 @@ where <P as Policy<ConnectFourDomain>>::InfoSetType: Renew<ConnectFourDomain, ()
                     .map_err(|e| AmfiteatrError::TboardFlattened {context: "Saving average game steps in epoch (train)".into(), error: format!("{e}")})?;
 
             }
-            let s1 = self.train_agent0_only()?;
+            let s1 = self.train_agent1_only()?;
             info!("Summary of games in extended epoch {}: {}", e+1, s.describe_as_collected());
             info!("Training only agent 1 epoch {}: Critic losses {:.3}; Actor loss {:.3}; entropy loss {:.3}",
                 e+1, s1.value_loss.unwrap(),

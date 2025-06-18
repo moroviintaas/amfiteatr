@@ -69,7 +69,7 @@ pub struct ConnectFourOptions{
     #[arg(short = 't', long = "test-games", default_value = "0")]
     pub num_test_episodes: usize,
 
-    #[arg(short = 'P', long = "penalty", default_value = "-10")]
+    #[arg(short = 'P', long = "penalty", default_value = "-10.0", allow_negative_numbers = true)]
     pub penalty_for_illegal: f32,
 
     #[arg(short = 'M', long = "mode", default_value = "rust")]

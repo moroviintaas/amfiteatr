@@ -62,7 +62,7 @@ impl<ID: UsizeAgentId> LocalHistoryInfoSet<ID>{
         let mut past_previous = (None, None);
 
 
-        for report in self.previous_encounters{
+        for report in &self.previous_encounters{
 
             if let (Some(p1), Some(p2)) = previous{
                 if p2 == Up{

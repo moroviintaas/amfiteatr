@@ -532,18 +532,22 @@ pub trait PolicyTrainHelperA2C<DP: DomainParameters> : PolicyHelperA2C<DP, Confi
         #[cfg(feature = "log_debug")]
         log::debug!("Mean Value loss tensor after training: {entropy_mean}");
 
-        let learning_step = self.global_learning_step();
-        if let Some(writer) = self.tboard_writer(){
-            writer.write_scalar(learning_step, "losses/policy_loss", pg_loss_mean.double_value(&[]) as f32)
-                .map_err(|e| AmfiteatrError::TboardFlattened {context: "Write policy loss".into(), error: format!("{e}")})?;
-            writer.write_scalar(learning_step, "losses/value_loss", value_loss_avg.double_value(&[]) as f32)
-                .map_err(|e| AmfiteatrError::TboardFlattened {context: "Write value loss".into(), error: format!("{e}")})?;
-            writer.write_scalar(learning_step, "losses/entropy", entropy_mean.double_value(&[]) as f32)
-                .map_err(|e| AmfiteatrError::TboardFlattened {context: "Write entropy".into(), error: format!("{e}")})?;
+        tch::no_grad(||{
+            let learning_step = self.global_learning_step();
+            if let Some(writer) = self.tboard_writer(){
+                writer.write_scalar(learning_step, "losses/policy_loss", pg_loss_mean.double_value(&[]) as f32)
+                    .map_err(|e| AmfiteatrError::TboardFlattened {context: "Write policy loss".into(), error: format!("{e}")})?;
+                writer.write_scalar(learning_step, "losses/value_loss", value_loss_avg.double_value(&[]) as f32)
+                    .map_err(|e| AmfiteatrError::TboardFlattened {context: "Write value loss".into(), error: format!("{e}")})?;
+                writer.write_scalar(learning_step, "losses/entropy", entropy_mean.double_value(&[]) as f32)
+                    .map_err(|e| AmfiteatrError::TboardFlattened {context: "Write entropy".into(), error: format!("{e}")})?;
 
-        }
+            }
 
-        self.set_global_learning_step(self.global_learning_step()+1);
+            self.set_global_learning_step(self.global_learning_step()+1);
+            Result::<(), AmfiteatrError<DP>>::Ok(())
+        })?;
+
 
         Ok(LearnSummary{
             value_loss: Some(value_loss_avg.double_value(&[])),
