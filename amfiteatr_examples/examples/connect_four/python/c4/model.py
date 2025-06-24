@@ -93,8 +93,11 @@ class TwoPlayerModel:
 
             else:
                 state = observation["observation"]
+                #print(self.masking)
                 if self.masking:
+
                     masks = observation["action_mask"]
+                    #print(masks)
                 else:
                     masks = None
                 action = self.agents[agent].policy_step(state, payoff, masks)
