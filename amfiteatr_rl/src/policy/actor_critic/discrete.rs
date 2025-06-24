@@ -198,6 +198,7 @@ ContextDecodeIndexI64<ActionEncoding> + ContextEncodeIndexI64<ActionEncoding>{
 
     fn batch_get_logprob_entropy_critic(&self, info_set_batch: &Tensor, action_param_batches: &<Self::NetworkOutput as ActorCriticOutput>::ActionTensorType, action_category_mask_batches: Option<&<Self::NetworkOutput as ActorCriticOutput>::ActionTensorType>, action_forward_mask_batches: Option<&<Self::NetworkOutput as ActorCriticOutput>::ActionTensorType>) -> Result<(Tensor, Tensor, Tensor), AmfiteatrError<DP>> {
 
+        /*
         let a2c_net = self.network().net()(info_set_batch);
 
         let (log_prob, entropy) = a2c_net.batch_get_logprob_and_entropy(
@@ -207,6 +208,29 @@ ContextDecodeIndexI64<ActionEncoding> + ContextEncodeIndexI64<ActionEncoding>{
         )?;
 
         Ok((log_prob, entropy, a2c_net.critic))
+
+         */
+        let critic_actor= self.network.net()(info_set_batch);
+
+        let batch_logprob = critic_actor.batch_log_probability_of_action::<DP>(
+            action_param_batches,
+            action_forward_mask_batches,
+            action_category_mask_batches
+        )?;
+        let batch_entropy = critic_actor.batch_entropy_masked(
+            action_forward_mask_batches,
+            action_category_mask_batches
+
+        ).map_err(|e|AmfiteatrError::Tensor {
+            error: TensorError::Torch {
+                context: "batch_get_actor_critic_with_logprob_and_entropy".into(),
+                origin: format!("{e}")
+            }
+        })?;
+
+
+
+        Ok((batch_logprob, batch_entropy, critic_actor.critic))
 
     }
 }
@@ -357,15 +381,33 @@ impl <
     }
 
     fn dist(&self, info_set: &Self::InfoSet, network_output: &Self::NetworkOutput) -> Result<<Self::NetworkOutput as ActorCriticOutput>::ActionTensorType, AmfiteatrError<DP>> {
+        /*
         let softmax = network_output.actor.f_softmax(-1, tch::Kind::Float)
             .map_err(|e| TensorError::from_tch_with_context(e, "PPO distribution (softmax)".into()))?;
-
+        */
+        //println!("Network output: {}", &network_output.actor);
         let masks = info_set.try_build_mask(self.action_encoding())?;
-
+        //println!("Masks: {}", masks);
+        let masked_actor = network_output.actor.f_where_self(&masks, &Tensor::from(f32::NEG_INFINITY))
+            .map_err(|e| TensorError::from_tch_with_context(e, format!("A2C masking actor network output masks: {masks}, actor: {}", &network_output.actor)))?;
+        //println!("Masked actor: {}", masked_actor);
+        let softmax = masked_actor.f_softmax(-1, tch::Kind::Float)
+            .map_err(|e| TensorError::from_tch_with_context(e, "A2C distribution (softmax)".into()))?;
+        /*
         let product = softmax.f_where_self(&masks, &Tensor::from(0.0))
             .map_err(|e| TensorError::from_tch_with_context(e, "PPO distribution (softmax * mask)".into())
             )?;
+
         Ok(product)
+         */
+
+        #[cfg(feature = "log_debug")]
+        {
+            if softmax.nonzero().size()[0] == 0{
+                log::warn!("Distribution of action is all zeros!, policy dist: {softmax}, masks: {masks}.");
+            }
+        }
+        Ok(softmax)
     }
 
     fn is_action_masking_supported(&self) -> bool {

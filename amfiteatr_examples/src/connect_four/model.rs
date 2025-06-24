@@ -832,6 +832,7 @@ where <P as Policy<ConnectFourDomain>>::InfoSetType: Renew<ConnectFourDomain, ()
 
 
         }
+        //println!("Finishing epoch {number_of_games_played}");
         if summarize{
             let summary_sum: EpochSummary = vec.iter().fold(EpochSummary::default(), |acc, x| &acc+x);
             let n = number_of_games_played as f64;
@@ -850,9 +851,13 @@ where <P as Policy<ConnectFourDomain>>::InfoSetType: Renew<ConnectFourDomain, ()
     //}
 
     pub fn train_agents_on_experience(&mut self) -> Result<(LearnSummary,LearnSummary), ErrorRL>{
+        //println!("Training agent 0");
         let t1 = self.agent0.take_episodes();
         let s1 = self.agent0.policy_mut().train_on_trajectories_env_reward(&t1)?;
         let t2 = self.agent1.take_episodes();
+        //println!("eps1: {}", t1.len());
+        //println!("eps2: {}", t2.len());
+        //println!("Training agent 1");
         let s2 = self.agent1.policy_mut().train_on_trajectories_env_reward(&t2)?;
         //self.agent2.policy_mut().train_on_trajectories(&t2, |step| Tensor::from(-1.0 + (2.0 * step.reward())))?;
 

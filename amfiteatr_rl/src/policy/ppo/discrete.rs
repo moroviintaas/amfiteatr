@@ -96,6 +96,7 @@ impl<
     }
 
 
+    /*
     /// Returns three tensors for respectively log probability of each action, entropy of this distribution
     /// and critic value.
     /// Tensor sizes:
@@ -132,6 +133,8 @@ impl<
 
         Ok((batch_logprob, batch_entropy, critic_actor.critic))
     }
+    
+     */
 
     pub fn var_store(&self) -> &VarStore {
         self.network.var_store()
@@ -258,15 +261,27 @@ impl<
     }
 
     fn batch_get_logprob_entropy_critic(&self, info_set_batch: &Tensor, action_param_batches: &<Self::NetworkOutput as ActorCriticOutput>::ActionTensorType, action_category_mask_batches: Option<&<Self::NetworkOutput as ActorCriticOutput>::ActionTensorType>, action_forward_mask_batches: Option<&<Self::NetworkOutput as ActorCriticOutput>::ActionTensorType>) -> Result<(Tensor, Tensor, Tensor), AmfiteatrError<DP>> {
-        let a2c_net = self.network().net()(info_set_batch);
+        let critic_actor= self.network.net()(info_set_batch);
 
-        let (log_prob, entropy) = a2c_net.batch_get_logprob_and_entropy(
+        let batch_logprob = critic_actor.batch_log_probability_of_action::<DP>(
             action_param_batches,
-            action_category_mask_batches,
-            action_forward_mask_batches
+            action_forward_mask_batches,
+            action_category_mask_batches
         )?;
+        let batch_entropy = critic_actor.batch_entropy_masked(
+            action_forward_mask_batches,
+            action_category_mask_batches
 
-        Ok((log_prob, entropy, a2c_net.critic))
+        ).map_err(|e|AmfiteatrError::Tensor {
+            error: TensorError::Torch {
+                context: "batch_get_actor_critic_with_logprob_and_entropy".into(),
+                origin: format!("{e}")
+            }
+        })?;
+
+
+
+        Ok((batch_logprob, batch_entropy, critic_actor.critic))
     }
 }
 

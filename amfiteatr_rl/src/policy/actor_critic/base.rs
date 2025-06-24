@@ -133,8 +133,9 @@ pub trait PolicyHelperA2C<DP: DomainParameters>{
     /// Automatically implemented action selection using required methods.
     fn a2c_select_action(&self, info_set: &Self::InfoSet) -> Result<DP::ActionType, AmfiteatrError<DP>>{
         let state_tensor = info_set.to_tensor(self.info_set_encoding());
+        //println!("state tensor: {state_tensor}");
         let out = tch::no_grad(|| (self.network().net())(&state_tensor));
-
+        //println!("out: {out:?}");
         let probs = tch::no_grad(||self.dist(info_set, &out))?;
         let choices = tch::no_grad(|| match self.is_exploration_on(){
             true => {
@@ -326,11 +327,15 @@ pub trait PolicyTrainHelperA2C<DP: DomainParameters> : PolicyHelperA2C<DP, Confi
         let mut summary_vec_entropy = Vec::with_capacity(capacity_estimate);
 
 
+        //println!("trajectories: {:?}", trajectories);
 
+        //println!("a");
         let step_example = trajectories.iter().find(|&trajectory|{
             trajectory.view_step(0).is_some()
         }).and_then(|trajectory| trajectory.view_step(0))
             .ok_or(AmfiteatrRlError::NoTrainingData)?;
+        //println!("b");
+
 
         let sample_info_set = step_example.information_set();
 
@@ -506,6 +511,13 @@ pub trait PolicyTrainHelperA2C<DP: DomainParameters> : PolicyHelperA2C<DP, Confi
             let action_loss = (-advantages.detach() * log_probs).mean(Float);
             let entropy_mean = entropy.f_mean(Float)
                 .map_err(|e| TensorError::from_tch_with_context(e, "Calculating entropy loss".into()))?;
+            #[cfg(feature = "log_trace")]
+            log::trace!("value_loss: {value_loss}");
+            #[cfg(feature = "log_trace")]
+            log::trace!("action_loss: {action_loss}");
+            #[cfg(feature = "log_trace")]
+            log::trace!("entropy: {entropy_mean}");
+
             let loss = action_loss
                 .f_add(&(&value_loss * self.config().vf_coef))
                 .map_err(|e| TensorError::from_tch_with_context(e, "Calculating loss (adding value loss)".into()))?
