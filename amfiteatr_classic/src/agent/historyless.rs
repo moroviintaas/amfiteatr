@@ -2,8 +2,9 @@ use amfiteatr_core::agent::{InformationSet, PresentPossibleActions, EvaluatedInf
 use amfiteatr_core::domain::DomainParameters;
 use std::fmt::Display;
 use std::fmt::Formatter;
+use crate::agent::{LocalHistoryInfoSet, ReplInfoSet};
 use crate::AsymmetricRewardTableInt;
-use crate::domain::{AgentNum, ClassicAction, ClassicGameDomain, ClassicGameDomainNumbered, ClassicGameError, IntReward};
+use crate::domain::{AgentNum, ClassicAction, ClassicGameDomain, ClassicGameDomainNumbered, ClassicGameError, IntReward, UsizeAgentId};
 use crate::domain::ClassicGameError::EncounterNotReported;
 
 /// Information set of player that does not collect information about previous actions performed
@@ -30,6 +31,11 @@ impl MinimalInfoSet {
     }
 }
 
+impl ReplInfoSet<AgentNum> for MinimalInfoSet{
+    fn create(agent_id: AgentNum, reward_table: AsymmetricRewardTableInt) -> Self {
+        Self::new(agent_id, reward_table)
+    }
+}
 
 
 

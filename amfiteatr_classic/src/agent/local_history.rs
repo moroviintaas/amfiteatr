@@ -6,7 +6,7 @@ use amfiteatr_core::agent::{InformationSet, PresentPossibleActions, EvaluatedInf
 use amfiteatr_core::domain::{Renew};
 use amfiteatr_core::error::{AmfiteatrError, ConvertError};
 use amfiteatr_rl::tensor_data::{ContextEncodeTensor, TensorEncoding};
-use crate::agent::{ActionPairMapper, AgentAssessmentClassic, EventCounts};
+use crate::agent::{ActionPairMapper, AgentAssessmentClassic, EventCounts, ReplInfoSet};
 use crate::AsymmetricRewardTableInt;
 use crate::domain::{AgentNum, AsUsize, ClassicAction, ClassicGameDomain, ClassicGameError, ClassicGameUpdate, EncounterReport, UsizeAgentId};
 use crate::domain::ClassicAction::{Down, Up};
@@ -176,6 +176,12 @@ impl<ID: UsizeAgentId> LocalHistoryInfoSet<ID>{
     }
 
 
+}
+
+impl<ID: UsizeAgentId> ReplInfoSet<ID> for LocalHistoryInfoSet<ID>{
+    fn create(agent_id: ID, reward_table: AsymmetricRewardTableInt) -> Self {
+        Self::new(agent_id, reward_table)
+    }
 }
 
 impl<ID: UsizeAgentId> Display for LocalHistoryInfoSet<ID> {

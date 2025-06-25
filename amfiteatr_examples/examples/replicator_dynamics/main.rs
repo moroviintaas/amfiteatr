@@ -8,7 +8,7 @@ use log::{
     debug,
     info,
 };
-use amfiteatr_rl::tch::{Device, nn, Tensor};
+use amfiteatr_rl::tch::{nn, Device, Tensor};
 use clap::Parser;
 use plotters::style::colors;
 use amfiteatr_rl::tch::nn::{Adam, VarStore};
@@ -31,8 +31,8 @@ use amfiteatr_classic::domain::{
 use amfiteatr_classic::env::PairingState;
 use amfiteatr_classic::{AsymmetricRewardTableInt, SymmetricRewardTable};
 use amfiteatr_classic::agent::{
-    LocalHistoryInfoSet,
-    LocalHistoryConversionToTensor};
+    LocalHistoryConversionToTensor,
+    LocalHistoryInfoSet};
 use amfiteatr_examples::plots::{plot_many_series, PlotSeries};
 use amfiteatr_examples::series::PayoffGroupSeries;
 use amfiteatr_rl::policy::{ActorCriticPolicy, LearningNetworkPolicy, TrainConfig};
