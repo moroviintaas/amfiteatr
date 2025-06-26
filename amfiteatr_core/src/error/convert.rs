@@ -42,7 +42,14 @@ pub enum ConvertError{
     #[error("Torch string")]
     TorchStr{
         origin: String
-    }
+    },
+    /// Dump of `TchError` from crate `tch` (optional dependency) to string.
+    #[error("Illegal value: {value} (in context {context})")]
+    IllegalValue{
+        value: String,
+        context: String,
+    },
+
 
 }
 

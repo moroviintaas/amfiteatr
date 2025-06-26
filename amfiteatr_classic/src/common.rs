@@ -1,6 +1,9 @@
 use serde::{Serialize, Deserialize};
 use amfiteatr_core::domain::Reward;
 use enum_map::{Enum, enum_map, EnumMap};
+use amfiteatr_core::error::ConvertError;
+use amfiteatr_rl::tch::Tensor;
+use amfiteatr_rl::tensor_data::{ContextDecodeIndexI64, ContextDecodeTensor, ContextEncodeIndexI64, ContextEncodeTensor, TensorDecoding, TensorIndexI64Encoding};
 use crate::domain::{ClassicAction, IntReward};
 
 /// Enum for representing on which side of encounter is player.
@@ -161,3 +164,59 @@ mod tests{
 }
 
 
+pub struct ClassicActionTensorRepresentation{}
+
+impl TensorDecoding for ClassicActionTensorRepresentation{
+    fn expected_input_shape(&self) -> &[i64] {
+        &[1]
+    }
+}
+
+impl TensorIndexI64Encoding for ClassicActionTensorRepresentation{
+    fn min(&self) -> i64 {
+        0
+    }
+
+    fn limit(&self) -> i64 {
+        1
+    }
+}
+
+impl ContextDecodeTensor<ClassicActionTensorRepresentation> for ClassicAction{
+    fn try_from_tensor(tensor: &Tensor, decoding: &ClassicActionTensorRepresentation) -> Result<Self, ConvertError>
+    where
+        Self: Sized
+    {
+        let id = tensor.f_int64_value(&[0])
+            .map_err(|e| ConvertError::ConvertFromTensor {
+                origin: format!("{e:}"),
+                context: format!("Converting Connect Four action from Tensor {tensor:?}")}
+            )?;
+        match id{
+            0 => Ok(ClassicAction::Up),
+            1 => Ok(ClassicAction::Down),
+            n => Err(ConvertError::IllegalValue { value: format!("{n}"), context: "ContextDecodeTensor".to_string() })
+
+        }
+    }
+}
+
+impl ContextDecodeIndexI64<ClassicActionTensorRepresentation> for ClassicAction{
+    fn try_from_index(index: i64, _encoding: &ClassicActionTensorRepresentation) -> Result<Self, ConvertError> {
+        match index{
+            0 => Ok(ClassicAction::Up),
+            1 => Ok(ClassicAction::Down),
+            n => Err(ConvertError::IllegalValue { value: format!("{n}"), context: "ContextDecodeIndexI64".to_string() })
+
+        }
+    }
+}
+
+impl ContextEncodeIndexI64<ClassicActionTensorRepresentation> for ClassicAction{
+    fn try_to_index(&self, _encoding: &ClassicActionTensorRepresentation) -> Result<i64, ConvertError> {
+        match self{
+            ClassicAction::Up => Ok(0),
+            ClassicAction::Down => Ok(1),
+        }
+    }
+}

@@ -1,22 +1,25 @@
 use std::collections::HashMap;
 use std::fs::File;
-use std::sync::RwLock;
-use amfiteatr_classic::agent::{LocalHistoryInfoSet, ReplInfoSetAgentNum};
-use amfiteatr_classic::{AsymmetricRewardTable, SymmetricRewardTable};
+use std::sync::Arc;
+use parking_lot::{Mutex, RwLock};
+use pyo3::impl_::wrap::SomeWrap;
+use amfiteatr_classic::agent::{LocalHistoryConversionToTensor, LocalHistoryInfoSet, ReplInfoSetAgentNum};
+use amfiteatr_classic::{AsymmetricRewardTable, ClassicActionTensorRepresentation, SymmetricRewardTable};
 use amfiteatr_classic::domain::{AgentNum, ClassicAction, ClassicGameDomainNumbered};
 use amfiteatr_classic::env::PairingState;
 use amfiteatr_classic::policy::{ClassicMixedStrategy, ClassicPureStrategy};
-use amfiteatr_core::agent::{AgentGen, Policy, TracingAgentGen};
+use amfiteatr_core::agent::{AgentGen, AutomaticAgent, IdAgent, InformationSet, MultiEpisodeAutoAgent, Policy, StatefulAgent, TracingAgent, TracingAgentGen};
 use amfiteatr_core::comm::{EnvironmentMpscPort, StdAgentEndpoint, StdEnvironmentEndpoint};
-use amfiteatr_core::domain::DomainParameters;
-use amfiteatr_core::env::TracingHashMapEnvironment;
+use amfiteatr_core::domain::{DomainParameters, Renew};
+use amfiteatr_core::env::{AutoEnvironmentWithScores, ReseedEnvironment, ScoreEnvironment, TracingHashMapEnvironment};
 use amfiteatr_core::error::AmfiteatrError;
 use amfiteatr_core::reexport::nom::Parser;
 use amfiteatr_core::util::TensorboardSupport;
-use amfiteatr_rl::policy::LearningNetworkPolicy;
+use amfiteatr_rl::policy::{LearningNetworkPolicy, PolicyDiscretePPO};
 use crate::replicators::error::ReplError;
 use crate::replicators::error::ReplError::OddAgentNumber;
 use amfiteatr_classic::agent::ReplInfoSet;
+use crate::replicators::epoch_description::EpochDescription;
 
 pub type ReplDomain = ClassicGameDomainNumbered;
 
@@ -24,23 +27,29 @@ pub type PurePolicy = ClassicPureStrategy<AgentNum, LocalHistoryInfoSet<AgentNum
 pub type AgentPure = AgentGen<ReplDomain, PurePolicy, StdAgentEndpoint<ReplDomain>>;
 pub type StaticBehavioralAgent = AgentGen<ReplDomain, ClassicMixedStrategy<AgentNum, LocalHistoryInfoSet<AgentNum>>, StdAgentEndpoint<ReplDomain>>;
 pub type LearningAgent<
-    P: LearningNetworkPolicy<ReplDomain, InfoSetType=LocalHistoryInfoSet<ReplDomain>>
-        + TensorboardSupport<ReplDomain>> =
-    TracingAgentGen<ReplDomain, P, StdAgentEndpoint<ReplDomain>>;
+    P: LearningNetworkPolicy<ReplDomain> + Policy<ReplDomain, InfoSetType=LocalHistoryInfoSet<AgentNum>>
+        + TensorboardSupport<ReplDomain>
+> = TracingAgentGen<ReplDomain, P, StdAgentEndpoint<ReplDomain>>;
+
+
+
+//pub type PpoAgent = TracingAgentGen<ReplDomain, PolicyDiscretePPO<ReplDomain, LocalHistoryInfoSet<AgentNum>, LocalHistoryConversionToTensor, ClassicActionTensorRepresentation>, StdAgentEndpoint<ReplDomain>>;
 
 pub type ModelEnvironment = TracingHashMapEnvironment<ReplDomain, PairingState<<ReplDomain as DomainParameters>::AgentId>, StdEnvironmentEndpoint<ReplDomain>>;
 
 
-pub trait ReplicatorNetworkPolicy: LearningNetworkPolicy<ReplDomain, InfoSetType: ReplInfoSetAgentNum> + TensorboardSupport<ReplDomain>{
+pub trait ReplicatorNetworkPolicy: LearningNetworkPolicy<ReplDomain, InfoSetType= LocalHistoryInfoSet<AgentNum>> + TensorboardSupport<ReplDomain>{
 
 }
 
-impl <P: LearningNetworkPolicy<ReplDomain, InfoSetType: ReplInfoSetAgentNum> + TensorboardSupport<ReplDomain>> ReplicatorNetworkPolicy for P {}
-pub struct ReplicatorModelBuilder<LP: ReplicatorNetworkPolicy>{
-    pure_hawks: Vec<RwLock<AgentPure>>,
-    pure_doves: Vec<RwLock<AgentPure>>,
-    mixed_agents: Vec<RwLock<StaticBehavioralAgent>>,
-    learning_agents: Vec<RwLock<LearningAgent<LP>>>,
+impl <P: LearningNetworkPolicy<ReplDomain, InfoSetType= LocalHistoryInfoSet<AgentNum>> + TensorboardSupport<ReplDomain>>
+ReplicatorNetworkPolicy for P {}
+pub struct ReplicatorModelBuilder<LP: ReplicatorNetworkPolicy>
+{
+    pure_hawks: Vec<Arc<Mutex<AgentPure>>>,
+    pure_doves: Vec<Arc<Mutex<AgentPure>>>,
+    mixed_agents: Vec<Arc<Mutex<StaticBehavioralAgent>>>,
+    network_learning_agents: Vec<Arc<Mutex<LearningAgent<LP>>>>,
     communication_map: HashMap<AgentNum, StdEnvironmentEndpoint<ReplDomain>>,
     thread_pool: Option<rayon::ThreadPool>,
     reward_table: AsymmetricRewardTable<i64>,
@@ -50,13 +59,16 @@ pub struct ReplicatorModelBuilder<LP: ReplicatorNetworkPolicy>{
 }
 
 
-impl<LP: ReplicatorNetworkPolicy>ReplicatorModelBuilder<LP> {
+impl <LP: ReplicatorNetworkPolicy>ReplicatorModelBuilder<LP>
+//ReplicatorModelBuilder
+
+{
     pub fn new() -> Self {
         Self{
             pure_hawks: Vec::new(),
             pure_doves: Vec::new(),
             mixed_agents: Vec::new(),
-            learning_agents: Vec::new(),
+            network_learning_agents: Vec::new(),
             communication_map: HashMap::new(),
             thread_pool: None,
             reward_table: SymmetricRewardTable::new(2, 1, 4, 0).into(),
@@ -64,6 +76,7 @@ impl<LP: ReplicatorNetworkPolicy>ReplicatorModelBuilder<LP> {
             tboard_writer: None
         }
     }
+
     pub fn add_learning_agent(&mut self, agent_id: u32, policy: LP) -> Result<(), ReplError>{
         if self.communication_map.contains_key(&agent_id) {
             Err(ReplError::AgentDuplication(agent_id))
@@ -72,7 +85,7 @@ impl<LP: ReplicatorNetworkPolicy>ReplicatorModelBuilder<LP> {
             let (env_comm, agent_comm) = StdEnvironmentEndpoint::new_pair();
             let agent = TracingAgentGen::new(info_set, agent_comm, policy);
             self.communication_map.insert(agent_id, env_comm);
-            self.learning_agents.push(RwLock::new(agent));
+            self.network_learning_agents.push(Arc::new(Mutex::new(agent)));
             Ok(())
         }
     }
@@ -91,7 +104,7 @@ impl<LP: ReplicatorNetworkPolicy>ReplicatorModelBuilder<LP> {
             let (env_comm, agent_comm) = StdEnvironmentEndpoint::new_pair();
             let agent = AgentGen::new(info_set, agent_comm, policy);
             self.communication_map.insert(agent_id, env_comm);
-            self.pure_doves.push(RwLock::new(agent));
+            self.pure_doves.push(Arc::new(Mutex::new(agent)));
             Ok(())
         }
     }
@@ -105,13 +118,15 @@ impl<LP: ReplicatorNetworkPolicy>ReplicatorModelBuilder<LP> {
             let (env_comm, agent_comm) = StdEnvironmentEndpoint::new_pair();
             let agent = AgentGen::new(info_set, agent_comm, policy);
             self.communication_map.insert(agent_id, env_comm);
-            self.pure_hawks.push(RwLock::new(agent));
+            self.pure_hawks.push(Arc::new(Mutex::new(agent)));
             Ok(())
         }
     }
 
-    pub fn build(self) -> Result<ReplicatorModel<LP>, ReplError>{
-        let number_of_agents = self.learning_agents.len() + self.mixed_agents.len()
+    pub fn build(self) -> Result<ReplicatorModel<LP>, ReplError>
+    where <LP as Policy<ReplDomain>>::InfoSetType: Renew<ReplDomain, ()> + InformationSet<ReplDomain>{
+    //pub fn build(self) -> Result<ReplicatorModel, ReplError>{
+        let number_of_agents = self.network_learning_agents.len() + self.mixed_agents.len()
             +self.pure_doves.len() + self.pure_hawks.len();
         if number_of_agents %2 != 0{
             return Err(OddAgentNumber(number_of_agents))
@@ -126,7 +141,7 @@ impl<LP: ReplicatorNetworkPolicy>ReplicatorModelBuilder<LP> {
             self.pure_hawks,
             self.pure_doves,
             self.mixed_agents,
-            self.learning_agents,
+            self.network_learning_agents,
             self.tboard_writer,
             self.thread_pool,
         ))
@@ -136,14 +151,15 @@ impl<LP: ReplicatorNetworkPolicy>ReplicatorModelBuilder<LP> {
 
 }
 
-pub struct ReplicatorModel<LP: ReplicatorNetworkPolicy>{
+pub struct ReplicatorModel<LP: ReplicatorNetworkPolicy> {
+    //pub struct ReplicatorModel{
     tboard_writer: Option<tboard::EventWriter<File>>,
     thread_pool: Option<rayon::ThreadPool>,
 
-    pure_hawks: Vec<RwLock<AgentPure>>,
-    pure_doves: Vec<RwLock<AgentPure>>,
-    mixed_agents: Vec<RwLock<StaticBehavioralAgent>>,
-    learning_agents: Vec<RwLock<LearningAgent<LP>>>,
+    pure_hawks: Vec<Arc<Mutex<AgentPure>>>,
+    pure_doves: Vec<Arc<Mutex<AgentPure>>>,
+    mixed_agents: Vec<Arc<Mutex<StaticBehavioralAgent>>>,
+    network_learning_agents: Vec<Arc<Mutex<LearningAgent<LP>>>>,
     environment: ModelEnvironment,
 
 
@@ -163,16 +179,17 @@ pub struct ReplicatorModel<LP: ReplicatorNetworkPolicy>{
 
 }
 
-impl<LP: ReplicatorNetworkPolicy> ReplicatorModel<LP>{
+impl<LP: ReplicatorNetworkPolicy> ReplicatorModel<LP> {
+//impl ReplicatorModel{
 
     //num_learning_agents: usize, num_pure_hawks: usize, num_pure_doves: usize
 
     pub(crate) fn _create(
         environment : ModelEnvironment,
-        pure_hawks: Vec<RwLock<AgentPure>>,
-        pure_doves: Vec<RwLock<AgentPure>>,
-        mixed_agents: Vec<RwLock<StaticBehavioralAgent>>,
-        learning_agents: Vec<RwLock<LearningAgent<LP>>>,
+        pure_hawks: Vec<Arc<Mutex<AgentPure>>>,
+        pure_doves: Vec<Arc<Mutex<AgentPure>>>,
+        mixed_agents: Vec<Arc<Mutex<StaticBehavioralAgent>>>,
+        learning_agents: Vec<Arc<Mutex<LearningAgent<LP>>>>,
         tboard_writer: Option<tboard::EventWriter<File>>,
         thread_pool: Option<rayon::ThreadPool>,
     ) -> Self{
@@ -182,24 +199,150 @@ impl<LP: ReplicatorNetworkPolicy> ReplicatorModel<LP>{
             pure_hawks,
             pure_doves,
             mixed_agents,
-            learning_agents,
+            network_learning_agents: learning_agents,
             environment,
         }
     }
-    /*
-    pub fn new() -> Self{
-        let environment_ports = HashMap::new();
 
-        let env_state = PairingState::new_even(0, self.t, ())
 
-        for index in 0..num_learning_agents as u32 {
-            let (env_point, agent_point) = StdEnvironmentEndpoint::new_pair();
+
+    pub fn run_episode(&mut self) -> Result<(), AmfiteatrError<ReplDomain>>{
+        match &mut self.thread_pool{
+            Some(pool) => {
+                todo!()
+            },
+            None => {
+                std::thread::scope(|s|{
+                    s.spawn(||{
+                        self.environment.reseed(()).unwrap();
+                        self.environment.run_with_scores().unwrap();
+                    });
+
+                    for hawk in &self.pure_hawks{
+                        let agent = hawk.clone();
+                        s.spawn(move ||{
+                            let mut hawk_guard = agent.lock();
+                            hawk_guard.run_episode(()).unwrap();
+
+                        });
+                    }
+
+                    for dove in &self.pure_doves{
+                        let agent = dove.clone();
+                        s.spawn(move ||{
+                            let mut guard = agent.lock();
+                            guard.run_episode(()).unwrap();
+
+                        });
+                    }
+
+                    for nla in &self.network_learning_agents{
+                        let agent = nla.clone();
+                        s.spawn(move ||{
+                            let mut guard = agent.lock();
+                            guard.run_episode(()).unwrap();
+
+                        });
+                    }
+
+                    for mixed_agent in &self.mixed_agents{
+                        let agent = mixed_agent.clone();
+                        s.spawn(move ||{
+                            let mut guard = agent.lock();
+                            guard.run_episode(()).unwrap();
+
+                        });
+                    }
+
+                });
+
+            }
+        }
+        Ok(())
+    }
+
+    pub fn clear_episodes_trajectories(&mut self) -> Result<(), AmfiteatrError<ReplDomain>>{
+        for agent in &self.network_learning_agents{
+            let mut guard = agent.as_ref().lock();
+            guard.clear_episodes()?;
 
         }
+        Ok(())
+    }
+
+
+    fn create_empty_description(&self, capacity: usize) -> EpochDescription{
+
+        let mut description = EpochDescription::default();
+        for agent in self.network_learning_agents.iter(){
+            let guard = agent.lock();
+            description.scores.insert(guard.id().clone(), Vec::with_capacity(capacity));
+            description.network_learning_hawk_moves.insert(guard.id().clone(), Vec::with_capacity(capacity));
+            description.network_learning_dove_moves.insert(guard.id().clone(), Vec::with_capacity(capacity));
+        }
+        for agent in self.pure_doves.iter(){
+            let guard = agent.lock();
+            description.scores.insert(guard.id().clone(), Vec::with_capacity(capacity));
+        }
+        for agent in self.pure_hawks.iter(){
+            let guard = agent.lock();
+            description.scores.insert(guard.id().clone(), Vec::with_capacity(capacity));
+        }
+
+        description
+    }
+
+    fn update_epoch_description_with_episode(&self, description: &mut EpochDescription){
+        for agent in self.network_learning_agents.iter(){
+            let guard = agent.lock();
+            if let Some(a) = description.scores.get_mut(guard.id()){
+                a.push(self.environment.actual_penalty_score_of_player(guard.id()))
+            }
+            if let Some(a) = description.network_learning_dove_moves.get_mut(guard.id()){
+                let dove_action = guard.trajectory().iter()
+                    .filter(|s| *s.action() == ClassicAction::Down)
+                    .count();
+                a.push(dove_action);
+            }
+            if let Some(a) = description.network_learning_hawk_moves.get_mut(guard.id()){
+                let hawk_action = guard.trajectory().iter()
+                    .filter(|s| *s.action() == ClassicAction::Up)
+                    .count();
+                a.push(hawk_action);
+            }
+        }
+        for agent in self.pure_doves.iter(){
+            let guard = agent.lock();
+            if let Some(a) = description.scores.get_mut(guard.id()){
+                a.push(self.environment.actual_penalty_score_of_player(guard.id()))
+            }
+        }
+        for agent in self.pure_hawks.iter(){
+            let guard = agent.lock();
+            if let Some(a) = description.scores.get_mut(guard.id()){
+                a.push(self.environment.actual_penalty_score_of_player(guard.id()))
+            }
+        }
+        for agent in self.mixed_agents.iter(){
+            let guard = agent.lock();
+            if let Some(a) = description.scores.get_mut(guard.id()){
+                a.push(self.environment.actual_penalty_score_of_player(guard.id()))
+            }
+        }
+    }
+    pub fn run_epoch(&mut self, episodes: usize) -> Result<EpochDescription, AmfiteatrError<ReplDomain>>{
+
+        let mut description = self.create_empty_description(episodes);
+        self.clear_episodes_trajectories();
+        for i in 0..episodes{
+            log::debug!("Running episode {}", i);
+            self.run_episode();
+            self.update_epoch_description_with_episode(&mut description);
+        }
+        Ok(description)
+        //let description_mean = description.mean();
 
 
 
     }
-
-     */
 }

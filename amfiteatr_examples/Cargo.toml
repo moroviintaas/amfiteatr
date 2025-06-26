@@ -95,6 +95,7 @@ numpy = "0.23.0"
 tboard = "0.1.1"
 criterion = "0.6.0"
 rayon = "1.10.0"
+parking_lot = "0.12.3"
 
 [features]
 rl-python = ["pyo3"]
