@@ -7,4 +7,5 @@ pub mod series;
 #[cfg(feature = "rl-python")]
 pub mod connect_four;
 pub mod replicators;
+pub mod common;
 

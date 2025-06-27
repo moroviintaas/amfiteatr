@@ -1,6 +1,7 @@
 use std::path::PathBuf;
 use log::LevelFilter;
 use clap::Parser;
+use crate::common::{ComputeDevice, PolicySelect};
 
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]
@@ -26,6 +27,14 @@ pub struct ReplicatorOptions{
 
     #[arg(short = 'o', long = "logfile")]
     pub log_file: Option<PathBuf>,
+
+    #[arg(short = 'd', long = "device", default_value = "cpu")]
+    pub device: ComputeDevice,
+
+
+    #[arg(short = 'p', long = "policy-select", default_value = "ppo")]
+    pub policy_algo: PolicySelect,
+
 
     /*
     #[arg(short = 's', long = "save")]
@@ -60,8 +69,17 @@ pub struct ReplicatorOptions{
     #[arg(short = 'b', long = "batch", default_value = "64")]
     pub batch_size: usize,
 
+    #[arg(long = "tensorboard", help = "Directory to save tensorboard output for epoch scores")]
+    pub tboard: Option<PathBuf>,
 
+    #[arg(long = "agent-tensorboard", help = "Directory to save tensorboard output for epoch scores")]
+    pub agent_tboard: Option<PathBuf>,
 
+    #[arg( long = "layer-sizes", value_delimiter = ',',  value_terminator = "!", num_args = 1.., default_value = "128,128")]
+    pub layer_sizes: Vec<i64>,
+
+    #[arg(long = "learning-rate", default_value = "1e-4")]
+    pub learning_rate: f64,
 
 
 

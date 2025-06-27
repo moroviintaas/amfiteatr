@@ -2,6 +2,7 @@ use std::path::PathBuf;
 use clap::Parser;
 use log::LevelFilter;
 use clap::ValueEnum;
+use crate::common::ComputeDevice;
 
 #[derive(ValueEnum, Copy, Clone, Debug)]
 pub enum Implementation{
@@ -10,11 +11,7 @@ pub enum Implementation{
     RustNd,
 }
 
-#[derive(ValueEnum, Copy, Clone, Debug)]
-pub enum ComputeDevice{
-    Cpu,
-    Cuda,
-}
+
 
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]

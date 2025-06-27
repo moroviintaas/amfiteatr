@@ -307,7 +307,7 @@ impl<ID: UsizeAgentId> ContextEncodeTensor<LocalHistoryConversionToTensor> for L
         let max_number_of_actions = way.shape()[1];
         if self.previous_encounters.len() > max_number_of_actions as usize{
             return Err(ConvertError::InfoSetNotFit {
-                info_set: format!("Own encounter history information set with history of length {}", self.previous_encounters.len()),
+                info_set: format!("Own encounter history information set with history of length {}, expected shape to fit = {:?}", self.previous_encounters.len(), way.shape()),
                 shape: Vec::from(way.shape()),
             });
         }

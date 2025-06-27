@@ -1,6 +1,8 @@
 use std::path::PathBuf;
 use log::LevelFilter;
-use clap::Parser;
+use clap::{Parser, ValueEnum};
+
+
 
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]
@@ -59,6 +61,8 @@ pub struct ReplicatorOptions{
 
     #[arg(short = 'b', long = "batch", default_value = "64")]
     pub batch_size: usize,
+
+
 
 
 

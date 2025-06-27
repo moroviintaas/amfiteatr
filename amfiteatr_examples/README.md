@@ -14,7 +14,7 @@ the side of agent.
 Example of prisoner dilemma model when one agent follows fixed
 policy.
 
-## [`replicator_dynamics`](./examples/replicator_dynamics)
+## [`replicator_dynamics`](./examples/replicator_dynamics_old)
 
 Example of many agents simulating replicator dynamics in classic 
 _chicken game_ (optionally with modifying game parameters).

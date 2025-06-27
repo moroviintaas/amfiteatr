@@ -2,7 +2,6 @@ use std::collections::HashMap;
 use std::fs::File;
 use std::sync::Arc;
 use parking_lot::{Mutex, RwLock};
-use pyo3::impl_::wrap::SomeWrap;
 use amfiteatr_classic::agent::{LocalHistoryConversionToTensor, LocalHistoryInfoSet, ReplInfoSetAgentNum};
 use amfiteatr_classic::{AsymmetricRewardTable, ClassicActionTensorRepresentation, SymmetricRewardTable};
 use amfiteatr_classic::domain::{AgentNum, ClassicAction, ClassicGameDomainNumbered};
@@ -53,7 +52,7 @@ pub struct ReplicatorModelBuilder<LP: ReplicatorNetworkPolicy>
     communication_map: HashMap<AgentNum, StdEnvironmentEndpoint<ReplDomain>>,
     thread_pool: Option<rayon::ThreadPool>,
     reward_table: AsymmetricRewardTable<i64>,
-    target_rounds: usize,
+    target_rounds: Option<usize>,
     tboard_writer: Option<tboard::EventWriter<File>>,
     //new_agent_index: u32,
 }
@@ -72,9 +71,15 @@ impl <LP: ReplicatorNetworkPolicy>ReplicatorModelBuilder<LP>
             communication_map: HashMap::new(),
             thread_pool: None,
             reward_table: SymmetricRewardTable::new(2, 1, 4, 0).into(),
-            target_rounds: 100,
+            target_rounds: None,
             tboard_writer: None
         }
+    }
+
+    /// How many times agent must involve in encounter in episode
+    pub fn encounters_in_episode(mut self, encounters: usize) -> Self{
+        self.target_rounds = Some(encounters);
+        self
     }
 
     pub fn add_learning_agent(&mut self, agent_id: u32, policy: LP) -> Result<(), ReplError>{
@@ -132,7 +137,11 @@ impl <LP: ReplicatorNetworkPolicy>ReplicatorModelBuilder<LP>
             return Err(OddAgentNumber(number_of_agents))
         }
 
-        let env_state = PairingState::new_even(number_of_agents, self.target_rounds, self.reward_table)
+        if self.target_rounds.is_none(){
+            return Err(ReplError::MissingParameter("Number of encounters in episode (use method `encounters_in_episode`)".to_string()))
+        }
+        let rounds = self.target_rounds.unwrap();
+        let env_state = PairingState::new_even(number_of_agents, rounds, self.reward_table)
             .map_err(|e| AmfiteatrError::Game { source: e })?;
         let environment = ModelEnvironment::new(env_state, self.communication_map);
 

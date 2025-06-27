@@ -12,6 +12,8 @@ pub enum ReplError {
     AgentDuplication(u32),
     #[error("The number of agents cant be odd number ({0})")]
     OddAgentNumber(usize),
+    #[error("Policy builder error: {0}")]
+    PolicyBuilderError(String),
     //#[error("Classic)]
 }
 
