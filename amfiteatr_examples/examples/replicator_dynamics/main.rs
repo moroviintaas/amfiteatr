@@ -50,7 +50,8 @@ fn create_and_run_model<PB: LearningPolicyBuilder>(options: &ReplicatorOptions, 
     }
 
     let mut model = model_builder.build()?;
-    model.run_episode()?;
+    //model.run_episode()?;
+    model.run_training_session(10, 8)?;
     Ok(())
 }
 

@@ -1,17 +1,17 @@
 use std::collections::HashMap;
 use std::fs::File;
-use std::sync::Arc;
+use std::sync::{Arc, mpsc};
 use parking_lot::{Mutex, RwLock};
 use amfiteatr_classic::agent::{LocalHistoryConversionToTensor, LocalHistoryInfoSet, ReplInfoSetAgentNum};
 use amfiteatr_classic::{AsymmetricRewardTable, ClassicActionTensorRepresentation, SymmetricRewardTable};
 use amfiteatr_classic::domain::{AgentNum, ClassicAction, ClassicGameDomainNumbered};
 use amfiteatr_classic::env::PairingState;
 use amfiteatr_classic::policy::{ClassicMixedStrategy, ClassicPureStrategy};
-use amfiteatr_core::agent::{AgentGen, AutomaticAgent, IdAgent, InformationSet, MultiEpisodeAutoAgent, Policy, StatefulAgent, TracingAgent, TracingAgentGen};
+use amfiteatr_core::agent::{AgentGen, AutomaticAgent, IdAgent, InformationSet, MultiEpisodeAutoAgent, Policy, PolicyAgent, StatefulAgent, TracingAgent, TracingAgentGen};
 use amfiteatr_core::comm::{EnvironmentMpscPort, StdAgentEndpoint, StdEnvironmentEndpoint};
 use amfiteatr_core::domain::{DomainParameters, Renew};
 use amfiteatr_core::env::{AutoEnvironmentWithScores, ReseedEnvironment, ScoreEnvironment, TracingHashMapEnvironment};
-use amfiteatr_core::error::AmfiteatrError;
+use amfiteatr_core::error::{AmfiteatrError, CommunicationError};
 use amfiteatr_core::reexport::nom::Parser;
 use amfiteatr_core::util::TensorboardSupport;
 use amfiteatr_rl::policy::{LearningNetworkPolicy, PolicyDiscretePPO};
@@ -339,6 +339,50 @@ impl<LP: ReplicatorNetworkPolicy> ReplicatorModel<LP> {
             }
         }
     }
+
+    pub fn train_network_agents_parallel(&mut self) -> Result<HashMap<AgentNum, <LP as LearningNetworkPolicy<ReplDomain>>::Summary>, AmfiteatrError<ReplDomain>>{
+        match self.thread_pool{
+            Some(_) => todo!(),
+            None => {
+
+                let summaries = Arc::new(Mutex::new(HashMap::new()));
+                let summaries2 = summaries.clone();
+                std::thread::scope(|s|{
+                    let (tx, rx) = mpsc::channel();
+                    s.spawn(move ||{
+                        let mut summaries_guard = summaries.lock();
+                        while let Ok((id, summary)) = rx.recv(){
+                            summaries_guard.insert(id, summary);
+                        }
+                    });
+
+                    for agent in &self.network_learning_agents{
+                        let agentc = agent.clone();
+                        let txc = tx.clone();
+                        s.spawn(move || {
+                            let mut guard = agentc.lock();
+                            let trajectories = guard.take_episodes();
+                            let summary = guard.policy_mut().train_on_trajectories_env_reward(&trajectories[..])?;
+                            txc.send((guard.info_set().agent_id().clone(), summary )).map_err(|e|{
+                               AmfiteatrError::Communication {
+                                   source: CommunicationError::SendError(guard.info_set().agent_id().clone(), e.to_string())
+                               }
+                            })?;
+                            Ok::<_, AmfiteatrError<ReplDomain>>(())
+                        });
+                    }
+                    drop(tx);
+
+                });
+                let m = Arc::try_unwrap(summaries2).map_err(|e|{
+                    AmfiteatrError::Lock { description: "Failed unwrapping Arc".to_string(), object: "Summaries in training".to_string() }
+                })?;
+                let summaries = m.into_inner();
+                Ok(summaries)
+            }
+        }
+
+    }
     pub fn run_epoch(&mut self, episodes: usize) -> Result<EpochDescription, AmfiteatrError<ReplDomain>>{
 
         let mut description = self.create_empty_description(episodes);
@@ -353,5 +397,15 @@ impl<LP: ReplicatorNetworkPolicy> ReplicatorModel<LP> {
 
 
 
+    }
+
+    pub fn run_training_session(&mut self, episodes: usize, epochs: usize) -> Result<Vec<HashMap<AgentNum, EpochDescription>>, AmfiteatrError<ReplDomain>>{
+        let mut v = Vec::new();
+        for e in 0..epochs{
+            self.run_epoch(episodes)?;
+            self.train_network_agents_parallel()?;
+
+        }
+        Ok(v)
     }
 }
