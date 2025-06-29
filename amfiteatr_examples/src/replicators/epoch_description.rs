@@ -1,7 +1,6 @@
 use std::collections::HashMap;
 use amfiteatr_classic::domain::AgentNum;
-
-
+use amfiteatr_rl::policy::LearnSummary;
 
 
 #[derive(Default, Debug, Clone)]
@@ -12,6 +11,7 @@ pub struct EpochDescription {
     pub(crate)  network_learning_dove_moves: HashMap<AgentNum, Vec<usize>>,
 
 }
+
 
 
 pub fn hash_map_average_i64(hm: &HashMap<AgentNum, Vec<i64>>) -> HashMap<AgentNum, f64>{
@@ -56,3 +56,6 @@ pub struct EpochDescriptionMean{
     pub(crate)  mean_network_learning_hawk_moves: HashMap<AgentNum, f64>,
     pub(crate)  mean_network_learning_dove_moves: HashMap<AgentNum, f64>,
 }
+
+pub type SessionDescription = Vec<EpochDescriptionMean>;
+pub type SessionLearningSummaries = Vec<LearnSummary>;

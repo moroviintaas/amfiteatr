@@ -14,11 +14,11 @@ use amfiteatr_core::env::{AutoEnvironmentWithScores, ReseedEnvironment, ScoreEnv
 use amfiteatr_core::error::{AmfiteatrError, CommunicationError};
 use amfiteatr_core::reexport::nom::Parser;
 use amfiteatr_core::util::TensorboardSupport;
-use amfiteatr_rl::policy::{LearningNetworkPolicy, PolicyDiscretePPO};
+use amfiteatr_rl::policy::{LearningNetworkPolicy, LearnSummary, PolicyDiscretePPO};
 use crate::replicators::error::ReplError;
 use crate::replicators::error::ReplError::OddAgentNumber;
 use amfiteatr_classic::agent::ReplInfoSet;
-use crate::replicators::epoch_description::EpochDescription;
+use crate::replicators::epoch_description::{EpochDescription, EpochDescriptionMean, SessionDescription, SessionLearningSummaries};
 
 pub type ReplDomain = ClassicGameDomainNumbered;
 
@@ -26,7 +26,7 @@ pub type PurePolicy = ClassicPureStrategy<AgentNum, LocalHistoryInfoSet<AgentNum
 pub type AgentPure = AgentGen<ReplDomain, PurePolicy, StdAgentEndpoint<ReplDomain>>;
 pub type StaticBehavioralAgent = AgentGen<ReplDomain, ClassicMixedStrategy<AgentNum, LocalHistoryInfoSet<AgentNum>>, StdAgentEndpoint<ReplDomain>>;
 pub type LearningAgent<
-    P: LearningNetworkPolicy<ReplDomain> + Policy<ReplDomain, InfoSetType=LocalHistoryInfoSet<AgentNum>>
+    P: LearningNetworkPolicy<ReplDomain, Summary=LearnSummary> + Policy<ReplDomain, InfoSetType=LocalHistoryInfoSet<AgentNum>>
         + TensorboardSupport<ReplDomain>
 > = TracingAgentGen<ReplDomain, P, StdAgentEndpoint<ReplDomain>>;
 
@@ -37,11 +37,11 @@ pub type LearningAgent<
 pub type ModelEnvironment = TracingHashMapEnvironment<ReplDomain, PairingState<<ReplDomain as DomainParameters>::AgentId>, StdEnvironmentEndpoint<ReplDomain>>;
 
 
-pub trait ReplicatorNetworkPolicy: LearningNetworkPolicy<ReplDomain, InfoSetType= LocalHistoryInfoSet<AgentNum>> + TensorboardSupport<ReplDomain>{
+pub trait ReplicatorNetworkPolicy: LearningNetworkPolicy<ReplDomain, InfoSetType= LocalHistoryInfoSet<AgentNum>, Summary = LearnSummary> + TensorboardSupport<ReplDomain>{
 
 }
 
-impl <P: LearningNetworkPolicy<ReplDomain, InfoSetType= LocalHistoryInfoSet<AgentNum>> + TensorboardSupport<ReplDomain>>
+impl <P: LearningNetworkPolicy<ReplDomain, InfoSetType= LocalHistoryInfoSet<AgentNum>, Summary = LearnSummary> + TensorboardSupport<ReplDomain>>
 ReplicatorNetworkPolicy for P {}
 pub struct ReplicatorModelBuilder<LP: ReplicatorNetworkPolicy>
 {
@@ -399,13 +399,20 @@ impl<LP: ReplicatorNetworkPolicy> ReplicatorModel<LP> {
 
     }
 
-    pub fn run_training_session(&mut self, episodes: usize, epochs: usize) -> Result<Vec<HashMap<AgentNum, EpochDescription>>, AmfiteatrError<ReplDomain>>{
-        let mut v = Vec::new();
-        for e in 0..epochs{
-            self.run_epoch(episodes)?;
-            self.train_network_agents_parallel()?;
+    pub fn run_training_session(&mut self, episodes: usize, epochs: usize) -> Result<(Vec<EpochDescriptionMean>, Vec<HashMap<AgentNum, LearnSummary>>),AmfiteatrError<ReplDomain>>{
+    //pub fn run_training_session(&mut self, episodes: usize, epochs: usize) -> Result<HashMap<AgentNum, (SessionDescription, Option<SessionLearningSummaries>)>, AmfiteatrError<ReplDomain>>{
+        /*let mut summaries = self.network_learning_agents.iter()
+            .zip(self.
 
+         */
+        let (mut epoch_results, mut epoch_learn_results) = (Vec::with_capacity(epochs), Vec::with_capacity(epochs));
+        for e in 0..epochs{
+            let description = self.run_epoch(episodes)?.mean();
+            let learn_summary = self.train_network_agents_parallel()?;
+
+            epoch_results.push(description);
+            epoch_learn_results.push(learn_summary);
         }
-        Ok(v)
+        Ok((epoch_results, epoch_learn_results))
     }
 }
