@@ -1,6 +1,8 @@
 use std::path::PathBuf;
+use log::debug;
 use amfiteatr_classic::agent::{LocalHistoryConversionToTensor, LocalHistoryInfoSet, LocalHistoryInfoSetNumbered};
 use amfiteatr_classic::ClassicActionTensorRepresentation;
+use amfiteatr_classic::domain::AgentNum;
 use amfiteatr_core::error::{AmfiteatrError, TensorError};
 use amfiteatr_core::util::TensorboardSupport;
 use amfiteatr_rl::policy::{ConfigPPO, PolicyDiscretePPO};
@@ -16,14 +18,16 @@ use crate::replicators::model::{ReplDomain, ReplicatorNetworkPolicy};
 use crate::replicators::options::ReplicatorOptions;
 
 
-pub fn create_ppo_policy(layer_sizes: &[i64], var_store: VarStore, options: &ReplicatorOptions, agent_num: i32)
+pub fn create_ppo_policy(layer_sizes: &[i64], var_store: VarStore, options: &ReplicatorOptions, agent_num: AgentNum)
     -> Result<ReplPPO, AmfiteatrError<ReplDomain>>{
     //todo this should be macro probably one day
     let info_set_repr = LocalHistoryConversionToTensor::new(options.number_of_rounds);
     let input_shape = info_set_repr.desired_shape_flatten();
     let hidden_layers = layer_sizes;
     let output_shape = 2i64;
-    let config = ConfigPPO::default();
+    let mut config = ConfigPPO::default();
+    config.vf_coef = options.value_loss_coef;
+    config.ent_coef = options.entropy_coefficient;
     let network_pattern = NeuralNetTemplate::new(|path| {
         let mut seq = nn::seq();
         let mut last_dim = None;
@@ -68,10 +72,12 @@ pub fn create_ppo_policy(layer_sizes: &[i64], var_store: VarStore, options: &Rep
     let net = A2CNet::new(var_store, network);
 
     let mut policy = ReplPPO::new(config, net, optimiser, info_set_repr, ClassicActionTensorRepresentation{});
-    if let Some(tboard_path_base) = &options.tboard{
+    if let Some(tboard_path_base) = &options.agent_tboard{
+
         //if let Some(t)
         //let path = PathBuf::from(format!("{}/{}", tboard_path_base, agent_num));
         let path: PathBuf = [tboard_path_base.as_ref(), std::path::Path::new(&format!("{}", agent_num))].iter().collect();
+        debug!("Registering tboard for agent {agent_num} with path {:?}", path);
         policy.add_tboard_directory(path)?;
     }
     Ok(policy)
@@ -102,7 +108,7 @@ impl<'a> LearningPolicyBuilder for ReplPolicyBuilderPPO<'a>{
 
         });
 
-        Ok(create_ppo_policy(&self.options.layer_sizes[..], var_store, self.options, 0)?)
+        Ok(create_ppo_policy(&self.options.layer_sizes[..], var_store, self.options, self.agent_id)?)
 
 
     }

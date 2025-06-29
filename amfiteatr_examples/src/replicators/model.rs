@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 use std::fs::File;
 use std::sync::{Arc, mpsc};
+use log::debug;
 use parking_lot::{Mutex, RwLock};
 use amfiteatr_classic::agent::{LocalHistoryConversionToTensor, LocalHistoryInfoSet, ReplInfoSetAgentNum};
 use amfiteatr_classic::{AsymmetricRewardTable, ClassicActionTensorRepresentation, SymmetricRewardTable};
@@ -10,7 +11,7 @@ use amfiteatr_classic::policy::{ClassicMixedStrategy, ClassicPureStrategy};
 use amfiteatr_core::agent::{AgentGen, AutomaticAgent, IdAgent, InformationSet, MultiEpisodeAutoAgent, Policy, PolicyAgent, StatefulAgent, TracingAgent, TracingAgentGen};
 use amfiteatr_core::comm::{EnvironmentMpscPort, StdAgentEndpoint, StdEnvironmentEndpoint};
 use amfiteatr_core::domain::{DomainParameters, Renew};
-use amfiteatr_core::env::{AutoEnvironmentWithScores, ReseedEnvironment, ScoreEnvironment, TracingHashMapEnvironment};
+use amfiteatr_core::env::{AutoEnvironmentWithScores, ReseedEnvironment, ScoreEnvironment, StatefulEnvironment, TracingHashMapEnvironment};
 use amfiteatr_core::error::{AmfiteatrError, CommunicationError};
 use amfiteatr_core::reexport::nom::Parser;
 use amfiteatr_core::util::TensorboardSupport;
@@ -301,41 +302,94 @@ impl<LP: ReplicatorNetworkPolicy> ReplicatorModel<LP> {
         description
     }
 
-    fn update_epoch_description_with_episode(&self, description: &mut EpochDescription){
+    /*
+    fn set_epoch_description_hawk_and_doves_with_episode(&self, description: &mut EpochDescription){
+        for agent in self.network_learning_agents.iter(){
+            let guard = agent.lock();
+            if let Some(a) = description.network_learning_dove_moves.get_mut(guard.id()){
+                a.clear();
+                a.extend(guard.episodes().iter()
+                    .map(|t|
+                        t.iter().filter(|s| *s.action() == ClassicAction::Down ).count()
+                    )
+                );
+
+            }
+            if let Some(a) = description.network_learning_hawk_moves.get_mut(guard.id()){
+                a.clear();
+                a.extend(guard.episodes().iter()
+                    .map(|t|
+                        t.iter().filter(|s| *s.action() == ClassicAction::Up ).count()
+                    )
+                );
+
+            }
+        }
+
+    }
+
+     */
+
+    fn update_epoch_description_score_with_episode(&self, description: &mut EpochDescription){
         for agent in self.network_learning_agents.iter(){
             let guard = agent.lock();
             if let Some(a) = description.scores.get_mut(guard.id()){
-                a.push(self.environment.actual_penalty_score_of_player(guard.id()))
+                a.push(self.environment.actual_score_of_player(guard.id()))
             }
+
+            //debug!("Agent {} actions : {:?}", guard.id(), guard.trajectory().iter().map(|t|*t.action()).collect::<Vec<_>>());
             if let Some(a) = description.network_learning_dove_moves.get_mut(guard.id()){
-                let dove_action = guard.trajectory().iter()
+                /*
+                let dove_action = guard.episodes().last().and_then(|a|)
                     .filter(|s| *s.action() == ClassicAction::Down)
                     .count();
                 a.push(dove_action);
+
+                 */
+                if let Some(trajectory) = guard.episodes().last(){
+                    let dove_actions = trajectory.iter()
+                        .filter(|s| *s.action() == ClassicAction::Down)
+                        .count();
+                    a.push(dove_actions);
+                }
+
+
             }
             if let Some(a) = description.network_learning_hawk_moves.get_mut(guard.id()){
-                let hawk_action = guard.trajectory().iter()
+                /*
+                let hawk_action = guard.episodes().last().iter()
                     .filter(|s| *s.action() == ClassicAction::Up)
                     .count();
                 a.push(hawk_action);
+
+                 */
+
+                if let Some(trajectory) = guard.episodes().last(){
+                    let hawk_actions = trajectory.iter()
+                        .filter(|s| *s.action() == ClassicAction::Up)
+                        .count();
+                    a.push(hawk_actions);
+                }
             }
+
+
         }
         for agent in self.pure_doves.iter(){
             let guard = agent.lock();
             if let Some(a) = description.scores.get_mut(guard.id()){
-                a.push(self.environment.actual_penalty_score_of_player(guard.id()))
+                a.push(self.environment.actual_score_of_player(guard.id()))
             }
         }
         for agent in self.pure_hawks.iter(){
             let guard = agent.lock();
             if let Some(a) = description.scores.get_mut(guard.id()){
-                a.push(self.environment.actual_penalty_score_of_player(guard.id()))
+                a.push(self.environment.actual_score_of_player(guard.id()))
             }
         }
         for agent in self.mixed_agents.iter(){
             let guard = agent.lock();
             if let Some(a) = description.scores.get_mut(guard.id()){
-                a.push(self.environment.actual_penalty_score_of_player(guard.id()))
+                a.push(self.environment.actual_score_of_player(guard.id()))
             }
         }
     }
@@ -386,11 +440,11 @@ impl<LP: ReplicatorNetworkPolicy> ReplicatorModel<LP> {
     pub fn run_epoch(&mut self, episodes: usize) -> Result<EpochDescription, AmfiteatrError<ReplDomain>>{
 
         let mut description = self.create_empty_description(episodes);
-        self.clear_episodes_trajectories();
+        self.clear_episodes_trajectories()?;
         for i in 0..episodes{
             log::debug!("Running episode {}", i);
-            self.run_episode();
-            self.update_epoch_description_with_episode(&mut description);
+            self.run_episode()?;
+            self.update_epoch_description_score_with_episode(&mut description);
         }
         Ok(description)
         //let description_mean = description.mean();
@@ -406,11 +460,29 @@ impl<LP: ReplicatorNetworkPolicy> ReplicatorModel<LP> {
 
          */
         let (mut epoch_results, mut epoch_learn_results) = (Vec::with_capacity(epochs), Vec::with_capacity(epochs));
-        for e in 0..epochs{
-            let description = self.run_epoch(episodes)?.mean();
+        for e in 0..epochs as i64{
+            log::info!("Running epoch {}", e);
+            let description = self.run_epoch(episodes)?;
+            //debug!("Epoch {e} description : {:?}", description);
+            let description_mean = description.mean_divide_round(self.environment.state().target_rounds());
+            /*
+            if let Some(mut writer) = &self.tboard_writer{
+
+            }*/
+            for learner in &self.network_learning_agents{
+                let mut guard = learner.lock();
+
+                if let Some(mean_score) = description_mean.mean_scores.get(guard.id()){
+                    guard.policy_mut().t_write_scalar(e, "mean_score", *mean_score as f32)?;
+                }
+                if let Some(mean_hawks) = description_mean.mean_network_learning_hawk_moves.get(guard.id()){
+                    guard.policy_mut().t_write_scalar(e, "mean_hawk_moves", *mean_hawks as f32)?;
+                }
+            }
+
             let learn_summary = self.train_network_agents_parallel()?;
 
-            epoch_results.push(description);
+            epoch_results.push(description_mean);
             epoch_learn_results.push(learn_summary);
         }
         Ok((epoch_results, epoch_learn_results))

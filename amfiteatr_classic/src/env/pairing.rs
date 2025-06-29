@@ -97,6 +97,10 @@ impl<ID: UsizeAgentId> PairingState<ID>{
         })
     }
 
+    pub fn target_rounds(&self) -> usize{
+        self.target_rounds
+    }
+
     fn create_pairings(indexes: &[usize]) -> Result<PairingVec<ID>, ClassicGameError<ID>>{
         if indexes.len() & 0x01 != 0{
             Err(ClassicGameError::ExpectedEvenNumberOfPlayers(indexes.len() as u32))

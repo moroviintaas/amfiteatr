@@ -35,6 +35,12 @@ pub struct ReplicatorOptions{
     #[arg(short = 'p', long = "policy-select", default_value = "ppo")]
     pub policy_algo: PolicySelect,
 
+    //#[arg(short = 'l', long = "gae-lambda")]
+    //pub gae_lambda: Option<f64>,
+
+    //#[arg(short = 'm', long = "minibatch-size", default_value = "16")]
+    //pub mini_batch_size: usize,
+
 
     /*
     #[arg(short = 's', long = "save")]
@@ -45,8 +51,11 @@ pub struct ReplicatorOptions{
 
 
      */
-    #[arg(short = 'e', long = "epochs", default_value = "10")]
+    #[arg(short = 'e', long = "epochs", default_value = "100")]
     pub epochs: usize,
+
+    #[arg(short = 'g', long = "games", default_value = "128")]
+    pub games: usize,
 
     #[arg(short = 'n', long = "rounds", default_value = "32")]
     pub number_of_rounds: usize,
@@ -63,7 +72,7 @@ pub struct ReplicatorOptions{
     #[arg(short = 'M', long = "mix-hawk-probability", default_value = "0.5")]
     pub mix_probability_of_hawk: f64,
 
-    #[arg(short = 'l', long = "learners", default_value = "100")]
+    #[arg(short = 'l', long = "learners", default_value = "10")]
     pub number_of_learning: usize,
 
     #[arg(short = 'b', long = "batch", default_value = "64")]
@@ -80,6 +89,12 @@ pub struct ReplicatorOptions{
 
     #[arg(long = "learning-rate", default_value = "1e-4")]
     pub learning_rate: f64,
+
+    #[arg(short = 'V', long = "value-loss-coefficient", default_value = "0.5")]
+    pub value_loss_coef: f64,
+
+    #[arg(short = 'E', long = "entropy-coefficient", default_value = "0.01")]
+    pub entropy_coefficient: f64,
 
 
 

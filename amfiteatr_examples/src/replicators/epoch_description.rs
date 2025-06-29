@@ -14,32 +14,43 @@ pub struct EpochDescription {
 
 
 
-pub fn hash_map_average_i64(hm: &HashMap<AgentNum, Vec<i64>>) -> HashMap<AgentNum, f64>{
+pub fn hash_map_average_i64(hm: &HashMap<AgentNum, Vec<i64>>, round_divider: Option<usize>) -> HashMap<AgentNum, f64>{
     hm.iter().filter_map(|(a, vec)| {
             match vec.is_empty(){
                 true => None,
                 false => Some((a, vec))
             }
-        }).map(|(a, vec)| (*a, vec.iter().sum::<i64>() as f64 / vec.len() as f64))
+        }).map(|(a, vec)| (*a, vec.iter().sum::<i64>() as f64 / vec.len() as f64 / round_divider.unwrap_or(1) as f64))
         .collect()
 }
 
-pub fn hash_map_average_usize(hm: &HashMap<AgentNum, Vec<usize>>) -> HashMap<AgentNum, f64>{
+pub fn hash_map_average_usize(hm: &HashMap<AgentNum, Vec<usize>>, round_divider: Option<usize>) -> HashMap<AgentNum, f64>{
     hm.iter().filter_map(|(a, vec)| {
         match vec.is_empty(){
             true => None,
             false => Some((a, vec))
         }
-    }).map(|(a, vec)| (*a, vec.iter().sum::<usize>() as f64 / vec.len() as f64))
+    }).map(|(a, vec)| (*a, vec.iter().sum::<usize>() as f64 / vec.len() as f64/ round_divider.unwrap_or(1) as f64))
         .collect()
 }
 impl EpochDescription {
 
     pub fn mean(&self) -> EpochDescriptionMean{
 
-        let mean_scores: HashMap<AgentNum, f64> = hash_map_average_i64(&self.scores);
-        let mean_network_learning_hawk_moves = hash_map_average_usize(&self.network_learning_hawk_moves);
-        let mean_network_learning_dove_moves = hash_map_average_usize(&self.network_learning_dove_moves);
+        let mean_scores: HashMap<AgentNum, f64> = hash_map_average_i64(&self.scores, None);
+        let mean_network_learning_hawk_moves = hash_map_average_usize(&self.network_learning_hawk_moves, None);
+        let mean_network_learning_dove_moves = hash_map_average_usize(&self.network_learning_dove_moves, None);
+
+        EpochDescriptionMean{
+            mean_scores,
+            mean_network_learning_hawk_moves,
+            mean_network_learning_dove_moves
+        }
+    }
+    pub fn mean_divide_round(&self, rounds: usize) -> EpochDescriptionMean{
+        let mean_scores: HashMap<AgentNum, f64> = hash_map_average_i64(&self.scores, Some(rounds));
+        let mean_network_learning_hawk_moves = hash_map_average_usize(&self.network_learning_hawk_moves, Some(rounds));
+        let mean_network_learning_dove_moves = hash_map_average_usize(&self.network_learning_dove_moves, Some(rounds));
 
         EpochDescriptionMean{
             mean_scores,

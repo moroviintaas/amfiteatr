@@ -18,7 +18,7 @@ pub fn setup_logger(options: &ReplicatorOptions) -> Result<(), fern::InitError> 
                 message
             ))
         })
-        //.level(options.general_log_level)
+        .level(options.log_level)
         .level_for("amfiteatr_rl", options.rl_log_level)
         .level_for("replicator_dynamics_old", options.log_level)
         .level_for("amfiteatr_classic", options.classic_log_level)
@@ -51,7 +51,7 @@ fn create_and_run_model<PB: LearningPolicyBuilder>(options: &ReplicatorOptions, 
 
     let mut model = model_builder.build()?;
     //model.run_episode()?;
-    model.run_training_session(10, 8)?;
+    model.run_training_session(options.games, options.epochs)?;
     Ok(())
 }
 
