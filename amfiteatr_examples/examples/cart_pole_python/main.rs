@@ -9,7 +9,7 @@ use amfiteatr_core::env::{AutoEnvironmentWithScores, BasicEnvironment, ReseedEnv
 use amfiteatr_core::error::AmfiteatrError;
 use amfiteatr_rl::agent::RlModelAgent;
 use amfiteatr_rl::error::AmfiteatrRlError;
-use amfiteatr_rl::policy::{ActorCriticPolicy, LearningNetworkPolicy, TrainConfig};
+use amfiteatr_rl::policy::{ActorCriticPolicy, LearningNetworkPolicyGeneric, TrainConfig};
 use amfiteatr_rl::tch::{Device, nn, Tensor};
 use amfiteatr_rl::tch::nn::{Adam, VarStore};
 use amfiteatr_rl::torch_net::{A2CNet, NeuralNetTemplate, TensorActorCritic};
@@ -22,7 +22,7 @@ fn test<R: RlModelAgent<CartPoleDomain, CartPoleObservation, PythonGymnasiumCart
     agent: &mut R,
     number_of_tests: usize)
 -> Result<f32, AmfiteatrRlError<CartPoleDomain>>
-where <R as PolicyAgent<CartPoleDomain>>::Policy: LearningNetworkPolicy<CartPoleDomain>{
+where <R as PolicyAgent<CartPoleDomain>>::Policy: LearningNetworkPolicyGeneric<CartPoleDomain>{
 
     let mut result_sum = 0.0f64;
     for _ in 0..number_of_tests{
@@ -53,7 +53,7 @@ fn train_epoch<R: RlModelAgent<CartPoleDomain, CartPoleObservation, PythonGymnas
     agent: &mut R,
     number_of_games: usize)
 -> Result<(), AmfiteatrRlError<CartPoleDomain>>
-where <R as PolicyAgent<CartPoleDomain>>::Policy: LearningNetworkPolicy<CartPoleDomain>{
+where <R as PolicyAgent<CartPoleDomain>>::Policy: LearningNetworkPolicyGeneric<CartPoleDomain>{
 
     agent.clear_episodes();
     for _ in 0..number_of_games{

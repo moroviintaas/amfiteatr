@@ -31,7 +31,7 @@ use amfiteatr_rl::error::AmfiteatrRlError;
 use amfiteatr_rl::policy::{
     ConfigA2C,
     ConfigPPO,
-    LearningNetworkPolicy,
+    LearningNetworkPolicyGeneric,
     PolicyDiscreteA2C,
     PolicyMaskingDiscreteA2C,
     PolicyMaskingDiscretePPO,
@@ -367,7 +367,7 @@ pub type C4PPOPolicyMasking = PolicyMaskingDiscretePPO<ConnectFourDomain, Connec
 pub type C4PPOPolicyMaskingShared = Arc<Mutex<C4PPOPolicyMasking>>;
 pub type Environment<S> = HashMapEnvironment<ConnectFourDomain, S, StdEnvironmentEndpoint<ConnectFourDomain>>;
 pub type Agent<P> = TracingAgentGen<ConnectFourDomain, P, StdAgentEndpoint<ConnectFourDomain>>;
-pub struct ConnectFourModelRust<S: GameStateWithPayoffs<ConnectFourDomain>, P: LearningNetworkPolicy<ConnectFourDomain, Summary=LearnSummary>>{
+pub struct ConnectFourModelRust<S: GameStateWithPayoffs<ConnectFourDomain>, P: LearningNetworkPolicyGeneric<ConnectFourDomain, Summary=LearnSummary>>{
 
     env: Environment<S>,
     agent0: Agent<P>,
@@ -412,7 +412,7 @@ impl<
 
 impl<
     S:  Default + GameStateWithPayoffs<ConnectFourDomain> + Clone + Renew<ConnectFourDomain, ()>,
-    P: LearningNetworkPolicy<ConnectFourDomain, InfoSetType=ConnectFourInfoSet, Summary=LearnSummary> + TensorboardSupport<ConnectFourDomain>
+    P: LearningNetworkPolicyGeneric<ConnectFourDomain, InfoSetType=ConnectFourInfoSet, Summary=LearnSummary> + TensorboardSupport<ConnectFourDomain>
 > ConnectFourModelRust<S, P>{
     #[allow(dead_code)]
     pub fn new_ppo_generic(options: &ConnectFourOptions, mut agent_0_policy: P, mut agent_1_policy: P, shared_policy: bool) -> Self{
@@ -714,7 +714,7 @@ impl<
 
 impl<
     S:  GameStateWithPayoffs<ConnectFourDomain> + Clone + Renew<ConnectFourDomain, ()>,
-    P: LearningNetworkPolicy<ConnectFourDomain, Summary = LearnSummary> + TensorboardSupport<ConnectFourDomain>
+    P: LearningNetworkPolicyGeneric<ConnectFourDomain, Summary = LearnSummary> + TensorboardSupport<ConnectFourDomain>
 > ConnectFourModelRust<S,P>
 where <P as Policy<ConnectFourDomain>>::InfoSetType: Renew<ConnectFourDomain, ()> + Clone{
 

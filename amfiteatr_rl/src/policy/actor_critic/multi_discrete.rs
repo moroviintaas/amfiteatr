@@ -9,7 +9,7 @@ use amfiteatr_core::domain::DomainParameters;
 use amfiteatr_core::error::{AmfiteatrError, TensorError};
 use amfiteatr_core::util::TensorboardSupport;
 use crate::error::AmfiteatrRlError;
-use crate::policy::{ConfigA2C, LearnSummary, LearningNetworkPolicy, PolicyHelperA2C, PolicyTrainHelperA2C};
+use crate::policy::{ConfigA2C, LearnSummary, LearningNetworkPolicyGeneric, PolicyHelperA2C, PolicyTrainHelperA2C};
 use crate::{tensor_data, MaskingInformationSetActionMultiParameter};
 use crate::tensor_data::{ContextDecodeMultiIndexI64, ContextEncodeMultiIndexI64, ContextEncodeTensor, MultiTensorDecoding, MultiTensorIndexI64Encoding, TensorEncoding};
 use crate::torch_net::{ActorCriticOutput, DeviceTransfer, NeuralNet, NeuralNetMultiActorCritic, TensorMultiParamActorCritic};
@@ -259,7 +259,7 @@ impl<
     InfoSet: InformationSet<DP> + Debug + ContextEncodeTensor<InfoSetConversionContext>,
     InfoSetConversionContext: TensorEncoding,
     ActionBuildContext: MultiTensorDecoding + MultiTensorIndexI64Encoding + tensor_data::ActionTensorFormat<Vec<Tensor>>,
-> LearningNetworkPolicy<DP> for PolicyMultiDiscreteA2C<DP, InfoSet, InfoSetConversionContext, ActionBuildContext>
+> LearningNetworkPolicyGeneric<DP> for PolicyMultiDiscreteA2C<DP, InfoSet, InfoSetConversionContext, ActionBuildContext>
 where <DP as DomainParameters>::ActionType: ContextDecodeMultiIndexI64<ActionBuildContext>
 + ContextEncodeMultiIndexI64<ActionBuildContext>,
 {
@@ -469,7 +469,7 @@ impl<
     InfoSetConversionContext: TensorEncoding,
     ActionBuildContext: MultiTensorDecoding + MultiTensorIndexI64Encoding
     + tensor_data::ActionTensorFormat<Vec<Tensor>>,
-> LearningNetworkPolicy<DP> for PolicyMaskingMultiDiscreteA2C<DP, InfoSet, InfoSetConversionContext, ActionBuildContext>
+> LearningNetworkPolicyGeneric<DP> for PolicyMaskingMultiDiscreteA2C<DP, InfoSet, InfoSetConversionContext, ActionBuildContext>
 where
     <DP as DomainParameters>::ActionType: ContextDecodeMultiIndexI64<ActionBuildContext>
     + ContextEncodeMultiIndexI64<ActionBuildContext>

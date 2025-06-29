@@ -13,7 +13,7 @@ use amfiteatr_core::domain::DomainParameters;
 use amfiteatr_core::error::AmfiteatrError;
 use crate::error::{AmfiteatrRlError, TensorRepresentationError};
 use crate::policy::common::categorical_dist_entropy;
-use crate::policy::LearningNetworkPolicy;
+use crate::policy::LearningNetworkPolicyGeneric;
 use crate::tensor_data::{ContextEncodeTensor, TensorEncoding, TryIntoTensor, TryFromTensor};
 use crate::torch_net::{A2CNet, TensorActorCritic};
 use crate::policy::TrainConfig;
@@ -157,7 +157,7 @@ impl<
     InfoSetWay: TensorEncoding,
     //InfoSet: ScoringInformationSet<DP> + Debug,
     //StateConverter: ConvStateToTensor<InfoSet>>
-    > LearningNetworkPolicy<DP> for ActorCriticPolicy<DP, InfoSet, InfoSetWay>
+    > LearningNetworkPolicyGeneric<DP> for ActorCriticPolicy<DP, InfoSet, InfoSetWay>
     where <DP as DomainParameters>::ActionType: TryFromTensor + TryIntoTensor,
 
 {

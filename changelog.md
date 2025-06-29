@@ -2,6 +2,8 @@
 
 ## Version 0.12.0
 + Introduced experimental mutable calls on policy, that are called at the beginning, the end of episodes and between epochs.
++ Renamed `LearningNetworkPolicy<DP: DomainParameters>` with generic `Summary` type to `LearningNetworkPolicyGeneric`.
+Introduced new `LearningNetworkPolicy<DP: DomainParameters> LearningNetworkPolicyGeneric<DP>` with `Summary` fixed on `LearnSummary`  type.
 ## Version 0.11.0
 + Changed masking in A2C and PPO policies to use `f_where_self` instead of `f_mul`,
 now masks must be `Tensor` with datatype `Bool`

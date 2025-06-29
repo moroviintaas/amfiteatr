@@ -20,7 +20,7 @@ use amfiteatr_classic::domain::ClassicAction::{Down, Up};
 use amfiteatr_classic::env::PairingState;
 use amfiteatr_classic::policy::ClassicMixedStrategy;
 use amfiteatr_classic::SymmetricRewardTableInt;
-use amfiteatr_rl::policy::{ActorCriticPolicy, LearningNetworkPolicy, TrainConfig};
+use amfiteatr_rl::policy::{ActorCriticPolicy, LearningNetworkPolicyGeneric, TrainConfig};
 use crate::options::EducatorOptions;
 use crate::options::SecondPolicy;
 use amfiteatr_examples::plots::{plot_many_series, PlotSeries};

@@ -19,7 +19,7 @@ use crate::tensor_data::{ContextEncodeTensor, TensorEncoding};
 use crate::torch_net::NeuralNet1;
 use rand::rng;
 use amfiteatr_core::error::AmfiteatrError;
-use crate::policy::{LearnSummary, LearningNetworkPolicy};
+use crate::policy::{LearnSummary, LearningNetworkPolicyGeneric};
 pub use crate::policy::TrainConfig;
 
 /// Enum used to select best action
@@ -149,7 +149,7 @@ impl
     InfoSet: InformationSet<DP> + Debug + ContextEncodeTensor<IS2T> + PresentPossibleActions<DP>,
     IS2T: TensorEncoding,
     A2T: TensorEncoding
-> LearningNetworkPolicy<DP> for QLearningPolicy<DP, InfoSet, IS2T, A2T>
+> LearningNetworkPolicyGeneric<DP> for QLearningPolicy<DP, InfoSet, IS2T, A2T>
 where <<InfoSet as PresentPossibleActions<DP>>::ActionIteratorType as IntoIterator>::Item: ContextEncodeTensor<A2T>,
 //<DP as DomainParameters>::UniversalReward: FloatTensorReward,
 <DP as DomainParameters>::ActionType: ContextEncodeTensor<A2T> {

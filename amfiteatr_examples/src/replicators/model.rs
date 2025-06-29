@@ -14,7 +14,7 @@ use amfiteatr_core::env::{AutoEnvironmentWithScores, ReseedEnvironment, ScoreEnv
 use amfiteatr_core::error::{AmfiteatrError, CommunicationError};
 use amfiteatr_core::reexport::nom::Parser;
 use amfiteatr_core::util::TensorboardSupport;
-use amfiteatr_rl::policy::{LearningNetworkPolicy, LearnSummary, PolicyDiscretePPO};
+use amfiteatr_rl::policy::{LearningNetworkPolicy, LearningNetworkPolicyGeneric, LearnSummary, PolicyDiscretePPO};
 use crate::replicators::error::ReplError;
 use crate::replicators::error::ReplError::OddAgentNumber;
 use amfiteatr_classic::agent::ReplInfoSet;
@@ -26,7 +26,7 @@ pub type PurePolicy = ClassicPureStrategy<AgentNum, LocalHistoryInfoSet<AgentNum
 pub type AgentPure = AgentGen<ReplDomain, PurePolicy, StdAgentEndpoint<ReplDomain>>;
 pub type StaticBehavioralAgent = AgentGen<ReplDomain, ClassicMixedStrategy<AgentNum, LocalHistoryInfoSet<AgentNum>>, StdAgentEndpoint<ReplDomain>>;
 pub type LearningAgent<
-    P: LearningNetworkPolicy<ReplDomain, Summary=LearnSummary> + Policy<ReplDomain, InfoSetType=LocalHistoryInfoSet<AgentNum>>
+    P: LearningNetworkPolicy<ReplDomain> + Policy<ReplDomain, InfoSetType=LocalHistoryInfoSet<AgentNum>>
         + TensorboardSupport<ReplDomain>
 > = TracingAgentGen<ReplDomain, P, StdAgentEndpoint<ReplDomain>>;
 
@@ -37,11 +37,11 @@ pub type LearningAgent<
 pub type ModelEnvironment = TracingHashMapEnvironment<ReplDomain, PairingState<<ReplDomain as DomainParameters>::AgentId>, StdEnvironmentEndpoint<ReplDomain>>;
 
 
-pub trait ReplicatorNetworkPolicy: LearningNetworkPolicy<ReplDomain, InfoSetType= LocalHistoryInfoSet<AgentNum>, Summary = LearnSummary> + TensorboardSupport<ReplDomain>{
+pub trait ReplicatorNetworkPolicy: LearningNetworkPolicy<ReplDomain, InfoSetType= LocalHistoryInfoSet<AgentNum>> + TensorboardSupport<ReplDomain>{
 
 }
 
-impl <P: LearningNetworkPolicy<ReplDomain, InfoSetType= LocalHistoryInfoSet<AgentNum>, Summary = LearnSummary> + TensorboardSupport<ReplDomain>>
+impl <P: LearningNetworkPolicy<ReplDomain, InfoSetType= LocalHistoryInfoSet<AgentNum>> + TensorboardSupport<ReplDomain>>
 ReplicatorNetworkPolicy for P {}
 pub struct ReplicatorModelBuilder<LP: ReplicatorNetworkPolicy>
 {
@@ -340,7 +340,7 @@ impl<LP: ReplicatorNetworkPolicy> ReplicatorModel<LP> {
         }
     }
 
-    pub fn train_network_agents_parallel(&mut self) -> Result<HashMap<AgentNum, <LP as LearningNetworkPolicy<ReplDomain>>::Summary>, AmfiteatrError<ReplDomain>>{
+    pub fn train_network_agents_parallel(&mut self) -> Result<HashMap<AgentNum, <LP as LearningNetworkPolicyGeneric<ReplDomain>>::Summary>, AmfiteatrError<ReplDomain>>{
         match self.thread_pool{
             Some(_) => todo!(),
             None => {

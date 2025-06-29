@@ -10,7 +10,7 @@ use amfiteatr_core::domain::DomainParameters;
 use amfiteatr_core::error::{AmfiteatrError,TensorError};
 use amfiteatr_core::util::TensorboardSupport;
 use crate::error::AmfiteatrRlError;
-use crate::policy::{ConfigPPO, LearnSummary, LearningNetworkPolicy, PolicyHelperA2C, PolicyTrainHelperPPO};
+use crate::policy::{ConfigPPO, LearnSummary, LearningNetworkPolicyGeneric, PolicyHelperA2C, PolicyTrainHelperPPO};
 use crate::{tch, MaskingInformationSetActionMultiParameter, tensor_data};
 use crate::tch::nn::Optimizer;
 use crate::tch::Tensor;
@@ -205,7 +205,7 @@ impl<
     InfoSet: InformationSet<DP> + Debug + ContextEncodeTensor<InfoSetConversionContext>,
     InfoSetConversionContext: TensorEncoding,
     ActionBuildContext: MultiTensorDecoding + MultiTensorIndexI64Encoding + tensor_data::ActionTensorFormat<Vec<Tensor>>,
-> LearningNetworkPolicy<DP> for PolicyMultiDiscretePPO<DP, InfoSet, InfoSetConversionContext, ActionBuildContext>
+> LearningNetworkPolicyGeneric<DP> for PolicyMultiDiscretePPO<DP, InfoSet, InfoSetConversionContext, ActionBuildContext>
 where <DP as DomainParameters>::ActionType: ContextDecodeMultiIndexI64<ActionBuildContext>
     + ContextEncodeMultiIndexI64<ActionBuildContext>,
 {
@@ -730,7 +730,7 @@ impl<
     InfoSetConversionContext: TensorEncoding,
     ActionBuildContext: MultiTensorDecoding + MultiTensorIndexI64Encoding
     + tensor_data::ActionTensorFormat<Vec<Tensor>>,
-> LearningNetworkPolicy<DP> for PolicyMaskingMultiDiscretePPO<DP, InfoSet, InfoSetConversionContext, ActionBuildContext>
+> LearningNetworkPolicyGeneric<DP> for PolicyMaskingMultiDiscretePPO<DP, InfoSet, InfoSetConversionContext, ActionBuildContext>
     where
         <DP as DomainParameters>::ActionType: ContextDecodeMultiIndexI64<ActionBuildContext>
         + ContextEncodeMultiIndexI64<ActionBuildContext>

@@ -3,7 +3,7 @@ use amfiteatr_core::comm::BidirectionalEndpoint;
 use amfiteatr_core::domain::{AgentMessage, DomainParameters, EnvironmentMessage, Renew};
 use amfiteatr_core::error::{CommunicationError};
 use crate::error::AmfiteatrRlError;
-use crate::policy::LearningNetworkPolicy;
+use crate::policy::LearningNetworkPolicyGeneric;
 use crate::tensor_data::FloatTensorReward;
 
 
@@ -15,7 +15,7 @@ pub trait NetworkLearningAgent<DP: DomainParameters>:
     AutomaticAgent<DP>
     + PolicyAgent<DP>
     + TracingAgent<DP, <Self as StatefulAgent<DP>>::InfoSetType>
-    where  <Self as PolicyAgent<DP>>::Policy: LearningNetworkPolicy<DP>,
+    where  <Self as PolicyAgent<DP>>::Policy: LearningNetworkPolicyGeneric<DP>,
     <Self as StatefulAgent<DP>>::InfoSetType: InformationSet<DP>
 {
 }
@@ -23,7 +23,7 @@ pub trait NetworkLearningAgent<DP: DomainParameters>:
 impl <DP: DomainParameters, T: AutomaticAgent<DP>  + PolicyAgent<DP>
 + TracingAgent<DP, <Self as StatefulAgent<DP>>::InfoSetType>>
 NetworkLearningAgent<DP> for T
-where <T as PolicyAgent<DP>>::Policy: LearningNetworkPolicy<DP>,
+where <T as PolicyAgent<DP>>::Policy: LearningNetworkPolicyGeneric<DP>,
 <T as StatefulAgent<DP>>::InfoSetType: InformationSet<DP>
 {
 }
@@ -36,7 +36,7 @@ where <T as PolicyAgent<DP>>::Policy: LearningNetworkPolicy<DP>,
 /// For now this trait requires both environment sources reward and agent self provided assessment.
 /// If you only want to define one you can set not needed to by of type [`NoneReward`](amfiteatr_core::domain::NoneReward).
 /// This trait is object safe, however collections of dynamically typed agents of this trait must
-/// share the same type of information set, because [`LearningNetworkPolicy`](crate::policy::LearningNetworkPolicy)
+/// share the same type of information set, because [`LearningNetworkPolicy`](crate::policy::LearningNetworkPolicyGeneric)
 /// uses trajectory including information set.
 pub trait RlModelAgent<DP: DomainParameters, Seed, IS: InformationSet<DP>>:
     AutomaticAgent<DP>
@@ -47,7 +47,7 @@ pub trait RlModelAgent<DP: DomainParameters, Seed, IS: InformationSet<DP>>:
     + RewardedAgent<DP>
     + Send
 
-where <Self as PolicyAgent<DP>>::Policy: LearningNetworkPolicy<DP>,
+where <Self as PolicyAgent<DP>>::Policy: LearningNetworkPolicyGeneric<DP>,
 {}
 
 
@@ -66,7 +66,7 @@ impl<
         + Send
 
 > RlModelAgent<DP, Seed, IS> for T
-where <Self as PolicyAgent<DP>>::Policy: LearningNetworkPolicy<DP>,{
+where <Self as PolicyAgent<DP>>::Policy: LearningNetworkPolicyGeneric<DP>,{
 
 }
 
@@ -94,7 +94,7 @@ AutomaticAgent<DP> + ReseedAgent<DP, Seed> + Send + MultiEpisodeAutoAgent<DP, Se
 impl<
     DP: DomainParameters,
     Seed,
-    P: LearningNetworkPolicy<DP, Summary = LS >,
+    P: LearningNetworkPolicyGeneric<DP, Summary = LS >,
     Comm: BidirectionalEndpoint<
         OutwardType=AgentMessage<DP>,
         InwardType=EnvironmentMessage<DP>,

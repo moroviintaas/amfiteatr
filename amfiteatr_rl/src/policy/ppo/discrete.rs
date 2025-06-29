@@ -9,7 +9,7 @@ use amfiteatr_core::domain::DomainParameters;
 use amfiteatr_core::error::{AmfiteatrError, TensorError};
 use amfiteatr_core::util::TensorboardSupport;
 use crate::error::AmfiteatrRlError;
-use crate::policy::{ConfigPPO, LearnSummary, LearningNetworkPolicy, PolicyHelperA2C, PolicyTrainHelperPPO};
+use crate::policy::{ConfigPPO, LearnSummary, LearningNetworkPolicyGeneric, PolicyHelperA2C, PolicyTrainHelperPPO};
 use crate::{tensor_data, MaskingInformationSetAction};
 use crate::tensor_data::{ContextEncodeIndexI64, ContextEncodeTensor, TensorDecoding, TensorIndexI64Encoding, TensorEncoding, ContextDecodeIndexI64};
 use crate::torch_net::{ActorCriticOutput, NeuralNet, NeuralNetActorCritic, TensorActorCritic};
@@ -309,7 +309,7 @@ impl<
     InfoSetConversionContext: TensorEncoding,
     ActionBuildContext: TensorDecoding + TensorIndexI64Encoding
     + tensor_data::ActionTensorFormat<Tensor>,
-> LearningNetworkPolicy<DP> for PolicyDiscretePPO<DP, InfoSet, InfoSetConversionContext, ActionBuildContext>
+> LearningNetworkPolicyGeneric<DP> for PolicyDiscretePPO<DP, InfoSet, InfoSetConversionContext, ActionBuildContext>
 where
     <DP as DomainParameters>::ActionType:
     ContextDecodeIndexI64<ActionBuildContext, > + ContextEncodeIndexI64<ActionBuildContext>
@@ -571,7 +571,7 @@ impl<
     InfoSetConversionContext: TensorEncoding,
     ActionBuildContext: TensorDecoding + TensorIndexI64Encoding
     + tensor_data::ActionTensorFormat<Tensor>,
-> LearningNetworkPolicy<DP> for PolicyMaskingDiscretePPO<DP, InfoSet, InfoSetConversionContext, ActionBuildContext>
+> LearningNetworkPolicyGeneric<DP> for PolicyMaskingDiscretePPO<DP, InfoSet, InfoSetConversionContext, ActionBuildContext>
 where
     <DP as DomainParameters>::ActionType:
     ContextDecodeIndexI64<ActionBuildContext, > + ContextEncodeIndexI64<ActionBuildContext>{

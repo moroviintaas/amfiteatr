@@ -35,7 +35,7 @@ use amfiteatr_classic::agent::{
     LocalHistoryInfoSet};
 use amfiteatr_examples::plots::{plot_many_series, PlotSeries};
 use amfiteatr_examples::series::PayoffGroupSeries;
-use amfiteatr_rl::policy::{ActorCriticPolicy, LearningNetworkPolicy, TrainConfig};
+use amfiteatr_rl::policy::{ActorCriticPolicy, LearningNetworkPolicyGeneric, TrainConfig};
 use amfiteatr_rl::tensor_data::TensorEncoding;
 use amfiteatr_rl::torch_net::{A2CNet, NeuralNetTemplate, TensorActorCritic};
 use crate::options::ReplicatorOptions;
