@@ -1,6 +1,8 @@
+use std::path::PathBuf;
 use amfiteatr_classic::agent::{LocalHistoryConversionToTensor, LocalHistoryInfoSet, LocalHistoryInfoSetNumbered};
 use amfiteatr_classic::ClassicActionTensorRepresentation;
 use amfiteatr_core::error::{AmfiteatrError, TensorError};
+use amfiteatr_core::util::TensorboardSupport;
 use amfiteatr_rl::policy::{ConfigPPO, PolicyDiscretePPO};
 use amfiteatr_rl::tch;
 use amfiteatr_rl::tch::{nn, Tensor};
@@ -14,7 +16,7 @@ use crate::replicators::model::{ReplDomain, ReplicatorNetworkPolicy};
 use crate::replicators::options::ReplicatorOptions;
 
 
-pub fn create_ppo_policy(layer_sizes: &[i64], var_store: VarStore, options: &ReplicatorOptions, _agent_num: i32)
+pub fn create_ppo_policy(layer_sizes: &[i64], var_store: VarStore, options: &ReplicatorOptions, agent_num: i32)
     -> Result<ReplPPO, AmfiteatrError<ReplDomain>>{
     //todo this should be macro probably one day
     let info_set_repr = LocalHistoryConversionToTensor::new(options.number_of_rounds);
@@ -65,7 +67,14 @@ pub fn create_ppo_policy(layer_sizes: &[i64], var_store: VarStore, options: &Rep
         .map_err(|origin|AmfiteatrError::Tensor {error: TensorError::Torch {origin: format!("{origin}"), context: "Creating optimser".to_string() } })?;
     let net = A2CNet::new(var_store, network);
 
-    Ok(ReplPPO::new(config, net, optimiser, info_set_repr, ClassicActionTensorRepresentation{}))
+    let mut policy = ReplPPO::new(config, net, optimiser, info_set_repr, ClassicActionTensorRepresentation{});
+    if let Some(tboard_path_base) = &options.tboard{
+        //if let Some(t)
+        //let path = PathBuf::from(format!("{}/{}", tboard_path_base, agent_num));
+        let path: PathBuf = [tboard_path_base.as_ref(), std::path::Path::new(&format!("{}", agent_num))].iter().collect();
+        policy.add_tboard_directory(path)?;
+    }
+    Ok(policy)
 
 
 }
