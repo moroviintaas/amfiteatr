@@ -50,6 +50,7 @@ fn create_and_run_model<PB: LearningPolicyBuilder>(options: &ReplicatorOptions, 
     }
 
     let mut model = model_builder.build()?;
+    model.register_tboard_writers_from_program_args(&options)?;
     //model.run_episode()?;
     model.run_training_session(options.games, options.epochs)?;
     Ok(())

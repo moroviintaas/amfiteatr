@@ -1,3 +1,4 @@
+use tboard::Error;
 use thiserror::Error;
 use amfiteatr_core::error::AmfiteatrError;
 use crate::replicators::model::ReplDomain;
@@ -14,6 +15,8 @@ pub enum ReplError {
     OddAgentNumber(usize),
     #[error("Policy builder error: {0}")]
     PolicyBuilderError(String),
+    //#[error("Tensorboard error: {0}")]
+    //TensorBoard(tboard::Error),
     //#[error("Classic)]
 }
 
@@ -22,3 +25,11 @@ impl From<AmfiteatrError<ReplDomain>> for ReplError {
         Self::Amfiteatr(value)
     }
 }
+/*
+impl From<tboard::Error> for ReplError {
+    fn from(value: Error) -> Self {
+        Self::TensorBoard(value.into())
+    }
+}
+
+ */
