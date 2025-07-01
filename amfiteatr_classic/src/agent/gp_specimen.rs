@@ -1,8 +1,9 @@
 use std::ops::Div;
-use rand::distr::{Distribution, Open01};
+use rand::distr::{Bernoulli, Distribution, Open01};
 use rand::Rng;
 use amfiteatr_core::agent::Policy;
 use amfiteatr_core::error::AmfiteatrError;
+use amfiteatr_rl::policy::PolicySpecimen;
 use crate::agent::LocalHistoryInfoSet;
 use crate::domain::{ClassicAction, ClassicGameDomain, UsizeAgentId};
 
@@ -93,8 +94,82 @@ impl GpClassic{
     pub fn new_rand<R: Rng + ?Sized>(rng: &mut R) -> Self{
         rand::distr::StandardUniform{}.sample(rng)
     }
+
+    pub(crate)fn _cross(&self, other: &Self) -> Self{
+        Self{
+            w_up_v_up: (self.w_up_v_up + other.w_up_v_up)/2.0,
+            w_down_v_up: (self.w_down_v_up + other.w_down_v_up)/2.0,
+            w_up_v_down: (self.w_up_v_down + other.w_up_v_down)/2.0,
+            w_down_v_down: (self.w_down_v_down + other.w_down_v_down)/2.0,
+            w_i_punish_1: (self.w_i_punish_1 + other.w_i_punish_1)/2.0,
+            w_im_punished_1: (self.w_im_punished_1 + other.w_im_punished_1)/2.0,
+            w_i_absolute_1: (self.w_i_absolute_1 + other.w_i_absolute_1)/2.0,
+            w_im_absoluted_1: (self.w_im_absoluted_1 + other.w_im_absoluted_1)/2.0,
+            w_i_punish_2: (self.w_i_punish_2 + other.w_i_punish_2)/2.0,
+            w_im_punished_2: (self.w_im_punished_2 + other.w_im_punished_2)/2.0,
+            stdev: (self.stdev + other.stdev)/2.0,
+        }
+    }
+    pub(crate) fn _mutate_with_attribute_proba<ID: UsizeAgentId>(&mut self, probability: f64) -> Result<(), AmfiteatrError<ClassicGameDomain<ID>>>{
+        let d = Bernoulli::new(probability)
+            .map_err(|e| AmfiteatrError::Custom(e.to_string()))?;
+        let mut rng = rand::rng();
+        //let mut r = Self::default();
+        if d.sample(&mut rng) {
+            self.w_up_v_up = rng.random_range(-1.0 .. 1.0);
+        }
+        if d.sample(&mut rng) {
+            self.w_down_v_up = rng.random_range(-1.0 .. 1.0);
+        }
+        if d.sample(&mut rng) {
+            self.w_up_v_down = rng.random_range(-1.0 .. 1.0);
+        }
+        if d.sample(&mut rng) {
+            self.w_down_v_down = rng.random_range(-1.0 .. 1.0);
+        }
+        if d.sample(&mut rng) {
+            self.w_i_punish_1 = rng.random_range(-1.0 .. 1.0);
+        }
+        if d.sample(&mut rng) {
+            self.w_im_punished_1 = rng.random_range(-1.0 .. 1.0);
+        }
+        if d.sample(&mut rng) {
+            self.w_i_absolute_1 = rng.random_range(-1.0 .. 1.0);
+        }
+        if d.sample(&mut rng) {
+            self.w_im_absoluted_1 = rng.random_range(-1.0 .. 1.0);
+        }
+        if d.sample(&mut rng) {
+            self.w_i_punish_2 = rng.random_range(-1.0 .. 1.0);
+        }
+        if d.sample(&mut rng) {
+            self.w_im_punished_2 = rng.random_range(-1.0 .. 1.0);
+        }
+        if d.sample(&mut rng) {
+            self.stdev = rng.random_range(0.0 .. 11.0);
+        }
+
+        Ok(())
+    }
 }
 
+impl Default for GpClassic{
+    fn default() -> Self {
+        Self{
+            w_up_v_up: 0.0,
+            w_down_v_up: 0.0,
+            w_up_v_down: 0.0,
+            w_down_v_down: 0.0,
+            w_i_punish_1: 0.0,
+            w_im_punished_1: 0.0,
+            w_i_absolute_1: 0.0,
+            w_im_absoluted_1: 0.0,
+            w_i_punish_2: 0.0,
+            w_im_punished_2: 0.0,
+            stdev: 1.0,
+        }
+    }
+}
 impl Distribution<GpClassic> for rand::distr::StandardUniform{
     fn sample<R: Rng + ?Sized>(&self, rng: &mut R) -> GpClassic {
 
@@ -124,15 +199,30 @@ impl<ID: UsizeAgentId> Policy< ClassicGameDomain<ID>> for GpClassic{
         let gauss_expected = self._policy_get_gauss_mean(state);
         let sigma = self.stdev;
 
-        todo!()
+        let distr = rand_distr::Normal::new(gauss_expected, sigma).map_err(|e|
+            AmfiteatrError::Custom(e.to_string()))?;
+
+
+
+        let v = distr.sample(&mut rand::rng());
+
+        if v > 0.0 {
+            Ok(ClassicAction::Up)
+        } else {
+            Ok(ClassicAction::Down)
+        }
     }
 }
 
-impl GpClassic{
+impl<ID: UsizeAgentId> PolicySpecimen<ClassicGameDomain<ID>, ()> for GpClassic{
+
+    fn cross(&self, other: &Self) -> Self {
+        self._cross(other)
+    }
+
+    fn mutate(&mut self, _mutagen: ()) -> Result<(), AmfiteatrError<ClassicGameDomain<ID>>> {
+        self._mutate_with_attribute_proba(0.2)
 
 
-
-    
-
-
+    }
 }
