@@ -87,7 +87,7 @@ pub struct ReplicatorOptions{
     #[arg( long = "layer-sizes", value_delimiter = ',',  value_terminator = "!", num_args = 1.., default_value = "128,128")]
     pub layer_sizes: Vec<i64>,
 
-    #[arg(long = "learning-rate", default_value = "1e-4")]
+    #[arg(long = "learning-rate", default_value = "0.001")]
     pub learning_rate: f64,
 
     #[arg(short = 'V', long = "value-loss-coefficient", default_value = "0.5")]

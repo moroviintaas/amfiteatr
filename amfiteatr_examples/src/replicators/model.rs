@@ -131,6 +131,21 @@ impl <LP: ReplicatorNetworkPolicy>ReplicatorModelBuilder<LP>
         }
     }
 
+    pub fn add_mixed_agent(&mut self, agent_id: u32, probability: f64) -> Result<(), ReplError>{
+        if self.communication_map.contains_key(&agent_id) {
+            Err(ReplError::AgentDuplication(agent_id))
+        } else{
+            let policy = ClassicMixedStrategy::new_checked(probability)
+                .map_err(|e| ReplError::PolicyBuilderError("Mixed probability not in range (0.0, 1.0)".to_string()))?;
+            let info_set = LocalHistoryInfoSet::new(agent_id, self.reward_table.clone());
+            let (env_comm, agent_comm) = StdEnvironmentEndpoint::new_pair();
+            let agent = AgentGen::new(info_set, agent_comm, policy);
+            self.communication_map.insert(agent_id, env_comm);
+            self.mixed_agents.push(Arc::new(Mutex::new(agent)));
+            Ok(())
+        }
+    }
+
     pub fn build(self) -> Result<ReplicatorModel<LP>, ReplError>
     where <LP as Policy<ReplDomain>>::InfoSetType: Renew<ReplDomain, ()> + InformationSet<ReplDomain>{
     //pub fn build(self) -> Result<ReplicatorModel, ReplError>{
@@ -243,7 +258,7 @@ impl<LP: ReplicatorNetworkPolicy> ReplicatorModel<LP> {
             let path_dove: PathBuf = [tboard_agent_base_path.as_ref(), std::path::Path::new(&"doves")].iter().collect();
             self.tboard_writer_doves = Some(tboard::EventWriter::create(&path_dove)
                 .map_err(|e| ReplError::Amfiteatr(AmfiteatrError::TboardFlattened {
-                    context: "Registering hawk tboard dove".to_string(),
+                    context: "Registering dove tboard dove".to_string(),
                     error: e.to_string() }))?);
             let path_mixes: PathBuf = [tboard_agent_base_path.as_ref(), std::path::Path::new(&"mixes")].iter().collect();
             self.tboard_writer_mixes = Some(tboard::EventWriter::create(&path_mixes)
@@ -340,6 +355,10 @@ impl<LP: ReplicatorNetworkPolicy> ReplicatorModel<LP> {
             description.scores.insert(guard.id().clone(), Vec::with_capacity(capacity));
         }
         for agent in self.pure_hawks.iter(){
+            let guard = agent.lock();
+            description.scores.insert(guard.id().clone(), Vec::with_capacity(capacity));
+        }
+        for agent in self.mixed_agents.iter(){
             let guard = agent.lock();
             description.scores.insert(guard.id().clone(), Vec::with_capacity(capacity));
         }

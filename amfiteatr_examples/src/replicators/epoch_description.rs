@@ -9,6 +9,7 @@ pub struct EpochDescription {
 
     pub(crate)  network_learning_hawk_moves: HashMap<AgentNum, Vec<usize>>,
     pub(crate)  network_learning_dove_moves: HashMap<AgentNum, Vec<usize>>,
+    //pub(crate)  network_learning_mixes_moves: HashMap<AgentNum, Vec<usize>>,
 
 }
 
@@ -41,10 +42,11 @@ impl EpochDescription {
         let mean_network_learning_hawk_moves = hash_map_average_usize(&self.network_learning_hawk_moves, None);
         let mean_network_learning_dove_moves = hash_map_average_usize(&self.network_learning_dove_moves, None);
 
+
         EpochDescriptionMean{
             mean_scores,
             mean_network_learning_hawk_moves,
-            mean_network_learning_dove_moves
+            mean_network_learning_dove_moves,
         }
     }
     pub fn mean_divide_round(&self, rounds: usize) -> EpochDescriptionMean{
@@ -55,7 +57,7 @@ impl EpochDescription {
         EpochDescriptionMean{
             mean_scores,
             mean_network_learning_hawk_moves,
-            mean_network_learning_dove_moves
+            mean_network_learning_dove_moves,
         }
     }
 }

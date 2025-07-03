@@ -46,7 +46,11 @@ fn create_and_run_model<PB: LearningPolicyBuilder>(options: &ReplicatorOptions, 
     }
     let start = options.number_of_learning + options.number_of_hawks;
     for d in start..start + options.number_of_doves{
-        model_builder.add_hawk_agent(d as AgentNum)?;
+        model_builder.add_dove_agent(d as AgentNum)?;
+    }
+    let start = start + options.number_of_doves;
+    for d in start..start + options.number_of_mixes{
+        model_builder.add_mixed_agent(d as AgentNum, options.mix_probability_of_hawk)?;
     }
 
     let mut model = model_builder.build()?;

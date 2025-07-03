@@ -846,8 +846,8 @@ pub trait PolicyTrainHelperPPO<DP: DomainParameters> : PolicyHelperA2C<DP, Confi
             let learning_step = self.global_learning_step();
             //let learning_rate = self.optimizer_mut().ra
             if let Some(writer) = self.tboard_writer(){
-                writer.write_scalar(learning_step, "charts/learning_rate", pg_loss_mean.double_value(&[]) as f32)
-                    .map_err(|e| AmfiteatrError::TboardFlattened {context: "Write policy loss".into(), error: format!("{e}")})?;
+                //writer.write_scalar(learning_step, "charts/learning_rate", self.optimizer_mut()..double_value(&[]) as f32)
+                //    .map_err(|e| AmfiteatrError::TboardFlattened {context: "Write policy loss".into(), error: format!("{e}")})?;
                 writer.write_scalar(learning_step, "losses/policy_loss", pg_loss_mean.double_value(&[]) as f32)
                     .map_err(|e| AmfiteatrError::TboardFlattened {context: "Write policy loss".into(), error: format!("{e}")})?;
                 writer.write_scalar(learning_step, "losses/value_loss", value_loss_avg.double_value(&[]) as f32)
