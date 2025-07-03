@@ -1,12 +1,13 @@
 use clap::Parser;
 use pyo3::prelude::PyAnyMethods;
 use pyo3::Python;
+use amfiteatr_examples::common::ComputeDevice;
 use amfiteatr_examples::connect_four::common::ErrorRL;
 use amfiteatr_examples::connect_four::env::ConnectFourRustEnvState;
 use amfiteatr_examples::connect_four::env_nd::ConnectFourRustNdEnvState;
 use amfiteatr_examples::connect_four::env_wrapped::PythonPettingZooStateWrap;
 use amfiteatr_examples::connect_four::model::{build_ppo_masking_policy_shared, C4PPOPolicyMaskingShared, ConnectFourModelRust};
-use amfiteatr_examples::connect_four::options::{ComputeDevice, ConnectFourOptions, Implementation};
+use amfiteatr_examples::connect_four::options::{ConnectFourOptions, Implementation};
 use amfiteatr_rl::policy::ConfigPPO;
 use amfiteatr_rl::tch::Device;
 
