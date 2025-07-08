@@ -90,7 +90,7 @@ pub struct ReplicatorOptions{
     #[arg(long = "learning-rate", default_value = "0.001")]
     pub learning_rate: f64,
 
-    #[arg(short = 'V', long = "value-loss-coefficient", default_value = "0.5")]
+    #[arg(short = 'U', long = "value-loss-coefficient", default_value = "0.5")]
     pub value_loss_coef: f64,
 
     #[arg(short = 'E', long = "entropy-coefficient", default_value = "0.01")]
