@@ -1,6 +1,6 @@
 use clap::Parser;
-use crate::model::{CCModel, ErrorAmfi};
-use crate::options::CCOptions;
+use crate::model::{MapModel, ErrorAmfi, CentralModel};
+use crate::options::{CCOptions, CommunicationMedium};
 
 mod options;
 mod model;
@@ -29,13 +29,22 @@ pub fn setup_logger(options: &CCOptions) -> Result<(), fern::InitError> {
         .apply()?;
     Ok(())
 }
-fn main() -> Result<(), ErrorAmfi>{
+fn main() -> Result<(), anyhow::Error>{
 
     let cli = CCOptions::parse();
-    setup_logger(&cli).unwrap();
+    setup_logger(&cli)?;
 
-    let mut model = CCModel::new(&cli);
-    model.run_several_games(cli.games);
+    match cli.comm{
+        CommunicationMedium::Mpsc | CommunicationMedium::Tcp => {
+            let mut model = MapModel::new(&cli)?;
+            model.run_several_games(cli.games);
+        }
+
+        CommunicationMedium::CentralMpsc => {
+            let mut model = CentralModel::new(&cli)?;
+            model.run_several_games(cli.games);
+        }
+    }
 
     Ok(())
 }

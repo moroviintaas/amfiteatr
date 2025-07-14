@@ -2,10 +2,11 @@ use std::path::PathBuf;
 use clap::{Parser, ValueEnum};
 use log::LevelFilter;
 
-#[derive(ValueEnum, Copy, Clone)]
+#[derive(ValueEnum, Copy, Clone, Debug, PartialEq, Eq)]
 pub enum CommunicationMedium{
     Mpsc,
-    Tcp
+    Tcp,
+    CentralMpsc,
 }
 impl Default for CommunicationMedium{
     fn default() -> Self {
@@ -16,13 +17,13 @@ impl Default for CommunicationMedium{
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]
 pub struct CCOptions{
-    #[arg(short = 'v', long = "log_level", value_enum, default_value = "info")]
+    #[arg(short = 'v', long = "log-level", value_enum, default_value = "info")]
     pub log_level: LevelFilter,
 
-    #[arg(short = 'a', long = "log_level_amfi", value_enum, default_value = "OFF")]
+    #[arg(short = 'a', long = "log-level-amfi", value_enum, default_value = "OFF")]
     pub log_level_amfi: LevelFilter,
 
-    #[arg(short = 'p', long = "number_of_players", default_value = "10")]
+    #[arg(short = 'p', long = "number-of-players", default_value = "10")]
     pub number_of_players: usize,
 
     #[arg(short = 'o', long = "logfile")]
