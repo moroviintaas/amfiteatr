@@ -5,22 +5,21 @@ use std::sync::{Arc, mpsc};
 use log::debug;
 use parking_lot::{Mutex, RwLock};
 use amfiteatr_classic::agent::{LocalHistoryConversionToTensor, LocalHistoryInfoSet, ReplInfoSetAgentNum};
-use amfiteatr_classic::{AsymmetricRewardTable, ClassicActionTensorRepresentation, SymmetricRewardTable};
+use amfiteatr_classic::{AsymmetricRewardTable, SymmetricRewardTable};
 use amfiteatr_classic::domain::{AgentNum, ClassicAction, ClassicGameDomainNumbered};
 use amfiteatr_classic::env::PairingState;
 use amfiteatr_classic::policy::{ClassicMixedStrategy, ClassicPureStrategy};
-use amfiteatr_core::agent::{AgentGen, AutomaticAgent, IdAgent, InformationSet, MultiEpisodeAutoAgent, Policy, PolicyAgent, StatefulAgent, TracingAgent, TracingAgentGen};
-use amfiteatr_core::comm::{EnvironmentMpscPort, StdAgentEndpoint, StdEnvironmentEndpoint};
+use amfiteatr_core::agent::{AgentGen, IdAgent, InformationSet, MultiEpisodeAutoAgent, Policy, PolicyAgent, StatefulAgent, TracingAgentGen};
+use amfiteatr_core::comm::{StdAgentEndpoint, StdEnvironmentEndpoint};
 use amfiteatr_core::domain::{DomainParameters, Renew};
 use amfiteatr_core::env::{AutoEnvironmentWithScores, ReseedEnvironment, ScoreEnvironment, StatefulEnvironment, TracingHashMapEnvironment};
 use amfiteatr_core::error::{AmfiteatrError, CommunicationError};
-use amfiteatr_core::reexport::nom::Parser;
 use amfiteatr_core::util::TensorboardSupport;
-use amfiteatr_rl::policy::{LearningNetworkPolicy, LearningNetworkPolicyGeneric, LearnSummary, PolicyDiscretePPO};
+use amfiteatr_rl::policy::{LearningNetworkPolicy, LearningNetworkPolicyGeneric, LearnSummary};
 use crate::replicators::error::ReplError;
 use crate::replicators::error::ReplError::OddAgentNumber;
 use amfiteatr_classic::agent::ReplInfoSet;
-use crate::replicators::epoch_description::{EpochDescription, EpochDescriptionMean, SessionDescription, SessionLearningSummaries};
+use crate::replicators::epoch_description::{EpochDescription, EpochDescriptionMean};
 use crate::replicators::options::ReplicatorOptions;
 
 pub type ReplDomain = ClassicGameDomainNumbered;
@@ -28,10 +27,7 @@ pub type ReplDomain = ClassicGameDomainNumbered;
 pub type PurePolicy = ClassicPureStrategy<AgentNum, LocalHistoryInfoSet<AgentNum>>;
 pub type AgentPure = AgentGen<ReplDomain, PurePolicy, StdAgentEndpoint<ReplDomain>>;
 pub type StaticBehavioralAgent = AgentGen<ReplDomain, ClassicMixedStrategy<AgentNum, LocalHistoryInfoSet<AgentNum>>, StdAgentEndpoint<ReplDomain>>;
-pub type LearningAgent<
-    P: LearningNetworkPolicy<ReplDomain> + Policy<ReplDomain, InfoSetType=LocalHistoryInfoSet<AgentNum>>
-        + TensorboardSupport<ReplDomain>
-> = TracingAgentGen<ReplDomain, P, StdAgentEndpoint<ReplDomain>>;
+pub type LearningAgent<P> = TracingAgentGen<ReplDomain, P, StdAgentEndpoint<ReplDomain>>;
 
 
 
@@ -136,7 +132,7 @@ impl <LP: ReplicatorNetworkPolicy>ReplicatorModelBuilder<LP>
             Err(ReplError::AgentDuplication(agent_id))
         } else{
             let policy = ClassicMixedStrategy::new_checked(probability)
-                .map_err(|e| ReplError::PolicyBuilderError("Mixed probability not in range (0.0, 1.0)".to_string()))?;
+                .map_err(|_e| ReplError::PolicyBuilderError("Mixed probability not in range (0.0, 1.0)".to_string()))?;
             let info_set = LocalHistoryInfoSet::new(agent_id, self.reward_table.clone());
             let (env_comm, agent_comm) = StdEnvironmentEndpoint::new_pair();
             let agent = AgentGen::new(info_set, agent_comm, policy);
@@ -278,7 +274,7 @@ impl<LP: ReplicatorNetworkPolicy> ReplicatorModel<LP> {
 
     pub fn run_episode(&mut self) -> Result<(), AmfiteatrError<ReplDomain>>{
         match &mut self.thread_pool{
-            Some(pool) => {
+            Some(_pool) => {
                 todo!()
             },
             None => {
@@ -480,7 +476,7 @@ impl<LP: ReplicatorNetworkPolicy> ReplicatorModel<LP> {
                     drop(tx);
 
                 });
-                let m = Arc::try_unwrap(summaries2).map_err(|e|{
+                let m = Arc::try_unwrap(summaries2).map_err(|_e|{
                     AmfiteatrError::Lock { description: "Failed unwrapping Arc".to_string(), object: "Summaries in training".to_string() }
                 })?;
                 let summaries = m.into_inner();

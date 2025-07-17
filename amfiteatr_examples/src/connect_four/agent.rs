@@ -56,7 +56,7 @@ impl TensorEncoding for ConnectFourTensorReprD1{
 }
 
 impl ContextEncodeTensor<ConnectFourTensorReprD1> for ConnectFourInfoSet{
-    fn try_to_tensor(&self, way: &ConnectFourTensorReprD1) -> Result<Tensor, ConvertError> {
+    fn try_to_tensor(&self, _way: &ConnectFourTensorReprD1) -> Result<Tensor, ConvertError> {
 
         /*
         let mut vec = Vec::with_capacity(way.desired_shape()[0] as usize);

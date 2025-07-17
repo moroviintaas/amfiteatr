@@ -100,7 +100,7 @@ impl AgentIdentifier for DemoAgentID{}
 
 #[derive(Clone, Debug, PartialEq, Eq, thiserror::Error)]
 #[cfg_attr(feature = "speedy", derive(speedy::Writable, speedy::Readable))]
-pub struct DemoError(String);
+pub struct DemoError(pub String);
 impl Display for DemoError{
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "DemoError: {}", self.0)

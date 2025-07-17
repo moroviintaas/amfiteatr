@@ -8,4 +8,5 @@ pub mod series;
 pub mod connect_four;
 pub mod replicators;
 pub mod common;
+pub mod expensive_update;
 

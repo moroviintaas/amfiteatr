@@ -1,4 +1,3 @@
-use tboard::Error;
 use thiserror::Error;
 use amfiteatr_core::error::AmfiteatrError;
 use crate::replicators::model::ReplDomain;

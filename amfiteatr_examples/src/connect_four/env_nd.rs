@@ -187,7 +187,7 @@ impl SequentialGameState<ConnectFourDomain> for ConnectFourRustNdEnvState{
 }
 
 impl Renew<ConnectFourDomain, ()> for ConnectFourRustNdEnvState{
-    fn renew_from(&mut self, base: ()) -> Result<(), AmfiteatrError<ConnectFourDomain>> {
+    fn renew_from(&mut self, _base: ()) -> Result<(), AmfiteatrError<ConnectFourDomain>> {
         self.board = Array2::zeros((6,7));
         self.current_player = Some(ConnectFourPlayer::One);
         self.truncations = [false, false];
