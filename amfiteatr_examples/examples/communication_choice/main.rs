@@ -35,7 +35,7 @@ fn main() -> Result<(), anyhow::Error>{
     setup_logger(&cli)?;
 
     match cli.comm{
-        CommunicationMedium::Mpsc | CommunicationMedium::Tcp => {
+        CommunicationMedium::StaticMpsc | CommunicationMedium::StaticTcp => {
             let mut model = MapModel::new(&cli)?;
             model.run_several_games(cli.games);
         }

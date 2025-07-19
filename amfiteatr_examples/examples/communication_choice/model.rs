@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 use amfiteatr_core::agent::{AgentGen, AutomaticAgent, RandomPolicy, ReseedAgent};
-use amfiteatr_core::comm::{AgentMpscAdapter, EnvironmentAdapter, EnvironmentMpscPort, StdEnvironmentEndpoint};
+use amfiteatr_core::comm::{AgentEndpoint, AgentMpscAdapter, EnvironmentAdapter, EnvironmentEndpoint, EnvironmentMpscPort, StdEnvironmentEndpoint};
 use amfiteatr_core::demo::{DemoDomain, DemoInfoSet, DemoState};
 use amfiteatr_core::env::{AutoEnvironmentWithScores, BasicEnvironment, HashMapEnvironment, ReseedEnvironment, RoundRobinUniversalEnvironment};
 use amfiteatr_core::error::AmfiteatrError;
@@ -12,20 +12,21 @@ use crate::options::{CCOptions, CommunicationMedium};
 pub type ErrorAmfi = AmfiteatrError<DemoDomain>;
 
 
-type MapEnvironment = HashMapEnvironment<DemoDomain, DemoState, DomainCommE512<DemoDomain>>;
+//type MapEnvironment = HashMapEnvironment<DemoDomain, DemoState, DomainCommE512<DemoDomain>>;
+type MapEnvironment<C: EnvironmentEndpoint<DemoDomain> + Send> = HashMapEnvironment<DemoDomain, DemoState, C>;
 type CentralEnvironment = BasicEnvironment<DemoDomain, DemoState, EnvironmentMpscPort<DemoDomain>>;
 
-type MappedAgent = AgentGen<DemoDomain, RandomPolicy<DemoDomain, DemoInfoSet>, DomainCommA512<DemoDomain>>;
+type MappedAgent<C: AgentEndpoint<DemoDomain> + Send> = AgentGen<DemoDomain, RandomPolicy<DemoDomain, DemoInfoSet>, C>;
 type CAgent = AgentGen<DemoDomain, RandomPolicy<DemoDomain, DemoInfoSet>, AgentMpscAdapter<DemoDomain>>;
 pub const BANDITS: [(f32, f32);3] = [(1.0, 3.0), (5.6, 6.7), (0.1, 9.0)];
 
-pub struct MapModel {
+pub struct MapModel<CE:EnvironmentEndpoint<DemoDomain>, CA:  AgentEndpoint<DemoDomain>> {
 
-    env: MapEnvironment,
-    agents: Vec<Arc<Mutex<MappedAgent>>>
+    env: MapEnvironment<CE>,
+    agents: Vec<Arc<Mutex<MappedAgent<CA>>>>
 }
 
-impl MapModel {
+impl MapModel<DomainCommE512<DemoDomain>, DomainCommA512<DemoDomain>>{
     pub fn new(
         options: &CCOptions) -> Result<Self, anyhow::Error>{
 
@@ -38,7 +39,7 @@ impl MapModel {
 
 
         match options.comm{
-            CommunicationMedium::Mpsc => {
+            CommunicationMedium::StaticMpsc => {
                 for id in 0..options.number_of_players{
                     let (e,a) = StdEnvironmentEndpoint::new_pair();
                     env_comms.insert(id, DomainCommE512::StdSync(e));
@@ -46,7 +47,7 @@ impl MapModel {
                     agents.push(Arc::new(Mutex::new(AgentGen::new(info_set, DomainCommA512::StdSync(a), random_policy.clone()))))
                 }
             }
-            CommunicationMedium::Tcp => {
+            CommunicationMedium::StaticTcp => {
                 let agents_vec: Vec<usize> = (0..options.number_of_players).collect();
                 let (mapped_env_comms, mapped_agent_comms) = PairedTcpEnvironmentEndpoint::create_local_net(28000, agents_vec.iter()).unwrap();
                 env_comms = mapped_env_comms.into_iter().map(|(i, ep)|{
@@ -64,39 +65,27 @@ impl MapModel {
                 return Err(anyhow::Error::msg(format!("Comm type not implemented for 1-1 model: {:?}", m)))
             }
         }
-        /*
-        for id in 0..options.number_of_players{
-            
-            let (env_comm, agent_comm) = match options.comm{
-                CommunicationMedium::Mpsc => {
-                    let (e,a) = StdEnvironmentEndpoint::new_pair();
-                    (DomainCommE512::StdSync(e), DomainCommA512::StdSync(a))
-                }
-                CommunicationMedium::Tcp => {
-                    let (e,a) = PairedTcpEnvironmentEndpoint::<DemoDomain, 512>::create_local_pair(20000+id as u16).unwrap();
-                    (DomainCommE512::Tcp(e), DomainCommA512::Tcp(a))
-                }
-            };
-            env_comms.insert(id, env_comm);
-            let info_set = DemoInfoSet::new(id, number_of_bandits);
-            agents.push(Arc::new(Mutex::new(AgentGen::new(info_set, agent_comm, random_policy.clone()))));
-            
-        }
 
-         */
         let player_set = (0..options.number_of_players).collect();
         let state = DemoState::new_with_players(BANDITS.into(), options.rounds, &player_set);
         let env = MapEnvironment::new(state, env_comms);
-        
+
         Ok(Self{
             env,
             agents,
         })
-        
-        
+
+
 
 
     }
+}
+
+impl<
+    CE:EnvironmentEndpoint<DemoDomain> + Send,
+    CA:  AgentEndpoint<DemoDomain> + Send
+> MapModel<CE, CA> {
+
 
     pub fn run_single_game(&mut self){
         std::thread::scope(|s|{

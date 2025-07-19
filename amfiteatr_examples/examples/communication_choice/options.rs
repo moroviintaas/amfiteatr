@@ -4,13 +4,13 @@ use log::LevelFilter;
 
 #[derive(ValueEnum, Copy, Clone, Debug, PartialEq, Eq)]
 pub enum CommunicationMedium{
-    Mpsc,
-    Tcp,
+    StaticMpsc,
+    StaticTcp,
     CentralMpsc,
 }
 impl Default for CommunicationMedium{
     fn default() -> Self {
-        Self::Mpsc
+        Self::StaticMpsc
     }
 }
 
