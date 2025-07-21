@@ -1,9 +1,9 @@
 use clap::Parser;
-use crate::model::{MapModel, ErrorAmfi, CentralModel};
+use crate::model::{MapModel, CentralModel};
 use crate::options::{CCOptions, CommunicationMedium};
 
-mod options;
 mod model;
+pub mod options;
 
 pub fn setup_logger(options: &CCOptions) -> Result<(), fern::InitError> {
     let dispatch  = fern::Dispatch::new()
@@ -38,10 +38,14 @@ fn main() -> Result<(), anyhow::Error>{
         CommunicationMedium::StaticMpsc | CommunicationMedium::StaticTcp => {
             let mut model = MapModel::new(&cli)?;
             model.run_several_games(cli.games);
-        }
+        },
 
         CommunicationMedium::CentralMpsc => {
             let mut model = CentralModel::new(&cli)?;
+            model.run_several_games(cli.games);
+        },
+        CommunicationMedium::Dynamic => {
+            let mut model = MapModel::new_boxing(&cli)?;
             model.run_several_games(cli.games);
         }
     }

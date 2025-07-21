@@ -9,8 +9,6 @@ use amfiteatr_examples::expensive_update::agent::ExpensiveUpdateInformationSet;
 use amfiteatr_examples::expensive_update::env::ExpensiveUpdateState;
 use crate::options::ExpensiveUpdateOptions;
 
-mod options;
-
 pub fn setup_logger(options: &ExpensiveUpdateOptions) -> Result<(), fern::InitError> {
     let dispatch  = fern::Dispatch::new()
 

@@ -1,7 +1,7 @@
 use std::path::PathBuf;
 use log::LevelFilter;
 use clap::Parser;
-use amfiteatr_examples::expensive_update::domain::UpdateCost;
+use crate::expensive_update::domain::UpdateCost;
 
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]

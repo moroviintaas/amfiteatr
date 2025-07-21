@@ -14,13 +14,14 @@ pub struct ExpensiveUpdateState{
 
     small_update_cost_per_agent: UpdateCost,
     big_update_cost_per_agent: UpdateCost,
+    big_update_cost_flat: UpdateCost,
 
 
 
 }
 
 impl ExpensiveUpdateState{
-    pub fn new(number_of_rounds: u64, number_of_players: u64, small_update_cost_per_agent: UpdateCost, big_update_cost_per_agent: UpdateCost) -> ExpensiveUpdateState{
+    pub fn new(number_of_rounds: u64, number_of_players: u64, small_update_cost_per_agent: UpdateCost, big_update_cost_per_agent: UpdateCost, big_update_cost_flat: UpdateCost) -> ExpensiveUpdateState{
         Self{
             current_player_index: 0,
             current_round: 0,
@@ -28,6 +29,8 @@ impl ExpensiveUpdateState{
             number_of_players,
             small_update_cost_per_agent,
             big_update_cost_per_agent,
+            big_update_cost_flat
+
         }
     }
 }
@@ -67,11 +70,11 @@ impl SequentialGameState<ExpensiveUpdateDomain> for ExpensiveUpdateState{
             let mut updates = (0..self.number_of_players).map(|n| (n, self.small_update_cost_per_agent))
                 .collect::<Vec<_>>();
             if self.big_update_cost_per_agent > 0{
-                updates.push((self.current_player_index, self.big_update_cost_per_agent*self.number_of_players));
+                updates.push((self.current_player_index, (self.big_update_cost_per_agent*self.number_of_players) + self.big_update_cost_flat));
             }
             Ok(updates)
         } else {
-            Ok(vec![(self.current_player_index, self.big_update_cost_per_agent*self.number_of_players)])
+            Ok(vec![(self.current_player_index, self.big_update_cost_per_agent*self.number_of_players+ self.big_update_cost_flat)])
         }
     }
 }

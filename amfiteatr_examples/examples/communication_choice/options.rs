@@ -1,12 +1,14 @@
 use std::path::PathBuf;
 use clap::{Parser, ValueEnum};
 use log::LevelFilter;
+use amfiteatr_examples::expensive_update::domain::UpdateCost;
 
 #[derive(ValueEnum, Copy, Clone, Debug, PartialEq, Eq)]
 pub enum CommunicationMedium{
     StaticMpsc,
     StaticTcp,
     CentralMpsc,
+    Dynamic
 }
 impl Default for CommunicationMedium{
     fn default() -> Self {
@@ -24,7 +26,7 @@ pub struct CCOptions{
     pub log_level_amfi: LevelFilter,
 
     #[arg(short = 'p', long = "number-of-players", default_value = "10")]
-    pub number_of_players: usize,
+    pub number_of_players: u64,
 
     #[arg(short = 'o', long = "logfile")]
     pub log_file: Option<PathBuf>,
@@ -34,11 +36,23 @@ pub struct CCOptions{
     pub port: u16,
 
     #[arg(short = 'g', long = "games", default_value = "100")]
-    pub games: usize,
+    pub games: u64,
 
     #[arg(short = 'r', long = "rounds", default_value = "10")]
-    pub rounds: usize,
+    pub rounds: u64,
 
-    #[arg(short = 'c', long = "communication", default_value = "mpsc")]
+    #[arg(short = 'c', long = "communication", default_value = "static-mpsc")]
     pub comm: CommunicationMedium,
+
+    #[arg(short = 's', long = "small-update-cost-per-agent", default_value = "0")]
+    pub small_update_cost_per_agent: UpdateCost,
+
+    #[arg(short = 'b', long = "big-update-cost-per-agent", default_value = "1024")]
+    pub big_update_cost_per_agent: UpdateCost,
+
+    #[arg(short = 'b', long = "big-update-cost--flat", default_value = "0")]
+    pub big_update_cost_flat: UpdateCost,
+
+    #[arg(short = 't', long = "number-of-dyn-tcp", default_value = "0")]
+    pub number_of_dynamic_tcp_agents: u64,
 }
