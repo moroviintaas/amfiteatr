@@ -1,3 +1,4 @@
+use log::debug;
 use sha2::{Digest, Sha256};
 use amfiteatr_core::agent::{InformationSet, PresentPossibleActions};
 use amfiteatr_core::demo::DemoAction;
@@ -30,6 +31,7 @@ impl InformationSet<ExpensiveUpdateDomain> for ExpensiveUpdateInformationSet{
 
         let mut h = Vec::new();
         h.extend(self.id.to_be_bytes());
+        debug!("Agent: {}, expensive update of cost {}", self.id, update);
         for _ in 0..update{
             let n = Sha256::digest(&h[..]);
             h.clear();

@@ -55,9 +55,6 @@ name = "connect_four_ppo_masking_selfplay"
 required-features = ["rl-python"]
 path = "examples/connect_four/run_model_ppo_masking_selfplay.rs"
 
-[[example]]
-name = "expensive_update"
-path = "examples/epensive_update/main.rs"
 
 [[example]]
 name = "connect_four_ppo_masking"

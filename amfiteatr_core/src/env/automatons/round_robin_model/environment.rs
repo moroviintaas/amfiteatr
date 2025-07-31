@@ -12,9 +12,9 @@ pub trait RoundRobinEnvironment<DP: DomainParameters>{
     ///
     /// Argument `truncate_steps` is the number of steps after which the game is truncated.
     /// Set to `None` to disable.
-    fn run_round_robin_truncating(&mut self, truncate_steps: Option<usize>) -> Result<(), AmfiteatrError<DP>>;
-    fn run_round_robin(&mut self) -> Result<(), AmfiteatrError<DP>>{
-        self.run_round_robin_truncating(None)
+    fn run_round_robin_no_rewards_truncating(&mut self, truncate_steps: Option<usize>) -> Result<(), AmfiteatrError<DP>>;
+    fn run_round_robin_no_rewards(&mut self) -> Result<(), AmfiteatrError<DP>>{
+        self.run_round_robin_no_rewards_truncating(None)
     }
 
 }
@@ -26,7 +26,21 @@ pub trait RoundRobinUniversalEnvironment<DP: DomainParameters> : RoundRobinEnvir
     /// Set to `None` to disable.
     fn run_round_robin_with_rewards_truncating(&mut self, truncate_steps: Option<usize>)
         -> Result<(), AmfiteatrError<DP>>;
+
+    /// Alias to [`run_round_robin_with_rewards_truncating`]
+    fn run_round_robin_truncating(&mut self, truncate_steps: Option<usize>)
+                                               -> Result<(), AmfiteatrError<DP>>{
+        self.run_round_robin_with_rewards_truncating(truncate_steps)
+    }
+    /// Runs environment without truncation, default implementation calls
+    /// [`run_round_robin_with_rewards_truncating(None)`](`run_round_robin_with_rewards_truncating`)
+    /// Exactly the same default behaviour as [`run_round_robin`] just more explicit in naming.
     fn run_round_robin_with_rewards(&mut self) -> Result<(), AmfiteatrError<DP>>{
+        self.run_round_robin_with_rewards_truncating(None)
+    }
+    /// Runs environment without truncation, default implementation calls
+    /// [`run_round_robin_with_rewards_truncating(None)`](`run_round_robin_with_rewards_truncating`)
+    fn run_round_robin(&mut self) -> Result<(), AmfiteatrError<DP>>{
         self.run_round_robin_with_rewards_truncating(None)
     }
 }
@@ -93,7 +107,7 @@ where Env: CommunicatingEndpointEnvironment<DP, CommunicationError=Communication
  + StatefulEnvironment<DP>
  + EnvironmentWithAgents<DP>
  + BroadcastingEndpointEnvironment<DP>, DP: DomainParameters {
-    fn run_round_robin_truncating(&mut self,  truncate_steps: Option<usize>) -> Result<(), AmfiteatrError<DP>> {
+    fn run_round_robin_no_rewards_truncating(&mut self, truncate_steps: Option<usize>) -> Result<(), AmfiteatrError<DP>> {
         let mut current_step = 0;
         let first_player = match self.current_player(){
             None => {

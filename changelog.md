@@ -4,6 +4,12 @@
 + Introduced experimental mutable calls on policy, that are called at the beginning, the end of episodes and between epochs.
 + Renamed `LearningNetworkPolicy<DP: DomainParameters>` with generic `Summary` type to `LearningNetworkPolicyGeneric`.
 Introduced new `LearningNetworkPolicy<DP: DomainParameters> LearningNetworkPolicyGeneric<DP>` with `Summary` fixed on `LearnSummary`  type.
++ In `RoundRobinEnvironment` changed names of `run_round_robin` and `run_round_robin_truncating` to
+respectively `run_round_robin_no_rewards` and `run_round_robin_no_rewards_truncating`.
+Making it more explicit to call environments without providing rewards.
+Methods `run_round_robin` and `run_round_robin_truncating` are now parts of `RoundRobinUniversalEnvironment` trait.
+Changed because running with rewards should probably be default behaviour, as it is more commonly used.
+
 ## Version 0.11.0
 + Changed masking in A2C and PPO policies to use `f_where_self` instead of `f_mul`,
 now masks must be `Tensor` with datatype `Bool`

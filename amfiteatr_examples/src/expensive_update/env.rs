@@ -1,3 +1,4 @@
+use log::debug;
 use amfiteatr_core::demo::DemoError;
 use amfiteatr_core::domain::{DomainParameters, Renew};
 use amfiteatr_core::env::{GameStateWithPayoffs, SequentialGameState};
@@ -64,6 +65,7 @@ impl SequentialGameState<ExpensiveUpdateDomain> for ExpensiveUpdateState{
         if self.current_player_index == self.number_of_players{
             self.current_round+=1;
             self.current_player_index = 0;
+            debug!("Ending round {}", self.current_round);
         }
 
         if self.small_update_cost_per_agent > 0{

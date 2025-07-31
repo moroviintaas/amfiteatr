@@ -50,7 +50,7 @@ pub struct CCOptions{
     #[arg(short = 'b', long = "big-update-cost-per-agent", default_value = "1024")]
     pub big_update_cost_per_agent: UpdateCost,
 
-    #[arg(short = 'b', long = "big-update-cost-flat", default_value = "0")]
+    #[arg(short = 'B', long = "big-update-cost-flat", default_value = "0")]
     pub big_update_cost_flat: UpdateCost,
 
     #[arg(short = 't', long = "number-of-dyn-tcp", default_value = "0")]
