@@ -9,6 +9,8 @@ respectively `run_round_robin_no_rewards` and `run_round_robin_no_rewards_trunca
 Making it more explicit to call environments without providing rewards.
 Methods `run_round_robin` and `run_round_robin_truncating` are now parts of `RoundRobinUniversalEnvironment` trait.
 Changed because running with rewards should probably be default behaviour, as it is more commonly used.
++ Renamed methods `LearningNetworkPolicyGeneric::train_on_trajectories` to `LearningNetworkPolicyGeneric::train_generic` and
+`LearningNetworkPolicyGeneric::train_on_trajectories_env_rewards` to `LearningNetworkPolicyGeneric::train`
 
 ## Version 0.11.0
 + Changed masking in A2C and PPO policies to use `f_where_self` instead of `f_mul`,

@@ -464,7 +464,7 @@ impl<LP: ReplicatorNetworkPolicy> ReplicatorModel<LP> {
                         s.spawn(move || {
                             let mut guard = agentc.lock();
                             let trajectories = guard.take_episodes();
-                            let summary = guard.policy_mut().train_on_trajectories_env_reward(&trajectories[..])?;
+                            let summary = guard.policy_mut().train(&trajectories[..])?;
                             txc.send((guard.info_set().agent_id().clone(), summary )).map_err(|e|{
                                AmfiteatrError::Communication {
                                    source: CommunicationError::SendError(guard.info_set().agent_id().clone(), e.to_string())

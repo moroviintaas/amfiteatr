@@ -110,7 +110,7 @@ RlSimpleLearningAgent<DP, Seed, LS> for TracingAgentGen<DP, P, Comm, >
     fn simple_apply_experience(&mut self) -> Result<LS, AmfiteatrRlError<DP>> {
         let episodes = self.take_episodes();
 
-        self.policy_mut().train_on_trajectories_env_reward(&episodes)
+        self.policy_mut().train(&episodes)
     }
 
     fn set_exploration(&mut self, explore: bool) {

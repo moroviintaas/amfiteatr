@@ -74,7 +74,7 @@ where <R as PolicyAgent<CartPoleDomain>>::Policy: LearningNetworkPolicyGeneric<C
     }
     let trajectories = agent.take_episodes();
 
-    agent.policy_mut().train_on_trajectories_env_reward(&trajectories)?;
+    agent.policy_mut().train(&trajectories)?;
 
     Ok(())
 }

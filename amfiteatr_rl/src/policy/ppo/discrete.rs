@@ -322,7 +322,7 @@ where
         self.exploration = enabled;
     }
 
-    fn train_on_trajectories<
+    fn train_generic<
         R: Fn(&AgentStepView<DP, <Self as Policy<DP>>::InfoSetType>) -> Tensor
 
     >
@@ -583,7 +583,7 @@ where
         self.base.switch_explore(enabled)
     }
 
-    fn train_on_trajectories<
+    fn train_generic<
         R: Fn(&AgentStepView<DP, <Self as Policy<DP>>::InfoSetType>) -> Tensor
     >(
         &mut self, trajectories: &[AgentTrajectory<DP, <Self as Policy<DP>>::InfoSetType>],

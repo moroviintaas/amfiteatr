@@ -185,7 +185,7 @@ impl<
 
 
 
-    fn train_on_trajectories<R: Fn(&AgentStepView<DP, InfoSet>) -> Tensor>(
+    fn train_generic<R: Fn(&AgentStepView<DP, InfoSet>) -> Tensor>(
 
         &mut self,
         trajectories: &[AgentTrajectory<DP, InfoSet>],

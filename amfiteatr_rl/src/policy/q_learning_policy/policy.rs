@@ -182,7 +182,7 @@ where <<InfoSet as PresentPossibleActions<DP>>::ActionIteratorType as IntoIterat
 
      */
 
-    fn train_on_trajectories<
+    fn train_generic<
         R: Fn(&AgentStepView<DP, <Self as Policy<DP>>::InfoSetType>) -> Tensor>(
         &mut self,
         trajectories: &[AgentTrajectory<DP, <Self as Policy<DP>>::InfoSetType>],

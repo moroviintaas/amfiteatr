@@ -322,7 +322,7 @@ impl Model{
         for a in &self.learning_agents{
             let mut agent = a.lock().unwrap();
             let trajectories = agent.take_episodes();
-            agent.policy_mut().train_on_trajectories_env_reward(&trajectories[..])?;
+            agent.policy_mut().train(&trajectories[..])?;
         }
         Ok(())
     }

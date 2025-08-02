@@ -270,7 +270,7 @@ where <DP as DomainParameters>::ActionType: ContextDecodeMultiIndexI64<ActionBui
         self.exploration = enabled;
     }
 
-    fn train_on_trajectories<
+    fn train_generic<
         R: Fn(&AgentStepView<DP, <Self as Policy<DP>>::InfoSetType>) -> Tensor
 
     >
@@ -482,8 +482,8 @@ where
         self.base.switch_explore(enabled)
     }
 
-    fn train_on_trajectories<R: Fn(&AgentStepView<DP, <Self as Policy<DP>>::InfoSetType>) -> Tensor>(&mut self, trajectories: &[AgentTrajectory<DP, <Self as Policy<DP>>::InfoSetType>], reward_f: R)
-        -> Result<Self::Summary, AmfiteatrRlError<DP>> {
+    fn train_generic<R: Fn(&AgentStepView<DP, <Self as Policy<DP>>::InfoSetType>) -> Tensor>(&mut self, trajectories: &[AgentTrajectory<DP, <Self as Policy<DP>>::InfoSetType>], reward_f: R)
+                                                                                             -> Result<Self::Summary, AmfiteatrRlError<DP>> {
         Ok(self.a2c_train_on_trajectories(trajectories, reward_f)?)
     }
 }

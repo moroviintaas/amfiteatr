@@ -854,12 +854,12 @@ where <P as Policy<ConnectFourDomain>>::InfoSetType: Renew<ConnectFourDomain, ()
     pub fn train_agents_on_experience(&mut self) -> Result<(LearnSummary,LearnSummary), ErrorRL>{
         //println!("Training agent 0");
         let t1 = self.agent0.take_episodes();
-        let s1 = self.agent0.policy_mut().train_on_trajectories_env_reward(&t1)?;
+        let s1 = self.agent0.policy_mut().train(&t1)?;
         let t2 = self.agent1.take_episodes();
         //println!("eps1: {}", t1.len());
         //println!("eps2: {}", t2.len());
         //println!("Training agent 1");
-        let s2 = self.agent1.policy_mut().train_on_trajectories_env_reward(&t2)?;
+        let s2 = self.agent1.policy_mut().train(&t2)?;
         //self.agent2.policy_mut().train_on_trajectories(&t2, |step| Tensor::from(-1.0 + (2.0 * step.reward())))?;
 
         Ok((s1, s2))
@@ -867,7 +867,7 @@ where <P as Policy<ConnectFourDomain>>::InfoSetType: Renew<ConnectFourDomain, ()
 
     pub fn train_agent0_only(&mut self) -> Result<LearnSummary, ErrorRL>{
         let t1 = self.agent0.take_episodes();
-        let s1 = self.agent0.policy_mut().train_on_trajectories_env_reward(&t1)?;
+        let s1 = self.agent0.policy_mut().train(&t1)?;
         let _t2 = self.agent1.take_episodes();
         //self.agent2.policy_mut().train_on_trajectories_env_reward(&t2)?;
 
@@ -876,7 +876,7 @@ where <P as Policy<ConnectFourDomain>>::InfoSetType: Renew<ConnectFourDomain, ()
 
     pub fn train_agent1_only(&mut self) -> Result<LearnSummary, ErrorRL>{
         let t1 = self.agent1.take_episodes();
-        let s1 = self.agent1.policy_mut().train_on_trajectories_env_reward(&t1)?;
+        let s1 = self.agent1.policy_mut().train(&t1)?;
         let _t2 = self.agent0.take_episodes();
         //self.agent2.policy_mut().train_on_trajectories_env_reward(&t2)?;
 
@@ -888,7 +888,7 @@ where <P as Policy<ConnectFourDomain>>::InfoSetType: Renew<ConnectFourDomain, ()
         let mut t2 = self.agent1.take_episodes();
         //let chain = t1.iter().chain(t2);
         t1.append(&mut t2);
-        let s1 = self.agent0.policy_mut().train_on_trajectories_env_reward(&t1)?;
+        let s1 = self.agent0.policy_mut().train(&t1)?;
 
         //self.agent2.policy_mut().train_on_trajectories_env_reward(&t2)?;
 

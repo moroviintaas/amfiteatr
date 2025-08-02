@@ -63,19 +63,19 @@ where <Self as Policy<DP>>::InfoSetType: InformationSet<DP>
     //fn config(&self) -> &Self::TrainConfig;
     /// This is generic training function. Generic type `R` must produce reward tensor that
     /// agent got in this step. In traditional RL model it will be vectorised reward calculated
-    /// by environment. This is in fact implemented by [`train_on_trajectories_env_reward`](LearningNetworkPolicyGeneric::train_on_trajectories_env_reward).
-    fn train_on_trajectories<R: Fn(&AgentStepView<DP, <Self as Policy<DP>>::InfoSetType>) -> Tensor>(
+    /// by environment. This is in fact implemented by [`train_on_trajectories_env_reward`](LearningNetworkPolicyGeneric::train).
+    fn train_generic<R: Fn(&AgentStepView<DP, <Self as Policy<DP>>::InfoSetType>) -> Tensor>(
         &mut self,
         trajectories: &[AgentTrajectory<DP, <Self as Policy<DP>>::InfoSetType>],
         reward_f: R,
     ) -> Result<Self::Summary, AmfiteatrRlError<DP>>;
 
     /// Training implementation using environment distributed reward
-    fn train_on_trajectories_env_reward(&mut self,
-                                        trajectories: &[AgentTrajectory<DP, <Self as Policy<DP>>::InfoSetType>]) -> Result<Self::Summary, AmfiteatrRlError<DP>>
+    fn train(&mut self,
+             trajectories: &[AgentTrajectory<DP, <Self as Policy<DP>>::InfoSetType>]) -> Result<Self::Summary, AmfiteatrRlError<DP>>
     where <DP as DomainParameters>::UniversalReward: FloatTensorReward{
 
-        self.train_on_trajectories(trajectories,  |step| step.reward().to_tensor())
+        self.train_generic(trajectories, |step| step.reward().to_tensor())
     }
 
 
@@ -99,10 +99,10 @@ impl<DP: DomainParameters, T: LearningNetworkPolicyGeneric<DP>> LearningNetworkP
         }
     }
 
-    fn train_on_trajectories<R: Fn(&AgentStepView<DP, <Self as Policy<DP>>::InfoSetType>) -> Tensor>(&mut self, trajectories: &[AgentTrajectory<DP, <Self as Policy<DP>>::InfoSetType>], reward_f: R) -> Result<Self::Summary, AmfiteatrRlError<DP>> {
+    fn train_generic<R: Fn(&AgentStepView<DP, <Self as Policy<DP>>::InfoSetType>) -> Tensor>(&mut self, trajectories: &[AgentTrajectory<DP, <Self as Policy<DP>>::InfoSetType>], reward_f: R) -> Result<Self::Summary, AmfiteatrRlError<DP>> {
         match self.as_ref().lock(){
             Ok(mut internal_policy) => {
-                internal_policy.train_on_trajectories(trajectories, reward_f)
+                internal_policy.train_generic(trajectories, reward_f)
             }
             Err(e) => Err(AmfiteatrRlError::Amfiteatr{source: AmfiteatrError::Lock { description: e.to_string(), object: "Learning policy".to_string() }})
         }
@@ -123,10 +123,10 @@ impl<DP: DomainParameters, T: LearningNetworkPolicyGeneric<DP>> LearningNetworkP
         }
     }
 
-    fn train_on_trajectories<R: Fn(&AgentStepView<DP, <Self as Policy<DP>>::InfoSetType>) -> Tensor>(&mut self, trajectories: &[AgentTrajectory<DP, <Self as Policy<DP>>::InfoSetType>], reward_f: R) -> Result<Self::Summary, AmfiteatrRlError<DP>> {
+    fn train_generic<R: Fn(&AgentStepView<DP, <Self as Policy<DP>>::InfoSetType>) -> Tensor>(&mut self, trajectories: &[AgentTrajectory<DP, <Self as Policy<DP>>::InfoSetType>], reward_f: R) -> Result<Self::Summary, AmfiteatrRlError<DP>> {
         match self.lock(){
             Ok(mut internal_policy) => {
-                internal_policy.train_on_trajectories(trajectories, reward_f)
+                internal_policy.train_generic(trajectories, reward_f)
             }
             Err(e) => Err(AmfiteatrRlError::Amfiteatr{source: AmfiteatrError::Lock { description: e.to_string(), object: "Learning policy".to_string() }})
         }
@@ -147,10 +147,10 @@ impl<DP: DomainParameters, T: LearningNetworkPolicyGeneric<DP>> LearningNetworkP
         }
     }
 
-    fn train_on_trajectories<R: Fn(&AgentStepView<DP, <Self as Policy<DP>>::InfoSetType>) -> Tensor>(&mut self, trajectories: &[AgentTrajectory<DP, <Self as Policy<DP>>::InfoSetType>], reward_f: R) -> Result<Self::Summary, AmfiteatrRlError<DP>> {
+    fn train_generic<R: Fn(&AgentStepView<DP, <Self as Policy<DP>>::InfoSetType>) -> Tensor>(&mut self, trajectories: &[AgentTrajectory<DP, <Self as Policy<DP>>::InfoSetType>], reward_f: R) -> Result<Self::Summary, AmfiteatrRlError<DP>> {
         match self.write(){
             Ok(mut internal_policy) => {
-                internal_policy.train_on_trajectories(trajectories, reward_f)
+                internal_policy.train_generic(trajectories, reward_f)
             }
             Err(e) => Err(AmfiteatrRlError::Amfiteatr{source: AmfiteatrError::Lock { description: e.to_string(), object: "Learning policy".to_string() }})
         }

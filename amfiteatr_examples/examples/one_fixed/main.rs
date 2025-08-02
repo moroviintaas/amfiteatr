@@ -218,7 +218,7 @@ fn main() -> Result<(), AmfiteatrError<ClassicGameDomain<AgentNum>>>{
         }
         let trajectories_0 = agent_0.take_episodes();
         //let trajectories_1 = agent_1.take_episodes();
-        agent_0.policy_mut().train_on_trajectories_env_reward(&trajectories_0[..])?;
+        agent_0.policy_mut().train(&trajectories_0[..])?;
 
 
 

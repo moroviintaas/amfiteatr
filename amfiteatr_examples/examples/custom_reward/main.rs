@@ -209,11 +209,11 @@ fn main() -> Result<(), AmfiteatrError<ClassicGameDomain<AgentNum>>>{
         }
         let trajectories_0 = agent_0.take_episodes();
         let trajectories_1 = agent_1.take_episodes();
-        agent_0.policy_mut().train_on_trajectories_env_reward(&trajectories_0[..])?;
+        agent_0.policy_mut().train(&trajectories_0[..])?;
         match args.policy{
-            SecondPolicy::Std => agent_1.policy_mut().train_on_trajectories_env_reward(&trajectories_1[..]),
+            SecondPolicy::Std => agent_1.policy_mut().train(&trajectories_1[..]),
             SecondPolicy::MinDefects => {
-                agent_1.policy_mut().train_on_trajectories(&trajectories_1[..], |step| {
+                agent_1.policy_mut().train_generic(&trajectories_1[..], |step| {
                     //let own_defects = step.step_info_set().count_actions_self(Defect) as i64;
                     //let custom_reward = step.step_subjective_reward().count_other_actions(Cooperate);
                     //let custom_reward = reward_f(step.step_subjective_reward());
@@ -227,7 +227,7 @@ fn main() -> Result<(), AmfiteatrError<ClassicGameDomain<AgentNum>>>{
             },
 
             SecondPolicy::StdMinDefects => {
-                agent_1.policy_mut().train_on_trajectories(&trajectories_1[..], |step| {
+                agent_1.policy_mut().train_generic(&trajectories_1[..], |step| {
                     //let own_defects = step.step_info_set().count_actions_self(Defect) as i64;
                     //let custom_reward = step.step_subjective_reward().f_combine_table_with_other_coop(100.0);
                     let custom_reward = reward_f(step.late_information_set().current_assessment() - step.information_set().current_assessment());
@@ -240,7 +240,7 @@ fn main() -> Result<(), AmfiteatrError<ClassicGameDomain<AgentNum>>>{
             },
 
             SecondPolicy::StdMinDefectsBoth => {
-                agent_1.policy_mut().train_on_trajectories(&trajectories_1[..], |step| {
+                agent_1.policy_mut().train_generic(&trajectories_1[..], |step| {
                     let custom_reward = reward_f(step.late_information_set().current_assessment() - step.information_set().current_assessment());
                     let v_custom_reward = [custom_reward];
 
@@ -248,7 +248,7 @@ fn main() -> Result<(), AmfiteatrError<ClassicGameDomain<AgentNum>>>{
                 })
             },
             SecondPolicy::Edu => {
-                agent_1.policy_mut().train_on_trajectories(&trajectories_1[..], |step| {
+                agent_1.policy_mut().train_generic(&trajectories_1[..], |step| {
                     let custom_reward = reward_f(step.late_information_set().current_assessment() - step.information_set().current_assessment());
                     let v_custom_reward = [custom_reward];
 

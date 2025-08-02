@@ -217,7 +217,7 @@ where <DP as DomainParameters>::ActionType: ContextDecodeMultiIndexI64<ActionBui
         self.exploration = enabled;
     }
 
-    fn train_on_trajectories<
+    fn train_generic<
         R: Fn(&AgentStepView<DP, <Self as Policy<DP>>::InfoSetType>) -> Tensor
 
     >
@@ -743,7 +743,7 @@ impl<
         self.base.switch_explore(enabled)
     }
 
-    fn train_on_trajectories<R: Fn(&AgentStepView<
+    fn train_generic<R: Fn(&AgentStepView<
         DP,
         <Self as Policy<DP>>::InfoSetType>) -> Tensor
     >(
