@@ -8,7 +8,8 @@ pub enum CommunicationMedium{
     StaticMpsc,
     StaticTcp,
     CentralMpsc,
-    Dynamic
+    Dynamic,
+    No
 }
 impl Default for CommunicationMedium{
     fn default() -> Self {

@@ -1,10 +1,10 @@
 use std::cmp::min;
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
-use amfiteatr_core::agent::{AgentGen, AutomaticAgent, RandomPolicy, ReseedAgent};
+use amfiteatr_core::agent::{AgentGen, AutomaticAgent, InformationSet, Policy, RandomPolicy, ReseedAgent};
 use amfiteatr_core::comm::{AgentEndpoint, AgentMpscAdapter, BidirectionalEndpoint, EnvironmentAdapter, EnvironmentEndpoint, EnvironmentMpscPort, StdEnvironmentEndpoint};
-use amfiteatr_core::domain::{AgentMessage, EnvironmentMessage};
-use amfiteatr_core::env::{AutoEnvironmentWithScores, BasicEnvironment, HashMapEnvironment, ReseedEnvironment, RoundRobinUniversalEnvironment};
+use amfiteatr_core::domain::{AgentMessage, DomainParameters, EnvironmentMessage, Renew};
+use amfiteatr_core::env::{AutoEnvironmentWithScores, BasicEnvironment, HashMapEnvironment, ReseedEnvironment, RoundRobinUniversalEnvironment, SequentialGameState};
 use amfiteatr_core::error::{AmfiteatrError, CommunicationError};
 use amfiteatr_examples::expensive_update::agent::ExpensiveUpdateInformationSet;
 use amfiteatr_examples::expensive_update::domain::ExpensiveUpdateDomain;
@@ -282,5 +282,54 @@ impl CentralModel{
         }
     }
 
+
+}
+
+pub struct NoCommModel{
+    env_state: EUS,
+    agent_info_sets: HashMap<<EUD as DomainParameters>::AgentId ,EUSI>,
+    agent_policies: HashMap<<EUD as DomainParameters>::AgentId, RandomPolicy<EUD, EUSI>>,
+}
+
+impl NoCommModel{
+
+    pub fn new(options: &CCOptions) -> Result<Self, anyhow::Error>{
+        let mut agent_info_sets = HashMap::new();
+        let env_state = EUS::new(options.rounds, options.number_of_players, options.small_update_cost_per_agent, options.big_update_cost_per_agent, options.big_update_cost_flat);
+        let mut agent_policies = HashMap::new();
+        for id in 0..options.number_of_players{
+            agent_policies.insert(id, RandomPolicy::new());
+            agent_info_sets.insert(id, EUSI::new(id));
+        }
+        Ok(Self{
+            env_state,
+            agent_info_sets,
+            agent_policies
+        })
+    }
+
+    pub fn run_single_game(&mut self){
+
+        while !self.env_state.is_finished(){
+            let current_agent = self.env_state.current_player().unwrap();
+            let action = self.agent_policies.get(&current_agent).unwrap()
+                .select_action(self.agent_info_sets.get(&current_agent).unwrap()).unwrap();
+            let updates  = self.env_state.forward(current_agent, action).unwrap();
+            for (id, update) in updates{
+                self.agent_info_sets.get_mut(&id).unwrap().update(update).unwrap();
+            }
+        }
+    }
+
+    pub fn run_several_games(&mut self, number_of_games: u64){
+        for i in 0..number_of_games{
+            log::info!("Playing game {i}");
+            self.env_state.renew_from(()).unwrap();
+            for agent in self.agent_info_sets.values_mut(){
+                agent.renew_from(()).unwrap();
+            }
+            self.run_single_game();
+        }
+    }
 
 }

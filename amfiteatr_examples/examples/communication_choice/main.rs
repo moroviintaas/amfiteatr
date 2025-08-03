@@ -1,5 +1,5 @@
 use clap::Parser;
-use crate::model::{MapModel, CentralModel};
+use crate::model::{MapModel, CentralModel, NoCommModel};
 use crate::options::{CCOptions, CommunicationMedium};
 
 mod model;
@@ -46,6 +46,10 @@ fn main() -> Result<(), anyhow::Error>{
         },
         CommunicationMedium::Dynamic => {
             let mut model = MapModel::new_boxing(&cli)?;
+            model.run_several_games(cli.games);
+        },
+        CommunicationMedium::No => {
+            let mut model = NoCommModel::new(&cli)?;
             model.run_several_games(cli.games);
         }
     }
