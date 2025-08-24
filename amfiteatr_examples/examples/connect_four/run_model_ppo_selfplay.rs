@@ -94,7 +94,8 @@ fn main() -> Result<(), ErrorRL>{
             model.run_session(&cli).unwrap();
 
 
-        }
+        },
+        Implementation::RustNoProtocol => todo!()
 
 
 

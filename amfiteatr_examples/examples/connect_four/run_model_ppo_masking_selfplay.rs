@@ -94,6 +94,7 @@ fn main() -> Result<(), ErrorRL>{
 
 
         }
+        Implementation::RustNoProtocol => todo!()
 
 
 

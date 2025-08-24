@@ -13,11 +13,12 @@ use amfiteatr_core::domain::DomainParameters;
 use amfiteatr_core::error::AmfiteatrError;
 use crate::error::{AmfiteatrRlError, TensorRepresentationError};
 use crate::policy::common::categorical_dist_entropy;
-use crate::policy::LearningNetworkPolicyGeneric;
+use crate::policy::{LearnSummary, LearningNetworkPolicyGeneric};
 use crate::tensor_data::{ContextEncodeTensor, TensorEncoding, TryIntoTensor, TryFromTensor};
 use crate::torch_net::{A2CNet, TensorActorCritic};
 use crate::policy::TrainConfig;
 
+#[deprecated(since = "0.12.0", note = "Please use [`PolicyDiscreteA2C`](PolicyDiscreteA2C) instead")]
 /// Generic implementation of Advantage Actor Critic policy
 pub struct ActorCriticPolicy<
     DP: DomainParameters,
@@ -38,7 +39,6 @@ pub struct ActorCriticPolicy<
     //action_interpreter: ActInterpreter
 
 }
-
 impl<
     DP: DomainParameters,
     InfoSet: InformationSet<DP>  + Debug + ContextEncodeTensor<InfoSetConversionContext>,
@@ -161,7 +161,7 @@ impl<
     where <DP as DomainParameters>::ActionType: TryFromTensor + TryIntoTensor,
 
 {
-    type Summary = ();
+    type Summary = LearnSummary;
 
 
     /*
@@ -190,7 +190,7 @@ impl<
         &mut self,
         trajectories: &[AgentTrajectory<DP, InfoSet>],
         reward_f: R,
-    ) -> Result<(), AmfiteatrRlError<DP>>{
+    ) -> Result<LearnSummary, AmfiteatrRlError<DP>>{
 
 
         let device = self.network.device();
@@ -302,7 +302,7 @@ impl<
         let loss = value_loss * 0.5 + action_loss - dist_entropy * 0.01;
         self.optimizer.backward_step_clip(&loss, 0.5);
 
-        Ok(())
+        Ok(LearnSummary::default())
     }
 }
 /*
