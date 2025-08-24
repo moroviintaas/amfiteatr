@@ -3,7 +3,7 @@ use amfiteatr_core::domain::Reward;
 use enum_map::{Enum, enum_map, EnumMap};
 use amfiteatr_core::error::ConvertError;
 use amfiteatr_rl::tch::Tensor;
-use amfiteatr_rl::tensor_data::{ContextDecodeIndexI64, ContextDecodeTensor, ContextEncodeIndexI64, ContextEncodeTensor, TensorDecoding, TensorIndexI64Encoding};
+use amfiteatr_rl::tensor_data::{ContextDecodeIndexI64, ContextDecodeTensor, ContextEncodeIndexI64, TensorDecoding, TensorIndexI64Encoding};
 use crate::domain::{ClassicAction, IntReward};
 
 /// Enum for representing on which side of encounter is player.
@@ -183,7 +183,7 @@ impl TensorIndexI64Encoding for ClassicActionTensorRepresentation{
 }
 
 impl ContextDecodeTensor<ClassicActionTensorRepresentation> for ClassicAction{
-    fn try_from_tensor(tensor: &Tensor, decoding: &ClassicActionTensorRepresentation) -> Result<Self, ConvertError>
+    fn try_from_tensor(tensor: &Tensor, _decoding: &ClassicActionTensorRepresentation) -> Result<Self, ConvertError>
     where
         Self: Sized
     {

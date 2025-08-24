@@ -1,5 +1,5 @@
 use std::ops::Div;
-use rand::distr::{Bernoulli, Distribution, Open01};
+use rand::distr::{Bernoulli, Distribution};
 use rand::Rng;
 use amfiteatr_core::agent::Policy;
 use amfiteatr_core::error::AmfiteatrError;

@@ -1,9 +1,7 @@
 use std::fs::File;
-use std::iter::Sum;
 use std::marker::PhantomData;
 use std::ops::Div;
-use rand::distr::{Distribution, StandardUniform};
-use rand::Rng;
+use rand::distr::Distribution;
 use amfiteatr_core::agent::{InformationSet, Policy};
 use amfiteatr_core::domain::{DomainParameters, Reward};
 use amfiteatr_core::error::AmfiteatrError;
@@ -66,7 +64,7 @@ impl <DP: DomainParameters, S: PolicySpecimen<DP, M>, M: Send> GeneticPolicyGene
     where <DP as DomainParameters>::UniversalReward: Div<f64, Output=DP::UniversalReward>
     {
     //where for<'a> &'a DP::UniversalReward: Sum + Div<f64> {
-        let averages: Vec<DP::UniversalReward>  = self.saved_payoffs.iter()
+        let _averages: Vec<DP::UniversalReward>  = self.saved_payoffs.iter()
             //.map(|v|v.iter().sum::<DP::UniversalReward>()/self.population.len() as f64).collect();
             .map(|v|{
                 v.iter().fold(<DP::UniversalReward as Reward>::neutral(), |acc, x|{
@@ -100,7 +98,7 @@ impl <
 
     fn call_on_episode_start(&mut self) -> Result<(), AmfiteatrError<DP>> {
         let index = rand::distr::Uniform::new(0, self.population.len())
-            .map_err(|e| AmfiteatrError::Custom("Creating index distribution for specimen".into()))?
+            .map_err(|e| AmfiteatrError::Custom("Creating index distribution for specimen {e}".into()))?
             .sample(&mut rand::rng());
         self.selected_specimen_index = index;
         Ok(())

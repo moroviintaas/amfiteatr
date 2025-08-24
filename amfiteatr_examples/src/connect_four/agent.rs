@@ -1,4 +1,4 @@
-use ndarray::{Array, Array1, Axis};
+use ndarray::Axis;
 use amfiteatr_core::agent::InformationSet;
 use amfiteatr_core::domain::{DomainParameters, Renew};
 use amfiteatr_core::error::{AmfiteatrError, ConvertError, TensorError};

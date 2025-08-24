@@ -1,4 +1,4 @@
-use crate::{AsymmetricRewardTable, AsymmetricRewardTableInt};
+use crate::AsymmetricRewardTableInt;
 use crate::domain::{AgentNum, UsizeAgentId};
 
 pub trait ReplInfoSet<ID: UsizeAgentId>{

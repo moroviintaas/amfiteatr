@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 use std::fs::File;
-use log::{info, warn};
+use log::info;
 use amfiteatr_core::agent::{ActingAgent, MultiEpisodeAutoAgent, PolicyAgent, ReseedAgent, RewardedAgent, StatefulAgent, TracingAgentGen};
 use amfiteatr_core::comm::{StdAgentEndpoint, StdEnvironmentEndpoint};
 use amfiteatr_core::domain::{DomainParameters, Renew};
@@ -11,7 +11,7 @@ use amfiteatr_rl::error::AmfiteatrRlError;
 use amfiteatr_rl::policy::{ConfigA2C, ConfigPPO, LearnSummary, LearningNetworkPolicyGeneric};
 use crate::connect_four::agent::ConnectFourInfoSet;
 use crate::connect_four::common::{ConnectFourDomain, ConnectFourPlayer, ErrorRL};
-use crate::connect_four::model::{build_a2c_policy, build_a2c_policy_masking, build_ppo_policy, build_ppo_policy_masking, C4A2CPolicy, C4A2CPolicyMasking, C4PPOPolicy, C4PPOPolicyMasking, ConnectFourModelRust, EpochSummary};
+use crate::connect_four::model::{build_a2c_policy, build_a2c_policy_masking, build_ppo_policy, build_ppo_policy_masking, C4A2CPolicy, C4A2CPolicyMasking, C4PPOPolicy, C4PPOPolicyMasking, EpochSummary};
 use crate::connect_four::options::ConnectFourOptions;
 use std::io::Write;
 use amfiteatr_rl::tch::Device;

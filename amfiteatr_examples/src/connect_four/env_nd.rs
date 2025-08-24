@@ -1,10 +1,9 @@
 use log::warn;
-use ndarray::{Array2, Array3};
+use ndarray::{Array2};
 use amfiteatr_core::domain::{DomainParameters, Renew};
 use amfiteatr_core::env::{GameStateWithPayoffs, SequentialGameState};
 use amfiteatr_core::error::AmfiteatrError;
-use crate::connect_four::common::{Board, ConnectFourAction, ConnectFourBinaryObservation, ConnectFourDomain, ConnectFourError, ConnectFourPlayer};
-use crate::connect_four::env::ConnectFourRustEnvState;
+use crate::connect_four::common::{ConnectFourAction, ConnectFourBinaryObservation, ConnectFourDomain, ConnectFourError, ConnectFourPlayer};
 
 #[derive(Clone, Debug)]
 pub struct ConnectFourRustNdEnvState{

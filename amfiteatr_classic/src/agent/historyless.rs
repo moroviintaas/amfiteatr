@@ -2,9 +2,9 @@ use amfiteatr_core::agent::{InformationSet, PresentPossibleActions, EvaluatedInf
 use amfiteatr_core::domain::DomainParameters;
 use std::fmt::Display;
 use std::fmt::Formatter;
-use crate::agent::{LocalHistoryInfoSet, ReplInfoSet};
+use crate::agent::ReplInfoSet;
 use crate::AsymmetricRewardTableInt;
-use crate::domain::{AgentNum, ClassicAction, ClassicGameDomain, ClassicGameDomainNumbered, ClassicGameError, IntReward, UsizeAgentId};
+use crate::domain::{AgentNum, ClassicAction, ClassicGameDomain, ClassicGameDomainNumbered, ClassicGameError, IntReward};
 use crate::domain::ClassicGameError::EncounterNotReported;
 
 /// Information set of player that does not collect information about previous actions performed

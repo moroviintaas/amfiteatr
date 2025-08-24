@@ -1,4 +1,3 @@
-use rand::distr::Distribution;
 use amfiteatr_core::agent::Policy;
 use amfiteatr_core::domain::DomainParameters;
 use amfiteatr_core::error::AmfiteatrError;
