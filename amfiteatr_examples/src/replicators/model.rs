@@ -553,7 +553,7 @@ impl<LP: ReplicatorNetworkPolicy> ReplicatorModel<LP> {
             }
 
             for dove in &self.pure_doves{
-                let mut guard = dove.lock();
+                let guard = dove.lock();
 
                 if let Some(mean_score) = description_mean.mean_scores.get(guard.id()){
                     dove_score_sum += *mean_score as f32;
@@ -568,7 +568,7 @@ impl<LP: ReplicatorNetworkPolicy> ReplicatorModel<LP> {
             }
 
             for hawk in &self.pure_hawks{
-                let mut guard = hawk.lock();
+                let guard = hawk.lock();
 
                 if let Some(mean_score) = description_mean.mean_scores.get(guard.id()){
                     hawk_score_sum += *mean_score as f32;
@@ -583,7 +583,7 @@ impl<LP: ReplicatorNetworkPolicy> ReplicatorModel<LP> {
 
             }
             for mixed in &self.mixed_agents{
-                let mut guard = mixed.lock();
+                let guard = mixed.lock();
 
                 if let Some(mean_score) = description_mean.mean_scores.get(guard.id()){
                     mixes_score_sum += *mean_score as f32;

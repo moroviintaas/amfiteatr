@@ -253,6 +253,7 @@ impl<
             let action = agent.select_action()?;
             current_step += 1;
 
+
             let r_updates = self.env_state.forward(current_player, action);
 
             match r_updates{
@@ -269,13 +270,23 @@ impl<
                     break;
                 }
             }
+            if let Some(t) = truncate_at_step{
+                if current_step >= t{
+                    break
+                }
+            }
+
+
         }
 
         for (agent_id, agent) in self.agents.iter_mut(){
             let step_reward = self.env_state.state_payoff_of_player(&agent_id) - agent_commited_payoffs[&agent_id];
             agent.current_universal_reward_add(&step_reward);
             agent.finalize()?;
-            agent.store_episode()?;
+            if store_episode{
+                agent.store_episode()?;
+            }
+
         }
         summary.games_played = 1.0;
         summary.game_steps = current_step as f64;
