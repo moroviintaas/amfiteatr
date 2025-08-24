@@ -170,7 +170,7 @@ fn build_a2c_policy_old(layer_sizes: &[i64], device: Device) -> Result<C4A2CPoli
     )
 }
 */
-fn build_a2c_policy(layer_sizes: &[i64], device: Device, config: ConfigA2C, learning_rate: f64) -> Result<C4A2CPolicy, AmfiteatrRlError<ConnectFourDomain>>{
+pub fn build_a2c_policy(layer_sizes: &[i64], device: Device, config: ConfigA2C, learning_rate: f64) -> Result<C4A2CPolicy, AmfiteatrRlError<ConnectFourDomain>>{
     let var_store = VarStore::new(device);
     let input_shape = ConnectFourTensorReprD1{}.desired_shape()[0];
     let hidden_layers = &layer_sizes;
@@ -228,7 +228,7 @@ fn build_a2c_policy(layer_sizes: &[i64], device: Device, config: ConfigA2C, lear
     )
 }
 #[allow(dead_code)]
-fn build_a2c_policy_masking(layer_sizes: &[i64], device: Device, config: ConfigA2C, learning_rate: f64) -> Result<C4A2CPolicyMasking, AmfiteatrRlError<ConnectFourDomain>>{
+pub fn build_a2c_policy_masking(layer_sizes: &[i64], device: Device, config: ConfigA2C, learning_rate: f64) -> Result<C4A2CPolicyMasking, AmfiteatrRlError<ConnectFourDomain>>{
     let var_store = VarStore::new(device);
     let input_shape = ConnectFourTensorReprD1{}.desired_shape()[0];
     let hidden_layers = &layer_sizes;

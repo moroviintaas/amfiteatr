@@ -6,6 +6,7 @@ use amfiteatr_examples::connect_four::env::ConnectFourRustEnvState;
 use amfiteatr_examples::connect_four::env_nd::ConnectFourRustNdEnvState;
 use amfiteatr_examples::connect_four::env_wrapped::PythonPettingZooStateWrap;
 use amfiteatr_examples::connect_four::model::{ C4PPOPolicyMasking, ConnectFourModelRust};
+use amfiteatr_examples::connect_four::no_protocol_model::ConnectFourModelRustNoProtocol;
 use amfiteatr_examples::connect_four::options::{ConnectFourOptions, Implementation};
 
 
@@ -69,13 +70,14 @@ fn main() -> Result<(), ErrorRL>{
                    .call_method0("suppress_output").unwrap();
 
             });
-            model.run_session(&cli).unwrap();
-
-
+            model.run_session(&cli)?;
+        },
+        Implementation::RustNoProtocol => {
+            let mut model = ConnectFourModelRustNoProtocol::<ConnectFourRustEnvState, C4PPOPolicyMasking>::new_ppo_masking_no_protocol(
+                &cli
+            );
+            model.run_session(&cli)?;
         }
-
-
-
     }
     Ok(())
 

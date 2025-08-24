@@ -8,7 +8,10 @@ use crate::common::ComputeDevice;
 pub enum Implementation{
     Rust,
     Wrap,
+    /// using dynamic ndarray arrays
     RustNd,
+    RustNoProtocol
+
 }
 
 
