@@ -11,6 +11,12 @@ Methods `run_round_robin` and `run_round_robin_truncating` are now parts of `Rou
 Changed because running with rewards should probably be default behaviour, as it is more commonly used.
 + Renamed methods `LearningNetworkPolicyGeneric::train_on_trajectories` to `LearningNetworkPolicyGeneric::train_generic` and
 `LearningNetworkPolicyGeneric::train_on_trajectories_env_rewards` to `LearningNetworkPolicyGeneric::train`
++ Added method `first_observations` to `SequentialGameState` to be called on the beginning of the game 
+to send agents initial observations (now they can be provided by environment, instead of on information set initialization).
+This is logically necessary.
++ Added provided method `current_universal_score_set_without_commit` to trait `RewardedAgent` to allow not only adding reward fragment to uncommited step draft, but also
+set uncommitted step draft's partial reward so that total payoff is has certain value. It is helpful for models without unrolling episode in protocol.
+
 
 ## Version 0.11.0
 + Changed masking in A2C and PPO policies to use `f_where_self` instead of `f_mul`,

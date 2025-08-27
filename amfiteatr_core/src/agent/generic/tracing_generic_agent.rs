@@ -408,6 +408,8 @@ where <P as Policy<DP>>::InfoSetType: InformationSet<DP>{
         self.committed_universal_score += &self.constructed_universal_reward;
         self.constructed_universal_reward = DP::UniversalReward::neutral();
     }
+
+
 }
 
 impl<

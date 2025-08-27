@@ -15,6 +15,10 @@ pub trait SequentialGameState<DP: DomainParameters>: Send + Debug{
 
     //fn transform(&mut self, agent_id: &Spec::AgentId, action: Spec::ActionType) -> Result<Self::UpdatesCollection, Spec::GameErrorType>;
 
+    /// Return initial observations for agents (possibly `None`). If called  after first step should probably return `None`.
+    fn first_observations(&self) -> Option<Self::Updates>{
+        None
+    }
 }
 
 //pub trait EnvStateSimultaneous{}

@@ -7,6 +7,7 @@ use crate::{
 };
 use crate::env::ListPlayers;
 use crate::domain::{AgentMessage, EnvironmentMessage, Renew, RenewWithEffect};
+use crate::domain::EnvironmentMessage::ErrorNotify;
 use crate::error::{AmfiteatrError, CommunicationError};
 use crate::error::ProtocolError::PlayerExited;
 
@@ -206,6 +207,14 @@ impl <
     fn run_truncating(&mut self, truncate_steps: Option<usize>) -> Result<(), AmfiteatrError<DP>> {
 
         let mut current_step = 0;
+        if let Some(initial_updates) = self.state().first_observations(){
+            for (ag, update) in initial_updates{
+                self.send_message(&ag, EnvironmentMessage::UpdateState(update))
+                    .inspect_err(|e| {
+                        let _ = self.send_all(ErrorNotify(e.clone().into()));
+                    })?;
+            }
+        }
         let first_player = match self.current_player(){
             None => {
                 #[cfg(feature = "log_warn")]
@@ -320,6 +329,14 @@ impl <
 > AutoEnvironmentWithScores<DP> for BasicEnvironment<DP, S, CP>{
     fn run_with_scores_truncating(&mut self, truncate_steps: Option<usize>) -> Result<(), AmfiteatrError<DP>> {
         let mut current_step = 0;
+        if let Some(initial_updates) = self.state().first_observations(){
+            for (ag, update) in initial_updates{
+                self.send_message(&ag, EnvironmentMessage::UpdateState(update))
+                    .inspect_err(|e| {
+                        let _ = self.send_all(ErrorNotify(e.clone().into()));
+                    })?;
+            }
+        }
         let mut actual_universal_scores: HashMap<DP::AgentId, DP::UniversalReward> = self.players()
             .map(|id|{
                 (id, DP::UniversalReward::neutral())
@@ -443,6 +460,14 @@ impl <
         -> DP::UniversalReward>(&mut self, penalty: P, truncate_steps: Option<usize>) -> Result<(), AmfiteatrError<DP>> {
 
         let mut current_step = 0;
+        if let Some(initial_updates) = self.state().first_observations(){
+            for (ag, update) in initial_updates{
+                self.send_message(&ag, EnvironmentMessage::UpdateState(update))
+                    .inspect_err(|e| {
+                        let _ = self.send_all(ErrorNotify(e.clone().into()));
+                    })?;
+            }
+        }
         let mut actual_universal_scores: HashMap<DP::AgentId, DP::UniversalReward> = self.players()
             .map(|id|{
                 (id, DP::UniversalReward::neutral())

@@ -109,6 +109,15 @@ where Env: CommunicatingEndpointEnvironment<DP, CommunicationError=Communication
  + BroadcastingEndpointEnvironment<DP>, DP: DomainParameters {
     fn run_round_robin_no_rewards_truncating(&mut self, truncate_steps: Option<usize>) -> Result<(), AmfiteatrError<DP>> {
         let mut current_step = 0;
+
+        if let Some(initial_updates) = self.state().first_observations(){
+            for (ag, update) in initial_updates{
+                self.send_message(&ag, EnvironmentMessage::UpdateState(update))
+                    .inspect_err(|e| {
+                        let _ = self.send_to_all(ErrorNotify(e.clone().into()));
+                    })?;
+            }
+        }
         let first_player = match self.current_player(){
             None => {
                 #[cfg(feature = "log_warn")]
