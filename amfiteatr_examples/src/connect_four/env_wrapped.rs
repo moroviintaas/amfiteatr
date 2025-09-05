@@ -100,7 +100,7 @@ impl PythonPettingZooStateWrap{
 
 
     }
-    
+
 }
 
 impl SequentialGameState<ConnectFourScheme> for PythonPettingZooStateWrap{

@@ -11,8 +11,8 @@ name = "prisoner_mpsc"
 #[[example]]
 #name = "prisoner_tcp"
 
-[[example]]
-name = "replicator_dynamics_old"
+#[[example]]
+#name = "replicator_dynamics_old"
 
 [[example]]
 name = 'replicator_dynamics'

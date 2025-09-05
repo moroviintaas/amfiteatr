@@ -39,6 +39,7 @@ pub struct ActorCriticPolicy<
     //action_interpreter: ActInterpreter
 
 }
+#[allow(deprecated)]
 impl<
     S: Scheme,
     InfoSet: InformationSet<S>  + Debug + ContextEncodeTensor<InfoSetConversionContext>,
@@ -106,18 +107,14 @@ ActorCriticPolicy<
 
 }
 
+#[allow(deprecated)]
 impl<S: Scheme,
-    //InfoSet: InformationSet<S> + Debug,
-    //TB: ConvStateToTensor<InfoSet>,
     InfoSet: InformationSet<S> + Debug + ContextEncodeTensor<InfoSetConversionContext>,
     InfoSetConversionContext: TensorEncoding,
-    //ActionConversionContext: ConversionFromTensor,
 > Policy<S> for ActorCriticPolicy<
     S,
     InfoSet,
-    //TB,
     InfoSetConversionContext,
-    //ActionConversionContext,
 >
 where <S as Scheme>::ActionType: TryFromTensor{
     type InfoSetType = InfoSet;
@@ -151,12 +148,11 @@ where <S as Scheme>::ActionType: TryFromTensor{
 }
 
 
+#[allow(deprecated)]
 impl<
     S: Scheme,
     InfoSet: InformationSet<S>  + Debug + ContextEncodeTensor<InfoSetWay>,
     InfoSetWay: TensorEncoding,
-    //InfoSet: ScoringInformationSet<S> + Debug,
-    //StateConverter: ConvStateToTensor<InfoSet>>
     > LearningNetworkPolicyGeneric<S> for ActorCriticPolicy<S, InfoSet, InfoSetWay>
     where <S as Scheme>::ActionType: TryFromTensor + TryIntoTensor,
 
@@ -164,17 +160,6 @@ impl<
     type Summary = LearnSummary;
 
 
-    /*
-    /// Returns reference to underlying [`VarStore`]
-    fn var_store(&self) -> &VarStore{
-        self.network.var_store()
-    }
-
-    fn var_store_mut(&mut self) -> &mut VarStore{
-        self.network.var_store_mut()
-    }
-
-     */
 
     /// For now A2C always explore and switching it off is pointless, in future it will probably
     /// select maximal probability without sampling distribution
