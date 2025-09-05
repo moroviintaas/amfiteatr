@@ -8,8 +8,8 @@
 //! [`endpoints`](crate::comm::BidirectionalEndpoint).
 //! On th environment side endpoints should be stored in a way providing random
 //! access to efficiently select endpoint to use.
-//! Agents send [`AgentMessage`][crate::domain::AgentMessage] that is guaranteed to
-//! reach environment, similarly environment send [`EnvironmentMessage`](crate::domain::EnvironmentMessage),
+//! Agents send [`AgentMessage`][crate::scheme::AgentMessage] that is guaranteed to
+//! reach environment, similarly environment send [`EnvironmentMessage`](crate::scheme::EnvironmentMessage),
 //! using previously selected endpoint.
 //! ```notrust
 //!  -------------------------------------------
@@ -45,7 +45,7 @@
 //! 2. [`StdEnvironmentEndpoint`](crate::comm::StdEnvironmentEndpoint)
 //! 3. [`HashMapEnvironment`](crate::env::HashMapEnvironment) or [`TracingHashMapEnvironment`](crate::env::TracingHashMapEnvironment)
 //! 4. [`AgentGen`](crate::agent::AgentGen) or [`TracingAgentGen`](crate::agent::TracingAgentGen)
-//! with communicating endpoint sending [`AgentMessage`](crate::domain::AgentMessage)
+//! with communicating endpoint sending [`AgentMessage`](crate::scheme::AgentMessage)
 //!
 //!
 //!
@@ -75,7 +75,7 @@
 //!
 //! To receive message you can use struct implementing [`EnvironmentAdapter`](crate::comm::EnvironmentAdapter)
 //! You then receive pair of identifier ([`AgentIdentifier`](crate::agent::AgentIdentifier)) of sender and his
-//! [`AgentMessage`](crate::domain::AgentMessage).
+//! [`AgentMessage`](crate::scheme::AgentMessage).
 //! This may be natural choice if all agents are run locally.
 //! Agents sending to environment can be easily implemented using
 //! [`mpsc::channel`](std::sync::mpsc::channel).

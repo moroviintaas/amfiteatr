@@ -1,12 +1,12 @@
 use std::error::Error;
 
-use crate::{domain::{AgentMessage, EnvironmentMessage, DomainParameters}, error::CommunicationError};
+use crate::{scheme::{AgentMessage, EnvironmentMessage, Scheme}, error::CommunicationError};
 
-pub(crate) type AgentStampedMessage<DP> = (<DP as DomainParameters>::AgentId, AgentMessage<DP>);
+pub(crate) type AgentStampedMessage<DP> = (<DP as Scheme>::AgentId, AgentMessage<DP>);
 /// Environment communicating with agent using 1-1 endpoints.
 /// This mean environment can receive from specified endpoint
 /// (from certain agent)
-pub trait CommunicatingEndpointEnvironment<DP: DomainParameters>{
+pub trait CommunicatingEndpointEnvironment<DP: Scheme>{
     //type Outward;
     //type Inward;
     type CommunicationError: Error;
@@ -20,7 +20,7 @@ pub trait CommunicatingEndpointEnvironment<DP: DomainParameters>{
 }
 
 /// Broadcasting extension to trait [`CommunicatingEndpointEnvironment`](CommunicatingEndpointEnvironment)
-pub trait BroadcastingEndpointEnvironment<Spec: DomainParameters>: CommunicatingEndpointEnvironment<Spec>{
+pub trait BroadcastingEndpointEnvironment<Spec: Scheme>: CommunicatingEndpointEnvironment<Spec>{
 
     fn send_to_all(&mut self, message: EnvironmentMessage<Spec>) -> Result<(), Self::CommunicationError>;
 
@@ -28,7 +28,7 @@ pub trait BroadcastingEndpointEnvironment<Spec: DomainParameters>: Communicating
 /// Environment communicating with multi-agent (1-N) communication port.
 /// Receiving does not require to specify agent and first queued will be
 /// returned.
-pub trait CommunicatingEnvironmentSingleQueue<DP: DomainParameters>{
+pub trait CommunicatingEnvironmentSingleQueue<DP: Scheme>{
     
     fn send(&mut self, agent_id: &DP::AgentId,  message: EnvironmentMessage<DP>)
         -> Result<(), CommunicationError<DP>>;
@@ -39,6 +39,6 @@ pub trait CommunicatingEnvironmentSingleQueue<DP: DomainParameters>{
         
 }
 /// Broadcasting extension to trait [`CommunicatingAdapterEnvironment`](CommunicatingEnvironmentSingleQueue)
-pub trait BroadcastingEnvironmentSingleQueue<DP: DomainParameters>{
+pub trait BroadcastingEnvironmentSingleQueue<DP: Scheme>{
     fn send_all(&mut self, message: EnvironmentMessage<DP>) -> Result<(), CommunicationError<DP>>;
 }

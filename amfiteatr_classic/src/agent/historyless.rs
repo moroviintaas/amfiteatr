@@ -1,5 +1,5 @@
 use amfiteatr_core::agent::{InformationSet, PresentPossibleActions, EvaluatedInformationSet};
-use amfiteatr_core::domain::DomainParameters;
+use amfiteatr_core::scheme::Scheme;
 use std::fmt::Display;
 use std::fmt::Formatter;
 use crate::agent::ReplInfoSet;
@@ -47,11 +47,11 @@ impl InformationSet<ClassicGameDomain<AgentNum>> for MinimalInfoSet {
         &self.id
     }
 
-    fn is_action_valid(&self, _action: &<ClassicGameDomain<AgentNum> as DomainParameters>::ActionType) -> bool {
+    fn is_action_valid(&self, _action: &<ClassicGameDomain<AgentNum> as Scheme>::ActionType) -> bool {
         true
     }
 
-    fn update(&mut self, update: <ClassicGameDomainNumbered as DomainParameters>::UpdateType) -> Result<(), ClassicGameError<AgentNum>> {
+    fn update(&mut self, update: <ClassicGameDomainNumbered as Scheme>::UpdateType) -> Result<(), ClassicGameError<AgentNum>> {
 
         if let Some(this_encounter_report) = update.encounters.get(&self.id){
             let reward = self.reward_table

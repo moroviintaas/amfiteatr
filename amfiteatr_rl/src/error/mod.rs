@@ -5,12 +5,12 @@ pub use tensor_repr::*;
 use tch::TchError;
 use thiserror::Error;
 use amfiteatr_core::error::{AmfiteatrError, ConvertError};
-use amfiteatr_core::domain::DomainParameters;
+use amfiteatr_core::scheme::Scheme;
 
 
 /// Error trait that wraps standard [`AmfiteatrError`]
 #[derive(Error, Debug)]
-pub enum AmfiteatrRlError<DP: DomainParameters>{
+pub enum AmfiteatrRlError<DP: Scheme>{
     /// Variant - [`AmfiteatrError`]
     #[error("Basic amfiteatr error: {source}")]
     Amfiteatr {
@@ -49,7 +49,7 @@ pub enum AmfiteatrRlError<DP: DomainParameters>{
 
 }
 
-impl<DP: DomainParameters> From<TchError> for AmfiteatrRlError<DP>{
+impl<DP: Scheme> From<TchError> for AmfiteatrRlError<DP>{
     fn from(value: TchError) -> Self {
         Self::Torch{
             source: value,
@@ -58,13 +58,13 @@ impl<DP: DomainParameters> From<TchError> for AmfiteatrRlError<DP>{
     }
 }
 
-impl<DP: DomainParameters> From<AmfiteatrError<DP>> for AmfiteatrRlError<DP>{
+impl<DP: Scheme> From<AmfiteatrError<DP>> for AmfiteatrRlError<DP>{
     fn from(value: AmfiteatrError<DP>) -> Self {
         Self::Amfiteatr{source: value}
     }
 }
 
-impl<DP: DomainParameters> From<AmfiteatrRlError<DP>> for AmfiteatrError<DP>{
+impl<DP: Scheme> From<AmfiteatrRlError<DP>> for AmfiteatrError<DP>{
     fn from(value: AmfiteatrRlError<DP>) -> Self {
         match value{
             AmfiteatrRlError::Amfiteatr{source: n} => n,
@@ -73,7 +73,7 @@ impl<DP: DomainParameters> From<AmfiteatrRlError<DP>> for AmfiteatrError<DP>{
     }
 }
 
-impl<DP: DomainParameters> From<ConvertError> for AmfiteatrRlError<DP>{
+impl<DP: Scheme> From<ConvertError> for AmfiteatrRlError<DP>{
     fn from(value: ConvertError) -> Self {
         let ae = AmfiteatrError::from(value);
         ae.into()

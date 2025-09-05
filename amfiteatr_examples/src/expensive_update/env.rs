@@ -1,6 +1,6 @@
 use log::debug;
 use amfiteatr_core::demo::DemoError;
-use amfiteatr_core::domain::{DomainParameters, Renew};
+use amfiteatr_core::scheme::{Scheme, Renew};
 use amfiteatr_core::env::{GameStateWithPayoffs, SequentialGameState};
 use amfiteatr_core::error::AmfiteatrError;
 use crate::expensive_update::domain::{ExpensiveUpdateDomain, UpdateCost};
@@ -39,7 +39,7 @@ impl ExpensiveUpdateState{
 impl SequentialGameState<ExpensiveUpdateDomain> for ExpensiveUpdateState{
     type Updates = Vec<(u64, UpdateCost)>;
 
-    fn current_player(&self) -> Option<<ExpensiveUpdateDomain as DomainParameters>::AgentId> {
+    fn current_player(&self) -> Option<<ExpensiveUpdateDomain as Scheme>::AgentId> {
         if self.current_round < self.max_number_of_rounds{
             Some(self.current_player_index)
         } else {
@@ -53,9 +53,9 @@ impl SequentialGameState<ExpensiveUpdateDomain> for ExpensiveUpdateState{
 
     fn forward(
         &mut self,
-        agent: <ExpensiveUpdateDomain as DomainParameters>::AgentId,
-        _action: <ExpensiveUpdateDomain as DomainParameters>::ActionType
-    ) -> Result<Self::Updates, <ExpensiveUpdateDomain as DomainParameters>::GameErrorType> {
+        agent: <ExpensiveUpdateDomain as Scheme>::AgentId,
+        _action: <ExpensiveUpdateDomain as Scheme>::ActionType
+    ) -> Result<Self::Updates, <ExpensiveUpdateDomain as Scheme>::GameErrorType> {
 
         if Some(agent) != self.current_player() || self.current_player() == None{
             return Err(DemoError(format!("Agent {agent} does not match current player {}", self.current_player_index)))
@@ -82,7 +82,7 @@ impl SequentialGameState<ExpensiveUpdateDomain> for ExpensiveUpdateState{
 }
 
 impl GameStateWithPayoffs<ExpensiveUpdateDomain> for ExpensiveUpdateState{
-    fn state_payoff_of_player(&self, _agent: &<ExpensiveUpdateDomain as DomainParameters>::AgentId) -><ExpensiveUpdateDomain as DomainParameters>::UniversalReward {
+    fn state_payoff_of_player(&self, _agent: &<ExpensiveUpdateDomain as Scheme>::AgentId) -><ExpensiveUpdateDomain as Scheme>::UniversalReward {
         0.0
     }
 }

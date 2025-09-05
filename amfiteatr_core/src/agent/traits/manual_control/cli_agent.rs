@@ -13,13 +13,13 @@ use crate::agent::{
     StatefulAgent
 };
 use crate::agent::manual_control::{AssistingPolicy, TurnCommand};
-use crate::domain::{AgentMessage, DomainParameters};
+use crate::scheme::{AgentMessage, Scheme};
 use crate::error::{AmfiteatrError};
 use crate::util::{StrParsed};
 
 
 /// Trait for agents that uses human policy.
-pub trait CliAgent<DP: DomainParameters>{
+pub trait CliAgent<DP: Scheme>{
 
     /// Selecting action interactively. Basically this function should somehow prompt player
     /// and parse his input into action.
@@ -35,7 +35,7 @@ where
     + CommunicatingAgent<DP>
     + PolicyAgent<DP>
     + RewardedAgent<DP>,
-    DP: DomainParameters,
+    DP: Scheme,
     <A as StatefulAgent<DP>>::InfoSetType: InformationSet<DP> + Display,
     <Self as PolicyAgent<DP>>::Policy: AssistingPolicy<DP>,
     <<Self as PolicyAgent<DP>>::Policy as AssistingPolicy<DP>>::Question: StrParsed,
@@ -92,10 +92,10 @@ where
 }
 
 /// Dummy trait to link [`CliAgent`] and [`ReseedAgent`](ReseedAgent)
-pub trait MultiEpisodeCliAgent<DP: DomainParameters, Seed>: ReseedAgent<DP, Seed> + CliAgent<DP>{
+pub trait MultiEpisodeCliAgent<DP: Scheme, Seed>: ReseedAgent<DP, Seed> + CliAgent<DP>{
 
 }
-impl<DP: DomainParameters, Seed, A: ReseedAgent<DP, Seed> + CliAgent<DP>> MultiEpisodeCliAgent<DP, Seed> for A{
+impl<DP: Scheme, Seed, A: ReseedAgent<DP, Seed> + CliAgent<DP>> MultiEpisodeCliAgent<DP, Seed> for A{
 
 }
 

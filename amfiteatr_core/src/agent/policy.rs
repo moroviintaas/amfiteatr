@@ -3,12 +3,12 @@ use std::sync::{Arc, Mutex, RwLock};
 use rand::seq::IteratorRandom;
 use crate::agent::info_set::InformationSet;
 use crate::agent::{PresentPossibleActions};
-use crate::domain::DomainParameters;
+use crate::scheme::Scheme;
 use crate::error::AmfiteatrError;
 
 /// Trait meant for structures working as action selectors. Policy based on information set
 /// must select one action if possible.
-pub trait Policy<DP: DomainParameters>: Send{
+pub trait Policy<DP: Scheme>: Send{
     /// Information set which for which this policy is meant to work.
     type InfoSetType: InformationSet<DP>;
 
@@ -54,7 +54,7 @@ pub trait Policy<DP: DomainParameters>: Send{
 
 }
 
-impl<DP: DomainParameters, P: Policy<DP>> Policy<DP> for Arc<Mutex<P>>{
+impl<DP: Scheme, P: Policy<DP>> Policy<DP> for Arc<Mutex<P>>{
     type InfoSetType = P::InfoSetType;
 
     fn select_action(&self, state: &Self::InfoSetType) -> Result<DP::ActionType, AmfiteatrError<DP>> {
@@ -68,7 +68,7 @@ impl<DP: DomainParameters, P: Policy<DP>> Policy<DP> for Arc<Mutex<P>>{
     }
 }
 
-impl<DP: DomainParameters, P: Policy<DP>> Policy<DP> for Mutex<P>{
+impl<DP: Scheme, P: Policy<DP>> Policy<DP> for Mutex<P>{
     type InfoSetType = P::InfoSetType;
 
     fn select_action(&self, state: &Self::InfoSetType) -> Result<DP::ActionType, AmfiteatrError<DP>> {
@@ -81,7 +81,7 @@ impl<DP: DomainParameters, P: Policy<DP>> Policy<DP> for Mutex<P>{
         }
     }
 }
-impl<DP: DomainParameters, P: Policy<DP>> Policy<DP> for RwLock<P>{
+impl<DP: Scheme, P: Policy<DP>> Policy<DP> for RwLock<P>{
     type InfoSetType = P::InfoSetType;
 
     fn select_action(&self, state: &Self::InfoSetType) -> Result<DP::ActionType, AmfiteatrError<DP>> {
@@ -99,13 +99,13 @@ impl<DP: DomainParameters, P: Policy<DP>> Policy<DP> for RwLock<P>{
 /// Generic random policy - selects action at random based on iterator of possible actions
 /// provided by [`InformationSet`](crate::agent::InformationSet).
 #[derive(Debug, Copy, Clone, Default, PartialEq)]
-pub struct RandomPolicy<DP: DomainParameters, State: InformationSet<DP>>{
+pub struct RandomPolicy<DP: Scheme, State: InformationSet<DP>>{
     state: PhantomData<State>,
     _spec: PhantomData<DP>
 }
 
 
-impl<DP: DomainParameters, InfoSet: InformationSet<DP>> RandomPolicy<DP, InfoSet>{
+impl<DP: Scheme, InfoSet: InformationSet<DP>> RandomPolicy<DP, InfoSet>{
     pub fn new() -> Self{
         Self{state: PhantomData, _spec: PhantomData}
     }
@@ -113,7 +113,7 @@ impl<DP: DomainParameters, InfoSet: InformationSet<DP>> RandomPolicy<DP, InfoSet
 
 
 
-impl<DP: DomainParameters, InfoSet: PresentPossibleActions<DP>> Policy<DP> for RandomPolicy<DP, InfoSet>
+impl<DP: Scheme, InfoSet: PresentPossibleActions<DP>> Policy<DP> for RandomPolicy<DP, InfoSet>
 where <<InfoSet as PresentPossibleActions<DP>>::ActionIteratorType as IntoIterator>::IntoIter : ExactSizeIterator{
     type InfoSetType = InfoSet;
 
@@ -124,7 +124,7 @@ where <<InfoSet as PresentPossibleActions<DP>>::ActionIteratorType as IntoIterat
     }
 }
 
-impl<DP: DomainParameters, P: Policy<DP>> Policy<DP> for Box<P>{
+impl<DP: Scheme, P: Policy<DP>> Policy<DP> for Box<P>{
     type InfoSetType = P::InfoSetType;
 
     fn select_action(&self, state: &Self::InfoSetType) -> Result<DP::ActionType, AmfiteatrError<DP>> {

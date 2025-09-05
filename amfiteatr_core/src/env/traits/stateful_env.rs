@@ -1,9 +1,9 @@
-use crate::domain::DomainParameters;
+use crate::scheme::Scheme;
 use crate::env::SequentialGameState;
 use crate::error::AmfiteatrError;
 
 /// Environment for games with some state, actually it is for almost every game.
-pub trait StatefulEnvironment<DP: DomainParameters>{
+pub trait StatefulEnvironment<DP: Scheme>{
     type State: SequentialGameState<DP>;
 
     /// Returns reference to current game state.

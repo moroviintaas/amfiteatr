@@ -4,14 +4,14 @@ use crate::agent::info_set::{InformationSet};
 use crate::agent::policy::Policy;
 use crate::comm::BidirectionalEndpoint;
 use crate::error::{AmfiteatrError, CommunicationError};
-use crate::domain::{AgentMessage, EnvironmentMessage, DomainParameters, Reward, Renew};
+use crate::scheme::{AgentMessage, EnvironmentMessage, Scheme, Reward, Renew};
 
 /// Generic agent implementing common traits needed by agent.
 /// This agent implements minimal functionality to work automatically with environment.
 /// This agents does not collect trace of game, for are agent collecting it look for [AgentGenT](crate::agent::TracingAgentGen).
 /// This agent can be built if used Policy operates on information set that is [`ScoringInformationSet`](crate::agent::EvaluatedInformationSet)
 pub struct AgentGen<
-    DP: DomainParameters,
+    DP: Scheme,
     P: Policy<DP>,
     Comm: BidirectionalEndpoint<
         OutwardType=AgentMessage<DP>,
@@ -26,13 +26,13 @@ where <P as Policy<DP>>::InfoSetType: InformationSet<DP>{
     policy: P,
     _phantom: PhantomData<DP>,
 
-    constructed_universal_reward: <DP as DomainParameters>::UniversalReward,
-    committed_universal_score: <DP as DomainParameters>::UniversalReward,
+    constructed_universal_reward: <DP as Scheme>::UniversalReward,
+    committed_universal_score: <DP as Scheme>::UniversalReward,
     //explicit_subjective_reward_component: <P::InfoSetType as EvaluatedInformationSet<DP>>::RewardType,
 }
 
 impl<
-    DP: DomainParameters,
+    DP: Scheme,
     P: Policy<DP>,
     Comm: BidirectionalEndpoint<
         OutwardType=AgentMessage<DP>,
@@ -141,7 +141,7 @@ where <P as Policy<DP>>::InfoSetType: InformationSet<DP>
 }
 
 impl<
-    DP: DomainParameters,
+    DP: Scheme,
     P: Policy<DP>,
     Comm: BidirectionalEndpoint<
         OutwardType=AgentMessage<DP>,
@@ -166,7 +166,7 @@ where <P as Policy<DP>>::InfoSetType: InformationSet<DP>
 }
 
 impl<
-    DP: DomainParameters,
+    DP: Scheme,
     P: Policy<DP>,
     Comm: BidirectionalEndpoint<
         OutwardType=AgentMessage<DP>,
@@ -188,7 +188,7 @@ where <P as Policy<DP>>::InfoSetType: InformationSet<DP>{
 }
 
 impl<
-    DP: DomainParameters,
+    DP: Scheme,
     P: Policy<DP>,
     Comm: BidirectionalEndpoint<
         OutwardType=AgentMessage<DP>,
@@ -211,7 +211,7 @@ where <P as Policy<DP>>::InfoSetType: Renew<DP, Seed>
 
 
 impl<
-    DP: DomainParameters,
+    DP: Scheme,
     P: Policy<DP>,
     Comm: BidirectionalEndpoint<
         OutwardType=AgentMessage<DP>,
@@ -239,7 +239,7 @@ MultiEpisodeAutoAgent<DP, Seed> for AgentGen<DP, P, Comm>
 
 
 impl<
-    DP: DomainParameters,
+    DP: Scheme,
     P: Policy<DP>,
     Comm: BidirectionalEndpoint<
         OutwardType=AgentMessage<DP>,
@@ -269,7 +269,7 @@ where <P as Policy<DP>>::InfoSetType: InformationSet<DP>{
 }
 
 impl<
-    DP: DomainParameters,
+    DP: Scheme,
     P: Policy<DP>,
     Comm: BidirectionalEndpoint<
         OutwardType=AgentMessage<DP>,
@@ -290,7 +290,7 @@ where <P as Policy<DP>>::InfoSetType: InformationSet<DP>{
 
 
 
-impl<DP: DomainParameters,
+impl<DP: Scheme,
     P: Policy<DP>,
     Comm: BidirectionalEndpoint<
         OutwardType=AgentMessage<DP>,
@@ -317,7 +317,7 @@ where <P as Policy<DP>>::InfoSetType: InformationSet<DP>{
 }
 
 impl<
-    DP: DomainParameters,
+    DP: Scheme,
     P: Policy<DP>,
     Comm: BidirectionalEndpoint<
         OutwardType=AgentMessage<DP>,

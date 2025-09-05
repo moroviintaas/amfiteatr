@@ -1,5 +1,5 @@
 use thiserror::Error;
-use crate::domain::DomainParameters;
+use crate::scheme::Scheme;
 use crate::error::AmfiteatrError;
 
 
@@ -14,7 +14,7 @@ pub enum DataError{
         context: String,
     }
 }
-impl<DP: DomainParameters> From<DataError> for AmfiteatrError<DP>{
+impl<DP: Scheme> From<DataError> for AmfiteatrError<DP>{
     fn from(source: DataError) -> AmfiteatrError<DP>{
         AmfiteatrError::Data{
             error: source,

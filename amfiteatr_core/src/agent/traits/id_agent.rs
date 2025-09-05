@@ -1,8 +1,8 @@
-use crate::domain::DomainParameters;
+use crate::scheme::Scheme;
 
 
 
 /// Provide identification tag for agent.
-pub trait IdAgent<DP: DomainParameters>{
-    fn id(&self) -> &<DP as DomainParameters>::AgentId;
+pub trait IdAgent<DP: Scheme>{
+    fn id(&self) -> &<DP as Scheme>::AgentId;
 }

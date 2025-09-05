@@ -12,7 +12,7 @@ use amfiteatr_core::error::CommunicationError;
 use thiserror::Error;
 
 use amfiteatr_core::comm::BidirectionalEndpoint;
-use amfiteatr_core::domain::{AgentMessage, DomainParameters, EnvironmentMessage};
+use amfiteatr_core::scheme::{AgentMessage, Scheme, EnvironmentMessage};
 
 //const BRIDGE_COMM_BUFFER_SIZE: usize = 256;
 #[derive(Debug, Clone, Error)]
@@ -50,10 +50,10 @@ impl<OT, IT, E: Error, const  SIZE: usize> PairedTcpEndpoint<OT, IT, E, SIZE>{
 pub type PairedTcpEnvironmentEndpoint<DP, const SIZE: usize> = PairedTcpEndpoint<EnvironmentMessage<DP>, AgentMessage<DP>, CommunicationError<DP>, SIZE>;
 pub type PairedTcpAgentEndpoint<DP, const SIZE: usize> = PairedTcpEndpoint<AgentMessage<DP>, EnvironmentMessage<DP>, CommunicationError<DP>, SIZE>;
 
-pub type MappedEnvironmentTcpEndpoints<DP, const SIZE: usize> = HashMap<<DP as DomainParameters>::AgentId, PairedTcpEnvironmentEndpoint<DP, SIZE>>;
-pub type MappedAgentTcpEndpoints<DP, const SIZE: usize> = HashMap<<DP as DomainParameters>::AgentId, PairedTcpAgentEndpoint<DP, SIZE>>;
+pub type MappedEnvironmentTcpEndpoints<DP, const SIZE: usize> = HashMap<<DP as Scheme>::AgentId, PairedTcpEnvironmentEndpoint<DP, SIZE>>;
+pub type MappedAgentTcpEndpoints<DP, const SIZE: usize> = HashMap<<DP as Scheme>::AgentId, PairedTcpAgentEndpoint<DP, SIZE>>;
 
-impl<DP: DomainParameters, const SIZE: usize> PairedTcpEnvironmentEndpoint<DP, SIZE>{
+impl<DP: Scheme, const SIZE: usize> PairedTcpEnvironmentEndpoint<DP, SIZE>{
 
 
     pub fn create_local_net<'a>(port: u16, ids: impl Iterator<Item=&'a DP::AgentId>) -> Result<(MappedEnvironmentTcpEndpoints<DP, SIZE>, MappedAgentTcpEndpoints<DP, SIZE>), CommunicationError<DP>>{
@@ -236,7 +236,7 @@ pub type TcpCommK1<OT, IT, E> = PairedTcpEndpoint<OT, IT, E, 1024>;
 pub type TcpCommK2<OT, IT, E> = PairedTcpEndpoint<OT, IT, E, 2048>;
 pub type TcpComm512<OT, IT, E> = PairedTcpEndpoint<OT, IT, E, 512>;
 
-impl<Spec: DomainParameters> From<TcpCommError> for CommunicationError<Spec>{
+impl<Spec: Scheme> From<TcpCommError> for CommunicationError<Spec>{
     fn from(value: TcpCommError) -> Self {
         match value{
             TcpCommError::SerializeError(s) => CommunicationError::SerializeError(s),

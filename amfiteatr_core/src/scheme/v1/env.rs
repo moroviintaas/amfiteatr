@@ -1,12 +1,12 @@
 use crate::agent::AgentActionPair;
 use crate::error::AmfiteatrError;
-use crate::domain::v1::domain_parameters::DomainParameters;
+use crate::scheme::v1::game_scheme::Scheme;
 
 /// Message sent by environment to agent
 #[derive(Debug, Clone)]
 #[cfg_attr(feature = "speedy", derive(speedy::Writable, speedy::Readable))]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub enum EnvironmentMessage<DP: DomainParameters>{
+pub enum EnvironmentMessage<DP: Scheme>{
     YourMove,
     MoveRefused,
     GameFinished,

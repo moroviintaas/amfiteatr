@@ -10,7 +10,7 @@ use crate::env::{
 use crate::{comm::EnvironmentEndpoint};
 
 use crate::error::{AmfiteatrError, CommunicationError, ModelError};
-use crate::domain::{AgentMessage, DomainParameters, EnvironmentMessage, Renew, RenewWithEffect, Reward};
+use crate::scheme::{AgentMessage, Scheme, EnvironmentMessage, Renew, RenewWithEffect, Reward};
 
 
 
@@ -21,24 +21,24 @@ use crate::domain::{AgentMessage, DomainParameters, EnvironmentMessage, Renew, R
 /// If you need tracing refer to analogous implementation of
 /// [`TracingHashMapEnvironment`](crate::env::TracingHashMapEnvironment).
 pub struct HashMapEnvironment<
-    DP: DomainParameters,
-    S: SequentialGameState<DP>,
+    DP: Scheme,
+    ST: SequentialGameState<DP>,
     C: EnvironmentEndpoint<DP>>{
 
     comm_endpoints: HashMap<DP::AgentId, C>,
     penalties: HashMap<DP::AgentId, DP::UniversalReward>,
-    game_state: S,
+    game_state: ST,
     game_steps: u64,
 }
 
 impl <
-    DP: DomainParameters,
-    S: SequentialGameState<DP>,
+    DP: Scheme,
+    ST: SequentialGameState<DP>,
     C: EnvironmentEndpoint<DP>>
-HashMapEnvironment<DP, S, C>{
+HashMapEnvironment<DP, ST, C>{
 
     pub fn new(
-        game_state: S,
+        game_state: ST,
         comm_endpoints:  HashMap<DP::AgentId, C>) -> Self{
 
         #[cfg(feature = "log_debug")]
@@ -53,7 +53,7 @@ HashMapEnvironment<DP, S, C>{
         Self{comm_endpoints, game_state, penalties, game_steps: 0}
     }
 
-    pub fn replace_state(&mut self, state: S){
+    pub fn replace_state(&mut self, state: ST){
         self.game_state = state
     }
 
@@ -71,12 +71,12 @@ HashMapEnvironment<DP, S, C>{
 
 
 impl<
-    DP: DomainParameters,
-    S: SequentialGameState<DP>,
+    DP: Scheme,
+    ST: SequentialGameState<DP>,
     C: EnvironmentEndpoint<DP>>
-StatefulEnvironment<DP> for HashMapEnvironment<DP, S, C>{
+StatefulEnvironment<DP> for HashMapEnvironment<DP, ST, C>{
 
-    type State = S;
+    type State = ST;
     //type Updates = <Vec<(DP::AgentId, DP::UpdateType)> as IntoIterator>::IntoIter;
 
     fn state(&self) -> &Self::State {
@@ -98,10 +98,10 @@ StatefulEnvironment<DP> for HashMapEnvironment<DP, S, C>{
 }
 
 impl<
-    DP: DomainParameters,
-    S: GameStateWithPayoffs<DP>,
+    DP: Scheme,
+    ST: GameStateWithPayoffs<DP>,
     C: EnvironmentEndpoint<DP> >
-ScoreEnvironment<DP> for HashMapEnvironment<DP, S, C>{
+ScoreEnvironment<DP> for HashMapEnvironment<DP, ST, C>{
 
     fn process_action_penalise_illegal(
         &mut self,
@@ -135,10 +135,10 @@ ScoreEnvironment<DP> for HashMapEnvironment<DP, S, C>{
 
 
 impl<
-    DP: DomainParameters,
-    S: SequentialGameState<DP>,
+    DP: Scheme,
+    ST: SequentialGameState<DP>,
     C: EnvironmentEndpoint<DP>>
-CommunicatingEndpointEnvironment<DP> for HashMapEnvironment<DP, S, C> {
+CommunicatingEndpointEnvironment<DP> for HashMapEnvironment<DP, ST, C> {
     type CommunicationError = CommunicationError<DP>;
 
     fn send_to(&mut self, agent_id: &DP::AgentId, message: EnvironmentMessage<DP>)
@@ -170,10 +170,10 @@ CommunicatingEndpointEnvironment<DP> for HashMapEnvironment<DP, S, C> {
 }
 
 impl<
-    DP: DomainParameters,
-    S: SequentialGameState<DP>,
+    DP: Scheme,
+    ST: SequentialGameState<DP>,
     C: EnvironmentEndpoint<DP>>
-BroadcastingEndpointEnvironment<DP> for HashMapEnvironment<DP, S, C>{
+BroadcastingEndpointEnvironment<DP> for HashMapEnvironment<DP, ST, C>{
     fn send_to_all(&mut self, message: EnvironmentMessage<DP>) -> Result<(), Self::CommunicationError> {
         let mut result:Option<Self::CommunicationError> = None;
 
@@ -194,10 +194,10 @@ BroadcastingEndpointEnvironment<DP> for HashMapEnvironment<DP, S, C>{
     }
 }
 
-impl<DP: DomainParameters,
-    S: SequentialGameState<DP>,
+impl<DP: Scheme,
+    ST: SequentialGameState<DP>,
     C: EnvironmentEndpoint<DP>>
- EnvironmentWithAgents<DP> for HashMapEnvironment<DP, S, C>{
+ EnvironmentWithAgents<DP> for HashMapEnvironment<DP, ST, C>{
     type PlayerIterator = Vec<DP::AgentId>;
 
     fn players(&self) -> Self::PlayerIterator {
@@ -207,10 +207,10 @@ impl<DP: DomainParameters,
 
 }
 
-impl<DP: DomainParameters,
-    S: SequentialGameState<DP>,
+impl<DP: Scheme,
+    ST: SequentialGameState<DP>,
     C: EnvironmentEndpoint<DP>>
-ListPlayers<DP> for HashMapEnvironment<DP, S, C>{
+ListPlayers<DP> for HashMapEnvironment<DP, ST, C>{
     type IterType = <Vec<DP::AgentId> as IntoIterator>::IntoIter;
 
     fn players(&self) -> Self::IterType {
@@ -225,17 +225,17 @@ ListPlayers<DP> for HashMapEnvironment<DP, S, C>{
 
 /// __(Experimental)__ builder for [`HashMapEnvironment`]
 pub struct HashMapEnvironmentBuilder<
-    DP: DomainParameters,
-    S: SequentialGameState<DP>,
+    DP: Scheme,
+    ST: SequentialGameState<DP>,
     C: EnvironmentEndpoint<DP> >{
-    state_opt: Option<S>,
+    state_opt: Option<ST>,
     comm_endpoints: HashMap<DP::AgentId,  C>,
 
 
 }
 
-impl <DP: DomainParameters, S: SequentialGameState<DP>, C: EnvironmentEndpoint<DP>>
-HashMapEnvironmentBuilder<DP, S, C>{
+impl <DP: Scheme, ST: SequentialGameState<DP>, C: EnvironmentEndpoint<DP>>
+HashMapEnvironmentBuilder<DP, ST, C>{
 
 
     pub fn new() -> Self{
@@ -247,10 +247,10 @@ HashMapEnvironmentBuilder<DP, S, C>{
 
 
 impl<
-    DP: DomainParameters,
-    S: SequentialGameState<DP>,
+    DP: Scheme,
+    ST: SequentialGameState<DP>,
     C: EnvironmentEndpoint<DP>>
-Default for HashMapEnvironmentBuilder<DP, S, C> {
+Default for HashMapEnvironmentBuilder<DP, ST, C> {
 
     fn default() -> Self {
         Self{
@@ -261,13 +261,13 @@ Default for HashMapEnvironmentBuilder<DP, S, C> {
 }
 
 impl<
-    DP: DomainParameters,
-    S: SequentialGameState<DP>,
+    DP: Scheme,
+    ST: SequentialGameState<DP>,
     C: EnvironmentEndpoint<DP>>
-EnvironmentBuilderTrait<DP, HashMapEnvironment<DP, S, C>> for HashMapEnvironmentBuilder<DP, S, C>{
+EnvironmentBuilderTrait<DP, HashMapEnvironment<DP, ST, C>> for HashMapEnvironmentBuilder<DP, ST, C>{
     type Comm = C;
 
-    fn build(self) -> Result<HashMapEnvironment<DP, S, C>, ModelError<DP>>{
+    fn build(self) -> Result<HashMapEnvironment<DP, ST, C>, ModelError<DP>>{
 
 
         Ok(HashMapEnvironment::new(
@@ -282,17 +282,17 @@ EnvironmentBuilderTrait<DP, HashMapEnvironment<DP, S, C>> for HashMapEnvironment
         Ok(self)
     }
 
-    fn with_state(mut self, state: S) -> Result<Self, ModelError<DP>>{
+    fn with_state(mut self, state: ST) -> Result<Self, ModelError<DP>>{
         self.state_opt = Some(state);
         Ok(self)
     }
 }
 
 impl<
-DP: DomainParameters,
-    S: SequentialGameState<DP>,
+DP: Scheme,
+    ST: SequentialGameState<DP>,
     C: EnvironmentEndpoint<DP>>
-ReinitEnvironment<DP> for HashMapEnvironment<DP, S, C>{
+ReinitEnvironment<DP> for HashMapEnvironment<DP, ST, C>{
     fn reinit(&mut self, initial_state: <Self as StatefulEnvironment<DP>>::State) {
 
         self.game_state = initial_state;
@@ -303,11 +303,11 @@ ReinitEnvironment<DP> for HashMapEnvironment<DP, S, C>{
     }
 }
 impl <
-    DP: DomainParameters,
-    S: SequentialGameState<DP> + Clone,
+    DP: Scheme,
+    ST: SequentialGameState<DP> + Clone,
     CP: EnvironmentEndpoint<DP>,
     Seed
-> ReseedEnvironment<DP, Seed> for HashMapEnvironment<DP, S, CP>
+> ReseedEnvironment<DP, Seed> for HashMapEnvironment<DP, ST, CP>
     where <Self as StatefulEnvironment<DP>>::State: Renew<DP, Seed>{
     fn reseed(&mut self, seed: Seed) -> Result<(), AmfiteatrError<DP>>{
         self.game_steps = 0;
@@ -316,12 +316,12 @@ impl <
 }
 
 impl <
-    DP: DomainParameters,
-    S: SequentialGameState<DP> + Clone + RenewWithEffect<DP, Seed>,
+    DP: Scheme,
+    ST: SequentialGameState<DP> + Clone + RenewWithEffect<DP, Seed>,
     CP: EnvironmentEndpoint<DP>,
     Seed,
     AgentSeed
-> ReseedEnvironmentWithObservation<DP, Seed> for HashMapEnvironment<DP, S, CP>
+> ReseedEnvironmentWithObservation<DP, Seed> for HashMapEnvironment<DP, ST, CP>
     where <Self as StatefulEnvironment<DP>>::State: RenewWithEffect<DP, Seed>,
           <<Self as StatefulEnvironment<DP>>::State as RenewWithEffect<DP, Seed>>::Effect:
           IntoIterator<Item=(DP::AgentId, AgentSeed)>{
@@ -337,24 +337,25 @@ impl <
     }
 }
 
-impl<DP: DomainParameters,
-    S: SequentialGameState<DP>,
+impl<DP: Scheme,
+    ST: SequentialGameState<DP>,
     C: EnvironmentEndpoint<DP>>
-AutoEnvironment<DP> for HashMapEnvironment<DP, S, C>
+AutoEnvironment<DP> for HashMapEnvironment<DP, ST, C>
 where Self: CommunicatingEndpointEnvironment<DP, CommunicationError=CommunicationError<DP>>
 + StatefulEnvironment<DP>
 + EnvironmentWithAgents<DP>
-+ BroadcastingEndpointEnvironment<DP>, DP: DomainParameters {
++ BroadcastingEndpointEnvironment<DP>, DP: Scheme
+{
     fn run_truncating(&mut self, truncate_steps: Option<usize>) -> Result<(), AmfiteatrError<DP>> {
         self.run_round_robin_no_rewards_truncating(truncate_steps)
     }
 }
 
-impl<DP: DomainParameters,
-    S: SequentialGameState<DP> ,
+impl<DP: Scheme,
+    ST: SequentialGameState<DP> ,
     C: EnvironmentEndpoint<DP>>
-AutoEnvironmentWithScores<DP> for HashMapEnvironment<DP, S, C>
-    where HashMapEnvironment<DP, S, C>:
+AutoEnvironmentWithScores<DP> for HashMapEnvironment<DP, ST, C>
+    where HashMapEnvironment<DP, ST, C>:
     CommunicatingEndpointEnvironment<DP, CommunicationError=CommunicationError<DP>>
     + ScoreEnvironment<DP>
     + EnvironmentWithAgents<DP>

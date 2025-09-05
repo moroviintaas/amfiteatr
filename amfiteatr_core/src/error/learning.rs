@@ -1,5 +1,5 @@
 use thiserror::Error;
-use crate::domain::DomainParameters;
+use crate::scheme::Scheme;
 use crate::error::AmfiteatrError;
 
 #[derive(Debug, Clone, Error)]
@@ -10,7 +10,7 @@ pub enum LearningError{
 }
 
 
-impl<DP: DomainParameters> From<LearningError> for AmfiteatrError<DP>{
+impl<DP: Scheme> From<LearningError> for AmfiteatrError<DP>{
     fn from(err: LearningError) -> Self {
         Self::Learning {
             error: err

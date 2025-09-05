@@ -1,6 +1,6 @@
 use log::warn;
 use ndarray::{Array2};
-use amfiteatr_core::domain::{DomainParameters, Renew};
+use amfiteatr_core::scheme::{Scheme, Renew};
 use amfiteatr_core::env::{GameStateWithPayoffs, SequentialGameState};
 use amfiteatr_core::error::AmfiteatrError;
 use crate::connect_four::common::{ConnectFourAction, ConnectFourBinaryObservation, ConnectFourDomain, ConnectFourError, ConnectFourPlayer};
@@ -126,7 +126,7 @@ impl ConnectFourRustNdEnvState{
 }
 
 impl SequentialGameState<ConnectFourDomain> for ConnectFourRustNdEnvState{
-    type Updates = [(<ConnectFourDomain as DomainParameters>::AgentId, <ConnectFourDomain as DomainParameters>::UpdateType );1];
+    type Updates = [(<ConnectFourDomain as Scheme>::AgentId, <ConnectFourDomain as Scheme>::UpdateType );1];
 
     fn current_player(&self) -> Option<ConnectFourPlayer> {
         self.current_player
@@ -199,8 +199,8 @@ impl Renew<ConnectFourDomain, ()> for ConnectFourRustNdEnvState{
 }
 
 impl GameStateWithPayoffs<ConnectFourDomain> for ConnectFourRustNdEnvState{
-    fn state_payoff_of_player(&self, agent: &<ConnectFourDomain as DomainParameters>::AgentId)
-                              -> <ConnectFourDomain as DomainParameters>::UniversalReward {
+    fn state_payoff_of_player(&self, agent: &<ConnectFourDomain as Scheme>::AgentId)
+                              -> <ConnectFourDomain as Scheme>::UniversalReward {
         self.scores[agent.index()]
     }
 }

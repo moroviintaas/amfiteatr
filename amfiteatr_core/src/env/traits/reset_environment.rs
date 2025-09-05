@@ -1,10 +1,10 @@
 use crate::env::StatefulEnvironment;
-use crate::domain::DomainParameters;
+use crate::scheme::Scheme;
 use crate::error::AmfiteatrError;
 
 
 /// Environment with ability to be reset wit new state.
-pub trait ReinitEnvironment<DP: DomainParameters>: StatefulEnvironment<DP>{
+pub trait ReinitEnvironment<DP: Scheme>: StatefulEnvironment<DP>{
     /// Reinitialisation should set new state (at the beginning of new game episode)
     /// and it should clear every data from previous episode (optionally it can
     /// store previous episodes information on some archive storage).
@@ -25,7 +25,7 @@ pub trait ReinitEnvironment<DP: DomainParameters>: StatefulEnvironment<DP>{
 /// information sets are derived as partial information from this sample.
 /// __Note__ that this only make sense when agents are trusted as with the seed
 /// they can receive complete information about the game.
-pub trait ReseedEnvironment<DP: DomainParameters, Seed>
+pub trait ReseedEnvironment<DP: Scheme, Seed>
 {
     /// This method must do reinitialize environment i.e. set new game state.
     /// New game state should be derived from seed.
@@ -41,7 +41,7 @@ pub trait ReseedEnvironment<DP: DomainParameters, Seed>
 /// > and this information can be used to initialize their information set. Or when constructing similar environment
 /// > to [`Gymnasium`](https://gymnasium.farama.org/), while reseeding environment player observes the same data type
 /// > as when he makes _step_.
-pub trait ReseedEnvironmentWithObservation<DP: DomainParameters, Seed>{
+pub trait ReseedEnvironmentWithObservation<DP: Scheme, Seed>{
     /// Observation type for one player (probably corresponding to `ReseedAgent's` [Seed](crate::agent::ReseedAgent)
     /// parameter
     type Observation;

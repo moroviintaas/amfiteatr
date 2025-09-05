@@ -1,5 +1,5 @@
 use thiserror::Error;
-use crate::domain::DomainParameters;
+use crate::scheme::Scheme;
 use crate::error::AmfiteatrError;
 
 
@@ -16,7 +16,7 @@ pub enum TensorError{
 
 
 
-impl<DP: DomainParameters> From<TensorError> for AmfiteatrError<DP>{
+impl<DP: Scheme> From<TensorError> for AmfiteatrError<DP>{
     fn from(source: TensorError) -> AmfiteatrError<DP>{
         AmfiteatrError::Tensor{
             error: source,

@@ -4,7 +4,7 @@ use std::marker::PhantomData;
 use std::sync::Arc;
 use amfiteatr_core::agent::{AgentIdentifier};
 use amfiteatr_core::error::{AmfiteatrError, ConvertError};
-use amfiteatr_core::domain::{Action, DomainParameters, Reward};
+use amfiteatr_core::scheme::{Action, Scheme, Reward};
 use enum_map::Enum;
 use serde::{Deserialize, Serialize};
 use amfiteatr_rl::error::TensorRepresentationError;
@@ -250,7 +250,7 @@ impl<ID: UsizeAgentId> From<ClassicGameError<ID>> for AmfiteatrError<ClassicGame
     }
 }
 
-/// Game domain for classic theory games. Generic parameter is for agent id, because one may
+/// Game scheme for classic theory games. Generic parameter is for agent id, because one may
 /// want to make model with agent named by enum variants or by unique numbers.
 #[derive(Clone, Debug, Serialize)]
 pub struct ClassicGameDomain<ID: AgentIdentifier>{
@@ -428,7 +428,7 @@ pub struct ClassicGameUpdate<ID: UsizeAgentId>{
     pub pairing:  Option<Arc<PairingVec<ID>>>
 }
 
-impl<ID: UsizeAgentId> DomainParameters for ClassicGameDomain<ID> {
+impl<ID: UsizeAgentId> Scheme for ClassicGameDomain<ID> {
     type ActionType = ClassicAction;
     type GameErrorType = ClassicGameError<ID>;
     type UpdateType = ClassicGameUpdate<ID>;

@@ -1,5 +1,5 @@
 use amfiteatr_core::agent::{InformationSet, PresentPossibleActions};
-use amfiteatr_core::domain::{DomainParameters, Renew};
+use amfiteatr_core::scheme::{Scheme, Renew};
 use amfiteatr_core::error::{AmfiteatrError, ConvertError};
 use amfiteatr_proc_macro::no_assessment_info_set;
 use amfiteatr_rl::tch::Tensor;
@@ -24,16 +24,16 @@ impl PythonGymnasiumCartPoleInformationSet{
 }
 
 impl InformationSet<CartPoleDomain> for PythonGymnasiumCartPoleInformationSet{
-    fn agent_id(&self) -> &<CartPoleDomain as DomainParameters>::AgentId {
+    fn agent_id(&self) -> &<CartPoleDomain as Scheme>::AgentId {
         &SINGLE_PLAYER_ID
     }
 
-    fn is_action_valid(&self, _action: &<CartPoleDomain as DomainParameters>::ActionType) -> bool {
+    fn is_action_valid(&self, _action: &<CartPoleDomain as Scheme>::ActionType) -> bool {
         true
     }
 
-    fn update(&mut self, update: <CartPoleDomain as DomainParameters>::UpdateType)
-        -> Result<(), <CartPoleDomain as DomainParameters>::GameErrorType> {
+    fn update(&mut self, update: <CartPoleDomain as Scheme>::UpdateType)
+        -> Result<(), <CartPoleDomain as Scheme>::GameErrorType> {
 
         self.latest_observation = update;
         Ok(())

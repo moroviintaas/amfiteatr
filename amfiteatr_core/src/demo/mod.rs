@@ -48,7 +48,7 @@ use std::fmt::{Debug, Display, Formatter};
 use nom::IResult;
 use rand::distr::Uniform;
 use crate::agent::{AgentIdentifier, Policy, PresentPossibleActions};
-use crate::domain::{Action, DomainParameters, Renew};
+use crate::scheme::{Action, Scheme, Renew};
 use crate::env::{SequentialGameState, GameStateWithPayoffs};
 use rand::distr::Distribution;
 use rand::{rng};
@@ -112,7 +112,7 @@ impl Display for DemoError{
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct DemoDomain {}
 
-impl DomainParameters for DemoDomain {
+impl Scheme for DemoDomain {
     type ActionType = DemoAction;
     type GameErrorType = DemoError;
     type UpdateType = (DemoAgentID, DemoAction, f32);

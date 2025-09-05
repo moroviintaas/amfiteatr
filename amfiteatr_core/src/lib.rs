@@ -14,7 +14,7 @@
 /// Traits and generic implementations of agent (player).
 pub mod agent;
 /// Generic structs used in communication between _agents_ and _environment_.
-pub mod domain;
+pub mod scheme;
 /// Traits and basic implementation for communication driving structs.
 pub mod comm;
 /// Structures used for error handling in framework.

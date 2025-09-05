@@ -5,7 +5,7 @@ use tch::nn::Optimizer;
 use tch::{Kind, TchError, Tensor};
 use tch::Kind::Float;
 use amfiteatr_core::agent::{AgentStepView, AgentTrajectory, InformationSet};
-use amfiteatr_core::domain::DomainParameters;
+use amfiteatr_core::scheme::Scheme;
 use amfiteatr_core::error::{AmfiteatrError, LearningError, TensorError};
 use crate::error::AmfiteatrRlError;
 use crate::policy::{LearnSummary, RlPolicyConfigBasic};
@@ -49,7 +49,7 @@ impl Default for ConfigA2C {
 /// Helper trait to build Actor Critic policy.
 /// It requires a number of methods, but provides action selection methods.
 /// Methods required are also used to automatically implement [`PolicyTrainHelperA2C`]/[`PolicyTrainHelperPPO`](crate::policy::PolicyTrainHelperPPO).
-pub trait PolicyHelperA2C<DP: DomainParameters>{
+pub trait PolicyHelperA2C<DP: Scheme>{
 
     type InfoSet: InformationSet<DP> + ContextEncodeTensor<Self::InfoSetConversionContext>;
     type InfoSetConversionContext: TensorEncoding;
@@ -297,7 +297,7 @@ pub trait PolicyHelperA2C<DP: DomainParameters>{
 /// Helper trait to build create training interface for A2C Policy.
 /// It provides automatic [`ppo_train_on_trajectories`](PolicyTrainHelperA2C::a2c_train_on_trajectories)
 /// implementation for any (policy) type implementing [`PolicyHelperA2C`].
-pub trait PolicyTrainHelperA2C<DP: DomainParameters> : PolicyHelperA2C<DP, Config=ConfigA2C>{
+pub trait PolicyTrainHelperA2C<DP: Scheme> : PolicyHelperA2C<DP, Config=ConfigA2C>{
 
     fn a2c_train_on_trajectories<
         R: Fn(&AgentStepView<DP, Self::InfoSet>) -> Tensor>
@@ -575,7 +575,7 @@ pub trait PolicyTrainHelperA2C<DP: DomainParameters> : PolicyHelperA2C<DP, Confi
 
 
 
-impl<T, DP: DomainParameters> PolicyTrainHelperA2C<DP> for T
+impl<T, DP: Scheme> PolicyTrainHelperA2C<DP> for T
     where T: PolicyHelperA2C<DP, Config=ConfigA2C>{}
 
 

@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 use amfiteatr_core::agent::{AgentGen, AutomaticAgent, InformationSet, Policy, RandomPolicy, ReseedAgent};
 use amfiteatr_core::comm::{AgentEndpoint, AgentMpscAdapter, BidirectionalEndpoint, EnvironmentAdapter, EnvironmentEndpoint, EnvironmentMpscPort, StdEnvironmentEndpoint};
-use amfiteatr_core::domain::{AgentMessage, DomainParameters, EnvironmentMessage, Renew};
+use amfiteatr_core::scheme::{AgentMessage, Scheme, EnvironmentMessage, Renew};
 use amfiteatr_core::env::{AutoEnvironmentWithScores, BasicEnvironment, HashMapEnvironment, ReseedEnvironment, RoundRobinUniversalEnvironment, SequentialGameState};
 use amfiteatr_core::error::{AmfiteatrError, CommunicationError};
 use amfiteatr_examples::expensive_update::agent::ExpensiveUpdateInformationSet;
@@ -287,8 +287,8 @@ impl CentralModel{
 
 pub struct NoCommModel{
     env_state: EUS,
-    agent_info_sets: HashMap<<EUD as DomainParameters>::AgentId ,EUSI>,
-    agent_policies: HashMap<<EUD as DomainParameters>::AgentId, RandomPolicy<EUD, EUSI>>,
+    agent_info_sets: HashMap<<EUD as Scheme>::AgentId ,EUSI>,
+    agent_policies: HashMap<<EUD as Scheme>::AgentId, RandomPolicy<EUD, EUSI>>,
 }
 
 impl NoCommModel{

@@ -1,5 +1,5 @@
 use crate::agent::*;
-use crate::domain::DomainParameters;
+use crate::scheme::Scheme;
 
 
 /// This is one of proposed top level traits to use in dynamic structs like
@@ -20,7 +20,7 @@ use crate::domain::DomainParameters;
 /// //                      InformationSet-------------------------^
 /// ```
 /// This trait has blanket implementation for types implementing its supertraits
-pub trait ModelAgent<DP: DomainParameters, Seed, IS: InformationSet<DP>>:
+pub trait ModelAgent<DP: Scheme, Seed, IS: InformationSet<DP>>:
 
     AutomaticAgent<DP>
     //SelfEvaluatingAgent<DP, Assessment= <IS as EvaluatedInformationSet<DP>>::RewardType>
@@ -33,7 +33,7 @@ pub trait ModelAgent<DP: DomainParameters, Seed, IS: InformationSet<DP>>:
 {}
 
 impl<
-    DP: DomainParameters,
+    DP: Scheme,
     Seed,
     IS: InformationSet<DP>,
     T: AutomaticAgent<DP>

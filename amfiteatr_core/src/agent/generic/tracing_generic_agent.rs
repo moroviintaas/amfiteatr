@@ -3,7 +3,7 @@ use std::marker::PhantomData;
 use crate::agent::*;
 use crate::comm::BidirectionalEndpoint;
 use crate::error::{AmfiteatrError, CommunicationError};
-use crate::domain::{AgentMessage, DomainParameters, EnvironmentMessage, Renew, Reward};
+use crate::scheme::{AgentMessage, Scheme, EnvironmentMessage, Renew, Reward};
 
 
 
@@ -12,7 +12,7 @@ use crate::domain::{AgentMessage, DomainParameters, EnvironmentMessage, Renew, R
 /// This agents  collects trace of game, for are agent not collecting it look for [AgentGen](crate::agent::AgentGen).
 /// This agent can be built if used Policy operates on information set that is [`ScoringInformationSet`](crate::agent::EvaluatedInformationSet)
 pub struct TracingAgentGen<
-    DP: DomainParameters,
+    DP: Scheme,
     P: Policy<DP>,
     Comm: BidirectionalEndpoint<
         OutwardType=AgentMessage<DP>,
@@ -26,8 +26,8 @@ where <P as Policy<DP>>::InfoSetType: InformationSet<DP>{
     policy: P,
     _phantom: PhantomData<DP>,
 
-    constructed_universal_reward: <DP as DomainParameters>::UniversalReward,
-    committed_universal_score: <DP as DomainParameters>::UniversalReward,
+    constructed_universal_reward: <DP as Scheme>::UniversalReward,
+    committed_universal_score: <DP as Scheme>::UniversalReward,
 
     game_trajectory: AgentTrajectory<DP, P::InfoSetType>,
     //last_action: Option<DP::ActionType>,
@@ -35,7 +35,7 @@ where <P as Policy<DP>>::InfoSetType: InformationSet<DP>{
     episodes: Vec<AgentTrajectory<DP, P::InfoSetType>>,
 }
 
-impl <DP: DomainParameters,
+impl <DP: Scheme,
     P: Policy<DP>,
     Comm: BidirectionalEndpoint<
         OutwardType=AgentMessage<DP>,
@@ -153,7 +153,7 @@ where <P as Policy<DP>>::InfoSetType: InformationSet<DP>{
 
 
 impl<
-    DP: DomainParameters,
+    DP: Scheme,
     P: Policy<DP>,
     Comm: BidirectionalEndpoint<
         OutwardType=AgentMessage<DP>,
@@ -174,7 +174,7 @@ where <P as Policy<DP>>::InfoSetType: InformationSet<DP> + Clone{
 }
 
 impl<
-    DP: DomainParameters,
+    DP: Scheme,
     P: Policy<DP>,
     Comm: BidirectionalEndpoint<
         OutwardType=AgentMessage<DP>,
@@ -195,7 +195,7 @@ where <P as Policy<DP>>::InfoSetType: InformationSet<DP>{
 }
 
 impl<
-    DP: DomainParameters,
+    DP: Scheme,
     P: Policy<DP>,
     Comm: BidirectionalEndpoint<
         OutwardType=AgentMessage<DP>,
@@ -216,7 +216,7 @@ where <P as Policy<DP>>::InfoSetType: Renew<DP, Seed>
 }
 
 impl<
-    DP: DomainParameters,
+    DP: Scheme,
     P: Policy<DP>,
     Comm: BidirectionalEndpoint<
         OutwardType=AgentMessage<DP>,
@@ -275,7 +275,7 @@ where <P as Policy<DP>>::InfoSetType: InformationSet<DP> + Clone{
 }
 
 impl<
-    DP: DomainParameters,
+    DP: Scheme,
     P: Policy<DP>,
     Comm: BidirectionalEndpoint<
         OutwardType=AgentMessage<DP>,
@@ -305,7 +305,7 @@ where <P as Policy<DP>>::InfoSetType: InformationSet<DP> + Clone,
 
 
 impl<
-    DP: DomainParameters,
+    DP: Scheme,
     P: Policy<DP>,
     Comm: BidirectionalEndpoint<
         OutwardType=AgentMessage<DP>,
@@ -340,7 +340,7 @@ where Self: ReseedAgent<DP, Seed> + AutomaticAgent<DP>,
 
 
 impl<
-    DP: DomainParameters,
+    DP: Scheme,
     P: Policy<DP>,
     Comm: BidirectionalEndpoint<
         OutwardType=AgentMessage<DP>,
@@ -363,7 +363,7 @@ MultiEpisodeTracingAgent<DP, <P as Policy<DP>>::InfoSetType, Seed> for TracingAg
     }
 }
 impl<
-    DP: DomainParameters,
+    DP: Scheme,
     P: Policy<DP>,
     Comm: BidirectionalEndpoint<
         OutwardType=AgentMessage<DP>,
@@ -383,7 +383,7 @@ where <P as Policy<DP>>::InfoSetType: InformationSet<DP>{
 }
 
 impl<
-    DP: DomainParameters,
+    DP: Scheme,
     P: Policy<DP>,
     Comm: BidirectionalEndpoint<
         OutwardType=AgentMessage<DP>,
@@ -413,7 +413,7 @@ where <P as Policy<DP>>::InfoSetType: InformationSet<DP>{
 }
 
 impl<
-    DP: DomainParameters,
+    DP: Scheme,
     P: Policy<DP>,
     Comm: BidirectionalEndpoint<
         OutwardType=AgentMessage<DP>,

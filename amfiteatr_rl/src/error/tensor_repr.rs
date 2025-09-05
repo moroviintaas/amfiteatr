@@ -1,5 +1,5 @@
 use tch::TchError;
-use amfiteatr_core::domain::DomainParameters;
+use amfiteatr_core::scheme::Scheme;
 use crate::error::AmfiteatrRlError;
 use thiserror::Error;
 
@@ -42,7 +42,7 @@ pub enum TensorRepresentationError{
 
 }
 
-impl<DP: DomainParameters> From<TensorRepresentationError> for AmfiteatrRlError<DP>{
+impl<DP: Scheme> From<TensorRepresentationError> for AmfiteatrRlError<DP>{
     fn from(value: TensorRepresentationError) -> Self {
         AmfiteatrRlError::TensorRepresentation{source: value}
     }

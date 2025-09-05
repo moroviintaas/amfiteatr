@@ -1,10 +1,10 @@
 use crate::agent::{Policy, StatefulAgent};
-use crate::domain::DomainParameters;
+use crate::scheme::Scheme;
 use crate::error::AmfiteatrError;
 
 /// Trait for agents that performs actions, possibly mutating some attributes of agent.
 ///
-pub trait ActingAgent<DP: DomainParameters>{
+pub trait ActingAgent<DP: Scheme>{
 
     /// Agent selects action and performs optional changing operations.
     /// It has ability to mutate agent when he/she selects action.
@@ -13,7 +13,7 @@ pub trait ActingAgent<DP: DomainParameters>{
     /// In the same moment agent may want to mutate itself for example to separate steps of game for purpose of saving trajectory.
     /// This behaviour is used by [`AgentGen`](crate::agent::AgentGen) to add rewards obtained since last action to current store.
     /// [`AgentGenT`](crate::agent::TracingAgentGen) uses it also to add new step entry to his/her game trajectory.
-    /// __Note__ that this method should not affect agents _information set_, as the way of changing it is through [`DomainParameters::UpdateType`](crate::domain::DomainParameters::UpdateType)
+    /// __Note__ that this method should not affect agents _information set_, as the way of changing it is through [`DomainParameters::UpdateType`](crate::scheme::Scheme::UpdateType)
     /// provided by _environment_.
     fn select_action(&mut self) -> Result<DP::ActionType, AmfiteatrError<DP>>;
 
@@ -25,7 +25,7 @@ pub trait ActingAgent<DP: DomainParameters>{
     fn react_refused_action(&mut self) -> Result<(), AmfiteatrError<DP>>;
 }
 /// Agent that follows some policy, which can be referenced.
-pub trait PolicyAgent<DP: DomainParameters>: StatefulAgent<DP>{
+pub trait PolicyAgent<DP: Scheme>: StatefulAgent<DP>{
     /// Policy type that is used by agent
     type Policy: Policy<DP, InfoSetType= <Self as StatefulAgent<DP>>::InfoSetType>;
 

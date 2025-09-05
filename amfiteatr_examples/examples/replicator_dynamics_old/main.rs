@@ -21,7 +21,7 @@ use amfiteatr_core::env::{AutoEnvironmentWithScores, ReseedEnvironment, TracingB
 use amfiteatr_classic::policy::{ClassicMixedStrategy, ClassicPureStrategy};
 use amfiteatr_core::agent::RewardedAgent;
 use amfiteatr_core::agent::TracingAgent;
-use amfiteatr_core::domain::DomainParameters;
+use amfiteatr_core::scheme::Scheme;
 use amfiteatr_core::error::AmfiteatrError;
 use amfiteatr_classic::domain::{
     AgentNum,
@@ -77,8 +77,8 @@ pub fn setup_logger(options: &ReplicatorOptions) -> Result<(), fern::InitError> 
     Ok(())
 }
 type D = ClassicGameDomainNumbered;
-type S = PairingState<<D as DomainParameters>::AgentId>;
-type Pol = ActorCriticPolicy<D, LocalHistoryInfoSet<<D as DomainParameters>::AgentId>, LocalHistoryConversionToTensor>;
+type S = PairingState<<D as Scheme>::AgentId>;
+type Pol = ActorCriticPolicy<D, LocalHistoryInfoSet<<D as Scheme>::AgentId>, LocalHistoryConversionToTensor>;
 type MixedPolicy = ClassicMixedStrategy<AgentNum, LocalHistoryInfoSet<AgentNum>>;
 type PurePolicy = ClassicPureStrategy<AgentNum, LocalHistoryInfoSet<AgentNum>>;
 type AgentComm = AgentMpscAdapter<D>;

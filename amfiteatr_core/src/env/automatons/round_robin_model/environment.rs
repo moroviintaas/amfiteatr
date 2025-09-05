@@ -2,12 +2,12 @@ use std::collections::HashMap;
 use crate::env::{BroadcastingEndpointEnvironment, CommunicatingEndpointEnvironment, SequentialGameState, EnvironmentWithAgents, ScoreEnvironment, StatefulEnvironment};
 use crate::error::{CommunicationError, AmfiteatrError};
 use crate::error::ProtocolError::PlayerExited;
-use crate::domain::{AgentMessage, EnvironmentMessage, DomainParameters, Reward};
-use crate::domain::EnvironmentMessage::ErrorNotify;
+use crate::scheme::{AgentMessage, EnvironmentMessage, Scheme, Reward};
+use crate::scheme::EnvironmentMessage::ErrorNotify;
 
 
 /// Interface for environment using round robin strategy for listening to agents' messages.
-pub trait RoundRobinEnvironment<DP: DomainParameters>{
+pub trait RoundRobinEnvironment<DP: Scheme>{
     /// Runs environment listening to agents in RoundRobin order.
     ///
     /// Argument `truncate_steps` is the number of steps after which the game is truncated.
@@ -19,7 +19,7 @@ pub trait RoundRobinEnvironment<DP: DomainParameters>{
 
 }
 /// Similar interface to [`RoundRobinEnvironment`], but it must ensure agents receive rewards.
-pub trait RoundRobinUniversalEnvironment<DP: DomainParameters> : RoundRobinEnvironment<DP>{
+pub trait RoundRobinUniversalEnvironment<DP: Scheme> : RoundRobinEnvironment<DP>{
     /// Runs environment listening to agents in RoundRobin order.
     ///
     /// Argument `truncate_steps` is the number of steps after which the game is truncated.
@@ -48,7 +48,7 @@ pub trait RoundRobinUniversalEnvironment<DP: DomainParameters> : RoundRobinEnvir
 /// in addition to rewards based on current game state, penalties for illegal actions are sent.
 /// This is __experimental__ interface.
 pub trait RoundRobinPenalisingUniversalEnvironment<
-    DP: DomainParameters,
+    DP: Scheme,
     P: Fn(&<Self as StatefulEnvironment<DP>>::State, &DP::AgentId) -> DP::UniversalReward
 >: RoundRobinUniversalEnvironment<DP> + StatefulEnvironment<DP>{
     /// Runs environment listening to agents in RoundRobin order.
@@ -64,19 +64,19 @@ pub trait RoundRobinPenalisingUniversalEnvironment<
 
 
 
-pub(crate) trait EnvironmentRRInternal<DP: DomainParameters>{
+pub(crate) trait EnvironmentRRInternal<DP: Scheme>{
     fn notify_error(&mut self, error: AmfiteatrError<DP>) -> Result<(), CommunicationError<DP>>;
     fn send_message(&mut self, agent: &DP::AgentId, message: EnvironmentMessage<DP>) -> Result<(), CommunicationError<DP>>;
 
 }
 
-impl<Env, DP: DomainParameters> EnvironmentRRInternal<DP> for Env
+impl<Env, DP: Scheme> EnvironmentRRInternal<DP> for Env
 where Env: CommunicatingEndpointEnvironment<DP, CommunicationError=CommunicationError<DP>>
  + StatefulEnvironment<DP>
  + EnvironmentWithAgents<DP>
  + BroadcastingEndpointEnvironment<DP>,
 
-DP: DomainParameters
+DP: Scheme
 {
     fn notify_error(&mut self, error: AmfiteatrError<DP>) -> Result<(), CommunicationError<DP>> {
         self.send_to_all(ErrorNotify(error))
@@ -102,11 +102,12 @@ as some macro.
  */
 
 
-impl<Env, DP: DomainParameters> RoundRobinEnvironment<DP> for Env
+impl<Env, DP: Scheme> RoundRobinEnvironment<DP> for Env
 where Env: CommunicatingEndpointEnvironment<DP, CommunicationError=CommunicationError<DP>>
  + StatefulEnvironment<DP>
  + EnvironmentWithAgents<DP>
- + BroadcastingEndpointEnvironment<DP>, DP: DomainParameters {
+ + BroadcastingEndpointEnvironment<DP>, DP: Scheme
+{
     fn run_round_robin_no_rewards_truncating(&mut self, truncate_steps: Option<usize>) -> Result<(), AmfiteatrError<DP>> {
         let mut current_step = 0;
 
@@ -225,11 +226,12 @@ where Env: CommunicatingEndpointEnvironment<DP, CommunicationError=Communication
 }
 
 
-impl<Env, DP: DomainParameters> RoundRobinUniversalEnvironment<DP> for Env
+impl<Env, DP: Scheme> RoundRobinUniversalEnvironment<DP> for Env
 where Env: CommunicatingEndpointEnvironment<DP, CommunicationError=CommunicationError<DP>>
  + ScoreEnvironment<DP>
  + EnvironmentWithAgents<DP>
- + BroadcastingEndpointEnvironment<DP>, DP: DomainParameters {
+ + BroadcastingEndpointEnvironment<DP>, DP: Scheme
+{
     fn run_round_robin_with_rewards_truncating(&mut self, truncate_steps: Option<usize>) -> Result<(), AmfiteatrError<DP>> {
         let mut current_step = 0;
         let mut actual_universal_scores: HashMap<DP::AgentId, DP::UniversalReward> = self.players().into_iter()
@@ -352,11 +354,11 @@ where Env: CommunicatingEndpointEnvironment<DP, CommunicationError=Communication
     }
 }
 
-impl<Env, DP: DomainParameters, P> RoundRobinPenalisingUniversalEnvironment<DP, P> for Env
+impl<Env, DP: Scheme, P> RoundRobinPenalisingUniversalEnvironment<DP, P> for Env
 where Env: CommunicatingEndpointEnvironment<DP, CommunicationError=CommunicationError<DP>>
  + ScoreEnvironment<DP>
  + EnvironmentWithAgents<DP>
- + BroadcastingEndpointEnvironment<DP>, DP: DomainParameters,
+ + BroadcastingEndpointEnvironment<DP>, DP: Scheme,
 P: Fn(&<Self as StatefulEnvironment<DP>>::State, &DP::AgentId) -> DP::UniversalReward{
     fn run_round_robin_with_rewards_penalise_truncating(&mut self, penalty_fn: P, truncate_steps: Option<usize>)
         -> Result<(), AmfiteatrError<DP>>

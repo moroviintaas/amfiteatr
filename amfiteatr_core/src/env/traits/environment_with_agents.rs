@@ -1,9 +1,9 @@
 
-use crate::domain::DomainParameters;
+use crate::scheme::Scheme;
 
 /// Environment interface to list agents taking part in game or simulations
 ///
-pub trait EnvironmentWithAgents<Spec: DomainParameters>{
+pub trait EnvironmentWithAgents<Spec: Scheme>{
     type PlayerIterator: IntoIterator<Item = Spec::AgentId>;
 
     /// Method returning `IntoIterator` of players in game.

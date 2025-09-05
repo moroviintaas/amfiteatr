@@ -2,7 +2,7 @@ use std::fmt::{Display, Formatter};
 use ndarray::{Array2, Array3, Axis};
 use pyo3::PyErr;
 use amfiteatr_core::agent::AgentIdentifier;
-use amfiteatr_core::domain::{Action, DomainParameters};
+use amfiteatr_core::scheme::{Action, Scheme};
 use amfiteatr_core::error::{AmfiteatrError, ConvertError};
 use amfiteatr_rl::error::{AmfiteatrRlError, TensorRepresentationError};
 use amfiteatr_rl::tch::Tensor;
@@ -218,7 +218,7 @@ impl ConnectFourBinaryObservation{
     }
 }
 
-impl DomainParameters for ConnectFourDomain{
+impl Scheme for ConnectFourDomain{
     type ActionType = ConnectFourAction;
     type GameErrorType = ConnectFourError;
     type UpdateType = ConnectFourBinaryObservation;

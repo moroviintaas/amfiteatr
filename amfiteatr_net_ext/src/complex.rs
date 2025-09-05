@@ -3,7 +3,7 @@
 use speedy::{Writable, Readable, LittleEndian};
 use amfiteatr_core::comm::{BidirectionalEndpoint, StdEndpoint};
 use std::{fmt::Debug, sync::mpsc::{RecvError, SendError, TryRecvError}};
-use amfiteatr_core::domain::{
+use amfiteatr_core::scheme::{
     AgentMessage, EnvironmentMessage
 };
 use amfiteatr_core::error::CommunicationError;

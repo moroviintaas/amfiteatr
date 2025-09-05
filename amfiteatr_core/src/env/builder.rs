@@ -3,10 +3,10 @@
 use crate::{comm::BidirectionalEndpoint};
 use crate::env::StatefulEnvironment;
 
-use crate::domain::{DomainParameters};
+use crate::scheme::{Scheme};
 use crate::error::ModelError;
 /// Interface for building environment that can be dynamically extended to work with more agent.
-pub trait EnvironmentBuilderTrait<DP: DomainParameters, Env: StatefulEnvironment<DP>>: Default{
+pub trait EnvironmentBuilderTrait<DP: Scheme, Env: StatefulEnvironment<DP>>: Default{
 
     //type Environment: EnvironmentRR<Spec = Self::ProtocolSpec>;
     type Comm: BidirectionalEndpoint;

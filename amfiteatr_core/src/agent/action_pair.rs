@@ -1,6 +1,6 @@
 use std::fmt::{Display, Formatter};
 use crate::agent::AgentIdentifier;
-use crate::domain::Action;
+use crate::scheme::Action;
 //use crate::state::StateUpdate;
 
 /// Structure to represent relation between agent and action.

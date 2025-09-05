@@ -9,7 +9,7 @@ use amfiteatr_core::agent::{
     AgentStepView,
     AgentTrajectory
 };
-use amfiteatr_core::domain::DomainParameters;
+use amfiteatr_core::scheme::Scheme;
 use amfiteatr_core::error::AmfiteatrError;
 use crate::error::{AmfiteatrRlError, TensorRepresentationError};
 use crate::policy::common::categorical_dist_entropy;
@@ -21,7 +21,7 @@ use crate::policy::TrainConfig;
 #[deprecated(since = "0.12.0", note = "Please use [`PolicyDiscreteA2C`](PolicyDiscreteA2C) instead")]
 /// Generic implementation of Advantage Actor Critic policy
 pub struct ActorCriticPolicy<
-    DP: DomainParameters,
+    DP: Scheme,
     InfoSet: InformationSet<DP> + Debug + ContextEncodeTensor<InfoSetConversionContext>,
     InfoSetConversionContext: TensorEncoding,
    // ActionConversionContext: ConversionFromTensor,
@@ -40,7 +40,7 @@ pub struct ActorCriticPolicy<
 
 }
 impl<
-    DP: DomainParameters,
+    DP: Scheme,
     InfoSet: InformationSet<DP>  + Debug + ContextEncodeTensor<InfoSetConversionContext>,
     InfoSetConversionContext: TensorEncoding,
     //ActionConversionContext: ConversionFromTensor,
@@ -106,7 +106,7 @@ ActorCriticPolicy<
 
 }
 
-impl<DP: DomainParameters,
+impl<DP: Scheme,
     //InfoSet: InformationSet<DP> + Debug,
     //TB: ConvStateToTensor<InfoSet>,
     InfoSet: InformationSet<DP> + Debug + ContextEncodeTensor<InfoSetConversionContext>,
@@ -119,7 +119,7 @@ impl<DP: DomainParameters,
     InfoSetConversionContext,
     //ActionConversionContext,
 >
-where <DP as DomainParameters>::ActionType: TryFromTensor{
+where <DP as Scheme>::ActionType: TryFromTensor{
     type InfoSetType = InfoSet;
 
     fn select_action(&self, state: &Self::InfoSetType) -> Result<DP::ActionType, AmfiteatrError<DP>> {
@@ -152,13 +152,13 @@ where <DP as DomainParameters>::ActionType: TryFromTensor{
 
 
 impl<
-    DP: DomainParameters,
+    DP: Scheme,
     InfoSet: InformationSet<DP>  + Debug + ContextEncodeTensor<InfoSetWay>,
     InfoSetWay: TensorEncoding,
     //InfoSet: ScoringInformationSet<DP> + Debug,
     //StateConverter: ConvStateToTensor<InfoSet>>
     > LearningNetworkPolicyGeneric<DP> for ActorCriticPolicy<DP, InfoSet, InfoSetWay>
-    where <DP as DomainParameters>::ActionType: TryFromTensor + TryIntoTensor,
+    where <DP as Scheme>::ActionType: TryFromTensor + TryIntoTensor,
 
 {
     type Summary = LearnSummary;

@@ -3,7 +3,7 @@ use crate::comm::{EnvironmentEndpoint};
 use crate::env::{BroadcastingEndpointEnvironment, CommunicatingEndpointEnvironment, SequentialGameState, GameStateWithPayoffs, EnvironmentWithAgents, ScoreEnvironment, StatefulEnvironment, ReinitEnvironment, TracingEnvironment, ReseedEnvironment, ReseedEnvironmentWithObservation, GameTrajectory, AutoEnvironment, RoundRobinEnvironment, AutoEnvironmentWithScores, RoundRobinUniversalEnvironment};
 use crate::env::generic::{HashMapEnvironment};
 use crate::error::{AmfiteatrError, CommunicationError};
-use crate::domain::{AgentMessage, DomainParameters, EnvironmentMessage, Renew, RenewWithEffect};
+use crate::scheme::{AgentMessage, Scheme, EnvironmentMessage, Renew, RenewWithEffect};
 
 /// Implementation of environment using [`HashMap`](std::collections::HashMap) to store
 /// individual [`BidirectionalEndpoint`](crate::comm::BidirectionalEndpoint)'s to communicate with
@@ -11,21 +11,21 @@ use crate::domain::{AgentMessage, DomainParameters, EnvironmentMessage, Renew, R
 /// If you don't need tracing consider using analogous implementation of
 /// [`HashMapEnvironment`](crate::env::HashMapEnvironment).
 pub struct TracingHashMapEnvironment<
-    DP: DomainParameters,
-    S: SequentialGameState<DP>,
+    DP: Scheme,
+    ST: SequentialGameState<DP>,
     C: EnvironmentEndpoint<DP>>{
 
-    base_environment: HashMapEnvironment<DP, S,C>,
-    history: GameTrajectory<DP, S>
+    base_environment: HashMapEnvironment<DP, ST,C>,
+    history: GameTrajectory<DP, ST>
 }
 
 impl<
-    DP: DomainParameters,
-    S: SequentialGameState<DP>,
-    Comm: EnvironmentEndpoint<DP>> TracingHashMapEnvironment<DP, S, Comm>{
+    DP: Scheme,
+    ST: SequentialGameState<DP>,
+    Comm: EnvironmentEndpoint<DP>> TracingHashMapEnvironment<DP, ST, Comm>{
 
     pub fn new(
-        game_state: S,
+        game_state: ST,
         comm_endpoints: HashMap<DP::AgentId, Comm>) -> Self{
 
         /*
@@ -54,12 +54,12 @@ impl<
 
 
 impl<
-    DP: DomainParameters,
-    S: SequentialGameState<DP> + Clone,
+    DP: Scheme,
+    ST: SequentialGameState<DP> + Clone,
     C: EnvironmentEndpoint<DP>>
-StatefulEnvironment<DP> for TracingHashMapEnvironment<DP, S,C>{
+StatefulEnvironment<DP> for TracingHashMapEnvironment<DP, ST,C>{
 
-    type State = S;
+    type State = ST;
     //type Updates = <Vec<(DP::AgentId, DP::UpdateType)> as IntoIterator>::IntoIter;
 
     fn state(&self) -> &Self::State {
@@ -97,10 +97,10 @@ StatefulEnvironment<DP> for TracingHashMapEnvironment<DP, S,C>{
 }
 
 impl<
-    DP: DomainParameters,
-    S: GameStateWithPayoffs<DP> + Clone,
+    DP: Scheme,
+    ST: GameStateWithPayoffs<DP> + Clone,
     C: EnvironmentEndpoint<DP> >
-ScoreEnvironment<DP> for TracingHashMapEnvironment<DP, S, C>{
+ScoreEnvironment<DP> for TracingHashMapEnvironment<DP, ST, C>{
     fn process_action_penalise_illegal(
         &mut self, agent: &DP::AgentId, action: &DP::ActionType, penalty_reward: DP::UniversalReward)
         -> Result<<Self::State as SequentialGameState<DP>>::Updates, AmfiteatrError<DP>> {
@@ -139,10 +139,10 @@ ScoreEnvironment<DP> for TracingHashMapEnvironment<DP, S, C>{
 }
 
 impl<
-    DP: DomainParameters,
-    S: SequentialGameState<DP>,
+    DP: Scheme,
+    ST: SequentialGameState<DP>,
     C: EnvironmentEndpoint<DP>>
-CommunicatingEndpointEnvironment<DP> for TracingHashMapEnvironment<DP, S, C>{
+CommunicatingEndpointEnvironment<DP> for TracingHashMapEnvironment<DP, ST, C>{
     type CommunicationError = CommunicationError<DP>;
 
     fn send_to(&mut self, agent_id: &DP::AgentId, message: EnvironmentMessage<DP>)
@@ -165,19 +165,19 @@ CommunicatingEndpointEnvironment<DP> for TracingHashMapEnvironment<DP, S, C>{
 }
 
 impl<
-    DP: DomainParameters,
-    S: SequentialGameState<DP>,
+    DP: Scheme,
+    ST: SequentialGameState<DP>,
     C: EnvironmentEndpoint<DP>>
-BroadcastingEndpointEnvironment<DP> for TracingHashMapEnvironment<DP, S, C>{
+BroadcastingEndpointEnvironment<DP> for TracingHashMapEnvironment<DP, ST, C>{
     fn send_to_all(&mut self, message: EnvironmentMessage<DP>) -> Result<(), Self::CommunicationError> {
         self.base_environment.send_to_all(message)
     }
 }
 
-impl<DP: DomainParameters,
-    S: SequentialGameState<DP>,
+impl<DP: Scheme,
+    ST: SequentialGameState<DP>,
     C: EnvironmentEndpoint<DP>>
- EnvironmentWithAgents<DP> for TracingHashMapEnvironment<DP, S, C>{
+ EnvironmentWithAgents<DP> for TracingHashMapEnvironment<DP, ST, C>{
     type PlayerIterator = Vec<DP::AgentId>;
 
     fn players(&self) -> Self::PlayerIterator {
@@ -186,20 +186,20 @@ impl<DP: DomainParameters,
 }
 
 
-impl<DP: DomainParameters,
-    S: SequentialGameState<DP>,
+impl<DP: Scheme,
+    ST: SequentialGameState<DP>,
     C: EnvironmentEndpoint<DP>>
-TracingEnvironment<DP, S> for TracingHashMapEnvironment<DP, S, C>{
-    fn trajectory(&self) -> &GameTrajectory<DP, S> {
+TracingEnvironment<DP, ST> for TracingHashMapEnvironment<DP, ST, C>{
+    fn trajectory(&self) -> &GameTrajectory<DP, ST> {
         &self.history
     }
 }
 
 impl<
-DP: DomainParameters,
-    S: SequentialGameState<DP> + Clone,
+DP: Scheme,
+    ST: SequentialGameState<DP> + Clone,
     C: EnvironmentEndpoint<DP>>
-ReinitEnvironment<DP> for TracingHashMapEnvironment<DP, S, C>{
+ReinitEnvironment<DP> for TracingHashMapEnvironment<DP, ST, C>{
     fn reinit(&mut self, initial_state: <Self as StatefulEnvironment<DP>>::State) {
         self.base_environment.reinit(initial_state);
         self.history.clear();
@@ -208,11 +208,11 @@ ReinitEnvironment<DP> for TracingHashMapEnvironment<DP, S, C>{
 
 
 impl <
-    DP: DomainParameters,
-    S: SequentialGameState<DP> + Clone,
+    DP: Scheme,
+    ST: SequentialGameState<DP> + Clone,
     CP: EnvironmentEndpoint<DP>,
     Seed
-> ReseedEnvironment<DP, Seed> for TracingHashMapEnvironment<DP, S, CP>
+> ReseedEnvironment<DP, Seed> for TracingHashMapEnvironment<DP, ST, CP>
     where <Self as StatefulEnvironment<DP>>::State: Renew<DP, Seed>{
     fn reseed(&mut self, seed: Seed) -> Result<(), AmfiteatrError<DP>>{
 
@@ -221,12 +221,12 @@ impl <
     }
 }
 impl <
-    DP: DomainParameters,
-    S: SequentialGameState<DP> + Clone + RenewWithEffect<DP, Seed>,
+    DP: Scheme,
+    ST: SequentialGameState<DP> + Clone + RenewWithEffect<DP, Seed>,
     CP: EnvironmentEndpoint<DP>,
     Seed,
     AgentSeed
-> ReseedEnvironmentWithObservation<DP, Seed> for TracingHashMapEnvironment<DP, S, CP>
+> ReseedEnvironmentWithObservation<DP, Seed> for TracingHashMapEnvironment<DP, ST, CP>
     where <Self as StatefulEnvironment<DP>>::State: RenewWithEffect<DP, Seed>,
           <<Self as StatefulEnvironment<DP>>::State as RenewWithEffect<DP, Seed>>::Effect:
           IntoIterator<Item=(DP::AgentId, AgentSeed)>{
@@ -240,21 +240,21 @@ impl <
 }
 
 
-impl<DP: DomainParameters,
-    S: SequentialGameState<DP>,
+impl<DP: Scheme,
+    ST: SequentialGameState<DP>,
     C: EnvironmentEndpoint<DP>>
-AutoEnvironment<DP> for TracingHashMapEnvironment<DP, S, C>
-where  HashMapEnvironment<DP, S, C>: AutoEnvironment<DP>{
+AutoEnvironment<DP> for TracingHashMapEnvironment<DP, ST, C>
+where  HashMapEnvironment<DP, ST, C>: AutoEnvironment<DP>{
     fn run_truncating(&mut self, truncate_steps: Option<usize>) -> Result<(), AmfiteatrError<DP>> {
         self.base_environment.run_round_robin_no_rewards_truncating(truncate_steps)
     }
 }
 
-impl<DP: DomainParameters,
-    S: SequentialGameState<DP>,
+impl<DP: Scheme,
+    ST: SequentialGameState<DP>,
     C: EnvironmentEndpoint<DP>>
-AutoEnvironmentWithScores<DP> for TracingHashMapEnvironment<DP, S, C>
-    where HashMapEnvironment<DP, S, C>:AutoEnvironmentWithScores<DP> + ScoreEnvironment<DP>,
+AutoEnvironmentWithScores<DP> for TracingHashMapEnvironment<DP, ST, C>
+    where HashMapEnvironment<DP, ST, C>:AutoEnvironmentWithScores<DP> + ScoreEnvironment<DP>,
 Self: ScoreEnvironment<DP>
 
 {

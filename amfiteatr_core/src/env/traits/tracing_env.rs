@@ -1,11 +1,11 @@
 use crate::env::{SequentialGameState, GameTrajectory};
-use crate::domain::DomainParameters;
+use crate::scheme::Scheme;
 
 
 /// Environment that provide tracing game.
-pub trait TracingEnvironment<DP: DomainParameters, S: SequentialGameState<DP>>{
+pub trait TracingEnvironment<DP: Scheme, ST: SequentialGameState<DP>>{
 
     
-    fn trajectory(&self) -> &GameTrajectory<DP, S>;
+    fn trajectory(&self) -> &GameTrajectory<DP, ST>;
 
 }

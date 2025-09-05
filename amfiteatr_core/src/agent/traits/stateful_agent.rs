@@ -1,14 +1,14 @@
 use crate::agent::IdAgent;
 use crate::agent::info_set::InformationSet;
-use crate::domain::DomainParameters;
+use crate::scheme::Scheme;
 
 /// Agent that holds some game state
 /// > Formally agent knows _information set_ which can be described as state of the game
 /// > from point of view of the agent.
-pub trait StatefulAgent<DP: DomainParameters>{
+pub trait StatefulAgent<DP: Scheme>{
     type InfoSetType: InformationSet<DP>;
 
-    /// Updated underlying information set using domain's updated type.
+    /// Updated underlying information set using scheme's updated type.
     fn update(&mut self, info_set_update: DP::UpdateType) -> Result<(), DP::GameErrorType>;
     /// Return reference to underlying information set.
     fn info_set(&self) -> &Self::InfoSetType;
@@ -17,8 +17,8 @@ pub trait StatefulAgent<DP: DomainParameters>{
 
 }
 
-impl<DP:DomainParameters, T: StatefulAgent<DP>> IdAgent<DP> for T{
-    fn id(&self) -> &<DP as DomainParameters>::AgentId {
+impl<DP: Scheme, T: StatefulAgent<DP>> IdAgent<DP> for T{
+    fn id(&self) -> &<DP as Scheme>::AgentId {
         self.info_set().agent_id()
     }
 }

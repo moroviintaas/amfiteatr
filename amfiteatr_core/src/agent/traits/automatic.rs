@@ -10,11 +10,11 @@ use crate::agent::{
 use crate::error::{AmfiteatrError};
 use crate::error::ProtocolError::ReceivedKill;
 use crate::error::AmfiteatrError::Protocol;
-use crate::domain::{AgentMessage, EnvironmentMessage, DomainParameters};
+use crate::scheme::{AgentMessage, EnvironmentMessage, Scheme};
 
 /// Helping trait for almost automatic agent.
 /// It is used as frame implementation of automatic agent.
-pub trait ProcedureAgent<DP: DomainParameters>: RewardedAgent<DP> + IdAgent<DP>
+pub trait ProcedureAgent<DP: Scheme>: RewardedAgent<DP> + IdAgent<DP>
 + CommunicatingAgent<DP> + ActingAgent<DP> + StatefulAgent<DP>{
 
     /// Runs automatic agent provided with function selecting action.
@@ -112,7 +112,7 @@ pub trait ProcedureAgent<DP: DomainParameters>: RewardedAgent<DP> + IdAgent<DP>
 
 }
 
-impl<A, DP: DomainParameters> ProcedureAgent<DP> for A
+impl<A, DP: Scheme> ProcedureAgent<DP> for A
 where A: RewardedAgent<DP> + IdAgent<DP>
 + CommunicatingAgent<DP> + ActingAgent<DP> + StatefulAgent<DP>
 {
@@ -121,7 +121,7 @@ where A: RewardedAgent<DP> + IdAgent<DP>
 
 /// Trait for agents that perform their interactions with environment automatically,
 /// without waiting for interrupting interaction from anyone but environment.
-pub trait AutomaticAgent<DP: DomainParameters>{
+pub trait AutomaticAgent<DP: Scheme>{
 
 
 
@@ -130,7 +130,7 @@ pub trait AutomaticAgent<DP: DomainParameters>{
     fn run(&mut self) -> Result<(), AmfiteatrError<DP>>;
 }
 
-impl<A, DP: DomainParameters> AutomaticAgent<DP> for A
+impl<A, DP: Scheme> AutomaticAgent<DP> for A
 where A: ProcedureAgent<DP> + PolicyAgent<DP>{
     fn run(&mut self) -> Result<(), AmfiteatrError<DP>>{
         self.run_protocol(|s| s.select_action())

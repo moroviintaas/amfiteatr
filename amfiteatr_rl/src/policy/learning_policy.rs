@@ -7,7 +7,7 @@ use amfiteatr_core::agent::{
     AgentStepView
 };
 
-use amfiteatr_core::domain::DomainParameters;
+use amfiteatr_core::scheme::Scheme;
 use serde::{Deserialize, Serialize};
 use amfiteatr_core::error::AmfiteatrError;
 use crate::error::AmfiteatrRlError;
@@ -32,7 +32,7 @@ pub struct LearnSummary{
 }
 
 /// Trait representing policy that uses neural network to select action and can be trained.
-pub trait LearningNetworkPolicyGeneric<DP: DomainParameters> : Policy<DP>
+pub trait LearningNetworkPolicyGeneric<DP: Scheme> : Policy<DP>
 where <Self as Policy<DP>>::InfoSetType: InformationSet<DP>
 {
     type Summary: Send;
@@ -73,7 +73,7 @@ where <Self as Policy<DP>>::InfoSetType: InformationSet<DP>
     /// Training implementation using environment distributed reward
     fn train(&mut self,
              trajectories: &[AgentTrajectory<DP, <Self as Policy<DP>>::InfoSetType>]) -> Result<Self::Summary, AmfiteatrRlError<DP>>
-    where <DP as DomainParameters>::UniversalReward: FloatTensorReward{
+    where <DP as Scheme>::UniversalReward: FloatTensorReward{
 
         self.train_generic(trajectories, |step| step.reward().to_tensor())
     }
@@ -85,7 +85,7 @@ where <Self as Policy<DP>>::InfoSetType: InformationSet<DP>
 
 
 
-impl<DP: DomainParameters, T: LearningNetworkPolicyGeneric<DP>> LearningNetworkPolicyGeneric<DP> for Arc<Mutex<T>>{
+impl<DP: Scheme, T: LearningNetworkPolicyGeneric<DP>> LearningNetworkPolicyGeneric<DP> for Arc<Mutex<T>>{
     type Summary = T::Summary;
 
     fn switch_explore(&mut self, enabled: bool) {
@@ -109,7 +109,7 @@ impl<DP: DomainParameters, T: LearningNetworkPolicyGeneric<DP>> LearningNetworkP
     }
 }
 
-impl<DP: DomainParameters, T: LearningNetworkPolicyGeneric<DP>> LearningNetworkPolicyGeneric<DP> for Mutex<T>{
+impl<DP: Scheme, T: LearningNetworkPolicyGeneric<DP>> LearningNetworkPolicyGeneric<DP> for Mutex<T>{
     type Summary = T::Summary;
 
     fn switch_explore(&mut self, enabled: bool) {
@@ -133,7 +133,7 @@ impl<DP: DomainParameters, T: LearningNetworkPolicyGeneric<DP>> LearningNetworkP
     }
 }
 
-impl<DP: DomainParameters, T: LearningNetworkPolicyGeneric<DP>> LearningNetworkPolicyGeneric<DP> for RwLock<T>{
+impl<DP: Scheme, T: LearningNetworkPolicyGeneric<DP>> LearningNetworkPolicyGeneric<DP> for RwLock<T>{
     type Summary = T::Summary;
 
     fn switch_explore(&mut self, enabled: bool) {
@@ -157,10 +157,10 @@ impl<DP: DomainParameters, T: LearningNetworkPolicyGeneric<DP>> LearningNetworkP
     }
 }
 
-pub trait LearningNetworkPolicy<DP: DomainParameters> : LearningNetworkPolicyGeneric<DP, Summary=LearnSummary>{
+pub trait LearningNetworkPolicy<DP: Scheme> : LearningNetworkPolicyGeneric<DP, Summary=LearnSummary>{
 
 }
 
-impl<DP: DomainParameters, P: LearningNetworkPolicyGeneric<DP, Summary=LearnSummary>> LearningNetworkPolicy<DP> for P{
+impl<DP: Scheme, P: LearningNetworkPolicyGeneric<DP, Summary=LearnSummary>> LearningNetworkPolicy<DP> for P{
 
 }

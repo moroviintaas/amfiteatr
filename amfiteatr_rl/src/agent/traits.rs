@@ -1,6 +1,6 @@
 use amfiteatr_core::agent::*;
 use amfiteatr_core::comm::BidirectionalEndpoint;
-use amfiteatr_core::domain::{AgentMessage, DomainParameters, EnvironmentMessage, Renew};
+use amfiteatr_core::scheme::{AgentMessage, Scheme, EnvironmentMessage, Renew};
 use amfiteatr_core::error::{CommunicationError};
 use crate::error::AmfiteatrRlError;
 use crate::policy::LearningNetworkPolicyGeneric;
@@ -9,9 +9,9 @@ use crate::tensor_data::FloatTensorReward;
 
 /// Trait representing agent that run automatically (with reward collection) (it does not
 /// require any compatibility). This trait is not object safe because Policy traits has generic type
-/// information set with generic parameter of [`DomainParameters`](amfiteatr_core::domain::DomainParameters).
+/// information set with generic parameter of [`DomainParameters`](amfiteatr_core::scheme::Scheme).
 ///
-pub trait NetworkLearningAgent<DP: DomainParameters>:
+pub trait NetworkLearningAgent<DP: Scheme>:
     AutomaticAgent<DP>
     + PolicyAgent<DP>
     + TracingAgent<DP, <Self as StatefulAgent<DP>>::InfoSetType>
@@ -20,7 +20,7 @@ pub trait NetworkLearningAgent<DP: DomainParameters>:
 {
 }
 
-impl <DP: DomainParameters, T: AutomaticAgent<DP>  + PolicyAgent<DP>
+impl <DP: Scheme, T: AutomaticAgent<DP>  + PolicyAgent<DP>
 + TracingAgent<DP, <Self as StatefulAgent<DP>>::InfoSetType>>
 NetworkLearningAgent<DP> for T
 where <T as PolicyAgent<DP>>::Policy: LearningNetworkPolicyGeneric<DP>,
@@ -34,11 +34,11 @@ where <T as PolicyAgent<DP>>::Policy: LearningNetworkPolicyGeneric<DP>,
 /// Trait representing agent that run automatically (with reward collection) and cam be reseeded
 /// for subsequent game episodes.
 /// For now this trait requires both environment sources reward and agent self provided assessment.
-/// If you only want to define one you can set not needed to by of type [`NoneReward`](amfiteatr_core::domain::NoneReward).
+/// If you only want to define one you can set not needed to by of type [`NoneReward`](amfiteatr_core::scheme::NoneReward).
 /// This trait is object safe, however collections of dynamically typed agents of this trait must
 /// share the same type of information set, because [`LearningNetworkPolicy`](crate::policy::LearningNetworkPolicyGeneric)
 /// uses trajectory including information set.
-pub trait RlModelAgent<DP: DomainParameters, Seed, IS: InformationSet<DP>>:
+pub trait RlModelAgent<DP: Scheme, Seed, IS: InformationSet<DP>>:
     AutomaticAgent<DP>
     //+ SelfEvaluatingAgent<DP,  Assessment= <IS as EvaluatedInformationSet<DP>>::RewardType>
     + ReseedAgent<DP, Seed>
@@ -54,7 +54,7 @@ where <Self as PolicyAgent<DP>>::Policy: LearningNetworkPolicyGeneric<DP>,
 
 
 impl<
-    DP: DomainParameters,
+    DP: Scheme,
     Seed,
     IS: InformationSet<DP>,
     T: AutomaticAgent<DP>
@@ -71,12 +71,12 @@ where <Self as PolicyAgent<DP>>::Policy: LearningNetworkPolicyGeneric<DP>,{
 }
 
 
-pub trait RlSimpleTestAgent<DP: DomainParameters, Seed>:
+pub trait RlSimpleTestAgent<DP: Scheme, Seed>:
 AutomaticAgent<DP> + ReseedAgent<DP, Seed> + Send{
 
 }
 
-pub trait RlSimpleLearningAgent<DP: DomainParameters, Seed, LS: Send>:
+pub trait RlSimpleLearningAgent<DP: Scheme, Seed, LS: Send>:
 AutomaticAgent<DP> + ReseedAgent<DP, Seed> + Send + MultiEpisodeAutoAgent<DP, Seed>
 {
     fn simple_apply_experience(&mut self) -> Result<LS, AmfiteatrRlError<DP>>;
@@ -92,7 +92,7 @@ AutomaticAgent<DP> + ReseedAgent<DP, Seed> + Send + MultiEpisodeAutoAgent<DP, Se
 
 
 impl<
-    DP: DomainParameters,
+    DP: Scheme,
     Seed,
     P: LearningNetworkPolicyGeneric<DP, Summary = LS >,
     Comm: BidirectionalEndpoint<
@@ -104,7 +104,7 @@ impl<
 
 RlSimpleLearningAgent<DP, Seed, LS> for TracingAgentGen<DP, P, Comm, >
     where <P as Policy<DP>>::InfoSetType: InformationSet<DP> + Renew<DP, Seed>,
-          <DP as DomainParameters>::UniversalReward: FloatTensorReward,
+          <DP as Scheme>::UniversalReward: FloatTensorReward,
     Self: AutomaticAgent<DP> + MultiEpisodeAutoAgent<DP, Seed> + PolicyAgent<DP, Policy=P>
     {
     fn simple_apply_experience(&mut self) -> Result<LS, AmfiteatrRlError<DP>> {

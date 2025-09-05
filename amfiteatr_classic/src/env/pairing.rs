@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 use rand::prelude::SliceRandom;
-use amfiteatr_core::domain::{Renew};
+use amfiteatr_core::scheme::{Renew};
 use amfiteatr_core::env::{GameStateWithPayoffs, SequentialGameState};
 use log::{debug, trace};
 use std::fmt::{Display, Formatter};

@@ -1,5 +1,5 @@
 use crate::agent::{AutomaticAgent, ReseedAgent};
-use crate::domain::DomainParameters;
+use crate::scheme::Scheme;
 
 use crate::error::AmfiteatrError;
 
@@ -7,7 +7,7 @@ use crate::error::AmfiteatrError;
 
 
 /// Trait for agents repeating episodes with collecting rewards
-pub trait MultiEpisodeAutoAgent<DP: DomainParameters, Seed>:
+pub trait MultiEpisodeAutoAgent<DP: Scheme, Seed>:
     ReseedAgent<DP, Seed> + AutomaticAgent<DP>{
 
     /// Things to be done between reseeding information set and playing an episode.

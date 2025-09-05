@@ -1,7 +1,7 @@
 use pyo3::{Bound, intern, pyclass, pymethods, PyObject, PyResult, Python,  IntoPyObject};
 use pyo3::prelude::PyAnyMethods;
 use pyo3::types::PyDict;
-use amfiteatr_core::domain::{DomainParameters, Renew};
+use amfiteatr_core::scheme::{Scheme, Renew};
 use amfiteatr_core::env::{SequentialGameState, GameStateWithPayoffs};
 use amfiteatr_core::error::AmfiteatrError;
 use crate::connect_four::common::{
@@ -113,10 +113,10 @@ impl PythonPettingZooStateWrap{
 }
 
 impl SequentialGameState<ConnectFourDomain> for PythonPettingZooStateWrap{
-    type Updates = [(<ConnectFourDomain as DomainParameters>::AgentId, <ConnectFourDomain as DomainParameters>::UpdateType );1];
+    type Updates = [(<ConnectFourDomain as Scheme>::AgentId, <ConnectFourDomain as Scheme>::UpdateType );1];
 
 
-    fn current_player(&self) -> Option<<ConnectFourDomain as DomainParameters>::AgentId> {
+    fn current_player(&self) -> Option<<ConnectFourDomain as Scheme>::AgentId> {
 
         if self.terminated || self.truncated{
             None
@@ -131,7 +131,7 @@ impl SequentialGameState<ConnectFourDomain> for PythonPettingZooStateWrap{
         self.terminated || self.truncated
     }
 
-    fn forward(&mut self, agent: <ConnectFourDomain as DomainParameters>::AgentId, action: <ConnectFourDomain as DomainParameters>::ActionType) -> Result<Self::Updates, <ConnectFourDomain as DomainParameters>::GameErrorType> {
+    fn forward(&mut self, agent: <ConnectFourDomain as Scheme>::AgentId, action: <ConnectFourDomain as Scheme>::ActionType) -> Result<Self::Updates, <ConnectFourDomain as Scheme>::GameErrorType> {
         if self.is_finished(){
             return Err(ConnectFourError::PlayerDeadStep {player: agent})
         }
@@ -161,7 +161,7 @@ impl SequentialGameState<ConnectFourDomain> for PythonPettingZooStateWrap{
 }
 
 impl GameStateWithPayoffs<ConnectFourDomain> for PythonPettingZooStateWrap{
-    fn state_payoff_of_player(&self, agent: &ConnectFourPlayer) -> <ConnectFourDomain as DomainParameters>::UniversalReward {
+    fn state_payoff_of_player(&self, agent: &ConnectFourPlayer) -> <ConnectFourDomain as Scheme>::UniversalReward {
         self.rewards[agent.index()]
     }
 }

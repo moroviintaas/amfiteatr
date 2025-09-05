@@ -1,5 +1,5 @@
 use amfiteatr_core::demo::{DemoAction, DemoError};
-use amfiteatr_core::domain::DomainParameters;
+use amfiteatr_core::scheme::Scheme;
 
 
 #[derive(Debug, Clone)]
@@ -9,7 +9,7 @@ pub type UpdateCost = u64;
 
 
 
-impl DomainParameters for ExpensiveUpdateDomain {
+impl Scheme for ExpensiveUpdateDomain {
     type ActionType = DemoAction;
     type GameErrorType = DemoError;
     type UpdateType = UpdateCost;

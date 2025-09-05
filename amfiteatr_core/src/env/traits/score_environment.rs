@@ -1,9 +1,9 @@
 use crate::env::{SequentialGameState, StatefulEnvironment};
-use crate::domain::DomainParameters;
+use crate::scheme::Scheme;
 use crate::error::AmfiteatrError;
 
 /// Environment that has state and can evaluate payoff for every player.
-pub trait ScoreEnvironment<DP: DomainParameters>: StatefulEnvironment<DP>{
+pub trait ScoreEnvironment<DP: Scheme>: StatefulEnvironment<DP>{
 
     /// This is substitute method for
     /// [`process_action`](crate::env::StatefulEnvironment::process_action).

@@ -1,13 +1,13 @@
 use std::error::Error;
 use std::fmt::Debug;
-use crate::domain::DomainParameters;
+use crate::scheme::Scheme;
 
-pub trait InternalGameError<Spec: DomainParameters>: Error + Clone + Debug + Send{
+pub trait InternalGameError<Spec: Scheme>: Error + Clone + Debug + Send{
 
 }
 
 
-impl<T: Error + Clone + Debug + Send, DP:DomainParameters> InternalGameError<DP> for T{
+impl<T: Error + Clone + Debug + Send, DP: Scheme> InternalGameError<DP> for T{
 
 }
 /*

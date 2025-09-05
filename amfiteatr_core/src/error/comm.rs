@@ -2,13 +2,13 @@ use std::sync::mpsc::{RecvError, SendError, TryRecvError, TrySendError};
 use thiserror::Error;
 
 use crate::error::AmfiteatrError;
-use crate::domain::DomainParameters;
+use crate::scheme::Scheme;
 
 
 /// Error during communication.
 #[derive(Debug, Clone, PartialEq, Eq, Error)]
 #[cfg_attr(feature = "speedy", derive(speedy::Writable, speedy::Readable))]
-pub enum CommunicationError<DP: DomainParameters>{
+pub enum CommunicationError<DP: Scheme>{
     #[error("Send Error to {0}, text: {1}")]
     SendError(DP::AgentId, String),
     #[error("Send Error, text: {0}")]
@@ -47,7 +47,7 @@ pub enum CommunicationError<DP: DomainParameters>{
 
 }
 
-impl<Spec: DomainParameters> CommunicationError<Spec>{
+impl<Spec: Scheme> CommunicationError<Spec>{
 
     pub fn specify_id(self, id: Spec::AgentId) -> Self{
         match self{
@@ -67,17 +67,17 @@ impl Display for CommError {
     }
 }*/
 
-impl<Spec: DomainParameters> From<RecvError> for CommunicationError<Spec>{
+impl<Spec: Scheme> From<RecvError> for CommunicationError<Spec>{
     fn from(e: RecvError) -> Self {
         Self::RecvErrorUnspecified(format!("{e:}"))
     }
 }
-impl<Spec: DomainParameters, T> From<SendError<T>> for CommunicationError<Spec>{
+impl<Spec: Scheme, T> From<SendError<T>> for CommunicationError<Spec>{
     fn from(e: SendError<T>) -> Self {
         Self::SendErrorUnspecified(format!("{e:}"))
     }
 }
-impl<Spec: DomainParameters> From<TryRecvError> for CommunicationError<Spec>{
+impl<Spec: Scheme> From<TryRecvError> for CommunicationError<Spec>{
     fn from(e: TryRecvError) -> Self {
         match e{
             TryRecvError::Empty => Self::RecvEmptyBufferErrorUnspecified,
@@ -86,13 +86,13 @@ impl<Spec: DomainParameters> From<TryRecvError> for CommunicationError<Spec>{
     }
 }
 
-impl<Spec: DomainParameters, T> From<TrySendError<T>> for CommunicationError<Spec>{
+impl<Spec: Scheme, T> From<TrySendError<T>> for CommunicationError<Spec>{
     fn from(e: TrySendError<T>) -> Self {
         Self::SendErrorUnspecified(format!("{e:}"))
     }
 }
 
-impl <Spec: DomainParameters> From<CommunicationError<Spec>> for AmfiteatrError<Spec>{
+impl <Spec: Scheme> From<CommunicationError<Spec>> for AmfiteatrError<Spec>{
     fn from(value: CommunicationError<Spec>) -> Self {
         Self::Communication {source: value}
     }

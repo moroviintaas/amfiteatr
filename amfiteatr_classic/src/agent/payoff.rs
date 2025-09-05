@@ -3,7 +3,7 @@ use std::fmt::Debug;
 use std::ops::{Add, AddAssign, Index, IndexMut, Sub};
 use enum_map::{enum_map, EnumMap};
 use serde::{Serialize};
-use amfiteatr_core::domain::Reward;
+use amfiteatr_core::scheme::Reward;
 use crate::domain::{ClassicAction, IntReward};
 use crate::domain::ClassicAction::{Down, Up};
 

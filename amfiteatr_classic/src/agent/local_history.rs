@@ -3,7 +3,7 @@ use log::trace;
 use serde::Serialize;
 use amfiteatr_rl::tch::Tensor;
 use amfiteatr_core::agent::{InformationSet, PresentPossibleActions, EvaluatedInformationSet};
-use amfiteatr_core::domain::{Renew};
+use amfiteatr_core::scheme::{Renew};
 use amfiteatr_core::error::{AmfiteatrError, ConvertError};
 use amfiteatr_rl::tensor_data::{ContextEncodeTensor, TensorEncoding};
 use crate::agent::{ActionPairMapper, AgentAssessmentClassic, EventCounts, ReplInfoSet};

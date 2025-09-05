@@ -1,7 +1,7 @@
 //! Wrapping Farama gymnasium [CartPole environment](https://github.com/Farama-Foundation/Gymnasium)
 use std::fmt::{Debug};
 use pyo3::prelude::*;
-use amfiteatr_core::domain::{DomainParameters, RenewWithEffect};
+use amfiteatr_core::scheme::{Scheme, RenewWithEffect};
 use amfiteatr_core::env::{SequentialGameState, GameStateWithPayoffs};
 use amfiteatr_core::error::AmfiteatrError;
 use crate::common::{CartPoleDomain, CartPoleObservation, CartPoleError, SINGLE_PLAYER_ID, CartPoleAction};
@@ -117,9 +117,9 @@ impl PythonGymnasiumCartPoleState{
 }
 
 impl SequentialGameState<CartPoleDomain> for PythonGymnasiumCartPoleState{
-    type Updates = [(<CartPoleDomain as DomainParameters>::AgentId, <CartPoleDomain as DomainParameters>::UpdateType );1];
+    type Updates = [(<CartPoleDomain as Scheme>::AgentId, <CartPoleDomain as Scheme>::UpdateType );1];
 
-    fn current_player(&self) -> Option<<CartPoleDomain as DomainParameters>::AgentId> {
+    fn current_player(&self) -> Option<<CartPoleDomain as Scheme>::AgentId> {
         if self.terminated || self.truncated{
             None
         } else {
@@ -131,7 +131,7 @@ impl SequentialGameState<CartPoleDomain> for PythonGymnasiumCartPoleState{
         self.terminated || self.truncated
     }
 
-    fn forward(&mut self, _agent: <CartPoleDomain as DomainParameters>::AgentId, action: CartPoleAction) -> Result<Self::Updates, <CartPoleDomain as DomainParameters>::GameErrorType> {
+    fn forward(&mut self, _agent: <CartPoleDomain as Scheme>::AgentId, action: CartPoleAction) -> Result<Self::Updates, <CartPoleDomain as Scheme>::GameErrorType> {
 
 
         match self.__forward(action.into()){
@@ -160,7 +160,7 @@ impl SequentialGameState<CartPoleDomain> for PythonGymnasiumCartPoleState{
 }
 
 impl RenewWithEffect<CartPoleDomain, ()> for PythonGymnasiumCartPoleState{
-    type Effect = [(<CartPoleDomain as DomainParameters>::AgentId, <CartPoleDomain as DomainParameters>::UpdateType);1];
+    type Effect = [(<CartPoleDomain as Scheme>::AgentId, <CartPoleDomain as Scheme>::UpdateType);1];
 
     fn renew_with_effect_from(&mut self, _base: ()) -> Result<Self::Effect, AmfiteatrError<CartPoleDomain>> {
         match self.__reset(){
@@ -184,7 +184,7 @@ impl RenewWithEffect<CartPoleDomain, ()> for PythonGymnasiumCartPoleState{
 }
 
 impl GameStateWithPayoffs<CartPoleDomain> for PythonGymnasiumCartPoleState{
-    fn state_payoff_of_player(&self, _agent: &<CartPoleDomain as DomainParameters>::AgentId) -> <CartPoleDomain as DomainParameters>::UniversalReward {
+    fn state_payoff_of_player(&self, _agent: &<CartPoleDomain as Scheme>::AgentId) -> <CartPoleDomain as Scheme>::UniversalReward {
         self.player_reward
     }
 }

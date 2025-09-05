@@ -1,6 +1,6 @@
 use std::fmt::{Display, Formatter};
 use pyo3::{DowncastError, PyErr};
-use amfiteatr_core::domain::{Action, DomainParameters};
+use amfiteatr_core::scheme::{Action, Scheme};
 use amfiteatr_core::error::ConvertError;
 use amfiteatr_rl::error::TensorRepresentationError;
 use amfiteatr_rl::tch::{Tensor};
@@ -110,7 +110,7 @@ impl TryIntoTensor for CartPoleAction {
 
 
 
-impl DomainParameters for CartPoleDomain{
+impl Scheme for CartPoleDomain{
     type ActionType = CartPoleAction;
     type GameErrorType = CartPoleError;
     type UpdateType = CartPoleObservation;

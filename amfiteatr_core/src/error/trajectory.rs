@@ -1,12 +1,12 @@
 use thiserror::Error;
-use crate::domain::DomainParameters;
+use crate::scheme::Scheme;
 use crate::error::AmfiteatrError;
 
 
 /// Error dealing with game trajectory.
 #[derive(Debug, Clone, PartialEq, Eq, Error)]
 #[cfg_attr(feature = "speedy", derive(speedy::Writable, speedy::Readable))]
-pub enum TrajectoryError<DP: DomainParameters>{
+pub enum TrajectoryError<DP: Scheme>{
     #[error("Agent {} tried registering step after closing trajectory", .0)]
     UpdateOnFinishedAgentTrajectory(DP::AgentId),
     #[error("Agent {} tried finishing step after closing trajectory", .0)]
@@ -23,7 +23,7 @@ pub enum TrajectoryError<DP: DomainParameters>{
     },
 }
 
-impl<DP: DomainParameters> From<TrajectoryError<DP>> for AmfiteatrError<DP>{
+impl<DP: Scheme> From<TrajectoryError<DP>> for AmfiteatrError<DP>{
     fn from(value: TrajectoryError<DP>) -> Self {
         Self::Trajectory {source: value}
     }

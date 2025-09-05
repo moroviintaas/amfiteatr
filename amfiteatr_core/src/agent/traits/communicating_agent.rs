@@ -1,10 +1,10 @@
-use crate::domain::{AgentMessage, EnvironmentMessage, DomainParameters};
+use crate::scheme::{AgentMessage, EnvironmentMessage, Scheme};
 use crate::error::{AmfiteatrError, CommunicationError};
 
 /// Trait for agents able to communicate with environment.
 /// This trait is meant to work synchronously.
 ///
-pub trait CommunicatingAgent<DP: DomainParameters>{
+pub trait CommunicatingAgent<DP: Scheme>{
     /*
     /// An error which is returned in case of communication failure.
     /// In this crate usually [`CommError`](crate::error::CommunicationError) is used in

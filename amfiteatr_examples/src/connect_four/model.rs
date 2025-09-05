@@ -18,7 +18,7 @@ use amfiteatr_core::comm::{
     StdAgentEndpoint,
     StdEnvironmentEndpoint
 };
-use amfiteatr_core::domain::Renew;
+use amfiteatr_core::scheme::Renew;
 use amfiteatr_core::env::{
     GameStateWithPayoffs,
     HashMapEnvironment,
@@ -365,11 +365,11 @@ pub type C4PPOPolicyShared = Arc<Mutex<C4PPOPolicy>>;
 pub type C4PPOPolicyMasking = PolicyMaskingDiscretePPO<ConnectFourDomain, ConnectFourInfoSet, ConnectFourTensorReprD1, ConnectFourActionTensorRepresentation>;
 #[allow(dead_code)]
 pub type C4PPOPolicyMaskingShared = Arc<Mutex<C4PPOPolicyMasking>>;
-pub type Environment<S> = HashMapEnvironment<ConnectFourDomain, S, StdEnvironmentEndpoint<ConnectFourDomain>>;
+pub type Environment<ST> = HashMapEnvironment<ConnectFourDomain, ST, StdEnvironmentEndpoint<ConnectFourDomain>>;
 pub type Agent<P> = TracingAgentGen<ConnectFourDomain, P, StdAgentEndpoint<ConnectFourDomain>>;
-pub struct ConnectFourModelRust<S: GameStateWithPayoffs<ConnectFourDomain>, P: LearningNetworkPolicyGeneric<ConnectFourDomain, Summary=LearnSummary>>{
+pub struct ConnectFourModelRust<ST: GameStateWithPayoffs<ConnectFourDomain>, P: LearningNetworkPolicyGeneric<ConnectFourDomain, Summary=LearnSummary>>{
 
-    env: Environment<S>,
+    env: Environment<ST>,
     agent0: Agent<P>,
     agent1: Agent<P>,
     tboard_writer: Option<tboard::EventWriter<File>>,

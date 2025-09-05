@@ -1,14 +1,14 @@
 use thiserror::Error;
 use crate::error::{CommunicationError, ConvertError, DataError, ProtocolError, TrajectoryError, ModelError};
-use crate::domain::{DomainParameters};
+use crate::scheme::{Scheme};
 use crate::error::learning::LearningError;
 use crate::error::tensor::TensorError;
 
 /// Top level crate error, constructed from more specific error.
 #[derive(Debug, Clone, Error)]
 #[cfg_attr(feature = "speedy", derive(speedy::Writable, speedy::Readable))]
-pub enum AmfiteatrError<DP: DomainParameters>{
-    /// Error occurring in specific game logic, defined in generic parameter `DP:` [`DomainParameters`](crate::domain::DomainParameters).
+pub enum AmfiteatrError<DP: Scheme>{
+    /// Error occurring in specific game logic, defined in generic parameter `DP:` [`DomainParameters`](crate::scheme::Scheme).
     #[error("Game error: {source}")]
     Game{
         #[source]

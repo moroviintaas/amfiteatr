@@ -6,7 +6,7 @@ use std::sync::mpsc::{channel, Receiver, RecvError, Sender, SendError, TryRecvEr
 use crate::env::ListPlayers;
 use crate::comm::endpoint::BidirectionalEndpoint;
 use crate::error::CommunicationError;
-use crate::domain::{AgentMessage, EnvironmentMessage, DomainParameters};
+use crate::scheme::{AgentMessage, EnvironmentMessage, Scheme};
 
 use super::{AgentAdapter, EnvironmentAdapter, EnvironmentEndpoint, BroadcastingEnvironmentAdapter};
 
@@ -112,13 +112,13 @@ where E: From<RecvError> + From<SendError<OT>> + From<TryRecvError> + From<SendE
 
 /// Standard agent adapter using [`mpsc`](std::sync::mpsc) to be paired with
 /// [`EnvironmentMpscPort`](crate::comm::EnvironmentMpscPort)
-pub struct AgentMpscAdapter<DP: DomainParameters>{
+pub struct AgentMpscAdapter<DP: Scheme>{
     id: DP::AgentId,
     sender: Sender<(DP::AgentId, AgentMessage<DP>)>,
     receiver: Receiver<EnvironmentMessage<DP>>,
 }
 
-impl<DP: DomainParameters> AgentMpscAdapter<DP>{
+impl<DP: Scheme> AgentMpscAdapter<DP>{
     pub(crate) fn new(
         id: DP::AgentId, 
         sender: Sender<(DP::AgentId, AgentMessage<DP>)>,
@@ -128,7 +128,7 @@ impl<DP: DomainParameters> AgentMpscAdapter<DP>{
     }
 }
 
-impl<DP: DomainParameters> AgentAdapter<DP> for AgentMpscAdapter<DP>{
+impl<DP: Scheme> AgentAdapter<DP> for AgentMpscAdapter<DP>{
     fn send(&mut self, message: AgentMessage<DP>) -> Result<(), CommunicationError<DP>> {
         self.sender.send((self.id.to_owned(), message)).map_err(|e| e.into())
     }
@@ -138,7 +138,7 @@ impl<DP: DomainParameters> AgentAdapter<DP> for AgentMpscAdapter<DP>{
     }
 }
 
-impl<DP: DomainParameters> BidirectionalEndpoint for AgentMpscAdapter<DP> {
+impl<DP: Scheme> BidirectionalEndpoint for AgentMpscAdapter<DP> {
     type OutwardType = AgentMessage<DP>;
     type InwardType = EnvironmentMessage<DP>;
     type Error = CommunicationError<DP>;
@@ -162,18 +162,18 @@ impl<DP: DomainParameters> BidirectionalEndpoint for AgentMpscAdapter<DP> {
 
 /// Implementation of [`EnvironmentAdapter`](crate::comm::EnvironmentAdapter) based on Rust's
 /// standard [`mpsc`](std::sync::mpsc).
-pub struct EnvironmentMpscPort<DP: DomainParameters>{
+pub struct EnvironmentMpscPort<DP: Scheme>{
     sender_template: Sender<(DP::AgentId, AgentMessage<DP>)>,
     receiver: Receiver<(DP::AgentId, AgentMessage<DP>)>,
     senders: HashMap<DP::AgentId, Sender<EnvironmentMessage<DP>>>
 }
 
-impl<DP: DomainParameters> Default for EnvironmentMpscPort<DP>{
+impl<DP: Scheme> Default for EnvironmentMpscPort<DP>{
     fn default() -> Self {
         Self::new()
     }
 }
-impl<DP: DomainParameters> EnvironmentMpscPort<DP>{
+impl<DP: Scheme> EnvironmentMpscPort<DP>{
     pub fn new() -> Self{
         let (sender_template, receiver) = channel();
         Self{receiver, sender_template, senders: HashMap::new()}
@@ -210,19 +210,19 @@ impl<DP: DomainParameters> EnvironmentMpscPort<DP>{
     }
 }
 
-impl<DP: DomainParameters> EnvironmentAdapter<DP> for EnvironmentMpscPort<DP>{
-    fn send(&mut self, agent: &<DP as DomainParameters>::AgentId, message: EnvironmentMessage<DP>)
-    -> Result<(), CommunicationError<DP>> {
+impl<DP: Scheme> EnvironmentAdapter<DP> for EnvironmentMpscPort<DP>{
+    fn send(&mut self, agent: &<DP as Scheme>::AgentId, message: EnvironmentMessage<DP>)
+            -> Result<(), CommunicationError<DP>> {
         let s = self.senders.get(agent)
             .ok_or_else(|| CommunicationError::ConnectionToAgentNotFound(agent.to_owned()))?;
         s.send(message).map_err(|e| e.into())
     }
 
-    fn receive_blocking(&mut self) -> Result<(<DP as DomainParameters>::AgentId, AgentMessage<DP>), CommunicationError<DP>> {
+    fn receive_blocking(&mut self) -> Result<(<DP as Scheme>::AgentId, AgentMessage<DP>), CommunicationError<DP>> {
         self.receiver.recv().map_err(|e| e.into())
     }
 
-    fn receive_non_blocking(&mut self) -> Result<Option<(<DP as DomainParameters>::AgentId, AgentMessage<DP>)>, CommunicationError<DP>> {
+    fn receive_non_blocking(&mut self) -> Result<Option<(<DP as Scheme>::AgentId, AgentMessage<DP>)>, CommunicationError<DP>> {
         //self.receiver.try_recv().map_err(|e| e.into())
         self.receiver.try_recv().map_or_else(
             |e| match e{
@@ -237,7 +237,7 @@ impl<DP: DomainParameters> EnvironmentAdapter<DP> for EnvironmentMpscPort<DP>{
     }
 }
 
-impl<DP: DomainParameters> BroadcastingEnvironmentAdapter<DP> for EnvironmentMpscPort<DP>{
+impl<DP: Scheme> BroadcastingEnvironmentAdapter<DP> for EnvironmentMpscPort<DP>{
     fn send_all(&mut self, message: EnvironmentMessage<DP>) ->  Result<(), CommunicationError<DP>> {
         let mut result = Ok(());
         for (_agent, tx) in self.senders.iter_mut(){
@@ -259,7 +259,7 @@ impl<DP: DomainParameters> BroadcastingEnvironmentAdapter<DP> for EnvironmentMps
     }
 }
 
-impl<DP: DomainParameters> ListPlayers<DP> for EnvironmentMpscPort<DP>{
+impl<DP: Scheme> ListPlayers<DP> for EnvironmentMpscPort<DP>{
     type IterType = <Vec<DP::AgentId> as IntoIterator>::IntoIter;
 
     fn players(&self) -> Self::IterType {
@@ -273,15 +273,15 @@ impl<DP: DomainParameters> ListPlayers<DP> for EnvironmentMpscPort<DP>{
 /// This is environment communication adapter using HashMap of
 /// [`BidirectionalEndpoint`s](crate::comm::BidirectionalEndpoint) and
 /// round robin listening strategy.
-pub struct EnvRRAdapter<DP: DomainParameters, T: EnvironmentEndpoint<DP>>{
+pub struct EnvRRAdapter<DP: Scheme, T: EnvironmentEndpoint<DP>>{
     endpoints: HashMap<DP::AgentId, T>,
 }
-impl <DP: DomainParameters, T: EnvironmentEndpoint<DP>> Default for EnvRRAdapter<DP, T>{
+impl <DP: Scheme, T: EnvironmentEndpoint<DP>> Default for EnvRRAdapter<DP, T>{
     fn default() -> Self {
         Self::new()
     }
 }
-impl <DP: DomainParameters, T: EnvironmentEndpoint<DP>> EnvRRAdapter<DP, T>{
+impl <DP: Scheme, T: EnvironmentEndpoint<DP>> EnvRRAdapter<DP, T>{
 
     pub fn new() -> Self{
         Self { endpoints: Default::default() }
@@ -308,7 +308,7 @@ impl <DP: DomainParameters, T: EnvironmentEndpoint<DP>> EnvRRAdapter<DP, T>{
     }
 }
 
-impl<DP: DomainParameters> EnvRRAdapter<DP, StdEnvironmentEndpoint<DP>>{
+impl<DP: Scheme> EnvRRAdapter<DP, StdEnvironmentEndpoint<DP>>{
 
     /// Creates local connection for agent given his id.
     /// Creates endpoint pair, environment side is stored in HashMap
@@ -337,7 +337,7 @@ impl<DP: DomainParameters> EnvRRAdapter<DP, StdEnvironmentEndpoint<DP>>{
 }
 
 
-impl<DP: DomainParameters> EnvRRAdapter<DP, Box<dyn EnvironmentEndpoint<DP>>>{
+impl<DP: Scheme> EnvRRAdapter<DP, Box<dyn EnvironmentEndpoint<DP>>>{
 
     pub fn create_local_connection(&mut self, agent_id: DP::AgentId) -> Result<StdAgentEndpoint<DP>, CommunicationError<DP>>{
         /*
@@ -361,9 +361,9 @@ impl<DP: DomainParameters> EnvRRAdapter<DP, Box<dyn EnvironmentEndpoint<DP>>>{
 }
 
 
-impl <DP: DomainParameters, T: EnvironmentEndpoint<DP>> EnvironmentAdapter<DP> for EnvRRAdapter<DP, T>{
-    fn send(&mut self, agent: &<DP as DomainParameters>::AgentId, message: EnvironmentMessage<DP>)
-    -> Result<(), CommunicationError<DP>> {
+impl <DP: Scheme, T: EnvironmentEndpoint<DP>> EnvironmentAdapter<DP> for EnvRRAdapter<DP, T>{
+    fn send(&mut self, agent: &<DP as Scheme>::AgentId, message: EnvironmentMessage<DP>)
+            -> Result<(), CommunicationError<DP>> {
         if let Some(s) = self.endpoints.get_mut(agent){
             s.send(message)
         } else {
@@ -372,7 +372,7 @@ impl <DP: DomainParameters, T: EnvironmentEndpoint<DP>> EnvironmentAdapter<DP> f
         
     }
 
-    fn receive_blocking(&mut self) -> Result<(<DP as DomainParameters>::AgentId, AgentMessage<DP>), CommunicationError<DP>> {
+    fn receive_blocking(&mut self) -> Result<(<DP as Scheme>::AgentId, AgentMessage<DP>), CommunicationError<DP>> {
         loop{
             for (agent, endpoint) in self.endpoints.iter_mut(){
                 match endpoint.receive_non_blocking(){
@@ -388,7 +388,7 @@ impl <DP: DomainParameters, T: EnvironmentEndpoint<DP>> EnvironmentAdapter<DP> f
         }
     }
 
-    fn receive_non_blocking(&mut self) -> Result<Option<(<DP as DomainParameters>::AgentId, AgentMessage<DP>)>, CommunicationError<DP>> {
+    fn receive_non_blocking(&mut self) -> Result<Option<(<DP as Scheme>::AgentId, AgentMessage<DP>)>, CommunicationError<DP>> {
         for (agent, endpoint) in self.endpoints.iter_mut(){
             match endpoint.receive_non_blocking(){
                 Ok(None) => {},
@@ -404,12 +404,12 @@ impl <DP: DomainParameters, T: EnvironmentEndpoint<DP>> EnvironmentAdapter<DP> f
 
     }
 
-    fn is_agent_connected(&self, agent_id: &<DP as DomainParameters>::AgentId) -> bool {
+    fn is_agent_connected(&self, agent_id: &<DP as Scheme>::AgentId) -> bool {
         self.endpoints.contains_key(agent_id)
     }
 }
 
-impl <DP: DomainParameters, T: EnvironmentEndpoint<DP>> BroadcastingEnvironmentAdapter<DP> for EnvRRAdapter<DP, T>{
+impl <DP: Scheme, T: EnvironmentEndpoint<DP>> BroadcastingEnvironmentAdapter<DP> for EnvRRAdapter<DP, T>{
     fn send_all(&mut self, message: EnvironmentMessage<DP>) ->  Result<(), CommunicationError<DP>> {
         let mut result = Ok(());
         for (_agent, endpoint) in self.endpoints.iter_mut(){

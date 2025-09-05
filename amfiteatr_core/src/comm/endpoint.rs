@@ -2,9 +2,9 @@ use std::error::Error;
 use std::fmt::Debug;
 
 use crate::{
-    domain::{
+    scheme::{
         EnvironmentMessage,
-        DomainParameters,
+        Scheme,
         AgentMessage
     },
     error::CommunicationError
@@ -15,11 +15,11 @@ use crate::env::AgentStampedMessage;
 pub trait BidirectionalEndpoint {
     /// The type that is sent via this endpoint.
     /// In scope of this crate, for environment it will be usually
-    /// [`EnvMessage`](crate::domain::EnvironmentMessage) or [`AgentMessage`](crate::domain::AgentMessage)
+    /// [`EnvMessage`](crate::scheme::EnvironmentMessage) or [`AgentMessage`](crate::scheme::AgentMessage)
     type OutwardType: Debug;
     /// The type that is received via this endpoint.
     /// In scope of this crate, for environment it will be usually
-    /// [`EnvMessage`](crate::domain::EnvironmentMessage) or [`AgentMessage`](crate::domain::AgentMessage)
+    /// [`EnvMessage`](crate::scheme::EnvironmentMessage) or [`AgentMessage`](crate::scheme::AgentMessage)
     type InwardType: Debug;
     /// The error type that can be caused during communication.
     /// In scope of this crate, for environment it will be usually
@@ -57,13 +57,13 @@ where T: BidirectionalEndpoint {
 
 /// Help trait for [`BidirectionalEndpoint`](BidirectionalEndpoint) fitted to work on environment
 /// side.
-pub trait EnvironmentEndpoint<DP: DomainParameters>:
+pub trait EnvironmentEndpoint<DP: Scheme>:
 BidirectionalEndpoint<
     OutwardType = EnvironmentMessage<DP>,
     InwardType = AgentMessage<DP>,
     Error = CommunicationError<DP>>{}
 
-impl<DP: DomainParameters, T> EnvironmentEndpoint<DP> for T
+impl<DP: Scheme, T> EnvironmentEndpoint<DP> for T
 where T: BidirectionalEndpoint<
     OutwardType = EnvironmentMessage<DP>,
     InwardType = AgentMessage<DP>,
@@ -71,12 +71,12 @@ where T: BidirectionalEndpoint<
 
 /// Help trait for [`BidirectionalEndpoint`](BidirectionalEndpoint) fitted to work on agent
 /// side
-pub trait AgentEndpoint<DP: DomainParameters>: BidirectionalEndpoint<
+pub trait AgentEndpoint<DP: Scheme>: BidirectionalEndpoint<
     OutwardType = AgentMessage<DP>,
     InwardType = EnvironmentMessage<DP>,
     Error = CommunicationError<DP>>{}
 
-impl<DP: DomainParameters, T> AgentEndpoint<DP> for T
+impl<DP: Scheme, T> AgentEndpoint<DP> for T
 where T: BidirectionalEndpoint<
     OutwardType = AgentMessage<DP>,
     InwardType = EnvironmentMessage<DP>,
@@ -85,7 +85,7 @@ where T: BidirectionalEndpoint<
 /// This trait is to be implemented by structs that are meant to be single
 /// communication endpoint for environment.
 ///
-pub trait EnvironmentAdapter<DP: DomainParameters>{
+pub trait EnvironmentAdapter<DP: Scheme>{
 
     /// Method for sending message to agent
     fn send(&mut self, agent: &DP::AgentId, message: EnvironmentMessage<DP>)
@@ -123,12 +123,12 @@ pub trait EnvironmentAdapter<DP: DomainParameters>{
 /// `AgentAdapter` is paired with `EnvironmentAdapter`
 /// while `AgentEndpoint` is paired with `EnvironmentEndpoint`
 /// `AgentMessage` over channel.
-pub trait AgentAdapter<DP: DomainParameters>{
+pub trait AgentAdapter<DP: Scheme>{
     fn send(&mut self, message: AgentMessage<DP>) -> Result<(), CommunicationError<DP>>;
     fn receive(&mut self) -> Result<EnvironmentMessage<DP>, CommunicationError<DP>>;
 }
 
 /// EnvironmentAdapter extension to clone message and send to every connected agent.
-pub trait BroadcastingEnvironmentAdapter<DP: DomainParameters>: EnvironmentAdapter<DP>{
+pub trait BroadcastingEnvironmentAdapter<DP: Scheme>: EnvironmentAdapter<DP>{
     fn send_all(&mut self, message: EnvironmentMessage<DP>) ->  Result<(), CommunicationError<DP>>;
 }

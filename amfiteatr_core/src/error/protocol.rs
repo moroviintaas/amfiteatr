@@ -1,11 +1,11 @@
 use thiserror::Error;
 use crate::error::AmfiteatrError;
-use crate::domain::DomainParameters;
+use crate::scheme::Scheme;
 
 /// Error for capturing misbehavior in game protocol.
 #[derive(Debug, Clone, PartialEq, Eq, Error)]
 #[cfg_attr(feature = "speedy", derive(speedy::Writable, speedy::Readable))]
-pub enum ProtocolError<DP: DomainParameters>{
+pub enum ProtocolError<DP: Scheme>{
     #[error("lost contact with {:}", .0)]
     BrokenComm(DP::AgentId),
     #[error("agent {:} attempted to move on turn of {:}", .0, .1)]
@@ -23,7 +23,7 @@ pub enum ProtocolError<DP: DomainParameters>{
 
 }
 
-impl<DP: DomainParameters> From<ProtocolError<DP>> for AmfiteatrError<DP>{
+impl<DP: Scheme> From<ProtocolError<DP>> for AmfiteatrError<DP>{
     fn from(value: ProtocolError<DP>) -> Self {
         Self::Protocol{source: value}
     }

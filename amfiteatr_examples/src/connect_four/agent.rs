@@ -1,6 +1,6 @@
 use ndarray::Axis;
 use amfiteatr_core::agent::InformationSet;
-use amfiteatr_core::domain::{DomainParameters, Renew};
+use amfiteatr_core::scheme::{Scheme, Renew};
 use amfiteatr_core::error::{AmfiteatrError, ConvertError, TensorError};
 use amfiteatr_rl::MaskingInformationSetAction;
 use amfiteatr_rl::tch::Tensor;
@@ -31,7 +31,7 @@ impl InformationSet<ConnectFourDomain> for ConnectFourInfoSet{
             self.latest_observation.board[(0, action.index(), 1)] == 0
     }
 
-    fn update(&mut self, update: <ConnectFourDomain as DomainParameters>::UpdateType) -> Result<(), <ConnectFourDomain as DomainParameters>::GameErrorType> {
+    fn update(&mut self, update: <ConnectFourDomain as Scheme>::UpdateType) -> Result<(), <ConnectFourDomain as Scheme>::GameErrorType> {
         self.latest_observation = update;
         Ok(())
     }

@@ -4,7 +4,7 @@ use nom::character::complete::space1;
 use nom::IResult;
 use nom::sequence::{pair};
 use crate::agent::{Policy, PresentPossibleActions, RandomPolicy};
-use crate::domain::DomainParameters;
+use crate::scheme::Scheme;
 use crate::error::AmfiteatrError;
 use crate::util::{StrParsed};
 use nom::Parser;
@@ -16,7 +16,7 @@ use nom::Parser;
 /// about information set or ask for hint (e.g some Q-table).
 /// Example question implementation is [`TurnCommand`].
 /// *Implementation of human controlled playing interface is not a priority now, however this is current idea of how it would look like.*
-pub trait AssistingPolicy<DP: DomainParameters>: Policy<DP>{
+pub trait AssistingPolicy<DP: Scheme>: Policy<DP>{
 
     type Question;
 
@@ -26,7 +26,7 @@ pub trait AssistingPolicy<DP: DomainParameters>: Policy<DP>{
 
 
 
-impl<DP: DomainParameters, IS: PresentPossibleActions<DP>> AssistingPolicy<DP> for RandomPolicy<DP, IS>
+impl<DP: Scheme, IS: PresentPossibleActions<DP>> AssistingPolicy<DP> for RandomPolicy<DP, IS>
     where <<IS as PresentPossibleActions<DP>>::ActionIteratorType as IntoIterator>::IntoIter : ExactSizeIterator{
     type Question = ();
 
@@ -38,14 +38,14 @@ impl<DP: DomainParameters, IS: PresentPossibleActions<DP>> AssistingPolicy<DP> f
 
 
 /// Example question structure for implementation. Here player would have following commands to use:
-/// + `quit` - for exiting the game (sending signal [`Quit`](crate::domain::AgentMessage::Quit);
+/// + `quit` - for exiting the game (sending signal [`Quit`](crate::scheme::AgentMessage::Quit);
 /// + `play SOMETHING` - play action that is parsed from 'SOMETHING' `str`;
 /// + `show` - display information set
 /// + `ask` QUESTION - special command to be parsed - depending on Policy it might be something like "ask action top 10" which would list at most ten best looking actions with their Q-functions.
 ///
 /// *Implementation of human controlled playing interface is not a priority now, however this is current idea of how it would look like.*
 #[derive(Clone, Debug, PartialEq)]
-pub enum TurnCommand<DP: DomainParameters, P: AssistingPolicy<DP>>{
+pub enum TurnCommand<DP: Scheme, P: AssistingPolicy<DP>>{
     Quit,
     Play(DP::ActionType),
     Show,
@@ -54,7 +54,7 @@ pub enum TurnCommand<DP: DomainParameters, P: AssistingPolicy<DP>>{
 }
 
 
-impl<DP: DomainParameters, P: AssistingPolicy<DP>> StrParsed for TurnCommand<DP, P>
+impl<DP: Scheme, P: AssistingPolicy<DP>> StrParsed for TurnCommand<DP, P>
     where DP::ActionType: StrParsed,
     <P as AssistingPolicy<DP>>::Question: StrParsed{
     fn parse_from_str(input: &str) -> IResult<&str, Self> {

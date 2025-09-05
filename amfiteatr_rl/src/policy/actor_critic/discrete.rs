@@ -5,7 +5,7 @@ use tboard::EventWriter;
 use tch::nn::{Optimizer, VarStore};
 use tch::Tensor;
 use amfiteatr_core::agent::{AgentStepView, AgentTrajectory, InformationSet, Policy};
-use amfiteatr_core::domain::DomainParameters;
+use amfiteatr_core::scheme::Scheme;
 use amfiteatr_core::error::{AmfiteatrError, TensorError};
 use amfiteatr_core::util::TensorboardSupport;
 use crate::error::AmfiteatrRlError;
@@ -18,7 +18,7 @@ use crate::torch_net::{ActorCriticOutput, NeuralNet, NeuralNetActorCritic, Tenso
 /// Policy A2C for discrete action space with single distribution using [`tch`] crate for `torch` backed
 /// [`Tensors`](tch::Tensor).
 pub struct PolicyDiscreteA2C<
-    DP: DomainParameters,
+    DP: Scheme,
     InfoSet: InformationSet<DP> + Debug + ContextEncodeTensor<InfoSetConversionContext>,
     InfoSetConversionContext: TensorEncoding,
     ActionBuildContext: TensorDecoding,
@@ -38,7 +38,7 @@ pub struct PolicyDiscreteA2C<
 }
 
 impl<
-    DP: DomainParameters,
+    DP: Scheme,
     InfoSet: InformationSet<DP> + Debug + ContextEncodeTensor<InfoSetConversionContext>,
     InfoSetConversionContext: TensorEncoding,
     ActionBuildContext: TensorDecoding,
@@ -86,7 +86,7 @@ impl<
 }
 
 impl<
-    DP: DomainParameters,
+    DP: Scheme,
     InfoSet: InformationSet<DP> + Debug + ContextEncodeTensor<InfoSetConversionContext>,
     InfoSetConversionContext: TensorEncoding,
     ActionBuildContext: TensorDecoding,
@@ -117,13 +117,13 @@ impl<
     }
 }
 impl<
-    DP: DomainParameters,
+    DP: Scheme,
     InfoSet: InformationSet<DP> + Debug + ContextEncodeTensor<InfoSetEncoding>,
     InfoSetEncoding: TensorEncoding,
     ActionEncoding: TensorDecoding + TensorIndexI64Encoding
     + tensor_data::ActionTensorFormat<Tensor>,
 > PolicyHelperA2C<DP> for PolicyDiscreteA2C<DP, InfoSet, InfoSetEncoding, ActionEncoding>
-where <DP as DomainParameters>::ActionType:
+where <DP as Scheme>::ActionType:
 ContextDecodeIndexI64<ActionEncoding> + ContextEncodeIndexI64<ActionEncoding>{
     type InfoSet = InfoSet;
     type InfoSetConversionContext = InfoSetEncoding;
@@ -236,13 +236,13 @@ ContextDecodeIndexI64<ActionEncoding> + ContextEncodeIndexI64<ActionEncoding>{
 }
 
 impl<
-    DP: DomainParameters,
+    DP: Scheme,
     InfoSet: InformationSet<DP> + Debug + ContextEncodeTensor<InfoSetEncoding>,
     InfoSetEncoding: TensorEncoding,
     ActionEncoding: TensorDecoding + TensorIndexI64Encoding
     + tensor_data::ActionTensorFormat<Tensor>,
 > Policy<DP> for PolicyDiscreteA2C<DP, InfoSet, InfoSetEncoding, ActionEncoding>
-    where <DP as DomainParameters>::ActionType:
+    where <DP as Scheme>::ActionType:
     ContextDecodeIndexI64<ActionEncoding> + ContextEncodeIndexI64<ActionEncoding>{
     type InfoSetType = InfoSet;
 
@@ -252,13 +252,13 @@ impl<
 }
 
 impl<
-    DP: DomainParameters,
+    DP: Scheme,
     InfoSet: InformationSet<DP> + Debug + ContextEncodeTensor<InfoSetEncoding>,
     InfoSetEncoding: TensorEncoding,
     ActionEncoding: TensorDecoding + TensorIndexI64Encoding
     + tensor_data::ActionTensorFormat<Tensor>,
 > LearningNetworkPolicyGeneric<DP> for PolicyDiscreteA2C<DP, InfoSet, InfoSetEncoding, ActionEncoding>
-    where <DP as DomainParameters>::ActionType:
+    where <DP as Scheme>::ActionType:
     ContextDecodeIndexI64<ActionEncoding> + ContextEncodeIndexI64<ActionEncoding>{
     type Summary = LearnSummary;
 
@@ -286,7 +286,7 @@ impl<
 
 /// Policy PPO structure for discrete action space with support of masking.
 pub struct PolicyMaskingDiscreteA2C<
-    DP: DomainParameters,
+    DP: Scheme,
     InfoSet: InformationSet<DP> + Debug + ContextEncodeTensor<InfoSetConversionContext> + MaskingInformationSetAction<DP, ActionBuildContext>,
     InfoSetConversionContext: TensorEncoding,
     ActionBuildContext: TensorDecoding + TensorIndexI64Encoding,
@@ -297,7 +297,7 @@ pub struct PolicyMaskingDiscreteA2C<
 }
 
 impl <
-    DP: DomainParameters,
+    DP: Scheme,
     InfoSet: InformationSet<DP> + Debug + ContextEncodeTensor<InfoSetConversionContext> + MaskingInformationSetAction<DP, ActionBuildContext>,
     InfoSetConversionContext: TensorEncoding,
     ActionBuildContext: TensorDecoding + TensorIndexI64Encoding,
@@ -318,7 +318,7 @@ impl <
 }
 
 impl <
-    DP: DomainParameters,
+    DP: Scheme,
     InfoSet: InformationSet<DP> + Debug + ContextEncodeTensor<InfoSetConversionContext> + MaskingInformationSetAction<DP, ActionBuildContext>,
     InfoSetConversionContext: TensorEncoding,
     ActionBuildContext: TensorDecoding + TensorIndexI64Encoding,
@@ -335,12 +335,12 @@ impl <
     }
 }
 impl <
-    DP: DomainParameters,
+    DP: Scheme,
     InfoSet: InformationSet<DP> + Debug + ContextEncodeTensor<InfoSetEncoding> + MaskingInformationSetAction<DP, ActionEncoding>,
     InfoSetEncoding: TensorEncoding,
     ActionEncoding: TensorDecoding + TensorIndexI64Encoding,
 > PolicyHelperA2C<DP> for PolicyMaskingDiscreteA2C<DP, InfoSet, InfoSetEncoding, ActionEncoding>
-    where <DP as DomainParameters>::ActionType:
+    where <DP as Scheme>::ActionType:
     ContextDecodeIndexI64<ActionEncoding> + ContextEncodeIndexI64<ActionEncoding>{
     type InfoSet = InfoSet;
     type InfoSetConversionContext = InfoSetEncoding;
@@ -436,12 +436,12 @@ impl <
 }
 
 impl <
-    DP: DomainParameters,
+    DP: Scheme,
     InfoSet: InformationSet<DP> + Debug + ContextEncodeTensor<InfoSetEncoding> + MaskingInformationSetAction<DP, ActionEncoding>,
     InfoSetEncoding: TensorEncoding,
     ActionEncoding: TensorDecoding + TensorIndexI64Encoding,
 > Policy<DP> for PolicyMaskingDiscreteA2C<DP, InfoSet, InfoSetEncoding, ActionEncoding>
-    where <DP as DomainParameters>::ActionType:
+    where <DP as Scheme>::ActionType:
     ContextDecodeIndexI64<ActionEncoding> + ContextEncodeIndexI64<ActionEncoding>{
     type InfoSetType = InfoSet;
 
@@ -451,12 +451,12 @@ impl <
 }
 
 impl <
-    DP: DomainParameters,
+    DP: Scheme,
     InfoSet: InformationSet<DP> + Debug + ContextEncodeTensor<InfoSetEncoding> + MaskingInformationSetAction<DP, ActionEncoding>,
     InfoSetEncoding: TensorEncoding,
     ActionEncoding: TensorDecoding + TensorIndexI64Encoding,
 > LearningNetworkPolicyGeneric<DP> for PolicyMaskingDiscreteA2C<DP, InfoSet, InfoSetEncoding, ActionEncoding>
-    where <DP as DomainParameters>::ActionType:
+    where <DP as Scheme>::ActionType:
     ContextDecodeIndexI64<ActionEncoding> + ContextEncodeIndexI64<ActionEncoding>{
     type Summary = LearnSummary;
 

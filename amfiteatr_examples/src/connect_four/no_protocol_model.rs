@@ -3,7 +3,7 @@ use std::fs::File;
 use log::info;
 use amfiteatr_core::agent::{ActingAgent, MultiEpisodeAutoAgent, PolicyAgent, ReseedAgent, RewardedAgent, StatefulAgent, TracingAgentGen};
 use amfiteatr_core::comm::{StdAgentEndpoint, StdEnvironmentEndpoint};
-use amfiteatr_core::domain::{DomainParameters, Renew};
+use amfiteatr_core::scheme::{Scheme, Renew};
 use amfiteatr_core::env::GameStateWithPayoffs;
 use amfiteatr_core::error::AmfiteatrError;
 use amfiteatr_core::util::TensorboardSupport;
@@ -18,11 +18,11 @@ use amfiteatr_rl::tch::Device;
 use crate::common::ComputeDevice;
 
 pub struct ConnectFourModelRustNoProtocol <
-    S: GameStateWithPayoffs<ConnectFourDomain>,
+    ST: GameStateWithPayoffs<ConnectFourDomain>,
     P: LearningNetworkPolicyGeneric<ConnectFourDomain, Summary=LearnSummary>
 > {
-    env_state: S,
-    agents: HashMap<<ConnectFourDomain as DomainParameters>::AgentId, TracingAgentGen<ConnectFourDomain, P, StdAgentEndpoint<ConnectFourDomain>>>,
+    env_state: ST,
+    agents: HashMap<<ConnectFourDomain as Scheme>::AgentId, TracingAgentGen<ConnectFourDomain, P, StdAgentEndpoint<ConnectFourDomain>>>,
     shared_policy: bool,
     tboard_writer: Option<tboard::EventWriter<File>>,
 }

@@ -10,7 +10,7 @@ use amfiteatr_classic::env::PairingState;
 use amfiteatr_classic::policy::{ClassicMixedStrategy, ClassicPureStrategy};
 use amfiteatr_core::agent::{AgentGen, IdAgent, InformationSet, MultiEpisodeAutoAgent, Policy, PolicyAgent, StatefulAgent, TracingAgentGen};
 use amfiteatr_core::comm::{StdAgentEndpoint, StdEnvironmentEndpoint};
-use amfiteatr_core::domain::{DomainParameters, Renew};
+use amfiteatr_core::scheme::{Scheme, Renew};
 use amfiteatr_core::env::{AutoEnvironmentWithScores, ReseedEnvironment, ScoreEnvironment, StatefulEnvironment, TracingHashMapEnvironment};
 use amfiteatr_core::error::{AmfiteatrError, CommunicationError};
 use amfiteatr_core::util::TensorboardSupport;
@@ -32,7 +32,7 @@ pub type LearningAgent<P> = TracingAgentGen<ReplDomain, P, StdAgentEndpoint<Repl
 
 //pub type PpoAgent = TracingAgentGen<ReplDomain, PolicyDiscretePPO<ReplDomain, LocalHistoryInfoSet<AgentNum>, LocalHistoryConversionToTensor, ClassicActionTensorRepresentation>, StdAgentEndpoint<ReplDomain>>;
 
-pub type ModelEnvironment = TracingHashMapEnvironment<ReplDomain, PairingState<<ReplDomain as DomainParameters>::AgentId>, StdEnvironmentEndpoint<ReplDomain>>;
+pub type ModelEnvironment = TracingHashMapEnvironment<ReplDomain, PairingState<<ReplDomain as Scheme>::AgentId>, StdEnvironmentEndpoint<ReplDomain>>;
 
 
 pub trait ReplicatorNetworkPolicy: LearningNetworkPolicy<ReplDomain, InfoSetType= LocalHistoryInfoSet<AgentNum>> + TensorboardSupport<ReplDomain>{

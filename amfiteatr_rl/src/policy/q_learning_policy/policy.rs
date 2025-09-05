@@ -11,7 +11,7 @@ use amfiteatr_core::agent::{
     PresentPossibleActions,
     AgentTrajectory,
     AgentStepView};
-use amfiteatr_core::domain::DomainParameters;
+use amfiteatr_core::scheme::Scheme;
 
 
 use crate::error::AmfiteatrRlError;
@@ -85,7 +85,7 @@ impl QSelector{
 
 /// Generic implementation of Advantage Q-function policy
 pub struct QLearningPolicy<
-    DP: DomainParameters,
+    DP: Scheme,
     InfoSet: InformationSet<DP> + Debug + ContextEncodeTensor<IS2T>,
     IS2T: TensorEncoding,
     A2T: TensorEncoding,
@@ -106,7 +106,7 @@ pub struct QLearningPolicy<
 
 impl
 <
-    DP: DomainParameters,
+    DP: Scheme,
     InfoSet: InformationSet<DP> + Debug + ContextEncodeTensor<IS2T> + PresentPossibleActions<DP>,
     IS2T: TensorEncoding,
     A2T: TensorEncoding
@@ -145,14 +145,14 @@ where <<InfoSet as PresentPossibleActions<DP>>::ActionIteratorType as IntoIterat
 
 impl
 <
-    DP: DomainParameters,
+    DP: Scheme,
     InfoSet: InformationSet<DP> + Debug + ContextEncodeTensor<IS2T> + PresentPossibleActions<DP>,
     IS2T: TensorEncoding,
     A2T: TensorEncoding
 > LearningNetworkPolicyGeneric<DP> for QLearningPolicy<DP, InfoSet, IS2T, A2T>
 where <<InfoSet as PresentPossibleActions<DP>>::ActionIteratorType as IntoIterator>::Item: ContextEncodeTensor<A2T>,
 //<DP as DomainParameters>::UniversalReward: FloatTensorReward,
-<DP as DomainParameters>::ActionType: ContextEncodeTensor<A2T> {
+<DP as Scheme>::ActionType: ContextEncodeTensor<A2T> {
     type Summary = LearnSummary;
     /*
     type Network = NeuralNet1;
@@ -291,7 +291,7 @@ where <<InfoSet as PresentPossibleActions<DP>>::ActionIteratorType as IntoIterat
 
 
 impl<
-    DP: DomainParameters,
+    DP: Scheme,
     InfoSet: InformationSet<DP> + Debug + ContextEncodeTensor<IS2T> + PresentPossibleActions<DP>,
     IS2T: TensorEncoding,
     A2T: TensorEncoding

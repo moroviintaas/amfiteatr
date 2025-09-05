@@ -7,7 +7,7 @@ use tch::{Kind, Tensor};
 use tch::Kind::Float;
 use tch::nn::Optimizer;
 use amfiteatr_core::agent::{AgentStepView, AgentTrajectory, InformationSet};
-use amfiteatr_core::domain::DomainParameters;
+use amfiteatr_core::scheme::Scheme;
 use amfiteatr_core::error::{AmfiteatrError, TensorError};
 use crate::error::AmfiteatrRlError;
 use crate::policy::{LearnSummary, PolicyHelperA2C, RlPolicyConfigBasic};
@@ -73,7 +73,7 @@ impl RlPolicyConfigBasic for ConfigPPO {
 /// + [`PolicyPpoMultiDiscrete`](crate::policy::ppo::PolicyMultiDiscretePPO);
 /// + [`PolicyMaskingPpoDiscrete`](crate::policy::ppo::PolicyMaskingDiscretePPO);
 ///+ [`PolicyMaskingPpoMultiDiscrete`](crate::policy::ppo::PolicyMaskingMultiDiscretePPO).
-pub trait PolicyHelperPPO<DP: DomainParameters>
+pub trait PolicyHelperPPO<DP: Scheme>
 {
     type InfoSet: InformationSet<DP> + ContextEncodeTensor<Self::InfoSetConversionContext>;
     type InfoSetConversionContext: TensorEncoding;
@@ -478,7 +478,7 @@ pub trait PolicyHelperPPO<DP: DomainParameters>
 /// Helper trait to build create training interface for PPO Policy.
 /// It provides automatic [`ppo_train_on_trajectories`](PolicyTrainHelperPPO::ppo_train_on_trajectories)
 /// implementation for any (policy) type implementing [`PolicyHelperA2C`].
-pub trait PolicyTrainHelperPPO<DP: DomainParameters> : PolicyHelperA2C<DP, Config=ConfigPPO>{
+pub trait PolicyTrainHelperPPO<DP: Scheme> : PolicyHelperA2C<DP, Config=ConfigPPO>{
 
 
     /// Method provided that executes learning step on PPO policy, based on provided [`PolicyHelperA2C`]
@@ -875,7 +875,7 @@ pub trait PolicyTrainHelperPPO<DP: DomainParameters> : PolicyHelperA2C<DP, Confi
     }
 }
 
-impl<T, DP: DomainParameters> PolicyTrainHelperPPO<DP> for T
+impl<T, DP: Scheme> PolicyTrainHelperPPO<DP> for T
     where T: PolicyHelperA2C<DP, Config=ConfigPPO>{}
 
 

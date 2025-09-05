@@ -1,5 +1,5 @@
 use serde::{Serialize, Deserialize};
-use amfiteatr_core::domain::Reward;
+use amfiteatr_core::scheme::Reward;
 use enum_map::{Enum, enum_map, EnumMap};
 use amfiteatr_core::error::ConvertError;
 use amfiteatr_rl::tch::Tensor;

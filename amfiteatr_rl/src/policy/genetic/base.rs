@@ -3,7 +3,7 @@ use std::marker::PhantomData;
 use std::ops::Div;
 use rand::distr::Distribution;
 use amfiteatr_core::agent::{InformationSet, Policy};
-use amfiteatr_core::domain::{DomainParameters, Reward};
+use amfiteatr_core::scheme::{Scheme, Reward};
 use amfiteatr_core::error::AmfiteatrError;
 use crate::policy::PolicySpecimen;
 
@@ -24,7 +24,7 @@ pub struct GeneticPolicyConfig{
 }
 
 
-pub struct GeneticPolicyGeneric<DP: DomainParameters, S: PolicySpecimen<DP, M> + Sized, M: Send>
+pub struct GeneticPolicyGeneric<DP: Scheme, S: PolicySpecimen<DP, M> + Sized, M: Send>
 {
 
     config: GeneticPolicyConfig,
@@ -37,7 +37,7 @@ pub struct GeneticPolicyGeneric<DP: DomainParameters, S: PolicySpecimen<DP, M> +
 
 
 
-impl <DP: DomainParameters, S: PolicySpecimen<DP, M>, M: Send> GeneticPolicyGeneric<DP, S, M>
+impl <DP: Scheme, S: PolicySpecimen<DP, M>, M: Send> GeneticPolicyGeneric<DP, S, M>
 {
 
 
@@ -61,7 +61,7 @@ impl <DP: DomainParameters, S: PolicySpecimen<DP, M>, M: Send> GeneticPolicyGene
     }
 
     pub fn update_policy(&mut self) -> Result<(), AmfiteatrError<DP>>
-    where <DP as DomainParameters>::UniversalReward: Div<f64, Output=DP::UniversalReward>
+    where <DP as Scheme>::UniversalReward: Div<f64, Output=DP::UniversalReward>
     {
     //where for<'a> &'a DP::UniversalReward: Sum + Div<f64> {
         let _averages: Vec<DP::UniversalReward>  = self.saved_payoffs.iter()
@@ -81,7 +81,7 @@ impl <DP: DomainParameters, S: PolicySpecimen<DP, M>, M: Send> GeneticPolicyGene
 }
 
 impl <
-    DP: DomainParameters,
+    DP: Scheme,
     IS: InformationSet<DP>,
     SM: PolicySpecimen<DP, M> + Policy<DP, InfoSetType=IS> + Sized,
     M: Send

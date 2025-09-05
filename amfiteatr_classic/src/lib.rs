@@ -6,7 +6,7 @@
 pub mod agent;
 /// Module for central environment related structs and traits.
 pub mod env;
-/// Module for definition of classic game domain
+/// Module for definition of classic game scheme
 pub mod domain;
 /// Module for classic policies definitions
 pub mod policy;

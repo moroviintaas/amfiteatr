@@ -17,7 +17,7 @@ pub fn no_assessment_info_set(attr: proc_macro::TokenStream, item: proc_macro::T
 
     let input: ItemStruct = parse_macro_input!(item_copy);
 
-    let domain = parse_macro_input!(attr as syn::Path);
+    let scheme = parse_macro_input!(attr as syn::Path);
     let ident = input.ident;
     let generics = input.generics;
     let where_clause = generics.where_clause;
@@ -26,25 +26,25 @@ pub fn no_assessment_info_set(attr: proc_macro::TokenStream, item: proc_macro::T
 
     let implementation = match params.is_empty(){
         true => quote!{
-            impl amfiteatr_core::agent::EvaluatedInformationSet<#domain,  amfiteatr_core::domain::NoneReward> for #ident{
+            impl amfiteatr_core::agent::EvaluatedInformationSet<#scheme,  amfiteatr_core::scheme::NoneReward> for #ident{
 
-                fn current_assessment(&self) -> amfiteatr_core::domain::NoneReward{
-                    amfiteatr_core::domain::NoneReward{}
+                fn current_assessment(&self) -> amfiteatr_core::scheme::NoneReward{
+                    amfiteatr_core::scheme::NoneReward{}
                 }
-                fn penalty_for_illegal(&self) -> amfiteatr_core::domain::NoneReward {
-                    amfiteatr_core::domain::NoneReward{}
+                fn penalty_for_illegal(&self) -> amfiteatr_core::scheme::NoneReward {
+                    amfiteatr_core::scheme::NoneReward{}
                 }
             }
         },
         false => quote!{
-            impl<#params> amfiteatr_core::agent::EvaluatedInformationSet<#domain, amfiteatr_core::domain::NoneReward> for #ident <#params>
+            impl<#params> amfiteatr_core::agent::EvaluatedInformationSet<#scheme, amfiteatr_core::scheme::NoneReward> for #ident <#params>
             #where_clause{
 
-                fn current_assessment(&self) -> amfiteatr_core::domain::NoneReward {
-                    amfiteatr_core::domain::NoneReward{}
+                fn current_assessment(&self) -> amfiteatr_core::scheme::NoneReward {
+                    amfiteatr_core::scheme::NoneReward{}
                 }
-                fn penalty_for_illegal(&self) -> amfiteatr_core::domain::NoneReward {
-                    amfiteatr_core::domain::NoneReward{}
+                fn penalty_for_illegal(&self) -> amfiteatr_core::scheme::NoneReward {
+                    amfiteatr_core::scheme::NoneReward{}
                 }
             }
         }

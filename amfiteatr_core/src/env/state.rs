@@ -1,10 +1,10 @@
 use std::fmt::Debug;
-use crate::domain::{DomainParameters};
+use crate::scheme::{Scheme};
 
 
 /// Game state to be used in sequential games (where in single time step
 /// only one player is allowed to play).
-pub trait SequentialGameState<DP: DomainParameters>: Send + Debug{
+pub trait SequentialGameState<DP: Scheme>: Send + Debug{
     type Updates: IntoIterator<Item = (DP::AgentId, DP::UpdateType)>;
 
     fn current_player(&self) -> Option<DP::AgentId>;
@@ -24,7 +24,7 @@ pub trait SequentialGameState<DP: DomainParameters>: Send + Debug{
 //pub trait EnvStateSimultaneous{}
 
 
-impl<DP: DomainParameters, T: SequentialGameState<DP>> SequentialGameState<DP> for Box<T>{
+impl<DP: Scheme, T: SequentialGameState<DP>> SequentialGameState<DP> for Box<T>{
     type Updates = T::Updates;
 
     fn current_player(&self) -> Option<DP::AgentId> {
@@ -42,11 +42,11 @@ impl<DP: DomainParameters, T: SequentialGameState<DP>> SequentialGameState<DP> f
 
 
 /// Combination of traits [`SequentialGameState`] and [`From`]
-pub trait ConstructedSequentialGameState<DP: DomainParameters, B>:
+pub trait ConstructedSequentialGameState<DP: Scheme, B>:
     SequentialGameState<DP> + From<B>{}
 
 
-impl<DP: DomainParameters, B, T: SequentialGameState<DP> + From<B>>
+impl<DP: Scheme, B, T: SequentialGameState<DP> + From<B>>
     ConstructedSequentialGameState<DP, B> for T{}
 
 
@@ -54,7 +54,7 @@ impl<DP: DomainParameters, B, T: SequentialGameState<DP> + From<B>>
 
 
 /// Trait adding interface to get current payoff of selected agent.
-pub trait GameStateWithPayoffs<DP: DomainParameters>: SequentialGameState<DP>{
+pub trait GameStateWithPayoffs<DP: Scheme>: SequentialGameState<DP>{
 
     fn state_payoff_of_player(&self, agent: &DP::AgentId) -> DP::UniversalReward;
 

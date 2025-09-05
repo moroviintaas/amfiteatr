@@ -2,7 +2,7 @@ use log::debug;
 use sha2::{Digest, Sha256};
 use amfiteatr_core::agent::{InformationSet, PresentPossibleActions};
 use amfiteatr_core::demo::DemoAction;
-use amfiteatr_core::domain::{DomainParameters, Renew};
+use amfiteatr_core::scheme::{Scheme, Renew};
 use amfiteatr_core::error::AmfiteatrError;
 use crate::expensive_update::domain::ExpensiveUpdateDomain;
 #[derive(Debug, Clone)]
@@ -19,15 +19,15 @@ impl ExpensiveUpdateInformationSet{
 
 
 impl InformationSet<ExpensiveUpdateDomain> for ExpensiveUpdateInformationSet{
-    fn agent_id(&self) -> &<ExpensiveUpdateDomain as DomainParameters>::AgentId {
+    fn agent_id(&self) -> &<ExpensiveUpdateDomain as Scheme>::AgentId {
         &self.id
     }
 
-    fn is_action_valid(&self, _action: &<ExpensiveUpdateDomain as DomainParameters>::ActionType) -> bool {
+    fn is_action_valid(&self, _action: &<ExpensiveUpdateDomain as Scheme>::ActionType) -> bool {
         true
     }
 
-    fn update(&mut self, update: <ExpensiveUpdateDomain as DomainParameters>::UpdateType) -> Result<(), <ExpensiveUpdateDomain as DomainParameters>::GameErrorType> {
+    fn update(&mut self, update: <ExpensiveUpdateDomain as Scheme>::UpdateType) -> Result<(), <ExpensiveUpdateDomain as Scheme>::GameErrorType> {
 
         let mut h = Vec::new();
         h.extend(self.id.to_be_bytes());
