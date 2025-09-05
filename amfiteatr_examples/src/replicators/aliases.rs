@@ -1,10 +1,10 @@
 use amfiteatr_classic::agent::{LocalHistoryConversionToTensor, LocalHistoryInfoSetNumbered};
 use amfiteatr_classic::ClassicActionTensorRepresentation;
 use amfiteatr_rl::policy::PolicyDiscretePPO;
-use crate::replicators::model::ReplDomain;
+use crate::replicators::model::ReplScheme;
 
 pub type ReplPPO = PolicyDiscretePPO<
-    ReplDomain,
+    ReplScheme,
     LocalHistoryInfoSetNumbered,
     LocalHistoryConversionToTensor,
     ClassicActionTensorRepresentation

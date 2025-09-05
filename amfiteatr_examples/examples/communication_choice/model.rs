@@ -7,14 +7,14 @@ use amfiteatr_core::scheme::{AgentMessage, Scheme, EnvironmentMessage, Renew};
 use amfiteatr_core::env::{AutoEnvironmentWithScores, BasicEnvironment, HashMapEnvironment, ReseedEnvironment, RoundRobinUniversalEnvironment, SequentialGameState};
 use amfiteatr_core::error::{AmfiteatrError, CommunicationError};
 use amfiteatr_examples::expensive_update::agent::ExpensiveUpdateInformationSet;
-use amfiteatr_examples::expensive_update::domain::ExpensiveUpdateDomain;
+use amfiteatr_examples::expensive_update::scheme::ExpensiveUpdateScheme;
 use amfiteatr_examples::expensive_update::env::ExpensiveUpdateState;
-use amfiteatr_net_ext::{DomainCommA512, DomainCommE512};
+use amfiteatr_net_ext::{SchemeCommA512, SchemeCommE512};
 use amfiteatr_net_ext::tcp::PairedTcpEnvironmentEndpoint;
 use crate::options::{CCOptions, CommunicationMedium};
 
 
-pub type EUD = ExpensiveUpdateDomain;
+pub type EUD = ExpensiveUpdateScheme;
 pub type EUS = ExpensiveUpdateState;
 pub type EUSI = ExpensiveUpdateInformationSet;
 pub type ErrorAmfi = AmfiteatrError<EUD>;
@@ -115,7 +115,7 @@ impl MapModel<
     }
 }
 
-impl MapModel<DomainCommE512<EUD>, DomainCommA512<EUD>>{
+impl MapModel<SchemeCommE512<EUD>, SchemeCommA512<EUD>>{
     pub fn new(
         options: &CCOptions) -> Result<Self, anyhow::Error>{
 
@@ -132,21 +132,21 @@ impl MapModel<DomainCommE512<EUD>, DomainCommA512<EUD>>{
             CommunicationMedium::StaticMpsc => {
                 for id in 0..options.number_of_players{
                     let (e,a) = StdEnvironmentEndpoint::new_pair();
-                    env_comms.insert(id, DomainCommE512::StdSync(e));
+                    env_comms.insert(id, SchemeCommE512::StdSync(e));
                     let info_set = EUSI::new(id);
-                    agents.push(Arc::new(Mutex::new(AgentGen::new(info_set, DomainCommA512::StdSync(a), random_policy.clone()))))
+                    agents.push(Arc::new(Mutex::new(AgentGen::new(info_set, SchemeCommA512::StdSync(a), random_policy.clone()))))
                 }
             }
             CommunicationMedium::StaticTcp => {
                 let agents_vec: Vec<u64> = (0..options.number_of_players).collect();
                 let (mapped_env_comms, mapped_agent_comms) = PairedTcpEnvironmentEndpoint::create_local_net(28000, agents_vec.iter()).unwrap();
                 env_comms = mapped_env_comms.into_iter().map(|(i, ep)|{
-                    (i, DomainCommE512::Tcp(ep))
+                    (i, SchemeCommE512::Tcp(ep))
                 }).collect();
 
                 for (id, a_comm) in mapped_agent_comms{
                     let info_set = EUSI::new(id);
-                    agents.push(Arc::new(Mutex::new(AgentGen::new(info_set, DomainCommA512::Tcp(a_comm), random_policy.clone()))))
+                    agents.push(Arc::new(Mutex::new(AgentGen::new(info_set, SchemeCommA512::Tcp(a_comm), random_policy.clone()))))
                 }
 
 

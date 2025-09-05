@@ -8,8 +8,8 @@ use amfiteatr_core::error::{AmfiteatrError, ConvertError};
 use amfiteatr_rl::tensor_data::{ContextEncodeTensor, TensorEncoding};
 use crate::agent::{ActionPairMapper, AgentAssessmentClassic, EventCounts, ReplInfoSet};
 use crate::AsymmetricRewardTableInt;
-use crate::domain::{AgentNum, AsUsize, ClassicAction, ClassicGameDomain, ClassicGameError, ClassicGameUpdate, EncounterReport, UsizeAgentId};
-use crate::domain::ClassicAction::{Down, Up};
+use crate::scheme::{AgentNum, AsUsize, ClassicAction, ClassicScheme, ClassicGameError, ClassicGameUpdate, EncounterReport, UsizeAgentId};
+use crate::scheme::ClassicAction::{Down, Up};
 use crate::Side::Left;
 
 
@@ -227,7 +227,7 @@ impl InformationSet<ClassicGameDomainNumbered> for OwnHistoryInfoSetNumbered{
 
  */
 
-impl<ID: UsizeAgentId> InformationSet<ClassicGameDomain<ID>> for LocalHistoryInfoSet<ID> {
+impl<ID: UsizeAgentId> InformationSet<ClassicScheme<ID>> for LocalHistoryInfoSet<ID> {
     fn agent_id(&self) -> &ID {
         &self.id
     }
@@ -330,7 +330,7 @@ impl<ID: UsizeAgentId> ContextEncodeTensor<LocalHistoryConversionToTensor> for L
     }
 }
 
-impl<ID: UsizeAgentId> PresentPossibleActions<ClassicGameDomain<ID>> for LocalHistoryInfoSet<ID>{
+impl<ID: UsizeAgentId> PresentPossibleActions<ClassicScheme<ID>> for LocalHistoryInfoSet<ID>{
     type ActionIteratorType = [ClassicAction;2];
 
     fn available_actions(&self) -> Self::ActionIteratorType {
@@ -338,8 +338,8 @@ impl<ID: UsizeAgentId> PresentPossibleActions<ClassicGameDomain<ID>> for LocalHi
     }
 }
 
-impl<ID: UsizeAgentId> Renew<ClassicGameDomain<ID>, ()> for LocalHistoryInfoSet<ID>{
-    fn renew_from(&mut self, _base: ()) -> Result<(), AmfiteatrError<ClassicGameDomain<ID>>> {
+impl<ID: UsizeAgentId> Renew<ClassicScheme<ID>, ()> for LocalHistoryInfoSet<ID>{
+    fn renew_from(&mut self, _base: ()) -> Result<(), AmfiteatrError<ClassicScheme<ID>>> {
         self.previous_encounters.clear();
         self.cache_table_payoff = 0;
         self.count_actions = ActionPairMapper::zero();
@@ -348,7 +348,7 @@ impl<ID: UsizeAgentId> Renew<ClassicGameDomain<ID>, ()> for LocalHistoryInfoSet<
 }
 
 
-impl<ID: UsizeAgentId> EvaluatedInformationSet<ClassicGameDomain<ID>, AgentAssessmentClassic<i64>> for LocalHistoryInfoSet<ID>{
+impl<ID: UsizeAgentId> EvaluatedInformationSet<ClassicScheme<ID>, AgentAssessmentClassic<i64>> for LocalHistoryInfoSet<ID>{
 
     fn current_assessment(&self) ->AgentAssessmentClassic<i64> {
 

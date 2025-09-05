@@ -2,8 +2,8 @@ use std::fmt::{Debug, Formatter};
 use amfiteatr_core::agent::Policy;
 use amfiteatr_core::error::AmfiteatrError;
 use crate::agent::LocalHistoryInfoSet;
-use crate::domain::ClassicAction::{Down, Up};
-use crate::domain::{ClassicAction, ClassicGameDomain, UsizeAgentId};
+use crate::scheme::ClassicAction::{Down, Up};
+use crate::scheme::{ClassicAction, ClassicScheme, UsizeAgentId};
 
 
 /// Uses last action that enemy used two times in the row, if no such action is found start with
@@ -11,10 +11,10 @@ use crate::domain::{ClassicAction, ClassicGameDomain, UsizeAgentId};
 pub struct SwitchAfterTwo{
 }
 
-impl<ID: UsizeAgentId> Policy<ClassicGameDomain<ID>> for SwitchAfterTwo{
+impl<ID: UsizeAgentId> Policy<ClassicScheme<ID>> for SwitchAfterTwo{
     type InfoSetType = LocalHistoryInfoSet<ID>;
 
-    fn select_action(&self, state: &Self::InfoSetType) -> Result<ClassicAction, AmfiteatrError<ClassicGameDomain<ID>>> {
+    fn select_action(&self, state: &Self::InfoSetType) -> Result<ClassicAction, AmfiteatrError<ClassicScheme<ID>>> {
 
         if let Some(last_report) = state.previous_encounters().last(){
             let mut other_action = last_report.other_player_action;
@@ -37,10 +37,10 @@ pub struct ForgiveAfterTwo{
 }
 
 
-impl<ID: UsizeAgentId> Policy<ClassicGameDomain<ID>> for ForgiveAfterTwo{
+impl<ID: UsizeAgentId> Policy<ClassicScheme<ID>> for ForgiveAfterTwo{
     type InfoSetType = LocalHistoryInfoSet<ID>;
 
-    fn select_action(&self, state: &Self::InfoSetType) -> Result<ClassicAction, AmfiteatrError<ClassicGameDomain<ID>>> {
+    fn select_action(&self, state: &Self::InfoSetType) -> Result<ClassicAction, AmfiteatrError<ClassicScheme<ID>>> {
 
         if let Some(_last_report) = state.previous_encounters().last(){
             let mut subsequent_coops = 0;
@@ -100,10 +100,10 @@ fn fibonacci(index: u64) -> u64{
 }
 
 
-impl<ID: UsizeAgentId> Policy<ClassicGameDomain<ID>> for FibonacciForgiveStrategy{
+impl<ID: UsizeAgentId> Policy<ClassicScheme<ID>> for FibonacciForgiveStrategy{
     type InfoSetType = LocalHistoryInfoSet<ID>;
 
-    fn select_action(&self, state: &Self::InfoSetType) -> Result<ClassicAction, AmfiteatrError<ClassicGameDomain<ID>>> {
+    fn select_action(&self, state: &Self::InfoSetType) -> Result<ClassicAction, AmfiteatrError<ClassicScheme<ID>>> {
 
         let enemy_defects = state.count_actions_other(Up) as u64;
         let enemy_coops = state.count_actions_other(Down) as u64;

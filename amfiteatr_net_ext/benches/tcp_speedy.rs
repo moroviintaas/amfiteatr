@@ -4,7 +4,7 @@ use criterion::{BenchmarkId, Criterion, criterion_group, criterion_main};
 
 use amfiteatr_core::agent::{AgentGen, AutomaticAgent, RandomPolicy};
 use amfiteatr_core::comm::{EnvironmentMpscPort, StdEnvironmentEndpoint};
-use amfiteatr_core::demo::{DemoDomain, DemoInfoSet, DemoState};
+use amfiteatr_core::demo::{DemoScheme, DemoInfoSet, DemoState};
 use amfiteatr_core::env::{AutoEnvironmentWithScores, BasicEnvironment, HashMapEnvironment, RoundRobinUniversalEnvironment};
 use amfiteatr_net_ext::tcp::{PairedTcpEnvironmentEndpoint};
 
@@ -26,10 +26,10 @@ pub fn bench_demo_game_tcp_speedy_hashmap(c: &mut Criterion){
 
                     let mut agents = Vec::new();
                     let mut env_comms = HashMap::new();
-                    let random_policy = RandomPolicy::<DemoDomain, DemoInfoSet>::new();
+                    let random_policy = RandomPolicy::<DemoScheme, DemoInfoSet>::new();
                     for id in 0..{
 
-                        let (env_comm, agent_comm) = PairedTcpEnvironmentEndpoint::<DemoDomain, 512>::create_local_pair(11000+id as u16).unwrap();
+                        let (env_comm, agent_comm) = PairedTcpEnvironmentEndpoint::<DemoScheme, 512>::create_local_pair(11000+id as u16).unwrap();
                         env_comms.insert(id, env_comm);
                         let info_set = DemoInfoSet::new(id, number_of_bandits);
 
@@ -88,7 +88,7 @@ pub fn bench_demo_game_mpsc_hashmap(c: &mut Criterion){
 
                          let mut agents = Vec::new();
                          let mut env_comms = HashMap::new();
-                         let random_policy = RandomPolicy::<DemoDomain, DemoInfoSet>::new();
+                         let random_policy = RandomPolicy::<DemoScheme, DemoInfoSet>::new();
                          for id in 0..player_number_setup{
                              let (comm_env_temp, comm_agent) = StdEnvironmentEndpoint::new_pair();
 
@@ -149,7 +149,7 @@ pub fn bench_demo_game_single_mpsc(c: &mut Criterion){
                          let number_of_bandits = bandits.len();
 
                          let mut agents = Vec::new();
-                         let random_policy = RandomPolicy::<DemoDomain, DemoInfoSet>::new();
+                         let random_policy = RandomPolicy::<DemoScheme, DemoInfoSet>::new();
                          let mut env_adapter = EnvironmentMpscPort::new();
 
                          for id in 0..player_number_setup{

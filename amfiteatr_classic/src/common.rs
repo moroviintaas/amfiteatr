@@ -4,7 +4,7 @@ use enum_map::{Enum, enum_map, EnumMap};
 use amfiteatr_core::error::ConvertError;
 use amfiteatr_rl::tch::Tensor;
 use amfiteatr_rl::tensor_data::{ContextDecodeIndexI64, ContextDecodeTensor, ContextEncodeIndexI64, TensorDecoding, TensorIndexI64Encoding};
-use crate::domain::{ClassicAction, IntReward};
+use crate::scheme::{ClassicAction, IntReward};
 
 /// Enum for representing on which side of encounter is player.
 /// This is important for [`AsymmetricRewardTable`]

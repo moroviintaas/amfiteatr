@@ -2,7 +2,7 @@ use log::warn;
 use amfiteatr_core::scheme::{Scheme, Renew};
 use amfiteatr_core::env::{SequentialGameState, GameStateWithPayoffs};
 use amfiteatr_core::error::AmfiteatrError;
-use crate::connect_four::common::{Board, ConnectFourAction, ConnectFourBinaryObservation, ConnectFourDomain, ConnectFourError, ConnectFourPlayer};
+use crate::connect_four::common::{Board, ConnectFourAction, ConnectFourBinaryObservation, ConnectFourScheme, ConnectFourError, ConnectFourPlayer};
 
 
 #[derive(Clone, Debug)]
@@ -126,8 +126,8 @@ impl ConnectFourRustEnvState{
     }
 }
 
-impl SequentialGameState<ConnectFourDomain> for ConnectFourRustEnvState{
-    type Updates = [(<ConnectFourDomain as Scheme>::AgentId, <ConnectFourDomain as Scheme>::UpdateType );1];
+impl SequentialGameState<ConnectFourScheme> for ConnectFourRustEnvState{
+    type Updates = [(<ConnectFourScheme as Scheme>::AgentId, <ConnectFourScheme as Scheme>::UpdateType );1];
 
     fn current_player(&self) -> Option<ConnectFourPlayer> {
         self.current_player
@@ -183,8 +183,8 @@ impl SequentialGameState<ConnectFourDomain> for ConnectFourRustEnvState{
     }
 }
 
-impl Renew<ConnectFourDomain, ()> for ConnectFourRustEnvState{
-    fn renew_from(&mut self, _base: ()) -> Result<(), AmfiteatrError<ConnectFourDomain>> {
+impl Renew<ConnectFourScheme, ()> for ConnectFourRustEnvState{
+    fn renew_from(&mut self, _base: ()) -> Result<(), AmfiteatrError<ConnectFourScheme>> {
         self.board = Board::default();
         self.current_player = Some(ConnectFourPlayer::One);
         self.truncations = [false, false];
@@ -196,9 +196,9 @@ impl Renew<ConnectFourDomain, ()> for ConnectFourRustEnvState{
     }
 }
 
-impl GameStateWithPayoffs<ConnectFourDomain> for ConnectFourRustEnvState{
-    fn state_payoff_of_player(&self, agent: &<ConnectFourDomain as Scheme>::AgentId)
-                              -> <ConnectFourDomain as Scheme>::UniversalReward {
+impl GameStateWithPayoffs<ConnectFourScheme> for ConnectFourRustEnvState{
+    fn state_payoff_of_player(&self, agent: &<ConnectFourScheme as Scheme>::AgentId)
+                              -> <ConnectFourScheme as Scheme>::UniversalReward {
         self.scores[agent.index()]
     }
 }

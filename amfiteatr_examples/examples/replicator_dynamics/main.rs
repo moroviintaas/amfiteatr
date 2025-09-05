@@ -1,6 +1,6 @@
 use amfiteatr_examples::replicators::options::ReplicatorOptions;
 use clap::Parser;
-use amfiteatr_classic::domain::AgentNum;
+use amfiteatr_classic::scheme::AgentNum;
 use amfiteatr_examples::common::PolicySelect;
 use amfiteatr_examples::replicators::error::ReplError;
 use amfiteatr_examples::replicators::model::{ReplicatorModelBuilder, ReplicatorNetworkPolicy};

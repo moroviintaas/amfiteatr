@@ -4,8 +4,8 @@ use std::fmt::Display;
 use std::fmt::Formatter;
 use crate::agent::ReplInfoSet;
 use crate::AsymmetricRewardTableInt;
-use crate::domain::{AgentNum, ClassicAction, ClassicGameDomain, ClassicGameDomainNumbered, ClassicGameError, IntReward};
-use crate::domain::ClassicGameError::EncounterNotReported;
+use crate::scheme::{AgentNum, ClassicAction, ClassicScheme, ClassicGameSchemeNumbered, ClassicGameError, IntReward};
+use crate::scheme::ClassicGameError::EncounterNotReported;
 
 /// Information set of player that does not collect information about previous actions performed
 /// and observed from enemy
@@ -42,16 +42,16 @@ impl ReplInfoSet<AgentNum> for MinimalInfoSet{
 
 
 
-impl InformationSet<ClassicGameDomain<AgentNum>> for MinimalInfoSet {
+impl InformationSet<ClassicScheme<AgentNum>> for MinimalInfoSet {
     fn agent_id(&self) -> &AgentNum {
         &self.id
     }
 
-    fn is_action_valid(&self, _action: &<ClassicGameDomain<AgentNum> as Scheme>::ActionType) -> bool {
+    fn is_action_valid(&self, _action: &<ClassicScheme<AgentNum> as Scheme>::ActionType) -> bool {
         true
     }
 
-    fn update(&mut self, update: <ClassicGameDomainNumbered as Scheme>::UpdateType) -> Result<(), ClassicGameError<AgentNum>> {
+    fn update(&mut self, update: <ClassicGameSchemeNumbered as Scheme>::UpdateType) -> Result<(), ClassicGameError<AgentNum>> {
 
         if let Some(this_encounter_report) = update.encounters.get(&self.id){
             let reward = self.reward_table
@@ -70,7 +70,7 @@ impl InformationSet<ClassicGameDomain<AgentNum>> for MinimalInfoSet {
     }
 }
 
-impl EvaluatedInformationSet<ClassicGameDomainNumbered, IntReward> for MinimalInfoSet {
+impl EvaluatedInformationSet<ClassicGameSchemeNumbered, IntReward> for MinimalInfoSet {
 
     fn current_assessment(&self) -> IntReward {
         self.payoff
@@ -81,7 +81,7 @@ impl EvaluatedInformationSet<ClassicGameDomainNumbered, IntReward> for MinimalIn
     }
 }
 
-impl PresentPossibleActions<ClassicGameDomainNumbered> for MinimalInfoSet {
+impl PresentPossibleActions<ClassicGameSchemeNumbered> for MinimalInfoSet {
     type ActionIteratorType = [ClassicAction;2];
 
     fn available_actions(&self) -> Self::ActionIteratorType {

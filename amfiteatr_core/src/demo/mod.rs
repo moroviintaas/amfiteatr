@@ -4,7 +4,7 @@
 //! use std::thread;
 //! use amfiteatr_core::agent::{AgentGen, TracingAgentGen,  AutomaticAgent, RewardedAgent, RandomPolicy};
 //! use amfiteatr_core::comm::StdEnvironmentEndpoint;
-//! use amfiteatr_core::demo::{DemoInfoSet, DemoDomain, DemoState, DemoPolicySelectFirst, DEMO_AGENT_BLUE, DEMO_AGENT_RED};
+//! use amfiteatr_core::demo::{DemoInfoSet, DemoScheme, DemoState, DemoPolicySelectFirst, DEMO_AGENT_BLUE, DEMO_AGENT_RED};
 //! use amfiteatr_core::env::*;
 //!
 //!
@@ -21,7 +21,7 @@
 //! let mut environment = TracingHashMapEnvironment::new(state, env_comms);
 //! let blue_info_set = DemoInfoSet::new(DEMO_AGENT_BLUE, number_of_bandits);
 //! let red_info_set = DemoInfoSet::new(DEMO_AGENT_RED, number_of_bandits);
-//! let mut agent_blue = TracingAgentGen::new(blue_info_set, comm_agent_blue, RandomPolicy::<DemoDomain, DemoInfoSet>::new());
+//! let mut agent_blue = TracingAgentGen::new(blue_info_set, comm_agent_blue, RandomPolicy::<DemoScheme, DemoInfoSet>::new());
 //! let mut agent_red = AgentGen::new(red_info_set, comm_agent_red, DemoPolicySelectFirst{});
 //!
 //! thread::scope(|s|{
@@ -110,9 +110,9 @@ impl Display for DemoError{
 
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct DemoDomain {}
+pub struct DemoScheme {}
 
-impl Scheme for DemoDomain {
+impl Scheme for DemoScheme {
     type ActionType = DemoAction;
     type GameErrorType = DemoError;
     type UpdateType = (DemoAgentID, DemoAction, f32);
@@ -152,7 +152,7 @@ impl DemoState{
 
     }
 }
-impl SequentialGameState<DemoDomain> for DemoState{
+impl SequentialGameState<DemoScheme> for DemoState{
     type Updates = Vec<(DemoAgentID, (DemoAgentID, DemoAction, f32))>;
 
     fn current_player(&self) -> Option<DemoAgentID> {
@@ -228,8 +228,8 @@ impl SequentialGameState<DemoDomain> for DemoState{
     }
 }
 
-impl Renew<DemoDomain, ()> for DemoState{
-    fn renew_from(&mut self, _base: ()) -> Result<(), AmfiteatrError<DemoDomain>> {
+impl Renew<DemoScheme, ()> for DemoState{
+    fn renew_from(&mut self, _base: ()) -> Result<(), AmfiteatrError<DemoScheme>> {
         self.turn_of = if self.max_rounds > 0{
             Some(0)
         } else {
@@ -265,14 +265,14 @@ impl DemoInfoSet{
     }
 }
 
-impl Renew<DemoDomain, ()> for DemoInfoSet{
-    fn renew_from(&mut self, _base: ()) -> Result<(), AmfiteatrError<DemoDomain>> {
+impl Renew<DemoScheme, ()> for DemoInfoSet{
+    fn renew_from(&mut self, _base: ()) -> Result<(), AmfiteatrError<DemoScheme>> {
         self.rewards.clear();
         Ok(())
     }
 }
 
-impl InformationSet<DemoDomain> for DemoInfoSet{
+impl InformationSet<DemoScheme> for DemoInfoSet{
     fn agent_id(&self) -> &DemoAgentID {
         &self.player_id
     }
@@ -296,7 +296,7 @@ impl InformationSet<DemoDomain> for DemoInfoSet{
     }
 }
 
-impl PresentPossibleActions<DemoDomain> for DemoInfoSet{
+impl PresentPossibleActions<DemoScheme> for DemoInfoSet{
     type ActionIteratorType = Vec<DemoAction>;
 
     fn available_actions(&self) -> Self::ActionIteratorType {
@@ -308,7 +308,7 @@ impl PresentPossibleActions<DemoDomain> for DemoInfoSet{
     }
 }
 
-impl EvaluatedInformationSet<DemoDomain, f32> for DemoInfoSet{
+impl EvaluatedInformationSet<DemoScheme, f32> for DemoInfoSet{
 
     fn current_assessment(&self) -> f32 {
         self.rewards.iter().sum()
@@ -319,7 +319,7 @@ impl EvaluatedInformationSet<DemoDomain, f32> for DemoInfoSet{
     }
 }
 
-impl GameStateWithPayoffs<DemoDomain> for DemoState{
+impl GameStateWithPayoffs<DemoScheme> for DemoState{
     fn state_payoff_of_player(&self, agent: &DemoAgentID) -> f32 {
         /*
         match agent{
@@ -342,10 +342,10 @@ pub struct DemoPolicySelectFirst{
 
 }
 
-impl Policy<DemoDomain> for DemoPolicySelectFirst{
+impl Policy<DemoScheme> for DemoPolicySelectFirst{
     type InfoSetType = DemoInfoSet;
 
-    fn select_action(&self, state: &Self::InfoSetType) -> Result<DemoAction, AmfiteatrError<DemoDomain>> {
+    fn select_action(&self, state: &Self::InfoSetType) -> Result<DemoAction, AmfiteatrError<DemoScheme>> {
         state.available_actions().first().cloned().ok_or_else(|| AmfiteatrError::NoActionAvailable {
             context: "Demo Policy".into()
         })

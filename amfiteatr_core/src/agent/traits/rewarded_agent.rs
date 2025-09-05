@@ -42,7 +42,7 @@ pub trait RewardedAgent<S: Scheme>{
     /// ```
     /// use amfiteatr_core::agent::{AgentGen, RandomPolicy, RewardedAgent};
     /// use amfiteatr_core::comm::StdAgentEndpoint;
-    /// use amfiteatr_core::demo::{DemoDomain, DemoInfoSet};
+    /// use amfiteatr_core::demo::{DemoScheme, DemoInfoSet};
     /// let mut agent = AgentGen::new(DemoInfoSet::new(0, 3), StdAgentEndpoint::new_pair().0, RandomPolicy::new());
     /// agent.current_universal_reward_add(&11.0);
     /// agent.commit_partial_rewards();

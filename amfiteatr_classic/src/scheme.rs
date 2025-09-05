@@ -10,10 +10,10 @@ use serde::{Deserialize, Serialize};
 use amfiteatr_rl::error::TensorRepresentationError;
 use amfiteatr_rl::tch::Tensor;
 use amfiteatr_rl::tensor_data::{TryIntoTensor};
-use crate::domain::TwoPlayersStdName::{Alice, Bob};
+use crate::scheme::TwoPlayersStdName::{Alice, Bob};
 use crate::env::PairingVec;
 use crate::{AsymmetricRewardTable, Side};
-use crate::domain::ClassicAction::{Down, Up};
+use crate::scheme::ClassicAction::{Down, Up};
 
 /// Trait to implement for types that can be represented as usize.
 /// > Here it will be used for Agents that can be identified with variants of enum map or numbers.
@@ -150,8 +150,8 @@ impl TryFrom<&Tensor> for ClassicAction{
     type Error = ConvertError;
 
     /// ```
-    /// use amfiteatr_classic::domain::ClassicAction;
-    /// use amfiteatr_classic::domain::ClassicAction::Down;
+    /// use amfiteatr_classic::scheme::ClassicAction;
+    /// use amfiteatr_classic::scheme::ClassicAction::Down;
     /// use amfiteatr_rl::tch::Tensor;
     /// let t = Tensor::from_slice(&[1i64;1]);
     /// let action = ClassicAction::try_from(&t).unwrap();
@@ -244,7 +244,7 @@ impl Into<AmfiError<PrisonerDomain>> for PrisonerError {
 }
 
  */
-impl<ID: UsizeAgentId> From<ClassicGameError<ID>> for AmfiteatrError<ClassicGameDomain<ID>>{
+impl<ID: UsizeAgentId> From<ClassicGameError<ID>> for AmfiteatrError<ClassicScheme<ID>>{
     fn from(value: ClassicGameError<ID>) -> Self {
         AmfiteatrError::Game{source: value}
     }
@@ -253,7 +253,7 @@ impl<ID: UsizeAgentId> From<ClassicGameError<ID>> for AmfiteatrError<ClassicGame
 /// Game scheme for classic theory games. Generic parameter is for agent id, because one may
 /// want to make model with agent named by enum variants or by unique numbers.
 #[derive(Clone, Debug, Serialize)]
-pub struct ClassicGameDomain<ID: AgentIdentifier>{
+pub struct ClassicScheme<ID: AgentIdentifier>{
     _id: PhantomData<ID>
 }
 
@@ -428,14 +428,14 @@ pub struct ClassicGameUpdate<ID: UsizeAgentId>{
     pub pairing:  Option<Arc<PairingVec<ID>>>
 }
 
-impl<ID: UsizeAgentId> Scheme for ClassicGameDomain<ID> {
+impl<ID: UsizeAgentId> Scheme for ClassicScheme<ID> {
     type ActionType = ClassicAction;
     type GameErrorType = ClassicGameError<ID>;
     type UpdateType = ClassicGameUpdate<ID>;
     type AgentId = ID;
     type UniversalReward = IntReward;
 }
-/// Alias for [`ClassicGameDomain`] using two named players.
-pub type ClassicGameDomainTwoPlayersNamed = ClassicGameDomain<TwoPlayersStdName>;
-/// Alias for [`ClassicGameDomain`] numbered players.
-pub type ClassicGameDomainNumbered = ClassicGameDomain<AgentNum>;
+/// Alias for [`ClassicScheme`] using two named players.
+pub type ClassicGameSchemeTwoPlayersNamed = ClassicScheme<TwoPlayersStdName>;
+/// Alias for [`ClassicScheme`] numbered players.
+pub type ClassicGameSchemeNumbered = ClassicScheme<AgentNum>;

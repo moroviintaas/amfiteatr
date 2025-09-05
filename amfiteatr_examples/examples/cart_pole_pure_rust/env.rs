@@ -2,9 +2,9 @@
 
 
 use std::fmt::Debug;
-use amfiteatr_core::domain::DomainParameters;
+use amfiteatr_core::scheme::Scheme;
 use amfiteatr_core::env::SequentialGameState;
-use crate::common::{CartPoleAction, CartPoleDomain, CartPoleObservation, CartPoleRustError, SINGLE_PLAYER_ID};
+use crate::common::{CartPoleAction, CartPoleScheme, CartPoleObservation, CartPoleRustError, SINGLE_PLAYER_ID};
 #[derive(Debug, Clone)]
 enum KinematicsIntegrator{
     #[warn(dead_code)]
@@ -86,10 +86,10 @@ impl CartPoleEnvStateRust {
 
 
 
-impl SequentialGameState<CartPoleDomain> for CartPoleEnvStateRust{
-    type Updates = [(<CartPoleDomain as DomainParameters>::AgentId, <CartPoleDomain as DomainParameters>::UpdateType );1];
+impl SequentialGameState<CartPoleScheme> for CartPoleEnvStateRust{
+    type Updates = [(<CartPoleScheme as Scheme>::AgentId, <CartPoleScheme as Scheme>::UpdateType );1];
 
-    fn current_player(&self) -> Option<<CartPoleDomain as DomainParameters>::AgentId> {
+    fn current_player(&self) -> Option<<CartPoleScheme as Scheme>::AgentId> {
         if self.terminated || self.steps_made > self.max_episode_steps{
             None
         } else {
@@ -101,7 +101,7 @@ impl SequentialGameState<CartPoleDomain> for CartPoleEnvStateRust{
         self.terminated || self.steps_made > self.max_episode_steps
     }
 
-    fn forward(&mut self, _agent: <CartPoleDomain as DomainParameters>::AgentId, action: <CartPoleDomain as DomainParameters>::ActionType) -> Result<Self::Updates, <CartPoleDomain as DomainParameters>::GameErrorType> {
+    fn forward(&mut self, _agent: <CartPoleScheme as Scheme>::AgentId, action: <CartPoleScheme as Scheme>::ActionType) -> Result<Self::Updates, <CartPoleScheme as Scheme>::GameErrorType> {
 
         let s = self.state.as_ref().ok_or(CartPoleRustError::GameStateNotInitialized)?;
         //let CartPoleObservation{position: x, velocity: x_dot, angle: theta, angular_velocity: theta_dot} = s;

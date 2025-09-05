@@ -14,8 +14,8 @@ use amfiteatr_core::comm::EnvironmentMpscPort;
 use amfiteatr_core::env::{AutoEnvironmentWithScores, ReseedEnvironment, ScoreEnvironment, TracingBasicEnvironment, TracingEnvironment};
 use amfiteatr_core::error::AmfiteatrError;
 use amfiteatr_classic::agent::{LocalHistoryInfoSet, LocalHistoryConversionToTensor, AgentAssessmentClassic};
-use amfiteatr_classic::domain::{AgentNum, ClassicGameDomain, ClassicGameDomainNumbered};
-use amfiteatr_classic::domain::ClassicAction::Down;
+use amfiteatr_classic::scheme::{AgentNum, ClassicScheme, ClassicGameSchemeNumbered};
+use amfiteatr_classic::scheme::ClassicAction::Down;
 use amfiteatr_classic::env::PairingState;
 use amfiteatr_classic::SymmetricRewardTableInt;
 use amfiteatr_rl::policy::*;
@@ -50,15 +50,15 @@ pub fn setup_logger(options: &EducatorOptions) -> Result<(), fern::InitError> {
         .apply()?;
     Ok(())
 }
-type Domain = ClassicGameDomain<AgentNum>;
+type ClassicSchemeNumeric = ClassicScheme<AgentNum>;
 
 
 
 pub fn run_game(
-    env: &mut (impl AutoEnvironmentWithScores<Domain> + Send + ReseedEnvironment<Domain, ()>),
-    agent0: &mut (impl Send + MultiEpisodeAutoAgent<Domain, ()>),
-    agent1: &mut (impl Send + MultiEpisodeAutoAgent<Domain, ()>))
-    -> Result<(), AmfiteatrError<Domain>>{
+    env: &mut (impl AutoEnvironmentWithScores<ClassicSchemeNumeric> + Send + ReseedEnvironment<ClassicSchemeNumeric, ()>),
+    agent0: &mut (impl Send + MultiEpisodeAutoAgent<ClassicSchemeNumeric, ()>),
+    agent1: &mut (impl Send + MultiEpisodeAutoAgent<ClassicSchemeNumeric, ()>))
+    -> Result<(), AmfiteatrError<ClassicSchemeNumeric>>{
 
     thread::scope(|s|{
         s.spawn(||{
@@ -76,15 +76,14 @@ pub fn run_game(
 
 }
 
-type D = ClassicGameDomainNumbered;
+type D = ClassicGameSchemeNumbered;
 
 
-fn main() -> Result<(), AmfiteatrError<ClassicGameDomain<AgentNum>>>{
+fn main() -> Result<(), AmfiteatrError<ClassicScheme<AgentNum>>>{
 
     let args = EducatorOptions::parse();
     setup_logger(&args).unwrap();
     let device = Device::Cpu;
-    //type Domain = ClassicGameDomainNumbered;
     let number_of_players = 2;
 
 

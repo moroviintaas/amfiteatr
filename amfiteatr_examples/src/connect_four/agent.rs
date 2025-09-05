@@ -5,7 +5,7 @@ use amfiteatr_core::error::{AmfiteatrError, ConvertError, TensorError};
 use amfiteatr_rl::MaskingInformationSetAction;
 use amfiteatr_rl::tch::Tensor;
 use amfiteatr_rl::tensor_data::{TensorEncoding, ContextEncodeTensor, ContextDecodeTensor, TensorDecoding, ContextEncodeIndexI64, TensorIndexI64Encoding, ContextDecodeIndexI64};
-use crate::connect_four::common::{ConnectFourAction, ConnectFourBinaryObservation, ConnectFourDomain, ConnectFourPlayer};
+use crate::connect_four::common::{ConnectFourAction, ConnectFourBinaryObservation, ConnectFourScheme, ConnectFourPlayer};
 
 #[derive(Clone, Debug)]
 pub struct ConnectFourInfoSet{
@@ -21,7 +21,7 @@ impl ConnectFourInfoSet{
     }
 }
 
-impl InformationSet<ConnectFourDomain> for ConnectFourInfoSet{
+impl InformationSet<ConnectFourScheme> for ConnectFourInfoSet{
     fn agent_id(&self) -> &ConnectFourPlayer {
         &self.id
     }
@@ -31,14 +31,14 @@ impl InformationSet<ConnectFourDomain> for ConnectFourInfoSet{
             self.latest_observation.board[(0, action.index(), 1)] == 0
     }
 
-    fn update(&mut self, update: <ConnectFourDomain as Scheme>::UpdateType) -> Result<(), <ConnectFourDomain as Scheme>::GameErrorType> {
+    fn update(&mut self, update: <ConnectFourScheme as Scheme>::UpdateType) -> Result<(), <ConnectFourScheme as Scheme>::GameErrorType> {
         self.latest_observation = update;
         Ok(())
     }
 }
 
-impl Renew<ConnectFourDomain, ()> for ConnectFourInfoSet{
-    fn renew_from(&mut self, _base: ()) -> Result<(), AmfiteatrError<ConnectFourDomain>> {
+impl Renew<ConnectFourScheme, ()> for ConnectFourInfoSet{
+    fn renew_from(&mut self, _base: ()) -> Result<(), AmfiteatrError<ConnectFourScheme>> {
         self.latest_observation = ConnectFourBinaryObservation::default();
         Ok(())
     }
@@ -118,8 +118,8 @@ impl ContextEncodeIndexI64<ConnectFourActionTensorRepresentation> for ConnectFou
     }
 }
 
-impl MaskingInformationSetAction<ConnectFourDomain, ConnectFourActionTensorRepresentation> for ConnectFourInfoSet{
-    fn try_build_mask(&self, _ctx: &ConnectFourActionTensorRepresentation) -> Result<Tensor, AmfiteatrError<ConnectFourDomain>> {
+impl MaskingInformationSetAction<ConnectFourScheme, ConnectFourActionTensorRepresentation> for ConnectFourInfoSet{
+    fn try_build_mask(&self, _ctx: &ConnectFourActionTensorRepresentation) -> Result<Tensor, AmfiteatrError<ConnectFourScheme>> {
         /*let top_row_is_empty: [bool; 7] =  self.latest_observation.board[0].map(|c| {
             c[0] == c[1] && c[1] == 0
         }).collect();

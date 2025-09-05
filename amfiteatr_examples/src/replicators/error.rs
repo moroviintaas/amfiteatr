@@ -1,11 +1,11 @@
 use thiserror::Error;
 use amfiteatr_core::error::AmfiteatrError;
-use crate::replicators::model::ReplDomain;
+use crate::replicators::model::ReplScheme;
 
 #[derive(Error, Debug, Clone)]
 pub enum ReplError {
     #[error("Amfiteatr error: {0}")]
-    Amfiteatr(AmfiteatrError<ReplDomain>),
+    Amfiteatr(AmfiteatrError<ReplScheme>),
     #[error("Builder missing parameter {0}")]
     MissingParameter(String),
     #[error("Agent duplication {0}")]
@@ -19,8 +19,8 @@ pub enum ReplError {
     //#[error("Classic)]
 }
 
-impl From<AmfiteatrError<ReplDomain>> for ReplError {
-    fn from(value: AmfiteatrError<ReplDomain>) -> Self {
+impl From<AmfiteatrError<ReplScheme>> for ReplError {
+    fn from(value: AmfiteatrError<ReplScheme>) -> Self {
         Self::Amfiteatr(value)
     }
 }

@@ -3,13 +3,13 @@ use amfiteatr_core::scheme::Scheme;
 
 
 #[derive(Debug, Clone)]
-pub struct ExpensiveUpdateDomain{}
+pub struct ExpensiveUpdateScheme {}
 
 pub type UpdateCost = u64;
 
 
 
-impl Scheme for ExpensiveUpdateDomain {
+impl Scheme for ExpensiveUpdateScheme {
     type ActionType = DemoAction;
     type GameErrorType = DemoError;
     type UpdateType = UpdateCost;

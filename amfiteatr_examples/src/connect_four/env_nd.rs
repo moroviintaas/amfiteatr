@@ -3,7 +3,7 @@ use ndarray::{Array2};
 use amfiteatr_core::scheme::{Scheme, Renew};
 use amfiteatr_core::env::{GameStateWithPayoffs, SequentialGameState};
 use amfiteatr_core::error::AmfiteatrError;
-use crate::connect_four::common::{ConnectFourAction, ConnectFourBinaryObservation, ConnectFourDomain, ConnectFourError, ConnectFourPlayer};
+use crate::connect_four::common::{ConnectFourAction, ConnectFourBinaryObservation, ConnectFourScheme, ConnectFourError, ConnectFourPlayer};
 
 #[derive(Clone, Debug)]
 pub struct ConnectFourRustNdEnvState{
@@ -125,8 +125,8 @@ impl ConnectFourRustNdEnvState{
     }
 }
 
-impl SequentialGameState<ConnectFourDomain> for ConnectFourRustNdEnvState{
-    type Updates = [(<ConnectFourDomain as Scheme>::AgentId, <ConnectFourDomain as Scheme>::UpdateType );1];
+impl SequentialGameState<ConnectFourScheme> for ConnectFourRustNdEnvState{
+    type Updates = [(<ConnectFourScheme as Scheme>::AgentId, <ConnectFourScheme as Scheme>::UpdateType );1];
 
     fn current_player(&self) -> Option<ConnectFourPlayer> {
         self.current_player
@@ -185,8 +185,8 @@ impl SequentialGameState<ConnectFourDomain> for ConnectFourRustNdEnvState{
 
 }
 
-impl Renew<ConnectFourDomain, ()> for ConnectFourRustNdEnvState{
-    fn renew_from(&mut self, _base: ()) -> Result<(), AmfiteatrError<ConnectFourDomain>> {
+impl Renew<ConnectFourScheme, ()> for ConnectFourRustNdEnvState{
+    fn renew_from(&mut self, _base: ()) -> Result<(), AmfiteatrError<ConnectFourScheme>> {
         self.board = Array2::zeros((6,7));
         self.current_player = Some(ConnectFourPlayer::One);
         self.truncations = [false, false];
@@ -198,9 +198,9 @@ impl Renew<ConnectFourDomain, ()> for ConnectFourRustNdEnvState{
     }
 }
 
-impl GameStateWithPayoffs<ConnectFourDomain> for ConnectFourRustNdEnvState{
-    fn state_payoff_of_player(&self, agent: &<ConnectFourDomain as Scheme>::AgentId)
-                              -> <ConnectFourDomain as Scheme>::UniversalReward {
+impl GameStateWithPayoffs<ConnectFourScheme> for ConnectFourRustNdEnvState{
+    fn state_payoff_of_player(&self, agent: &<ConnectFourScheme as Scheme>::AgentId)
+                              -> <ConnectFourScheme as Scheme>::UniversalReward {
         self.scores[agent.index()]
     }
 }

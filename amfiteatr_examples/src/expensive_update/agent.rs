@@ -4,7 +4,7 @@ use amfiteatr_core::agent::{InformationSet, PresentPossibleActions};
 use amfiteatr_core::demo::DemoAction;
 use amfiteatr_core::scheme::{Scheme, Renew};
 use amfiteatr_core::error::AmfiteatrError;
-use crate::expensive_update::domain::ExpensiveUpdateDomain;
+use crate::expensive_update::scheme::ExpensiveUpdateScheme;
 #[derive(Debug, Clone)]
 pub struct ExpensiveUpdateInformationSet{
     id: u64,
@@ -18,16 +18,16 @@ impl ExpensiveUpdateInformationSet{
 }
 
 
-impl InformationSet<ExpensiveUpdateDomain> for ExpensiveUpdateInformationSet{
-    fn agent_id(&self) -> &<ExpensiveUpdateDomain as Scheme>::AgentId {
+impl InformationSet<ExpensiveUpdateScheme> for ExpensiveUpdateInformationSet{
+    fn agent_id(&self) -> &<ExpensiveUpdateScheme as Scheme>::AgentId {
         &self.id
     }
 
-    fn is_action_valid(&self, _action: &<ExpensiveUpdateDomain as Scheme>::ActionType) -> bool {
+    fn is_action_valid(&self, _action: &<ExpensiveUpdateScheme as Scheme>::ActionType) -> bool {
         true
     }
 
-    fn update(&mut self, update: <ExpensiveUpdateDomain as Scheme>::UpdateType) -> Result<(), <ExpensiveUpdateDomain as Scheme>::GameErrorType> {
+    fn update(&mut self, update: <ExpensiveUpdateScheme as Scheme>::UpdateType) -> Result<(), <ExpensiveUpdateScheme as Scheme>::GameErrorType> {
 
         let mut h = Vec::new();
         h.extend(self.id.to_be_bytes());
@@ -41,7 +41,7 @@ impl InformationSet<ExpensiveUpdateDomain> for ExpensiveUpdateInformationSet{
     }
 }
 
-impl PresentPossibleActions<ExpensiveUpdateDomain> for ExpensiveUpdateInformationSet{
+impl PresentPossibleActions<ExpensiveUpdateScheme> for ExpensiveUpdateInformationSet{
     type ActionIteratorType = Vec<DemoAction>;
 
     fn available_actions(&self) -> Self::ActionIteratorType {
@@ -49,8 +49,8 @@ impl PresentPossibleActions<ExpensiveUpdateDomain> for ExpensiveUpdateInformatio
     }
 }
 
-impl Renew<ExpensiveUpdateDomain, ()> for ExpensiveUpdateInformationSet{
-    fn renew_from(&mut self, _base: ()) -> Result<(), AmfiteatrError<ExpensiveUpdateDomain>> {
+impl Renew<ExpensiveUpdateScheme, ()> for ExpensiveUpdateInformationSet{
+    fn renew_from(&mut self, _base: ()) -> Result<(), AmfiteatrError<ExpensiveUpdateScheme>> {
         Ok(())
     }
 }

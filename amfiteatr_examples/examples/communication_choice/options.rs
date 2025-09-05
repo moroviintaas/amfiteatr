@@ -1,7 +1,7 @@
 use std::path::PathBuf;
 use clap::{Parser, ValueEnum};
 use log::LevelFilter;
-use amfiteatr_examples::expensive_update::domain::UpdateCost;
+use amfiteatr_examples::expensive_update::scheme::UpdateCost;
 
 #[derive(ValueEnum, Copy, Clone, Debug, PartialEq, Eq)]
 pub enum CommunicationMedium{

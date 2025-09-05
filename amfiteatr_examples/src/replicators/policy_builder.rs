@@ -2,7 +2,7 @@ use std::path::PathBuf;
 use log::debug;
 use amfiteatr_classic::agent::{LocalHistoryConversionToTensor, LocalHistoryInfoSetNumbered};
 use amfiteatr_classic::ClassicActionTensorRepresentation;
-use amfiteatr_classic::domain::AgentNum;
+use amfiteatr_classic::scheme::AgentNum;
 use amfiteatr_core::error::{AmfiteatrError, TensorError};
 use amfiteatr_core::util::TensorboardSupport;
 use amfiteatr_rl::policy::{ConfigPPO, PolicyDiscretePPO};
@@ -14,12 +14,12 @@ use amfiteatr_rl::torch_net::{A2CNet, NeuralNetTemplate, TensorActorCritic};
 use crate::common::ComputeDevice;
 use crate::replicators::aliases::ReplPPO;
 use crate::replicators::error::ReplError;
-use crate::replicators::model::{ReplDomain, ReplicatorNetworkPolicy};
+use crate::replicators::model::{ReplScheme, ReplicatorNetworkPolicy};
 use crate::replicators::options::ReplicatorOptions;
 
 
 pub fn create_ppo_policy(layer_sizes: &[i64], var_store: VarStore, options: &ReplicatorOptions, agent_num: AgentNum)
-    -> Result<ReplPPO, AmfiteatrError<ReplDomain>>{
+    -> Result<ReplPPO, AmfiteatrError<ReplScheme>>{
     //todo this should be macro probably one day
     let info_set_repr = LocalHistoryConversionToTensor::new(options.number_of_rounds);
     let input_shape = info_set_repr.desired_shape_flatten();
@@ -99,7 +99,7 @@ pub struct ReplPolicyBuilderPPO<'a>{
 }
 
 impl<'a> LearningPolicyBuilder for ReplPolicyBuilderPPO<'a>{
-    type ReplPolicy = PolicyDiscretePPO<ReplDomain, LocalHistoryInfoSetNumbered, LocalHistoryConversionToTensor, ClassicActionTensorRepresentation>;
+    type ReplPolicy = PolicyDiscretePPO<ReplScheme, LocalHistoryInfoSetNumbered, LocalHistoryConversionToTensor, ClassicActionTensorRepresentation>;
 
     fn build(self) -> Result<Self::ReplPolicy, ReplError> {
         let var_store = VarStore::new(match self.options.device{

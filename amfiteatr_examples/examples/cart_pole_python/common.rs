@@ -9,7 +9,7 @@ use amfiteatr_rl::tensor_data::{TryIntoTensor};
 pub const SINGLE_PLAYER_ID: u64 = 1;
 
 #[derive(Debug, Clone)]
-pub struct CartPoleDomain{}
+pub struct CartPoleScheme {}
 
 
 
@@ -110,7 +110,7 @@ impl TryIntoTensor for CartPoleAction {
 
 
 
-impl Scheme for CartPoleDomain{
+impl Scheme for CartPoleScheme {
     type ActionType = CartPoleAction;
     type GameErrorType = CartPoleError;
     type UpdateType = CartPoleObservation;

@@ -105,10 +105,10 @@ impl<S: Scheme, P: AssistingPolicy<S>> StrParsed for TurnCommand<S, P>
 mod tests{
     use crate::agent::manual_control::{TurnCommand};
     use crate::agent::RandomPolicy;
-    use crate::demo::{DemoAction, DemoDomain, DemoInfoSet};
+    use crate::demo::{DemoAction, DemoScheme, DemoInfoSet};
     use crate::util::StrParsed;
 
-    type DemoTopCommand = TurnCommand<DemoDomain, RandomPolicy<DemoDomain, DemoInfoSet>>;
+    type DemoTopCommand = TurnCommand<DemoScheme, RandomPolicy<DemoScheme, DemoInfoSet>>;
     #[test]
     fn parse_interactive_command(){
 

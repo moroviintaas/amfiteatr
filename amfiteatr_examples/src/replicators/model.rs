@@ -5,7 +5,7 @@ use std::sync::{Arc, mpsc};
 use parking_lot::Mutex;
 use amfiteatr_classic::agent::LocalHistoryInfoSet;
 use amfiteatr_classic::{AsymmetricRewardTable, SymmetricRewardTable};
-use amfiteatr_classic::domain::{AgentNum, ClassicAction, ClassicGameDomainNumbered};
+use amfiteatr_classic::scheme::{AgentNum, ClassicAction, ClassicGameSchemeNumbered};
 use amfiteatr_classic::env::PairingState;
 use amfiteatr_classic::policy::{ClassicMixedStrategy, ClassicPureStrategy};
 use amfiteatr_core::agent::{AgentGen, IdAgent, InformationSet, MultiEpisodeAutoAgent, Policy, PolicyAgent, StatefulAgent, TracingAgentGen};
@@ -21,25 +21,25 @@ use amfiteatr_classic::agent::ReplInfoSet;
 use crate::replicators::epoch_description::{EpochDescription, EpochDescriptionMean};
 use crate::replicators::options::ReplicatorOptions;
 
-pub type ReplDomain = ClassicGameDomainNumbered;
+pub type ReplScheme = ClassicGameSchemeNumbered;
 
 pub type PurePolicy = ClassicPureStrategy<AgentNum, LocalHistoryInfoSet<AgentNum>>;
-pub type AgentPure = AgentGen<ReplDomain, PurePolicy, StdAgentEndpoint<ReplDomain>>;
-pub type StaticBehavioralAgent = AgentGen<ReplDomain, ClassicMixedStrategy<AgentNum, LocalHistoryInfoSet<AgentNum>>, StdAgentEndpoint<ReplDomain>>;
-pub type LearningAgent<P> = TracingAgentGen<ReplDomain, P, StdAgentEndpoint<ReplDomain>>;
+pub type AgentPure = AgentGen<ReplScheme, PurePolicy, StdAgentEndpoint<ReplScheme>>;
+pub type StaticBehavioralAgent = AgentGen<ReplScheme, ClassicMixedStrategy<AgentNum, LocalHistoryInfoSet<AgentNum>>, StdAgentEndpoint<ReplScheme>>;
+pub type LearningAgent<P> = TracingAgentGen<ReplScheme, P, StdAgentEndpoint<ReplScheme>>;
 
 
 
 //pub type PpoAgent = TracingAgentGen<ReplDomain, PolicyDiscretePPO<ReplDomain, LocalHistoryInfoSet<AgentNum>, LocalHistoryConversionToTensor, ClassicActionTensorRepresentation>, StdAgentEndpoint<ReplDomain>>;
 
-pub type ModelEnvironment = TracingHashMapEnvironment<ReplDomain, PairingState<<ReplDomain as Scheme>::AgentId>, StdEnvironmentEndpoint<ReplDomain>>;
+pub type ModelEnvironment = TracingHashMapEnvironment<ReplScheme, PairingState<<ReplScheme as Scheme>::AgentId>, StdEnvironmentEndpoint<ReplScheme>>;
 
 
-pub trait ReplicatorNetworkPolicy: LearningNetworkPolicy<ReplDomain, InfoSetType= LocalHistoryInfoSet<AgentNum>> + TensorboardSupport<ReplDomain>{
+pub trait ReplicatorNetworkPolicy: LearningNetworkPolicy<ReplScheme, InfoSetType= LocalHistoryInfoSet<AgentNum>> + TensorboardSupport<ReplScheme>{
 
 }
 
-impl <P: LearningNetworkPolicy<ReplDomain, InfoSetType= LocalHistoryInfoSet<AgentNum>> + TensorboardSupport<ReplDomain>>
+impl <P: LearningNetworkPolicy<ReplScheme, InfoSetType= LocalHistoryInfoSet<AgentNum>> + TensorboardSupport<ReplScheme>>
 ReplicatorNetworkPolicy for P {}
 pub struct ReplicatorModelBuilder<LP: ReplicatorNetworkPolicy>
 {
@@ -47,7 +47,7 @@ pub struct ReplicatorModelBuilder<LP: ReplicatorNetworkPolicy>
     pure_doves: Vec<Arc<Mutex<AgentPure>>>,
     mixed_agents: Vec<Arc<Mutex<StaticBehavioralAgent>>>,
     network_learning_agents: Vec<Arc<Mutex<LearningAgent<LP>>>>,
-    communication_map: HashMap<AgentNum, StdEnvironmentEndpoint<ReplDomain>>,
+    communication_map: HashMap<AgentNum, StdEnvironmentEndpoint<ReplScheme>>,
     thread_pool: Option<rayon::ThreadPool>,
     reward_table: AsymmetricRewardTable<i64>,
     target_rounds: Option<usize>,
@@ -84,7 +84,7 @@ impl <LP: ReplicatorNetworkPolicy>ReplicatorModelBuilder<LP>
         if self.communication_map.contains_key(&agent_id) {
             Err(ReplError::AgentDuplication(agent_id))
         } else{
-            let info_set = <LP as Policy<ReplDomain>>::InfoSetType::create(agent_id, self.reward_table.clone());
+            let info_set = <LP as Policy<ReplScheme>>::InfoSetType::create(agent_id, self.reward_table.clone());
             let (env_comm, agent_comm) = StdEnvironmentEndpoint::new_pair();
             let agent = TracingAgentGen::new(info_set, agent_comm, policy);
             self.communication_map.insert(agent_id, env_comm);
@@ -142,7 +142,7 @@ impl <LP: ReplicatorNetworkPolicy>ReplicatorModelBuilder<LP>
     }
 
     pub fn build(self) -> Result<ReplicatorModel<LP>, ReplError>
-    where <LP as Policy<ReplDomain>>::InfoSetType: Renew<ReplDomain, ()> + InformationSet<ReplDomain>{
+    where <LP as Policy<ReplScheme>>::InfoSetType: Renew<ReplScheme, ()> + InformationSet<ReplScheme>{
     //pub fn build(self) -> Result<ReplicatorModel, ReplError>{
         let number_of_agents = self.network_learning_agents.len() + self.mixed_agents.len()
             +self.pure_doves.len() + self.pure_hawks.len();
@@ -271,7 +271,7 @@ impl<LP: ReplicatorNetworkPolicy> ReplicatorModel<LP> {
     }
 
 
-    pub fn run_episode(&mut self) -> Result<(), AmfiteatrError<ReplDomain>>{
+    pub fn run_episode(&mut self) -> Result<(), AmfiteatrError<ReplScheme>>{
         match &mut self.thread_pool{
             Some(_pool) => {
                 todo!()
@@ -326,7 +326,7 @@ impl<LP: ReplicatorNetworkPolicy> ReplicatorModel<LP> {
         Ok(())
     }
 
-    pub fn clear_episodes_trajectories(&mut self) -> Result<(), AmfiteatrError<ReplDomain>>{
+    pub fn clear_episodes_trajectories(&mut self) -> Result<(), AmfiteatrError<ReplScheme>>{
         for agent in &self.network_learning_agents{
             let mut guard = agent.as_ref().lock();
             guard.clear_episodes()?;
@@ -441,7 +441,7 @@ impl<LP: ReplicatorNetworkPolicy> ReplicatorModel<LP> {
         }
     }
 
-    pub fn train_network_agents_parallel(&mut self) -> Result<HashMap<AgentNum, <LP as LearningNetworkPolicyGeneric<ReplDomain>>::Summary>, AmfiteatrError<ReplDomain>>{
+    pub fn train_network_agents_parallel(&mut self) -> Result<HashMap<AgentNum, <LP as LearningNetworkPolicyGeneric<ReplScheme>>::Summary>, AmfiteatrError<ReplScheme>>{
         match self.thread_pool{
             Some(_) => todo!(),
             None => {
@@ -469,7 +469,7 @@ impl<LP: ReplicatorNetworkPolicy> ReplicatorModel<LP> {
                                    source: CommunicationError::SendError(guard.info_set().agent_id().clone(), e.to_string())
                                }
                             })?;
-                            Ok::<_, AmfiteatrError<ReplDomain>>(())
+                            Ok::<_, AmfiteatrError<ReplScheme>>(())
                         });
                     }
                     drop(tx);
@@ -484,7 +484,7 @@ impl<LP: ReplicatorNetworkPolicy> ReplicatorModel<LP> {
         }
 
     }
-    pub fn run_epoch(&mut self, episodes: usize) -> Result<EpochDescription, AmfiteatrError<ReplDomain>>{
+    pub fn run_epoch(&mut self, episodes: usize) -> Result<EpochDescription, AmfiteatrError<ReplScheme>>{
 
         let mut description = self.create_empty_description(episodes);
         self.clear_episodes_trajectories()?;
@@ -500,7 +500,7 @@ impl<LP: ReplicatorNetworkPolicy> ReplicatorModel<LP> {
 
     }
 
-    pub fn run_training_session(&mut self, episodes: usize, epochs: usize) -> Result<(Vec<EpochDescriptionMean>, Vec<HashMap<AgentNum, LearnSummary>>),AmfiteatrError<ReplDomain>>{
+    pub fn run_training_session(&mut self, episodes: usize, epochs: usize) -> Result<(Vec<EpochDescriptionMean>, Vec<HashMap<AgentNum, LearnSummary>>),AmfiteatrError<ReplScheme>>{
     //pub fn run_training_session(&mut self, episodes: usize, epochs: usize) -> Result<HashMap<AgentNum, (SessionDescription, Option<SessionLearningSummaries>)>, AmfiteatrError<ReplDomain>>{
         /*let mut summaries = self.network_learning_agents.iter()
             .zip(self.

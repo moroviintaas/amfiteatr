@@ -9,8 +9,8 @@ use std::marker::PhantomData;
 use rand::rng;
 use serde::Serialize;
 use amfiteatr_core::error::AmfiteatrError;
-use crate::domain::{AgentNum, ClassicAction, ClassicGameDomain, ClassicGameError, ClassicGameUpdate, EncounterReport, IntReward, UsizeAgentId};
-use crate::domain::ClassicGameError::ActionAfterGameOver;
+use crate::scheme::{AgentNum, ClassicAction, ClassicScheme, ClassicGameError, ClassicGameUpdate, EncounterReport, IntReward, UsizeAgentId};
+use crate::scheme::ClassicGameError::ActionAfterGameOver;
 use crate::{AsymmetricRewardTableInt, Side};
 
 
@@ -196,7 +196,7 @@ impl<ID: UsizeAgentId> Display for PairingState<ID>{
     }
 }
 
-impl<ID: UsizeAgentId> SequentialGameState<ClassicGameDomain<ID>> for PairingState<ID> {
+impl<ID: UsizeAgentId> SequentialGameState<ClassicScheme<ID>> for PairingState<ID> {
     type Updates = Vec<(ID, ClassicGameUpdate<ID>)>;
 
     fn current_player(&self) -> Option<ID> {
@@ -298,14 +298,14 @@ impl<ID: UsizeAgentId> SequentialGameState<ClassicGameDomain<ID>> for PairingSta
     }
 }
 
-impl<ID: UsizeAgentId> GameStateWithPayoffs<ClassicGameDomain<ID>> for PairingState<ID> {
+impl<ID: UsizeAgentId> GameStateWithPayoffs<ClassicScheme<ID>> for PairingState<ID> {
     fn state_payoff_of_player(&self, agent: &ID) -> IntReward {
         self.score_cache[agent.as_usize()]
     }
 }
 
-impl<ID: UsizeAgentId> Renew<ClassicGameDomain<ID>, ()> for PairingState<ID>{
-    fn renew_from(&mut self, _base: ())  -> Result<(), AmfiteatrError<ClassicGameDomain<ID>>> {
+impl<ID: UsizeAgentId> Renew<ClassicScheme<ID>, ()> for PairingState<ID>{
+    fn renew_from(&mut self, _base: ())  -> Result<(), AmfiteatrError<ClassicScheme<ID>>> {
         debug!("Renewing state");
         //self.score_cache.iter_mut().for_each(|a|*a=0);
         for i in 0..self.score_cache.len(){

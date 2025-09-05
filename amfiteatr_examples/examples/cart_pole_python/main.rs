@@ -14,15 +14,15 @@ use amfiteatr_rl::tch::{Device, nn, Tensor};
 use amfiteatr_rl::tch::nn::{Adam, VarStore};
 use amfiteatr_rl::torch_net::{A2CNet, NeuralNetTemplate, TensorActorCritic};
 use crate::agent::{CART_POLE_TENSOR_REPR, PythonGymnasiumCartPoleInformationSet};
-use crate::common::{CartPoleDomain, CartPoleObservation, SINGLE_PLAYER_ID};
+use crate::common::{CartPoleScheme, CartPoleObservation, SINGLE_PLAYER_ID};
 use crate::env::PythonGymnasiumCartPoleState;
 
-fn test<R: RlModelAgent<CartPoleDomain, CartPoleObservation, PythonGymnasiumCartPoleInformationSet>>(
-    env: &mut BasicEnvironment<CartPoleDomain, PythonGymnasiumCartPoleState, EnvironmentMpscPort<CartPoleDomain>>,
+fn test<R: RlModelAgent<CartPoleScheme, CartPoleObservation, PythonGymnasiumCartPoleInformationSet>>(
+    env: &mut BasicEnvironment<CartPoleScheme, PythonGymnasiumCartPoleState, EnvironmentMpscPort<CartPoleScheme>>,
     agent: &mut R,
     number_of_tests: usize)
--> Result<f32, AmfiteatrRlError<CartPoleDomain>>
-where <R as PolicyAgent<CartPoleDomain>>::Policy: LearningNetworkPolicyGeneric<CartPoleDomain>{
+    -> Result<f32, AmfiteatrRlError<CartPoleScheme>>
+where <R as PolicyAgent<CartPoleScheme>>::Policy: LearningNetworkPolicyGeneric<CartPoleScheme>{
 
     let mut result_sum = 0.0f64;
     for _ in 0..number_of_tests{
@@ -48,12 +48,12 @@ where <R as PolicyAgent<CartPoleDomain>>::Policy: LearningNetworkPolicyGeneric<C
 
 }
 
-fn train_epoch<R: RlModelAgent<CartPoleDomain, CartPoleObservation, PythonGymnasiumCartPoleInformationSet>>(
-    env: &mut BasicEnvironment<CartPoleDomain, PythonGymnasiumCartPoleState, EnvironmentMpscPort<CartPoleDomain>>,
+fn train_epoch<R: RlModelAgent<CartPoleScheme, CartPoleObservation, PythonGymnasiumCartPoleInformationSet>>(
+    env: &mut BasicEnvironment<CartPoleScheme, PythonGymnasiumCartPoleState, EnvironmentMpscPort<CartPoleScheme>>,
     agent: &mut R,
     number_of_games: usize)
--> Result<(), AmfiteatrRlError<CartPoleDomain>>
-where <R as PolicyAgent<CartPoleDomain>>::Policy: LearningNetworkPolicyGeneric<CartPoleDomain>{
+    -> Result<(), AmfiteatrRlError<CartPoleScheme>>
+where <R as PolicyAgent<CartPoleScheme>>::Policy: LearningNetworkPolicyGeneric<CartPoleScheme>{
 
     agent.clear_episodes();
     for _ in 0..number_of_games{

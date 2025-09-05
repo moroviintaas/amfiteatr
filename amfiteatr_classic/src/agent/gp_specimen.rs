@@ -5,7 +5,7 @@ use amfiteatr_core::agent::Policy;
 use amfiteatr_core::error::AmfiteatrError;
 use amfiteatr_rl::policy::PolicySpecimen;
 use crate::agent::LocalHistoryInfoSet;
-use crate::domain::{ClassicAction, ClassicGameDomain, UsizeAgentId};
+use crate::scheme::{ClassicAction, ClassicScheme, UsizeAgentId};
 
 #[derive(Copy, Clone, Debug, Default)]
 pub struct EventCounts {
@@ -110,7 +110,7 @@ impl GpClassic{
             stdev: (self.stdev + other.stdev)/2.0,
         }
     }
-    pub(crate) fn _mutate_with_attribute_proba<ID: UsizeAgentId>(&mut self, probability: f64) -> Result<(), AmfiteatrError<ClassicGameDomain<ID>>>{
+    pub(crate) fn _mutate_with_attribute_proba<ID: UsizeAgentId>(&mut self, probability: f64) -> Result<(), AmfiteatrError<ClassicScheme<ID>>>{
         let d = Bernoulli::new(probability)
             .map_err(|e| AmfiteatrError::Custom(e.to_string()))?;
         let mut rng = rand::rng();
@@ -191,10 +191,10 @@ impl Distribution<GpClassic> for rand::distr::StandardUniform{
     }
 }
 
-impl<ID: UsizeAgentId> Policy< ClassicGameDomain<ID>> for GpClassic{
+impl<ID: UsizeAgentId> Policy< ClassicScheme<ID>> for GpClassic{
     type InfoSetType = LocalHistoryInfoSet<ID>;
 
-    fn select_action(&self, state: &Self::InfoSetType) -> Result<ClassicAction, AmfiteatrError<ClassicGameDomain<ID>>> {
+    fn select_action(&self, state: &Self::InfoSetType) -> Result<ClassicAction, AmfiteatrError<ClassicScheme<ID>>> {
 
         let gauss_expected = self._policy_get_gauss_mean(state);
         let sigma = self.stdev;
@@ -214,13 +214,13 @@ impl<ID: UsizeAgentId> Policy< ClassicGameDomain<ID>> for GpClassic{
     }
 }
 
-impl<ID: UsizeAgentId> PolicySpecimen<ClassicGameDomain<ID>, ()> for GpClassic{
+impl<ID: UsizeAgentId> PolicySpecimen<ClassicScheme<ID>, ()> for GpClassic{
 
     fn cross(&self, other: &Self) -> Self {
         self._cross(other)
     }
 
-    fn mutate(&mut self, _mutagen: ()) -> Result<(), AmfiteatrError<ClassicGameDomain<ID>>> {
+    fn mutate(&mut self, _mutagen: ()) -> Result<(), AmfiteatrError<ClassicScheme<ID>>> {
         self._mutate_with_attribute_proba(0.2)
 
 

@@ -499,7 +499,7 @@ impl ActorCriticOutput for TensorMultiParamActorCritic {
     /// ```
     ///
     /// use tch::{Device, Kind, Tensor};
-    /// use amfiteatr_core::demo::DemoDomain;
+    /// use amfiteatr_core::demo::DemoScheme;
     /// use amfiteatr_rl::torch_net::{ActorCriticOutput, TensorMultiParamActorCritic};
     /// let critic = Tensor::from_slice(&[0.7, 0.21]); //first critic calculation, second criric calculation
     /// let actor = vec![
@@ -532,8 +532,8 @@ impl ActorCriticOutput for TensorMultiParamActorCritic {
     ///     Tensor::from_slice(&[0i64, 1i64]),
     ///
     /// ];
-    /// let probs_unmasked = mca.batch_log_probability_of_action::<DemoDomain>(&action_params_selected_tensors, None, None).unwrap();
-    /// let probs_masked= mca.batch_log_probability_of_action::<DemoDomain>(&action_params_selected_tensors, None, Some(&reverse_masks)).unwrap();
+    /// let probs_unmasked = mca.batch_log_probability_of_action::<DemoScheme>(&action_params_selected_tensors, None, None).unwrap();
+    /// let probs_masked= mca.batch_log_probability_of_action::<DemoScheme>(&action_params_selected_tensors, None, Some(&reverse_masks)).unwrap();
     /// assert_eq!(&probs_unmasked.size(), &[2]);
     /// let unmasked: Vec<f32> = probs_unmasked.try_into().unwrap();
     /// let masked: Vec<f32> = probs_masked.try_into().unwrap();

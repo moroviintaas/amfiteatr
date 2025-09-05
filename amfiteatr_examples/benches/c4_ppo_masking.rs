@@ -4,13 +4,13 @@ use amfiteatr_core::agent::{AutomaticAgent, ReseedAgent};
 use amfiteatr_core::comm::StdEnvironmentEndpoint;
 use amfiteatr_core::env::{HashMapEnvironment, ReseedEnvironment, RoundRobinPenalisingUniversalEnvironment};
 use amfiteatr_examples::connect_four::agent::ConnectFourInfoSet;
-use amfiteatr_examples::connect_four::common::{ConnectFourDomain, ConnectFourPlayer};
+use amfiteatr_examples::connect_four::common::{ConnectFourScheme, ConnectFourPlayer};
 use amfiteatr_examples::connect_four::env::ConnectFourRustEnvState;
 use amfiteatr_examples::connect_four::model::{build_ppo_policy_masking, Agent};
 use amfiteatr_rl::policy::ConfigPPO;
 use amfiteatr_rl::tch::Device;
 
-type Environment<S> = HashMapEnvironment<ConnectFourDomain, S, StdEnvironmentEndpoint<ConnectFourDomain>>;
+type Environment<S> = HashMapEnvironment<ConnectFourScheme, S, StdEnvironmentEndpoint<ConnectFourScheme>>;
 
 const LAYER_SIZES:[i64;5] = [64,256,1024i64,4096,16384];
 

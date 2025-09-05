@@ -6,7 +6,7 @@ use amfiteatr_core::env::{SequentialGameState, GameStateWithPayoffs};
 use amfiteatr_core::error::AmfiteatrError;
 use crate::connect_four::common::{
     ConnectFourBinaryObservation,
-    ConnectFourDomain,
+    ConnectFourScheme,
     ConnectFourError,
     ConnectFourPlayer
 };
@@ -100,23 +100,14 @@ impl PythonPettingZooStateWrap{
 
 
     }
-
-
-    /*
-    pub fn __agent_selection(&self) -> PyResult<ConnectFourDomain>{
-        Python::with_gil(|py|{
-            let
-        })
-    }
-
-     */
+    
 }
 
-impl SequentialGameState<ConnectFourDomain> for PythonPettingZooStateWrap{
-    type Updates = [(<ConnectFourDomain as Scheme>::AgentId, <ConnectFourDomain as Scheme>::UpdateType );1];
+impl SequentialGameState<ConnectFourScheme> for PythonPettingZooStateWrap{
+    type Updates = [(<ConnectFourScheme as Scheme>::AgentId, <ConnectFourScheme as Scheme>::UpdateType );1];
 
 
-    fn current_player(&self) -> Option<<ConnectFourDomain as Scheme>::AgentId> {
+    fn current_player(&self) -> Option<<ConnectFourScheme as Scheme>::AgentId> {
 
         if self.terminated || self.truncated{
             None
@@ -131,7 +122,7 @@ impl SequentialGameState<ConnectFourDomain> for PythonPettingZooStateWrap{
         self.terminated || self.truncated
     }
 
-    fn forward(&mut self, agent: <ConnectFourDomain as Scheme>::AgentId, action: <ConnectFourDomain as Scheme>::ActionType) -> Result<Self::Updates, <ConnectFourDomain as Scheme>::GameErrorType> {
+    fn forward(&mut self, agent: <ConnectFourScheme as Scheme>::AgentId, action: <ConnectFourScheme as Scheme>::ActionType) -> Result<Self::Updates, <ConnectFourScheme as Scheme>::GameErrorType> {
         if self.is_finished(){
             return Err(ConnectFourError::PlayerDeadStep {player: agent})
         }
@@ -160,14 +151,14 @@ impl SequentialGameState<ConnectFourDomain> for PythonPettingZooStateWrap{
     }
 }
 
-impl GameStateWithPayoffs<ConnectFourDomain> for PythonPettingZooStateWrap{
-    fn state_payoff_of_player(&self, agent: &ConnectFourPlayer) -> <ConnectFourDomain as Scheme>::UniversalReward {
+impl GameStateWithPayoffs<ConnectFourScheme> for PythonPettingZooStateWrap{
+    fn state_payoff_of_player(&self, agent: &ConnectFourPlayer) -> <ConnectFourScheme as Scheme>::UniversalReward {
         self.rewards[agent.index()]
     }
 }
 
-impl Renew<ConnectFourDomain, ()> for PythonPettingZooStateWrap{
-    fn renew_from(&mut self, _base: ()) -> Result<(), AmfiteatrError<ConnectFourDomain>> {
+impl Renew<ConnectFourScheme, ()> for PythonPettingZooStateWrap{
+    fn renew_from(&mut self, _base: ()) -> Result<(), AmfiteatrError<ConnectFourScheme>> {
         self.__reset().map_err(|e| AmfiteatrError::Game { source: e.into() })?;
         self.rewards = [0.0, 0.0];
         self.terminated = false;

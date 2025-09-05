@@ -1,5 +1,5 @@
 use crate::AsymmetricRewardTableInt;
-use crate::domain::{AgentNum, UsizeAgentId};
+use crate::scheme::{AgentNum, UsizeAgentId};
 
 pub trait ReplInfoSet<ID: UsizeAgentId>{
 

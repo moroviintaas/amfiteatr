@@ -13,9 +13,9 @@ use crate::scheme::Scheme;
 /// ```
 /// use std::sync::{Arc, Mutex};
 /// use amfiteatr_core::agent::ModelAgent;
-/// use amfiteatr_core::demo::{DemoDomain, DemoInfoSet};
-/// let agents: Vec<Arc<Mutex<dyn ModelAgent<DemoDomain,(), DemoInfoSet >>>>;
-/// //                      Domain----------------^
+/// use amfiteatr_core::demo::{DemoScheme, DemoInfoSet};
+/// let agents: Vec<Arc<Mutex<dyn ModelAgent<DemoScheme,(), DemoInfoSet >>>>;
+/// //                      Scheme ----------------^
 /// //                      Seed ------------------------^
 /// //                      InformationSet-------------------------^
 /// ```

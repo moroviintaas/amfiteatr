@@ -54,7 +54,7 @@ ActorCriticPolicy<
     /// ```
     /// use tch::{Device, nn, Tensor};
     /// use tch::nn::{Adam, VarStore};
-    /// use amfiteatr_core::demo::{DemoDomain, DemoInfoSet};
+    /// use amfiteatr_core::demo::{DemoScheme, DemoInfoSet};
     /// use amfiteatr_rl::policy::ActorCriticPolicy;
     /// use amfiteatr_rl::demo::DemoConversionToTensor;
     /// use amfiteatr_rl::torch_net::{A2CNet, TensorActorCritic};
@@ -75,7 +75,7 @@ ActorCriticPolicy<
     /// });
     /// let optimizer = neural_net.build_optimizer(Adam::default(), 0.01).unwrap();
     ///
-    /// let policy: ActorCriticPolicy<DemoDomain, DemoInfoSet, DemoConversionToTensor>
+    /// let policy: ActorCriticPolicy<DemoScheme, DemoInfoSet, DemoConversionToTensor>
     ///     = ActorCriticPolicy::new(neural_net, optimizer, DemoConversionToTensor{}, TrainConfig { gamma: 0.99 });
     /// ```
     pub fn new(network: A2CNet,

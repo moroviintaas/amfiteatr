@@ -3,17 +3,17 @@ use std::marker::PhantomData;
 use rand::{Rng, rng};
 use amfiteatr_core::agent::{InformationSet, Policy};
 use amfiteatr_core::error::AmfiteatrError;
-use crate::domain::{ClassicAction, ClassicGameDomain, ClassicGameError, UsizeAgentId};
-use crate::domain::ClassicAction::{Down, Up};
+use crate::scheme::{ClassicAction, ClassicScheme, ClassicGameError, UsizeAgentId};
+use crate::scheme::ClassicAction::{Down, Up};
 
 /// Classic pure strategy - allways one specified action from [`ClassicAction`].
-pub struct ClassicPureStrategy<ID: UsizeAgentId, IS: InformationSet<ClassicGameDomain<ID>>>{
+pub struct ClassicPureStrategy<ID: UsizeAgentId, IS: InformationSet<ClassicScheme<ID>>>{
     pub action: ClassicAction,
     _is: PhantomData<IS>,
     _id: PhantomData<ID>,
 }
 
-impl<ID: UsizeAgentId, IS: InformationSet<ClassicGameDomain<ID>>> ClassicPureStrategy<ID, IS>{
+impl<ID: UsizeAgentId, IS: InformationSet<ClassicScheme<ID>>> ClassicPureStrategy<ID, IS>{
     pub fn new(action: ClassicAction) -> Self{
         Self{
             action,
@@ -25,21 +25,21 @@ impl<ID: UsizeAgentId, IS: InformationSet<ClassicGameDomain<ID>>> ClassicPureStr
 
 
 }
-impl<ID: UsizeAgentId, IS: InformationSet<ClassicGameDomain<ID>>> Policy<ClassicGameDomain<ID>> for ClassicPureStrategy<ID, IS>{
+impl<ID: UsizeAgentId, IS: InformationSet<ClassicScheme<ID>>> Policy<ClassicScheme<ID>> for ClassicPureStrategy<ID, IS>{
     type InfoSetType = IS ;
 
-    fn select_action(&self, _state: &Self::InfoSetType) -> Result<ClassicAction, AmfiteatrError<ClassicGameDomain<ID>>> {
+    fn select_action(&self, _state: &Self::InfoSetType) -> Result<ClassicAction, AmfiteatrError<ClassicScheme<ID>>> {
         Ok(self.action)
     }
 }
 /// Selects action [`Up`] with given probability, otherwise [`Down`].
-pub struct ClassicMixedStrategy<ID: UsizeAgentId, IS: InformationSet<ClassicGameDomain<ID>>>{
+pub struct ClassicMixedStrategy<ID: UsizeAgentId, IS: InformationSet<ClassicScheme<ID>>>{
     probability_up: f64,
     _is: PhantomData<IS>,
     _id: PhantomData<ID>,
 }
 
-impl<ID: UsizeAgentId, IS: InformationSet<ClassicGameDomain<ID>>> ClassicMixedStrategy<ID, IS>{
+impl<ID: UsizeAgentId, IS: InformationSet<ClassicScheme<ID>>> ClassicMixedStrategy<ID, IS>{
     pub fn new(probability_up: f64) -> Self{
         Self{
             probability_up,
@@ -56,10 +56,10 @@ impl<ID: UsizeAgentId, IS: InformationSet<ClassicGameDomain<ID>>> ClassicMixedSt
     }
 }
 
-impl<ID: UsizeAgentId, IS: InformationSet<ClassicGameDomain<ID>>> Policy<ClassicGameDomain<ID>> for ClassicMixedStrategy<ID, IS>{
+impl<ID: UsizeAgentId, IS: InformationSet<ClassicScheme<ID>>> Policy<ClassicScheme<ID>> for ClassicMixedStrategy<ID, IS>{
     type InfoSetType = IS ;
 
-    fn select_action(&self, _state: &Self::InfoSetType) -> Result<ClassicAction, AmfiteatrError<ClassicGameDomain<ID>>> {
+    fn select_action(&self, _state: &Self::InfoSetType) -> Result<ClassicAction, AmfiteatrError<ClassicScheme<ID>>> {
         let mut rng = rng();
         let sample = rng.random_range(0.0..1.0);
         sample.partial_cmp(&self.probability_up).map(|o|{

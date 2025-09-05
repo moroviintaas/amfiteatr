@@ -4,11 +4,11 @@ use amfiteatr_core::error::{AmfiteatrError, ConvertError};
 use amfiteatr_proc_macro::no_assessment_info_set;
 use amfiteatr_rl::tch::Tensor;
 use amfiteatr_rl::tensor_data::{TensorEncoding, ContextEncodeTensor};
-use crate::common::{CartPoleAction, CartPoleDomain, CartPoleObservation, SINGLE_PLAYER_ID};
+use crate::common::{CartPoleAction, CartPoleScheme, CartPoleObservation, SINGLE_PLAYER_ID};
 
 
 #[derive(Debug, Clone, Default)]
-#[no_assessment_info_set(CartPoleDomain)]
+#[no_assessment_info_set(CartPoleScheme)]
 pub struct PythonGymnasiumCartPoleInformationSet{
     latest_observation: CartPoleObservation
 }
@@ -23,17 +23,17 @@ impl PythonGymnasiumCartPoleInformationSet{
     }
 }
 
-impl InformationSet<CartPoleDomain> for PythonGymnasiumCartPoleInformationSet{
-    fn agent_id(&self) -> &<CartPoleDomain as Scheme>::AgentId {
+impl InformationSet<CartPoleScheme> for PythonGymnasiumCartPoleInformationSet{
+    fn agent_id(&self) -> &<CartPoleScheme as Scheme>::AgentId {
         &SINGLE_PLAYER_ID
     }
 
-    fn is_action_valid(&self, _action: &<CartPoleDomain as Scheme>::ActionType) -> bool {
+    fn is_action_valid(&self, _action: &<CartPoleScheme as Scheme>::ActionType) -> bool {
         true
     }
 
-    fn update(&mut self, update: <CartPoleDomain as Scheme>::UpdateType)
-        -> Result<(), <CartPoleDomain as Scheme>::GameErrorType> {
+    fn update(&mut self, update: <CartPoleScheme as Scheme>::UpdateType)
+        -> Result<(), <CartPoleScheme as Scheme>::GameErrorType> {
 
         self.latest_observation = update;
         Ok(())
@@ -42,8 +42,8 @@ impl InformationSet<CartPoleDomain> for PythonGymnasiumCartPoleInformationSet{
 
 
 
-impl Renew<CartPoleDomain, CartPoleObservation> for PythonGymnasiumCartPoleInformationSet{
-    fn renew_from(&mut self, base: CartPoleObservation) -> Result<(), AmfiteatrError<CartPoleDomain>> {
+impl Renew<CartPoleScheme, CartPoleObservation> for PythonGymnasiumCartPoleInformationSet{
+    fn renew_from(&mut self, base: CartPoleObservation) -> Result<(), AmfiteatrError<CartPoleScheme>> {
         self.latest_observation = base;
         Ok(())
     }
@@ -77,7 +77,7 @@ impl ContextEncodeTensor<CartPoleInformationSetConversion> for PythonGymnasiumCa
     }
 }
 /*
-impl EvaluatedInformationSet<CartPoleDomain> for PythonGymnasiumCartPoleInformationSet{
+impl EvaluatedInformationSet<CartPoleScheme> for PythonGymnasiumCartPoleInformationSet{
     type RewardType = NoneReward;
 
     fn current_subjective_score(&self) -> Self::RewardType {
@@ -92,7 +92,7 @@ impl EvaluatedInformationSet<CartPoleDomain> for PythonGymnasiumCartPoleInformat
  */
 
 
-impl PresentPossibleActions<CartPoleDomain> for PythonGymnasiumCartPoleInformationSet{
+impl PresentPossibleActions<CartPoleScheme> for PythonGymnasiumCartPoleInformationSet{
     type ActionIteratorType = [CartPoleAction;2];
 
     fn available_actions(&self) -> Self::ActionIteratorType {

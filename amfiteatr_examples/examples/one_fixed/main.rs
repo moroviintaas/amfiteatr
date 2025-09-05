@@ -15,8 +15,8 @@ use amfiteatr_core::comm::EnvironmentMpscPort;
 use amfiteatr_core::env::{AutoEnvironmentWithScores, ReseedEnvironment, ScoreEnvironment, TracingBasicEnvironment, TracingEnvironment};
 use amfiteatr_core::error::AmfiteatrError;
 use amfiteatr_classic::agent::{FibonacciForgiveStrategy, LocalHistoryInfoSet, LocalHistoryInfoSetNumbered, LocalHistoryConversionToTensor, SwitchAfterTwo};
-use amfiteatr_classic::domain::{AgentNum, ClassicGameDomain, ClassicGameDomainNumbered};
-use amfiteatr_classic::domain::ClassicAction::{Down, Up};
+use amfiteatr_classic::scheme::{AgentNum, ClassicScheme, ClassicGameSchemeNumbered};
+use amfiteatr_classic::scheme::ClassicAction::{Down, Up};
 use amfiteatr_classic::env::PairingState;
 use amfiteatr_classic::policy::ClassicMixedStrategy;
 use amfiteatr_classic::SymmetricRewardTableInt;
@@ -59,17 +59,16 @@ pub fn setup_logger(options: &EducatorOptions) -> Result<(), fern::InitError> {
         .apply()?;
     Ok(())
 }
-type Domain = ClassicGameDomain<AgentNum>;
+type ClassicSchemeNum = ClassicScheme<AgentNum>;
 //type A2C = ActorCriticPolicy<D, OwnHistoryInfoSetNumbered, OwnHistoryTensorRepr>;
 
 
 pub fn run_game(
-    env: &mut (impl AutoEnvironmentWithScores<Domain> + Send + ReseedEnvironment<Domain, ()>),
-    agent0: &mut (impl Send + MultiEpisodeAutoAgent<Domain, ()>),
-    //agent1: &mut (impl MultiEpisodeAgent<Domain, ()> + AutomaticAgentRewarded<Domain> + Send + ReseedAgent<Domain, ()>)
-    agent1: &mut Box<dyn ModelAgent<Domain, (), LocalHistoryInfoSetNumbered>>
+    env: &mut (impl AutoEnvironmentWithScores<ClassicSchemeNum> + Send + ReseedEnvironment<ClassicSchemeNum, ()>),
+    agent0: &mut (impl Send + MultiEpisodeAutoAgent<ClassicSchemeNum, ()>),
+    agent1: &mut Box<dyn ModelAgent<ClassicSchemeNum, (), LocalHistoryInfoSetNumbered>>
     )
-    -> Result<(), AmfiteatrError<Domain>>{
+    -> Result<(), AmfiteatrError<ClassicSchemeNum>>{
 
     thread::scope(|s|{
         s.spawn(||{
@@ -96,9 +95,9 @@ pub enum AgentWrap{
     //Learning(Arc<Mutex<dyn NetworkLearningAgent<InfoSetType=(), Policy=()>>>),
     //Simple(Arc<Mutex<dyn Au>>)
 }
-type D = ClassicGameDomainNumbered;
+type D = ClassicGameSchemeNumbered;
 
-fn main() -> Result<(), AmfiteatrError<ClassicGameDomain<AgentNum>>>{
+fn main() -> Result<(), AmfiteatrError<ClassicScheme<AgentNum>>>{
 
     let args = EducatorOptions::parse();
     setup_logger(&args).unwrap();

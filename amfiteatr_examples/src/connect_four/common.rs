@@ -8,8 +8,8 @@ use amfiteatr_rl::error::{AmfiteatrRlError, TensorRepresentationError};
 use amfiteatr_rl::tch::Tensor;
 use amfiteatr_rl::tensor_data::TryIntoTensor;
 
-pub type ErrorRL = AmfiteatrRlError<ConnectFourDomain>;
-pub type ErrorAmfi = AmfiteatrError<ConnectFourDomain>;
+pub type ErrorRL = AmfiteatrRlError<ConnectFourScheme>;
+pub type ErrorAmfi = AmfiteatrError<ConnectFourScheme>;
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 pub enum ConnectFourPlayer{
@@ -44,7 +44,7 @@ impl ConnectFourPlayer{
 }
 
 #[derive(Debug, Clone)]
-pub struct ConnectFourDomain{}
+pub struct ConnectFourScheme {}
 
 #[derive(Debug, Copy, Clone)]
 pub struct ConnectFourAction{
@@ -218,7 +218,7 @@ impl ConnectFourBinaryObservation{
     }
 }
 
-impl Scheme for ConnectFourDomain{
+impl Scheme for ConnectFourScheme {
     type ActionType = ConnectFourAction;
     type GameErrorType = ConnectFourError;
     type UpdateType = ConnectFourBinaryObservation;

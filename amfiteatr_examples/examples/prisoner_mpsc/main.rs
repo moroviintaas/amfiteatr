@@ -1,7 +1,7 @@
 use std::thread;
 use amfiteatr_classic::agent::{LocalHistoryInfoSet};
-use amfiteatr_classic::domain::ClassicAction::Down;
-use amfiteatr_classic::domain::TwoPlayersStdName::{Alice, Bob};
+use amfiteatr_classic::scheme::ClassicAction::Down;
+use amfiteatr_classic::scheme::TwoPlayersStdName::{Alice, Bob};
 use amfiteatr_classic::env::PairingState;
 use amfiteatr_classic::policy::{ClassicMixedStrategy, ClassicPureStrategy};
 use amfiteatr_classic::SymmetricRewardTableInt;

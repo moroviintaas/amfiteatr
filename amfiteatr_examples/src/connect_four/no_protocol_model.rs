@@ -10,7 +10,7 @@ use amfiteatr_core::util::TensorboardSupport;
 use amfiteatr_rl::error::AmfiteatrRlError;
 use amfiteatr_rl::policy::{ConfigA2C, ConfigPPO, LearnSummary, LearningNetworkPolicyGeneric};
 use crate::connect_four::agent::ConnectFourInfoSet;
-use crate::connect_four::common::{ConnectFourDomain, ConnectFourPlayer, ErrorRL};
+use crate::connect_four::common::{ConnectFourScheme, ConnectFourPlayer, ErrorRL};
 use crate::connect_four::model::{build_a2c_policy, build_a2c_policy_masking, build_ppo_policy, build_ppo_policy_masking, C4A2CPolicy, C4A2CPolicyMasking, C4PPOPolicy, C4PPOPolicyMasking, EpochSummary};
 use crate::connect_four::options::ConnectFourOptions;
 use std::io::Write;
@@ -18,17 +18,17 @@ use amfiteatr_rl::tch::Device;
 use crate::common::ComputeDevice;
 
 pub struct ConnectFourModelRustNoProtocol <
-    ST: GameStateWithPayoffs<ConnectFourDomain>,
-    P: LearningNetworkPolicyGeneric<ConnectFourDomain, Summary=LearnSummary>
+    ST: GameStateWithPayoffs<ConnectFourScheme>,
+    P: LearningNetworkPolicyGeneric<ConnectFourScheme, Summary=LearnSummary>
 > {
     env_state: ST,
-    agents: HashMap<<ConnectFourDomain as Scheme>::AgentId, TracingAgentGen<ConnectFourDomain, P, StdAgentEndpoint<ConnectFourDomain>>>,
+    agents: HashMap<<ConnectFourScheme as Scheme>::AgentId, TracingAgentGen<ConnectFourScheme, P, StdAgentEndpoint<ConnectFourScheme>>>,
     shared_policy: bool,
     tboard_writer: Option<tboard::EventWriter<File>>,
 }
 
 impl<
-    S:  Default + GameStateWithPayoffs<ConnectFourDomain> + Clone + Renew<ConnectFourDomain, ()>,
+    S:  Default + GameStateWithPayoffs<ConnectFourScheme> + Clone + Renew<ConnectFourScheme, ()>,
 > ConnectFourModelRustNoProtocol<S, C4PPOPolicy>
 {
     pub fn new_ppo_no_protocol(
@@ -79,7 +79,7 @@ impl<
 }
 
 impl<
-    S:  Default + GameStateWithPayoffs<ConnectFourDomain> + Clone + Renew<ConnectFourDomain, ()>,
+    S:  Default + GameStateWithPayoffs<ConnectFourScheme> + Clone + Renew<ConnectFourScheme, ()>,
 > ConnectFourModelRustNoProtocol<S, C4PPOPolicyMasking>
 {
     pub fn new_ppo_masking_no_protocol(
@@ -130,7 +130,7 @@ impl<
 }
 
 impl<
-    S:  Default + GameStateWithPayoffs<ConnectFourDomain> + Clone + Renew<ConnectFourDomain, ()>,
+    S:  Default + GameStateWithPayoffs<ConnectFourScheme> + Clone + Renew<ConnectFourScheme, ()>,
 > ConnectFourModelRustNoProtocol<S, C4A2CPolicy>
 {
     pub fn new_a2c_no_protocol(
@@ -176,7 +176,7 @@ impl<
 }
 
 impl<
-    S:  Default + GameStateWithPayoffs<ConnectFourDomain> + Clone + Renew<ConnectFourDomain, ()>,
+    S:  Default + GameStateWithPayoffs<ConnectFourScheme> + Clone + Renew<ConnectFourScheme, ()>,
 > ConnectFourModelRustNoProtocol<S, C4A2CPolicyMasking>
 {
     pub fn new_a2c_masking_no_protocol(
@@ -222,15 +222,15 @@ impl<
 }
 
 impl<
-    S:  Default + GameStateWithPayoffs<ConnectFourDomain> + Clone + Renew<ConnectFourDomain, ()>,
-    P: LearningNetworkPolicyGeneric<ConnectFourDomain, InfoSetType=ConnectFourInfoSet, Summary=LearnSummary> + TensorboardSupport<ConnectFourDomain>
+    S:  Default + GameStateWithPayoffs<ConnectFourScheme> + Clone + Renew<ConnectFourScheme, ()>,
+    P: LearningNetworkPolicyGeneric<ConnectFourScheme, InfoSetType=ConnectFourInfoSet, Summary=LearnSummary> + TensorboardSupport<ConnectFourScheme>
 > ConnectFourModelRustNoProtocol<S, P>
 {
 
 
 
 
-    pub fn play_one_game(&mut self, store_episode: bool, truncate_at_step: Option<usize>) -> Result<EpochSummary, AmfiteatrRlError<ConnectFourDomain>>{
+    pub fn play_one_game(&mut self, store_episode: bool, truncate_at_step: Option<usize>) -> Result<EpochSummary, AmfiteatrRlError<ConnectFourScheme>>{
         self.agents.get_mut(&ConnectFourPlayer::One).unwrap().reseed(())?;
         self.agents.get_mut(&ConnectFourPlayer::Two).unwrap().reseed(())?;
         self.env_state.renew_from(())?;
@@ -306,7 +306,7 @@ impl<
         summarize: bool,
         training_epoch: bool,
         max_steps: Option<usize>
-    ) -> Result<EpochSummary, AmfiteatrRlError<ConnectFourDomain>>
+    ) -> Result<EpochSummary, AmfiteatrRlError<ConnectFourScheme>>
     {
         let mut steps_left = max_steps;
         let mut number_of_games_played = 0;

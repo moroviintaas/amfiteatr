@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use amfiteatr_classic::domain::AgentNum;
+use amfiteatr_classic::scheme::AgentNum;
 use amfiteatr_rl::policy::LearnSummary;
 
 

@@ -49,7 +49,7 @@ impl<
     /// ```
     /// use tch::{Device, nn, Tensor};
     /// use tch::nn::{Adam, VarStore};
-    /// use amfiteatr_core::demo::{DemoDomain, DemoInfoSet};
+    /// use amfiteatr_core::demo::{DemoScheme, DemoInfoSet};
     /// use amfiteatr_rl::demo::{DemoActionConversionContext, DemoConversionToTensor};
     /// use amfiteatr_rl::policy::{ConfigPPO, PolicyDiscretePPO};
     /// use amfiteatr_rl::torch_net::{NeuralNetActorCritic, TensorActorCritic};
@@ -70,7 +70,7 @@ impl<
     /// let config = ConfigPPO::default();
     /// let demo_info_set_ctx = DemoConversionToTensor::default();
     /// let demo_action_ctx = DemoActionConversionContext{};
-    /// let policy: PolicyDiscretePPO<DemoDomain, DemoInfoSet, DemoConversionToTensor, DemoActionConversionContext> =
+    /// let policy: PolicyDiscretePPO<DemoScheme, DemoInfoSet, DemoConversionToTensor, DemoActionConversionContext> =
     ///     PolicyDiscretePPO::new(
     ///     config, net, optimizer, demo_info_set_ctx, demo_action_ctx);
     /// ```

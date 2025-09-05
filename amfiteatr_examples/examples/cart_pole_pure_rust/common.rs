@@ -1,5 +1,5 @@
 use std::fmt::{Display, Formatter};
-use amfiteatr_core::domain::{Action, DomainParameters};
+use amfiteatr_core::scheme::{Action, Scheme};
 use amfiteatr_rl::error::TensorRepresentationError;
 use amfiteatr_rl::tch::Tensor;
 use amfiteatr_rl::tensor_data::TryIntoTensor;
@@ -7,7 +7,7 @@ use amfiteatr_rl::tensor_data::TryIntoTensor;
 
 pub const _SINGLE_PLAYER_ID: u64 = 1;
 #[derive(Debug, Clone)]
-pub struct CartPoleDomain{}
+pub struct CartPoleScheme{}
 
 
 #[derive(Clone, Debug, Default)]
@@ -60,7 +60,7 @@ pub enum CartPoleRustError {
     GameStateNotInitialized,
 
 }
-impl DomainParameters for CartPoleDomain{
+impl Scheme for CartPoleScheme{
     type ActionType = CartPoleAction;
     type GameErrorType = CartPoleRustError;
     type UpdateType = CartPoleObservation;

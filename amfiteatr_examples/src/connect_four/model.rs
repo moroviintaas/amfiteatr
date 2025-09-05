@@ -41,7 +41,7 @@ use amfiteatr_rl::tch::{Device, nn, Tensor};
 use amfiteatr_rl::tch::nn::{Adam, OptimizerConfig, VarStore};
 use amfiteatr_rl::tensor_data::TensorEncoding;
 use amfiteatr_rl::torch_net::{A2CNet, NeuralNetTemplate, TensorActorCritic};
-use crate::connect_four::common::{ConnectFourDomain, ConnectFourPlayer, ErrorRL};
+use crate::connect_four::common::{ConnectFourScheme, ConnectFourPlayer, ErrorRL};
 use crate::connect_four::agent::{ConnectFourActionTensorRepresentation, ConnectFourInfoSet, ConnectFourTensorReprD1};
 
 use amfiteatr_rl::policy::LearnSummary;
@@ -170,7 +170,7 @@ fn build_a2c_policy_old(layer_sizes: &[i64], device: Device) -> Result<C4A2CPoli
     )
 }
 */
-pub fn build_a2c_policy(layer_sizes: &[i64], device: Device, config: ConfigA2C, learning_rate: f64) -> Result<C4A2CPolicy, AmfiteatrRlError<ConnectFourDomain>>{
+pub fn build_a2c_policy(layer_sizes: &[i64], device: Device, config: ConfigA2C, learning_rate: f64) -> Result<C4A2CPolicy, AmfiteatrRlError<ConnectFourScheme>>{
     let var_store = VarStore::new(device);
     let input_shape = ConnectFourTensorReprD1{}.desired_shape()[0];
     let hidden_layers = &layer_sizes;
@@ -228,7 +228,7 @@ pub fn build_a2c_policy(layer_sizes: &[i64], device: Device, config: ConfigA2C, 
     )
 }
 #[allow(dead_code)]
-pub fn build_a2c_policy_masking(layer_sizes: &[i64], device: Device, config: ConfigA2C, learning_rate: f64) -> Result<C4A2CPolicyMasking, AmfiteatrRlError<ConnectFourDomain>>{
+pub fn build_a2c_policy_masking(layer_sizes: &[i64], device: Device, config: ConfigA2C, learning_rate: f64) -> Result<C4A2CPolicyMasking, AmfiteatrRlError<ConnectFourScheme>>{
     let var_store = VarStore::new(device);
     let input_shape = ConnectFourTensorReprD1{}.desired_shape()[0];
     let hidden_layers = &layer_sizes;
@@ -285,7 +285,7 @@ pub fn build_a2c_policy_masking(layer_sizes: &[i64], device: Device, config: Con
     )
     )
 }
-pub fn build_ppo_policy_masking(layer_sizes: &[i64], device: Device, config: ConfigPPO, learning_rate: f64) -> Result<C4PPOPolicyMasking, AmfiteatrRlError<ConnectFourDomain>>{
+pub fn build_ppo_policy_masking(layer_sizes: &[i64], device: Device, config: ConfigPPO, learning_rate: f64) -> Result<C4PPOPolicyMasking, AmfiteatrRlError<ConnectFourScheme>>{
     let var_store = VarStore::new(device);
     //let var_store = VarStore::new(Device::Cuda(0));
     let input_shape = ConnectFourTensorReprD1{}.desired_shape()[0];
@@ -340,34 +340,34 @@ pub fn build_ppo_policy_masking(layer_sizes: &[i64], device: Device, config: Con
         ConnectFourActionTensorRepresentation{})
     )
 }
-pub fn build_ppo_policy(layer_sizes: &[i64], device: Device, config: ConfigPPO, learning_rate: f64) -> Result<C4PPOPolicy, AmfiteatrRlError<ConnectFourDomain>>{
+pub fn build_ppo_policy(layer_sizes: &[i64], device: Device, config: ConfigPPO, learning_rate: f64) -> Result<C4PPOPolicy, AmfiteatrRlError<ConnectFourScheme>>{
     Ok(build_ppo_policy_masking(layer_sizes, device, config, learning_rate)?.base)
 
 }
 #[allow(dead_code)]
-pub fn build_ppo_masking_policy_shared(layer_sizes: &[i64], device: Device, config: ConfigPPO, learning_rate: f64) -> Result<crate::connect_four::model::C4PPOPolicyMaskingShared, AmfiteatrRlError<ConnectFourDomain>>{
+pub fn build_ppo_masking_policy_shared(layer_sizes: &[i64], device: Device, config: ConfigPPO, learning_rate: f64) -> Result<crate::connect_four::model::C4PPOPolicyMaskingShared, AmfiteatrRlError<ConnectFourScheme>>{
     Ok(Arc::new(Mutex::new(build_ppo_policy_masking(layer_sizes, device, config, learning_rate)?)))
 
 }
 #[allow(dead_code)]
-pub fn build_ppo_policy_shared(layer_sizes: &[i64], device: Device, config: ConfigPPO, learning_rate: f64) -> Result<crate::connect_four::model::C4PPOPolicyShared, AmfiteatrRlError<ConnectFourDomain>>{
+pub fn build_ppo_policy_shared(layer_sizes: &[i64], device: Device, config: ConfigPPO, learning_rate: f64) -> Result<crate::connect_four::model::C4PPOPolicyShared, AmfiteatrRlError<ConnectFourScheme>>{
     Ok(Arc::new(Mutex::new(build_ppo_policy(layer_sizes, device, config, learning_rate)?)))
 }
 
 
-pub type C4A2CPolicy = PolicyDiscreteA2C<ConnectFourDomain, ConnectFourInfoSet, ConnectFourTensorReprD1, ConnectFourActionTensorRepresentation>;
+pub type C4A2CPolicy = PolicyDiscreteA2C<ConnectFourScheme, ConnectFourInfoSet, ConnectFourTensorReprD1, ConnectFourActionTensorRepresentation>;
 #[allow(dead_code)]
-pub type C4A2CPolicyMasking = PolicyMaskingDiscreteA2C<ConnectFourDomain, ConnectFourInfoSet, ConnectFourTensorReprD1, ConnectFourActionTensorRepresentation>;
+pub type C4A2CPolicyMasking = PolicyMaskingDiscreteA2C<ConnectFourScheme, ConnectFourInfoSet, ConnectFourTensorReprD1, ConnectFourActionTensorRepresentation>;
 #[allow(dead_code)]
-pub type C4PPOPolicy = PolicyDiscretePPO<ConnectFourDomain, ConnectFourInfoSet, ConnectFourTensorReprD1, ConnectFourActionTensorRepresentation>;
+pub type C4PPOPolicy = PolicyDiscretePPO<ConnectFourScheme, ConnectFourInfoSet, ConnectFourTensorReprD1, ConnectFourActionTensorRepresentation>;
 #[allow(dead_code)]
 pub type C4PPOPolicyShared = Arc<Mutex<C4PPOPolicy>>;
-pub type C4PPOPolicyMasking = PolicyMaskingDiscretePPO<ConnectFourDomain, ConnectFourInfoSet, ConnectFourTensorReprD1, ConnectFourActionTensorRepresentation>;
+pub type C4PPOPolicyMasking = PolicyMaskingDiscretePPO<ConnectFourScheme, ConnectFourInfoSet, ConnectFourTensorReprD1, ConnectFourActionTensorRepresentation>;
 #[allow(dead_code)]
 pub type C4PPOPolicyMaskingShared = Arc<Mutex<C4PPOPolicyMasking>>;
-pub type Environment<ST> = HashMapEnvironment<ConnectFourDomain, ST, StdEnvironmentEndpoint<ConnectFourDomain>>;
-pub type Agent<P> = TracingAgentGen<ConnectFourDomain, P, StdAgentEndpoint<ConnectFourDomain>>;
-pub struct ConnectFourModelRust<ST: GameStateWithPayoffs<ConnectFourDomain>, P: LearningNetworkPolicyGeneric<ConnectFourDomain, Summary=LearnSummary>>{
+pub type Environment<ST> = HashMapEnvironment<ConnectFourScheme, ST, StdEnvironmentEndpoint<ConnectFourScheme>>;
+pub type Agent<P> = TracingAgentGen<ConnectFourScheme, P, StdAgentEndpoint<ConnectFourScheme>>;
+pub struct ConnectFourModelRust<ST: GameStateWithPayoffs<ConnectFourScheme>, P: LearningNetworkPolicyGeneric<ConnectFourScheme, Summary=LearnSummary>>{
 
     env: Environment<ST>,
     agent0: Agent<P>,
@@ -411,8 +411,8 @@ impl<
 */
 
 impl<
-    S:  Default + GameStateWithPayoffs<ConnectFourDomain> + Clone + Renew<ConnectFourDomain, ()>,
-    P: LearningNetworkPolicyGeneric<ConnectFourDomain, InfoSetType=ConnectFourInfoSet, Summary=LearnSummary> + TensorboardSupport<ConnectFourDomain>
+    S:  Default + GameStateWithPayoffs<ConnectFourScheme> + Clone + Renew<ConnectFourScheme, ()>,
+    P: LearningNetworkPolicyGeneric<ConnectFourScheme, InfoSetType=ConnectFourInfoSet, Summary=LearnSummary> + TensorboardSupport<ConnectFourScheme>
 > ConnectFourModelRust<S, P>{
     #[allow(dead_code)]
     pub fn new_ppo_generic(options: &ConnectFourOptions, mut agent_0_policy: P, mut agent_1_policy: P, shared_policy: bool) -> Self{
@@ -466,7 +466,7 @@ impl<
 }
 
 impl<
-    S:  GameStateWithPayoffs<ConnectFourDomain> + Clone + Renew<ConnectFourDomain, ()>,
+    S:  GameStateWithPayoffs<ConnectFourScheme> + Clone + Renew<ConnectFourScheme, ()>,
 > ConnectFourModelRust<S, C4A2CPolicy>{
     #[allow(dead_code)]
     pub fn new_a2c(options: &ConnectFourOptions) -> Self
@@ -524,7 +524,7 @@ impl<
 }
 
 impl<
-    S:  GameStateWithPayoffs<ConnectFourDomain> + Clone + Renew<ConnectFourDomain, ()>,
+    S:  GameStateWithPayoffs<ConnectFourScheme> + Clone + Renew<ConnectFourScheme, ()>,
 > ConnectFourModelRust<S, C4A2CPolicyMasking>{
     #[allow(dead_code)]
     pub fn new_a2c_masking(options: &ConnectFourOptions) -> Self
@@ -584,7 +584,7 @@ impl<
 }
 
 impl<
-    S:  GameStateWithPayoffs<ConnectFourDomain> + Clone + Renew<ConnectFourDomain, ()>,
+    S:  GameStateWithPayoffs<ConnectFourScheme> + Clone + Renew<ConnectFourScheme, ()>,
 > ConnectFourModelRust<S,C4PPOPolicy>{
     #[allow(dead_code)]
     pub fn new_ppo(options: &ConnectFourOptions) -> Self
@@ -646,7 +646,7 @@ impl<
 }
 
 impl<
-    S:  GameStateWithPayoffs<ConnectFourDomain> + Clone + Renew<ConnectFourDomain, ()>,
+    S:  GameStateWithPayoffs<ConnectFourScheme> + Clone + Renew<ConnectFourScheme, ()>,
 > ConnectFourModelRust<S,C4PPOPolicyMasking>{
     #[allow(dead_code)]
     pub fn new_ppo_masking(options: &ConnectFourOptions) -> Self
@@ -713,10 +713,10 @@ impl<
 }
 
 impl<
-    S:  GameStateWithPayoffs<ConnectFourDomain> + Clone + Renew<ConnectFourDomain, ()>,
-    P: LearningNetworkPolicyGeneric<ConnectFourDomain, Summary = LearnSummary> + TensorboardSupport<ConnectFourDomain>
+    S:  GameStateWithPayoffs<ConnectFourScheme> + Clone + Renew<ConnectFourScheme, ()>,
+    P: LearningNetworkPolicyGeneric<ConnectFourScheme, Summary = LearnSummary> + TensorboardSupport<ConnectFourScheme>
 > ConnectFourModelRust<S,P>
-where <P as Policy<ConnectFourDomain>>::InfoSetType: Renew<ConnectFourDomain, ()> + Clone{
+where <P as Policy<ConnectFourScheme>>::InfoSetType: Renew<ConnectFourScheme, ()> + Clone{
 
 
     /*
@@ -733,7 +733,7 @@ where <P as Policy<ConnectFourDomain>>::InfoSetType: Renew<ConnectFourDomain, ()
 
 
 
-    pub fn play_one_game(&mut self, store_episode: bool, truncate_at_step: Option<usize>) -> Result<EpochSummary, AmfiteatrRlError<ConnectFourDomain>>{
+    pub fn play_one_game(&mut self, store_episode: bool, truncate_at_step: Option<usize>) -> Result<EpochSummary, AmfiteatrRlError<ConnectFourScheme>>{
         let mut summary = EpochSummary::default();
         self.env.reseed(())?;
         self.agent0.reseed(())?;
@@ -804,7 +804,7 @@ where <P as Policy<ConnectFourDomain>>::InfoSetType: Renew<ConnectFourDomain, ()
         summarize: bool,
         training_epoch: bool,
         max_steps: Option<usize>
-    ) -> Result<EpochSummary, AmfiteatrRlError<ConnectFourDomain>>
+    ) -> Result<EpochSummary, AmfiteatrRlError<ConnectFourScheme>>
     {
         let mut steps_left = max_steps;
         let mut number_of_games_played = 0;

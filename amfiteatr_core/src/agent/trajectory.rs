@@ -300,9 +300,9 @@ impl<S: Scheme, IS: InformationSet<S>> AgentTrajectory<S, IS>{
     /// ```
     /// use amfiteatr_core::agent::AgentTrajectory;
     /// use amfiteatr_core::comm::StdEnvironmentEndpoint;
-    /// use amfiteatr_core::demo::{DemoAction, DemoDomain, DemoInfoSet};
+    /// use amfiteatr_core::demo::{DemoAction, DemoScheme, DemoInfoSet};
     /// let infoset = DemoInfoSet::new(1, 2);
-    /// let mut trajectory: AgentTrajectory<DemoDomain, DemoInfoSet> = AgentTrajectory::new();
+    /// let mut trajectory: AgentTrajectory<DemoScheme, DemoInfoSet> = AgentTrajectory::new();
     /// assert_eq!(trajectory.number_of_steps(), 0);
     /// trajectory.register_step_point(infoset.clone(), DemoAction(0), 0.0).unwrap();
     /// assert_eq!(trajectory.number_of_steps(), 0);
@@ -326,9 +326,9 @@ impl<S: Scheme, IS: InformationSet<S>> AgentTrajectory<S, IS>{
     /// ```
     /// use amfiteatr_core::agent::AgentTrajectory;
     /// use amfiteatr_core::comm::StdEnvironmentEndpoint;
-    /// use amfiteatr_core::demo::{DemoAction, DemoDomain, DemoInfoSet};
+    /// use amfiteatr_core::demo::{DemoAction, DemoScheme, DemoInfoSet};
     /// let infoset = DemoInfoSet::new(1, 2);
-    /// let mut trajectory: AgentTrajectory<DemoDomain, DemoInfoSet> = AgentTrajectory::new();
+    /// let mut trajectory: AgentTrajectory<DemoScheme, DemoInfoSet> = AgentTrajectory::new();
     /// assert_eq!(trajectory.number_of_action_points(), 0);
     /// trajectory.register_step_point(infoset.clone(), DemoAction(0), 0.0).unwrap();
     /// assert_eq!(trajectory.number_of_action_points(), 1);
@@ -409,7 +409,7 @@ mod tests{
     use std::thread;
     use crate::agent::{AutomaticAgent, RandomPolicy, TracingAgent, TracingAgentGen};
     use crate::comm::StdEnvironmentEndpoint;
-    use crate::demo::{DEMO_AGENT_BLUE, DEMO_AGENT_RED, DemoDomain, DemoInfoSet, DemoPolicySelectFirst, DemoState};
+    use crate::demo::{DEMO_AGENT_BLUE, DEMO_AGENT_RED, DemoScheme, DemoInfoSet, DemoPolicySelectFirst, DemoState};
     use crate::env::{RoundRobinUniversalEnvironment, TracingHashMapEnvironment};
 
     #[test]
@@ -426,7 +426,7 @@ mod tests{
         let mut environment = TracingHashMapEnvironment::new(state, env_comms);
         let blue_info_set = DemoInfoSet::new(DEMO_AGENT_BLUE, number_of_bandits);
         let red_info_set = DemoInfoSet::new(DEMO_AGENT_RED, number_of_bandits);
-        let mut agent_blue = TracingAgentGen::new(blue_info_set, comm_agent_blue,  RandomPolicy::<DemoDomain, DemoInfoSet>::new());
+        let mut agent_blue = TracingAgentGen::new(blue_info_set, comm_agent_blue,  RandomPolicy::<DemoScheme, DemoInfoSet>::new());
         let mut agent_red = TracingAgentGen::new(red_info_set, comm_agent_red, DemoPolicySelectFirst{});
         thread::scope(|s|{
             s.spawn(||{
