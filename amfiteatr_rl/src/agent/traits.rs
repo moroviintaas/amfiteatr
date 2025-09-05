@@ -11,20 +11,20 @@ use crate::tensor_data::FloatTensorReward;
 /// require any compatibility). This trait is not object safe because Policy traits has generic type
 /// information set with generic parameter of [`DomainParameters`](amfiteatr_core::scheme::Scheme).
 ///
-pub trait NetworkLearningAgent<DP: Scheme>:
-    AutomaticAgent<DP>
-    + PolicyAgent<DP>
-    + TracingAgent<DP, <Self as StatefulAgent<DP>>::InfoSetType>
-    where  <Self as PolicyAgent<DP>>::Policy: LearningNetworkPolicyGeneric<DP>,
-    <Self as StatefulAgent<DP>>::InfoSetType: InformationSet<DP>
+pub trait NetworkLearningAgent<S: Scheme>:
+    AutomaticAgent<S>
+    + PolicyAgent<S>
+    + TracingAgent<S, <Self as StatefulAgent<S>>::InfoSetType>
+    where  <Self as PolicyAgent<S>>::Policy: LearningNetworkPolicyGeneric<S>,
+    <Self as StatefulAgent<S>>::InfoSetType: InformationSet<S>
 {
 }
 
-impl <DP: Scheme, T: AutomaticAgent<DP>  + PolicyAgent<DP>
-+ TracingAgent<DP, <Self as StatefulAgent<DP>>::InfoSetType>>
-NetworkLearningAgent<DP> for T
-where <T as PolicyAgent<DP>>::Policy: LearningNetworkPolicyGeneric<DP>,
-<T as StatefulAgent<DP>>::InfoSetType: InformationSet<DP>
+impl <S: Scheme, T: AutomaticAgent<S>  + PolicyAgent<S>
++ TracingAgent<S, <Self as StatefulAgent<S>>::InfoSetType>>
+NetworkLearningAgent<S> for T
+where <T as PolicyAgent<S>>::Policy: LearningNetworkPolicyGeneric<S>,
+<T as StatefulAgent<S>>::InfoSetType: InformationSet<S>
 {
 }
 
@@ -38,49 +38,49 @@ where <T as PolicyAgent<DP>>::Policy: LearningNetworkPolicyGeneric<DP>,
 /// This trait is object safe, however collections of dynamically typed agents of this trait must
 /// share the same type of information set, because [`LearningNetworkPolicy`](crate::policy::LearningNetworkPolicyGeneric)
 /// uses trajectory including information set.
-pub trait RlModelAgent<DP: Scheme, Seed, IS: InformationSet<DP>>:
-    AutomaticAgent<DP>
-    //+ SelfEvaluatingAgent<DP,  Assessment= <IS as EvaluatedInformationSet<DP>>::RewardType>
-    + ReseedAgent<DP, Seed>
-    + PolicyAgent<DP> + StatefulAgent<DP, InfoSetType=IS>
-    + MultiEpisodeTracingAgent<DP, IS, Seed>
-    + RewardedAgent<DP>
+pub trait RlModelAgent<S: Scheme, Seed, IS: InformationSet<S>>:
+    AutomaticAgent<S>
+    //+ SelfEvaluatingAgent<S,  Assessment= <IS as EvaluatedInformationSet<S>>::RewardType>
+    + ReseedAgent<S, Seed>
+    + PolicyAgent<S> + StatefulAgent<S, InfoSetType=IS>
+    + MultiEpisodeTracingAgent<S, IS, Seed>
+    + RewardedAgent<S>
     + Send
 
-where <Self as PolicyAgent<DP>>::Policy: LearningNetworkPolicyGeneric<DP>,
+where <Self as PolicyAgent<S>>::Policy: LearningNetworkPolicyGeneric<S>,
 {}
 
 
 
 
 impl<
-    DP: Scheme,
+    S: Scheme,
     Seed,
-    IS: InformationSet<DP>,
-    T: AutomaticAgent<DP>
-        //+ SelfEvaluatingAgent<DP,  Assessment= <IS as EvaluatedInformationSet<DP>>::RewardType>
-        + ReseedAgent<DP, Seed>
-        + PolicyAgent<DP> + StatefulAgent<DP, InfoSetType=IS>
-        + MultiEpisodeTracingAgent<DP, IS, Seed>
-        + RewardedAgent<DP>
+    IS: InformationSet<S>,
+    T: AutomaticAgent<S>
+        //+ SelfEvaluatingAgent<S,  Assessment= <IS as EvaluatedInformationSet<S>>::RewardType>
+        + ReseedAgent<S, Seed>
+        + PolicyAgent<S> + StatefulAgent<S, InfoSetType=IS>
+        + MultiEpisodeTracingAgent<S, IS, Seed>
+        + RewardedAgent<S>
         + Send
 
-> RlModelAgent<DP, Seed, IS> for T
-where <Self as PolicyAgent<DP>>::Policy: LearningNetworkPolicyGeneric<DP>,{
+> RlModelAgent<S, Seed, IS> for T
+where <Self as PolicyAgent<S>>::Policy: LearningNetworkPolicyGeneric<S>,{
 
 }
 
 
-pub trait RlSimpleTestAgent<DP: Scheme, Seed>:
-AutomaticAgent<DP> + ReseedAgent<DP, Seed> + Send{
+pub trait RlSimpleTestAgent<S: Scheme, Seed>:
+AutomaticAgent<S> + ReseedAgent<S, Seed> + Send{
 
 }
 
-pub trait RlSimpleLearningAgent<DP: Scheme, Seed, LS: Send>:
-AutomaticAgent<DP> + ReseedAgent<DP, Seed> + Send + MultiEpisodeAutoAgent<DP, Seed>
+pub trait RlSimpleLearningAgent<S: Scheme, Seed, LS: Send>:
+AutomaticAgent<S> + ReseedAgent<S, Seed> + Send + MultiEpisodeAutoAgent<S, Seed>
 {
-    fn simple_apply_experience(&mut self) -> Result<LS, AmfiteatrRlError<DP>>;
-    //fn clear_experience(&mut self) -> Result<(), AmfiteatrError<DP>>;
+    fn simple_apply_experience(&mut self) -> Result<LS, AmfiteatrRlError<S>>;
+    //fn clear_experience(&mut self) -> Result<(), AmfiteatrError<S>>;
 
     fn set_exploration(&mut self, explore: bool);
 
@@ -92,22 +92,22 @@ AutomaticAgent<DP> + ReseedAgent<DP, Seed> + Send + MultiEpisodeAutoAgent<DP, Se
 
 
 impl<
-    DP: Scheme,
+    S: Scheme,
     Seed,
-    P: LearningNetworkPolicyGeneric<DP, Summary = LS >,
+    P: LearningNetworkPolicyGeneric<S, Summary = LS >,
     Comm: BidirectionalEndpoint<
-        OutwardType=AgentMessage<DP>,
-        InwardType=EnvironmentMessage<DP>,
-        Error=CommunicationError<DP>> + Send,
+        OutwardType=AgentMessage<S>,
+        InwardType=EnvironmentMessage<S>,
+        Error=CommunicationError<S>> + Send,
     LS: Send,
 >
 
-RlSimpleLearningAgent<DP, Seed, LS> for TracingAgentGen<DP, P, Comm, >
-    where <P as Policy<DP>>::InfoSetType: InformationSet<DP> + Renew<DP, Seed>,
-          <DP as Scheme>::UniversalReward: FloatTensorReward,
-    Self: AutomaticAgent<DP> + MultiEpisodeAutoAgent<DP, Seed> + PolicyAgent<DP, Policy=P>
+RlSimpleLearningAgent<S, Seed, LS> for TracingAgentGen<S, P, Comm, >
+    where <P as Policy<S>>::InfoSetType: InformationSet<S> + Renew<S, Seed>,
+          <S as Scheme>::UniversalReward: FloatTensorReward,
+    Self: AutomaticAgent<S> + MultiEpisodeAutoAgent<S, Seed> + PolicyAgent<S, Policy=P>
     {
-    fn simple_apply_experience(&mut self) -> Result<LS, AmfiteatrRlError<DP>> {
+    fn simple_apply_experience(&mut self) -> Result<LS, AmfiteatrRlError<S>> {
         let episodes = self.take_episodes();
 
         self.policy_mut().train(&episodes)

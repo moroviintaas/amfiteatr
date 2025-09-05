@@ -8,9 +8,9 @@ use crate::error::AmfiteatrError;
 
 /// Trait meant for structures working as action selectors. Policy based on information set
 /// must select one action if possible.
-pub trait Policy<DP: Scheme>: Send{
+pub trait Policy<S: Scheme>: Send{
     /// Information set which for which this policy is meant to work.
-    type InfoSetType: InformationSet<DP>;
+    type InfoSetType: InformationSet<S>;
 
     /// Selects action based on information set.
     /// If at least one action is possible result should be `Ok(action)` otherwise `Err`.
@@ -18,12 +18,12 @@ pub trait Policy<DP: Scheme>: Send{
     /// suggested error is [`AmfiteatrError::NoActionAvailable`](AmfiteatrError::NoActionAvailable).
     ///
     /// Migration from previous version: use `ok_or`
-    fn select_action(&self, state: &Self::InfoSetType) -> Result<DP::ActionType, AmfiteatrError<DP>>;
+    fn select_action(&self, state: &Self::InfoSetType) -> Result<S::ActionType, AmfiteatrError<S>>;
 
     /// This method is meant to be called at the beginning of the episode.
     /// It is not crucial for game protocol, yet you can use it to set something in policy for the episode.
     /// For example select one variant of mixed policy or entity from genetic population.
-    fn call_on_episode_start(&mut self) -> Result<(), AmfiteatrError<DP>>{
+    fn call_on_episode_start(&mut self) -> Result<(), AmfiteatrError<S>>{
         #[cfg(feature = "log_trace")]
         log::trace!("Initial setting of policy.");
         Ok(())
@@ -34,8 +34,8 @@ pub trait Policy<DP: Scheme>: Send{
     /// For example note something about policy and performance of choice at the beginning of the episode.
     #[allow(unused_variables)]
     fn call_on_episode_finish(&mut self,
-                              final_env_reward: DP::UniversalReward,
-    ) -> Result<(), AmfiteatrError<DP>>
+                              final_env_reward: S::UniversalReward,
+    ) -> Result<(), AmfiteatrError<S>>
     {
         #[cfg(feature = "log_trace")]
         log::trace!("End of episode setting of policy.");
@@ -45,7 +45,7 @@ pub trait Policy<DP: Scheme>: Send{
     /// This method is meant to be called at the beginning of the episode.
     /// It is not crucial for game protocol, yet you can use it to set something in policy between epochs
     /// For example clean episode notation.
-    fn call_between_epochs(&mut self)  -> Result<(), AmfiteatrError<DP>>{
+    fn call_between_epochs(&mut self)  -> Result<(), AmfiteatrError<S>>{
         #[cfg(feature = "log_trace")]
         log::trace!("Between epochs setting of policy.");
         Ok(())
@@ -54,10 +54,10 @@ pub trait Policy<DP: Scheme>: Send{
 
 }
 
-impl<DP: Scheme, P: Policy<DP>> Policy<DP> for Arc<Mutex<P>>{
+impl<S: Scheme, P: Policy<S>> Policy<S> for Arc<Mutex<P>>{
     type InfoSetType = P::InfoSetType;
 
-    fn select_action(&self, state: &Self::InfoSetType) -> Result<DP::ActionType, AmfiteatrError<DP>> {
+    fn select_action(&self, state: &Self::InfoSetType) -> Result<S::ActionType, AmfiteatrError<S>> {
 
         match self.as_ref().lock(){
             Ok(internal_policy) => {
@@ -68,10 +68,10 @@ impl<DP: Scheme, P: Policy<DP>> Policy<DP> for Arc<Mutex<P>>{
     }
 }
 
-impl<DP: Scheme, P: Policy<DP>> Policy<DP> for Mutex<P>{
+impl<S: Scheme, P: Policy<S>> Policy<S> for Mutex<P>{
     type InfoSetType = P::InfoSetType;
 
-    fn select_action(&self, state: &Self::InfoSetType) -> Result<DP::ActionType, AmfiteatrError<DP>> {
+    fn select_action(&self, state: &Self::InfoSetType) -> Result<S::ActionType, AmfiteatrError<S>> {
 
         match self.lock(){
             Ok(internal_policy) => {
@@ -81,10 +81,10 @@ impl<DP: Scheme, P: Policy<DP>> Policy<DP> for Mutex<P>{
         }
     }
 }
-impl<DP: Scheme, P: Policy<DP>> Policy<DP> for RwLock<P>{
+impl<S: Scheme, P: Policy<S>> Policy<S> for RwLock<P>{
     type InfoSetType = P::InfoSetType;
 
-    fn select_action(&self, state: &Self::InfoSetType) -> Result<DP::ActionType, AmfiteatrError<DP>> {
+    fn select_action(&self, state: &Self::InfoSetType) -> Result<S::ActionType, AmfiteatrError<S>> {
 
         match self.read(){
             Ok(internal_policy) => {
@@ -99,13 +99,13 @@ impl<DP: Scheme, P: Policy<DP>> Policy<DP> for RwLock<P>{
 /// Generic random policy - selects action at random based on iterator of possible actions
 /// provided by [`InformationSet`](crate::agent::InformationSet).
 #[derive(Debug, Copy, Clone, Default, PartialEq)]
-pub struct RandomPolicy<DP: Scheme, State: InformationSet<DP>>{
+pub struct RandomPolicy<S: Scheme, State: InformationSet<S>>{
     state: PhantomData<State>,
-    _spec: PhantomData<DP>
+    _spec: PhantomData<S>
 }
 
 
-impl<DP: Scheme, InfoSet: InformationSet<DP>> RandomPolicy<DP, InfoSet>{
+impl<S: Scheme, InfoSet: InformationSet<S>> RandomPolicy<S, InfoSet>{
     pub fn new() -> Self{
         Self{state: PhantomData, _spec: PhantomData}
     }
@@ -113,21 +113,21 @@ impl<DP: Scheme, InfoSet: InformationSet<DP>> RandomPolicy<DP, InfoSet>{
 
 
 
-impl<DP: Scheme, InfoSet: PresentPossibleActions<DP>> Policy<DP> for RandomPolicy<DP, InfoSet>
-where <<InfoSet as PresentPossibleActions<DP>>::ActionIteratorType as IntoIterator>::IntoIter : ExactSizeIterator{
+impl<S: Scheme, InfoSet: PresentPossibleActions<S>> Policy<S> for RandomPolicy<S, InfoSet>
+where <<InfoSet as PresentPossibleActions<S>>::ActionIteratorType as IntoIterator>::IntoIter : ExactSizeIterator{
     type InfoSetType = InfoSet;
 
-    fn select_action(&self, state: &Self::InfoSetType) -> Result<DP::ActionType, AmfiteatrError<DP>> {
+    fn select_action(&self, state: &Self::InfoSetType) -> Result<S::ActionType, AmfiteatrError<S>> {
         let mut rng = rand::rng();
         state.available_actions().into_iter().choose(&mut rng).ok_or_else(|| AmfiteatrError::NoActionAvailable {
             context: "Random policy".into()})
     }
 }
 
-impl<DP: Scheme, P: Policy<DP>> Policy<DP> for Box<P>{
+impl<S: Scheme, P: Policy<S>> Policy<S> for Box<P>{
     type InfoSetType = P::InfoSetType;
 
-    fn select_action(&self, state: &Self::InfoSetType) -> Result<DP::ActionType, AmfiteatrError<DP>> {
+    fn select_action(&self, state: &Self::InfoSetType) -> Result<S::ActionType, AmfiteatrError<S>> {
         self.as_ref().select_action(state)
     }
 }

@@ -57,54 +57,54 @@ where T: BidirectionalEndpoint {
 
 /// Help trait for [`BidirectionalEndpoint`](BidirectionalEndpoint) fitted to work on environment
 /// side.
-pub trait EnvironmentEndpoint<DP: Scheme>:
+pub trait EnvironmentEndpoint<S: Scheme>:
 BidirectionalEndpoint<
-    OutwardType = EnvironmentMessage<DP>,
-    InwardType = AgentMessage<DP>,
-    Error = CommunicationError<DP>>{}
+    OutwardType = EnvironmentMessage<S>,
+    InwardType = AgentMessage<S>,
+    Error = CommunicationError<S>>{}
 
-impl<DP: Scheme, T> EnvironmentEndpoint<DP> for T
+impl<S: Scheme, T> EnvironmentEndpoint<S> for T
 where T: BidirectionalEndpoint<
-    OutwardType = EnvironmentMessage<DP>,
-    InwardType = AgentMessage<DP>,
-    Error = CommunicationError<DP>>{}
+    OutwardType = EnvironmentMessage<S>,
+    InwardType = AgentMessage<S>,
+    Error = CommunicationError<S>>{}
 
 /// Help trait for [`BidirectionalEndpoint`](BidirectionalEndpoint) fitted to work on agent
 /// side
-pub trait AgentEndpoint<DP: Scheme>: BidirectionalEndpoint<
-    OutwardType = AgentMessage<DP>,
-    InwardType = EnvironmentMessage<DP>,
-    Error = CommunicationError<DP>>{}
+pub trait AgentEndpoint<S: Scheme>: BidirectionalEndpoint<
+    OutwardType = AgentMessage<S>,
+    InwardType = EnvironmentMessage<S>,
+    Error = CommunicationError<S>>{}
 
-impl<DP: Scheme, T> AgentEndpoint<DP> for T
+impl<S: Scheme, T> AgentEndpoint<S> for T
 where T: BidirectionalEndpoint<
-    OutwardType = AgentMessage<DP>,
-    InwardType = EnvironmentMessage<DP>,
-    Error = CommunicationError<DP>>{}
+    OutwardType = AgentMessage<S>,
+    InwardType = EnvironmentMessage<S>,
+    Error = CommunicationError<S>>{}
 
 /// This trait is to be implemented by structs that are meant to be single
 /// communication endpoint for environment.
 ///
-pub trait EnvironmentAdapter<DP: Scheme>{
+pub trait EnvironmentAdapter<S: Scheme>{
 
     /// Method for sending message to agent
-    fn send(&mut self, agent: &DP::AgentId, message: EnvironmentMessage<DP>)
-    -> Result<(), CommunicationError<DP>>;
+    fn send(&mut self, agent: &S::AgentId, message: EnvironmentMessage<S>)
+    -> Result<(), CommunicationError<S>>;
     /// Method for receiving - it blocks waiting for incoming message.
     /// This method does not specify agent from whom message is expected.
     /// Instead it looks for first incoming message (or first queued) and then
     /// outputs tuple of agent id and received message wrapped in `Result`.
-    fn receive_blocking(&mut self) -> Result<(DP::AgentId, AgentMessage<DP>), CommunicationError<DP>>;
+    fn receive_blocking(&mut self) -> Result<(S::AgentId, AgentMessage<S>), CommunicationError<S>>;
     /// Method for receiving - it does not block.
     /// If there is no queued input it returns Ok(None).
     /// This method does not specify agent from whom message is expected.
     /// Instead it looks for first incoming message (or first queued) and then
     /// outputs tuple of agent id and received message wrapped in `Result`.
-    fn receive_non_blocking(&mut self) -> Result<Option<AgentStampedMessage<DP>>, CommunicationError<DP>>;
+    fn receive_non_blocking(&mut self) -> Result<Option<AgentStampedMessage<S>>, CommunicationError<S>>;
 
     /// Diagnostic message to state if agent is available - if it can be addressed
     /// to send message.
-    fn is_agent_connected(&self, agent_id: &DP::AgentId) -> bool;
+    fn is_agent_connected(&self, agent_id: &S::AgentId) -> bool;
 }
 
 
@@ -123,12 +123,12 @@ pub trait EnvironmentAdapter<DP: Scheme>{
 /// `AgentAdapter` is paired with `EnvironmentAdapter`
 /// while `AgentEndpoint` is paired with `EnvironmentEndpoint`
 /// `AgentMessage` over channel.
-pub trait AgentAdapter<DP: Scheme>{
-    fn send(&mut self, message: AgentMessage<DP>) -> Result<(), CommunicationError<DP>>;
-    fn receive(&mut self) -> Result<EnvironmentMessage<DP>, CommunicationError<DP>>;
+pub trait AgentAdapter<S: Scheme>{
+    fn send(&mut self, message: AgentMessage<S>) -> Result<(), CommunicationError<S>>;
+    fn receive(&mut self) -> Result<EnvironmentMessage<S>, CommunicationError<S>>;
 }
 
 /// EnvironmentAdapter extension to clone message and send to every connected agent.
-pub trait BroadcastingEnvironmentAdapter<DP: Scheme>: EnvironmentAdapter<DP>{
-    fn send_all(&mut self, message: EnvironmentMessage<DP>) ->  Result<(), CommunicationError<DP>>;
+pub trait BroadcastingEnvironmentAdapter<S: Scheme>: EnvironmentAdapter<S>{
+    fn send_all(&mut self, message: EnvironmentMessage<S>) ->  Result<(), CommunicationError<S>>;
 }

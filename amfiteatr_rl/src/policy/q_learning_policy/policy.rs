@@ -85,8 +85,8 @@ impl QSelector{
 
 /// Generic implementation of Advantage Q-function policy
 pub struct QLearningPolicy<
-    DP: Scheme,
-    InfoSet: InformationSet<DP> + Debug + ContextEncodeTensor<IS2T>,
+    S: Scheme,
+    InfoSet: InformationSet<S> + Debug + ContextEncodeTensor<IS2T>,
     IS2T: TensorEncoding,
     A2T: TensorEncoding,
 
@@ -95,7 +95,7 @@ pub struct QLearningPolicy<
 
     network: NeuralNet1,
     optimizer: Optimizer,
-    _dp: PhantomData<DP>,
+    _dp: PhantomData<S>,
     _is: PhantomData<InfoSet>,
     info_set_way: IS2T,
     action_way: A2T,
@@ -106,12 +106,12 @@ pub struct QLearningPolicy<
 
 impl
 <
-    DP: Scheme,
-    InfoSet: InformationSet<DP> + Debug + ContextEncodeTensor<IS2T> + PresentPossibleActions<DP>,
+    S: Scheme,
+    InfoSet: InformationSet<S> + Debug + ContextEncodeTensor<IS2T> + PresentPossibleActions<S>,
     IS2T: TensorEncoding,
     A2T: TensorEncoding
-> QLearningPolicy<DP, InfoSet, IS2T, A2T>
-where <<InfoSet as PresentPossibleActions<DP>>::ActionIteratorType as IntoIterator>::Item: ContextEncodeTensor<A2T>, {
+> QLearningPolicy<S, InfoSet, IS2T, A2T>
+where <<InfoSet as PresentPossibleActions<S>>::ActionIteratorType as IntoIterator>::Item: ContextEncodeTensor<A2T>, {
 
     pub fn new(
         network: NeuralNet1,
@@ -145,14 +145,14 @@ where <<InfoSet as PresentPossibleActions<DP>>::ActionIteratorType as IntoIterat
 
 impl
 <
-    DP: Scheme,
-    InfoSet: InformationSet<DP> + Debug + ContextEncodeTensor<IS2T> + PresentPossibleActions<DP>,
+    S: Scheme,
+    InfoSet: InformationSet<S> + Debug + ContextEncodeTensor<IS2T> + PresentPossibleActions<S>,
     IS2T: TensorEncoding,
     A2T: TensorEncoding
-> LearningNetworkPolicyGeneric<DP> for QLearningPolicy<DP, InfoSet, IS2T, A2T>
-where <<InfoSet as PresentPossibleActions<DP>>::ActionIteratorType as IntoIterator>::Item: ContextEncodeTensor<A2T>,
-//<DP as DomainParameters>::UniversalReward: FloatTensorReward,
-<DP as Scheme>::ActionType: ContextEncodeTensor<A2T> {
+> LearningNetworkPolicyGeneric<S> for QLearningPolicy<S, InfoSet, IS2T, A2T>
+where <<InfoSet as PresentPossibleActions<S>>::ActionIteratorType as IntoIterator>::Item: ContextEncodeTensor<A2T>,
+//<S as DomainParameters>::UniversalReward: FloatTensorReward,
+<S as Scheme>::ActionType: ContextEncodeTensor<A2T> {
     type Summary = LearnSummary;
     /*
     type Network = NeuralNet1;
@@ -183,11 +183,11 @@ where <<InfoSet as PresentPossibleActions<DP>>::ActionIteratorType as IntoIterat
      */
 
     fn train_generic<
-        R: Fn(&AgentStepView<DP, <Self as Policy<DP>>::InfoSetType>) -> Tensor>(
+        R: Fn(&AgentStepView<S, <Self as Policy<S>>::InfoSetType>) -> Tensor>(
         &mut self,
-        trajectories: &[AgentTrajectory<DP, <Self as Policy<DP>>::InfoSetType>],
+        trajectories: &[AgentTrajectory<S, <Self as Policy<S>>::InfoSetType>],
         reward_f: R)
-        -> Result<Self::Summary, AmfiteatrRlError<DP>> {
+        -> Result<Self::Summary, AmfiteatrRlError<S>> {
 
         //#[cfg(feature = "log_info")]
         //log::info!("Starting Learning DQN policy for agent {}")
@@ -242,7 +242,7 @@ where <<InfoSet as PresentPossibleActions<DP>>::ActionIteratorType as IntoIterat
             }
             #[cfg(feature = "log_debug")]
             log::debug!("Discounted_rewards_tensor_vec len before inserting: {}", discounted_rewards_tensor_vec.len());
-            //let mut discounted_rewards_tensor_vec: Vec<Tensor> = vec![Tensor::zeros(DP::UniversalReward::total_size(), (Kind::Float, self.network.device())); steps_in_trajectory+1];
+            //let mut discounted_rewards_tensor_vec: Vec<Tensor> = vec![Tensor::zeros(S::UniversalReward::total_size(), (Kind::Float, self.network.device())); steps_in_trajectory+1];
             //discounted_rewards_tensor_vec.last_mut().unwrap().copy_(&final_score_t);
             #[cfg(feature = "log_trace")]
             log::trace!("Reward stream: {:?}", t.iter().map(|x| reward_f(&x)).collect::<Vec<Tensor>>());
@@ -268,7 +268,7 @@ where <<InfoSet as PresentPossibleActions<DP>>::ActionIteratorType as IntoIterat
             return Err(AmfiteatrRlError::NoTrainingData);
         }
         let _state_action_batch = Tensor::f_stack(&state_action_tensor_vec[..], 0).map_err(|e|{
-            AmfiteatrRlError::<DP>::Torch {
+            AmfiteatrRlError::<S>::Torch {
                 source: e, context: "Empty vector of  (state,action) tensor".into()
             }
         })?;
@@ -291,15 +291,15 @@ where <<InfoSet as PresentPossibleActions<DP>>::ActionIteratorType as IntoIterat
 
 
 impl<
-    DP: Scheme,
-    InfoSet: InformationSet<DP> + Debug + ContextEncodeTensor<IS2T> + PresentPossibleActions<DP>,
+    S: Scheme,
+    InfoSet: InformationSet<S> + Debug + ContextEncodeTensor<IS2T> + PresentPossibleActions<S>,
     IS2T: TensorEncoding,
     A2T: TensorEncoding
-> Policy<DP> for QLearningPolicy<DP, InfoSet, IS2T, A2T>
-where <<InfoSet as PresentPossibleActions<DP>>::ActionIteratorType as IntoIterator>::Item: ContextEncodeTensor<A2T>{
+> Policy<S> for QLearningPolicy<S, InfoSet, IS2T, A2T>
+where <<InfoSet as PresentPossibleActions<S>>::ActionIteratorType as IntoIterator>::Item: ContextEncodeTensor<A2T>{
     type InfoSetType = InfoSet;
 
-    fn select_action(&self, state: &Self::InfoSetType) -> Result<DP::ActionType, AmfiteatrError<DP>> {
+    fn select_action(&self, state: &Self::InfoSetType) -> Result<S::ActionType, AmfiteatrError<S>> {
 
         let mut actions = Vec::new();
         let q_predictions : Vec<_>/*<Tensor>*/ = state.available_actions().into_iter().map(|a|{

@@ -3,13 +3,13 @@ use amfiteatr_core::scheme::Scheme;
 use amfiteatr_core::error::AmfiteatrError;
 
 
-pub trait PolicySpecimen<DP: Scheme, M>: Policy<DP> {
+pub trait PolicySpecimen<S: Scheme, M>: Policy<S> {
 
 
 
     fn cross(&self, other: &Self) -> Self;
 
-    fn mutate(&mut self, mutagen: M) -> Result<(), AmfiteatrError<DP>>;
+    fn mutate(&mut self, mutagen: M) -> Result<(), AmfiteatrError<S>>;
 
 }
 

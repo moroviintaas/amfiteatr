@@ -68,8 +68,8 @@ pub trait ActorCriticOutput : NetOutput + Debug{
     /// Returns batched log probability of action.
     /// /// Use when this output is batched - every actor tensor has BATCH_DIMENSION (dimension 0).
     /// This outputs [`Tensor`] that for every member of batch returns log probability of action that is pointed by index..
-    fn batch_log_probability_of_action<DP: Scheme>(&self, param_indices: &Self::ActionTensorType, action_masks: Option<&Self::ActionTensorType>, parameter_masks: Option<&Self::ActionTensorType>)
-                                                   -> Result<Tensor, AmfiteatrError<DP>>;
+    fn batch_log_probability_of_action<S: Scheme>(&self, param_indices: &Self::ActionTensorType, action_masks: Option<&Self::ActionTensorType>, parameter_masks: Option<&Self::ActionTensorType>)
+                                                   -> Result<Tensor, AmfiteatrError<S>>;
 
     fn critic(&self) -> &Tensor;
 
@@ -107,12 +107,12 @@ pub trait ActorCriticOutput : NetOutput + Debug{
 
     fn index_select(data: &Self::ActionTensorType, indices: &Tensor) -> Result<Self::ActionTensorType, TchError>;
 
-    fn batch_get_logprob_and_entropy<DP: Scheme>(
+    fn batch_get_logprob_and_entropy<S: Scheme>(
         &self,
         action_param_batches: &Self::ActionTensorType,
         action_category_mask_batches: Option<&Self::ActionTensorType>,
         action_forward_mask_batches: Option<&Self::ActionTensorType>,
-    ) -> Result<(Tensor, Tensor), AmfiteatrError<DP>>;
+    ) -> Result<(Tensor, Tensor), AmfiteatrError<S>>;
 }
 
 /// Struct to aggregate both actor and critic output tensors from network.
@@ -165,7 +165,7 @@ impl ActorCriticOutput for TensorActorCritic{
         Ok(sum * tch::Tensor::from(-1.0))
     }
 
-    fn batch_log_probability_of_action<DP: Scheme>(&self, param_indices: &Self::ActionTensorType, action_masks: Option<&Self::ActionTensorType>, _param_masks: Option<&Self::ActionTensorType>) -> Result<Tensor, AmfiteatrError<DP>> {
+    fn batch_log_probability_of_action<S: Scheme>(&self, param_indices: &Self::ActionTensorType, action_masks: Option<&Self::ActionTensorType>, _param_masks: Option<&Self::ActionTensorType>) -> Result<Tensor, AmfiteatrError<S>> {
 
         let log_probs = match action_masks{
             None => self.actor.f_log_softmax(-1, Float).map_err(|e| AmfiteatrError::Tensor {
@@ -242,16 +242,16 @@ impl ActorCriticOutput for TensorActorCritic{
         data.f_index_select(0, indices)
     }
 
-    fn batch_get_logprob_and_entropy<DP: Scheme>(
+    fn batch_get_logprob_and_entropy<S: Scheme>(
         &self,
         action_param_batches: &Self::ActionTensorType,
         _action_category_mask_batches: Option<&Self::ActionTensorType>,
         action_forward_mask_batches: Option<&Self::ActionTensorType>
-    ) -> Result<(Tensor, Tensor), AmfiteatrError<DP>> {
+    ) -> Result<(Tensor, Tensor), AmfiteatrError<S>> {
         //let critic_actor= .net()(info_set_batch);
 
         /*
-        let batch_logprob = self.batch_log_probability_of_action::<DP>(
+        let batch_logprob = self.batch_log_probability_of_action::<S>(
             action_param_batches,
             action_forward_mask_batches,
             action_category_mask_batches
@@ -539,7 +539,7 @@ impl ActorCriticOutput for TensorMultiParamActorCritic {
     /// let masked: Vec<f32> = probs_masked.try_into().unwrap();
     /// assert!(masked[1] > unmasked[1]);
     /// ```
-    fn batch_log_probability_of_action<DP: Scheme>(&self, param_indices: &Self::ActionTensorType, action_masks: Option<&Self::ActionTensorType>, param_masks: Option<&Self::ActionTensorType>) -> Result<Tensor, AmfiteatrError<DP>> {
+    fn batch_log_probability_of_action<S: Scheme>(&self, param_indices: &Self::ActionTensorType, action_masks: Option<&Self::ActionTensorType>, param_masks: Option<&Self::ActionTensorType>) -> Result<Tensor, AmfiteatrError<S>> {
         if param_indices.len() != self.actor.len(){
             return Err(DataError::LengthMismatch {
                 left: param_indices.len(),
@@ -793,10 +793,10 @@ impl ActorCriticOutput for TensorMultiParamActorCritic {
 
     /// TODO refactor it so it does not call [`batch_log_probability_of_action`] and [`batch_entropy_masked`],
     /// similarly to single parameter version.
-    fn batch_get_logprob_and_entropy<DP: Scheme>(&self, action_param_batches: &Self::ActionTensorType, action_category_mask_batches: Option<&Self::ActionTensorType>, action_forward_mask_batches: Option<&Self::ActionTensorType>) -> Result<(Tensor, Tensor), AmfiteatrError<DP>> {
+    fn batch_get_logprob_and_entropy<S: Scheme>(&self, action_param_batches: &Self::ActionTensorType, action_category_mask_batches: Option<&Self::ActionTensorType>, action_forward_mask_batches: Option<&Self::ActionTensorType>) -> Result<(Tensor, Tensor), AmfiteatrError<S>> {
 
 
-        let batch_logprob = self.batch_log_probability_of_action::<DP>(
+        let batch_logprob = self.batch_log_probability_of_action::<S>(
             action_param_batches,
             action_forward_mask_batches,
             action_category_mask_batches
@@ -1053,8 +1053,8 @@ impl TensorCriticMultiActor{
     /// let masked: Vec<f32> = probs_masked.try_into().unwrap();
     /// assert!(masked[1] > unmasked[1]);
     /// ```
-    pub fn batch_log_probability_of_action<DP: DomainParameters>(&self, param_indices: &[Tensor], param_masks: Option<&[Tensor]>)
-        -> Result<Tensor, AmfiteatrError<DP>>{
+    pub fn batch_log_probability_of_action<S: DomainParameters>(&self, param_indices: &[Tensor], param_masks: Option<&[Tensor]>)
+        -> Result<Tensor, AmfiteatrError<S>>{
 
 
 

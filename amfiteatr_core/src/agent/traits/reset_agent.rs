@@ -6,9 +6,9 @@ use crate::error::AmfiteatrError;
 /// Trait for agent that can reset their attributes to some default values
 /// while setting new info set. Typically, to be used in situations
 /// when game is to be relaunched from beginning (optionally with new start point)
-pub trait ReinitAgent<DP: Scheme>: StatefulAgent<DP>{
+pub trait ReinitAgent<S: Scheme>: StatefulAgent<S>{
 
-    fn reinit(&mut self, new_info_set: <Self as StatefulAgent<DP>>::InfoSetType);
+    fn reinit(&mut self, new_info_set: <Self as StatefulAgent<S>>::InfoSetType);
 }
 
 
@@ -24,9 +24,9 @@ pub trait ReinitAgent<DP: Scheme>: StatefulAgent<DP>{
 /// and ignore data they should not know. You gain simpler reinitialization of simulation, but
 /// potentially violate information model. Alternatively initial state may be sent to agents during first steps
 /// of the game, however it complicates Update structure.
-pub trait ReseedAgent<DP: Scheme, Seed>
-//where <Self as StatefulAgent<DP>>::InfoSetType: ConstructedInfoSet<DP, Seed>{
+pub trait ReseedAgent<S: Scheme, Seed>
+//where <Self as StatefulAgent<S>>::InfoSetType: ConstructedInfoSet<S, Seed>{
 {
-    fn reseed(&mut self, seed: Seed) -> Result<(), AmfiteatrError<DP>>;
+    fn reseed(&mut self, seed: Seed) -> Result<(), AmfiteatrError<S>>;
 }
 

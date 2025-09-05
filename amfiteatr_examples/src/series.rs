@@ -2,11 +2,11 @@ use serde::{Serialize};
 use amfiteatr_core::scheme::Scheme;
 
 #[derive(Serialize, Clone, Debug)]
-pub struct PayoffSeries<DP: Scheme>
-where <DP as Scheme>::AgentId: Serialize,
-    <DP as Scheme>::UniversalReward: Serialize,
+pub struct PayoffSeries<S: Scheme>
+where <S as Scheme>::AgentId: Serialize,
+    <S as Scheme>::UniversalReward: Serialize,
 {
-    pub id: DP::AgentId,
+    pub id: S::AgentId,
     pub payoffs: Vec<f32>,
 
 }
@@ -19,8 +19,8 @@ pub struct PayoffGroupSeries{
 }
 
 #[derive(Serialize,  Clone, Debug, Default)]
-pub struct MultiAgentPayoffSeries<DP: Scheme>
-where <DP as Scheme>::AgentId: Serialize,
-    <DP as Scheme>::UniversalReward: Serialize,{
-    pub agent_series: Vec<PayoffSeries<DP>>
+pub struct MultiAgentPayoffSeries<S: Scheme>
+where <S as Scheme>::AgentId: Serialize,
+    <S as Scheme>::UniversalReward: Serialize,{
+    pub agent_series: Vec<PayoffSeries<S>>
 }

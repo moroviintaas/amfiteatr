@@ -4,14 +4,14 @@ use crate::scheme::{Scheme};
 
 /// Game state to be used in sequential games (where in single time step
 /// only one player is allowed to play).
-pub trait SequentialGameState<DP: Scheme>: Send + Debug{
-    type Updates: IntoIterator<Item = (DP::AgentId, DP::UpdateType)>;
+pub trait SequentialGameState<S: Scheme>: Send + Debug{
+    type Updates: IntoIterator<Item = (S::AgentId, S::UpdateType)>;
 
-    fn current_player(&self) -> Option<DP::AgentId>;
+    fn current_player(&self) -> Option<S::AgentId>;
     fn is_finished(&self) -> bool;
 
-    fn forward(&mut self, agent: DP::AgentId, action: DP::ActionType)
-        -> Result<Self::Updates, DP::GameErrorType>;
+    fn forward(&mut self, agent: S::AgentId, action: S::ActionType)
+        -> Result<Self::Updates, S::GameErrorType>;
 
     //fn transform(&mut self, agent_id: &Spec::AgentId, action: Spec::ActionType) -> Result<Self::UpdatesCollection, Spec::GameErrorType>;
 
@@ -24,10 +24,10 @@ pub trait SequentialGameState<DP: Scheme>: Send + Debug{
 //pub trait EnvStateSimultaneous{}
 
 
-impl<DP: Scheme, T: SequentialGameState<DP>> SequentialGameState<DP> for Box<T>{
+impl<S: Scheme, T: SequentialGameState<S>> SequentialGameState<S> for Box<T>{
     type Updates = T::Updates;
 
-    fn current_player(&self) -> Option<DP::AgentId> {
+    fn current_player(&self) -> Option<S::AgentId> {
         self.as_ref().current_player()
     }
 
@@ -35,35 +35,35 @@ impl<DP: Scheme, T: SequentialGameState<DP>> SequentialGameState<DP> for Box<T>{
         self.as_ref().is_finished()
     }
 
-    fn forward(&mut self, agent: DP::AgentId, action: DP::ActionType) -> Result<Self::Updates, DP::GameErrorType> {
+    fn forward(&mut self, agent: S::AgentId, action: S::ActionType) -> Result<Self::Updates, S::GameErrorType> {
         self.as_mut().forward(agent, action)
     }
 }
 
 
 /// Combination of traits [`SequentialGameState`] and [`From`]
-pub trait ConstructedSequentialGameState<DP: Scheme, B>:
-    SequentialGameState<DP> + From<B>{}
+pub trait ConstructedSequentialGameState<S: Scheme, B>:
+    SequentialGameState<S> + From<B>{}
 
 
-impl<DP: Scheme, B, T: SequentialGameState<DP> + From<B>>
-    ConstructedSequentialGameState<DP, B> for T{}
+impl<S: Scheme, B, T: SequentialGameState<S> + From<B>>
+    ConstructedSequentialGameState<S, B> for T{}
 
 
-//impl<DP: DomainParameters, B, T: ConstructedEnvState<DP, B>> ConstructedEnvState<DP, B> for Box<T>{}
+//impl<S: DomainParameters, B, T: ConstructedEnvState<S, B>> ConstructedEnvState<S, B> for Box<T>{}
 
 
 /// Trait adding interface to get current payoff of selected agent.
-pub trait GameStateWithPayoffs<DP: Scheme>: SequentialGameState<DP>{
+pub trait GameStateWithPayoffs<S: Scheme>: SequentialGameState<S>{
 
-    fn state_payoff_of_player(&self, agent: &DP::AgentId) -> DP::UniversalReward;
+    fn state_payoff_of_player(&self, agent: &S::AgentId) -> S::UniversalReward;
 
 }
 
 /*
-pub trait ExpandingState<DP: DomainParameters>{
+pub trait ExpandingState<S: DomainParameters>{
 
-    fn register_agent(&mut self, agent_id: DP::AgentId) -> Result<(), AmfiError<DP>>;
+    fn register_agent(&mut self, agent_id: S::AgentId) -> Result<(), AmfiError<S>>;
 
 }
 

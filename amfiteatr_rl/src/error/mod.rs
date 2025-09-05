@@ -10,12 +10,12 @@ use amfiteatr_core::scheme::Scheme;
 
 /// Error trait that wraps standard [`AmfiteatrError`]
 #[derive(Error, Debug)]
-pub enum AmfiteatrRlError<DP: Scheme>{
+pub enum AmfiteatrRlError<S: Scheme>{
     /// Variant - [`AmfiteatrError`]
     #[error("Basic amfiteatr error: {source}")]
     Amfiteatr {
         #[source]
-        source:AmfiteatrError<DP>
+        source:AmfiteatrError<S>
     },
     /// Variant wrapping error captured by [`tch`]
     #[error("Torch error: {source} in context: {context:}")]
@@ -49,7 +49,7 @@ pub enum AmfiteatrRlError<DP: Scheme>{
 
 }
 
-impl<DP: Scheme> From<TchError> for AmfiteatrRlError<DP>{
+impl<S: Scheme> From<TchError> for AmfiteatrRlError<S>{
     fn from(value: TchError) -> Self {
         Self::Torch{
             source: value,
@@ -58,14 +58,14 @@ impl<DP: Scheme> From<TchError> for AmfiteatrRlError<DP>{
     }
 }
 
-impl<DP: Scheme> From<AmfiteatrError<DP>> for AmfiteatrRlError<DP>{
-    fn from(value: AmfiteatrError<DP>) -> Self {
+impl<S: Scheme> From<AmfiteatrError<S>> for AmfiteatrRlError<S>{
+    fn from(value: AmfiteatrError<S>) -> Self {
         Self::Amfiteatr{source: value}
     }
 }
 
-impl<DP: Scheme> From<AmfiteatrRlError<DP>> for AmfiteatrError<DP>{
-    fn from(value: AmfiteatrRlError<DP>) -> Self {
+impl<S: Scheme> From<AmfiteatrRlError<S>> for AmfiteatrError<S>{
+    fn from(value: AmfiteatrRlError<S>) -> Self {
         match value{
             AmfiteatrRlError::Amfiteatr{source: n} => n,
             any => AmfiteatrError::Custom(format!("{:?}", any))
@@ -73,7 +73,7 @@ impl<DP: Scheme> From<AmfiteatrRlError<DP>> for AmfiteatrError<DP>{
     }
 }
 
-impl<DP: Scheme> From<ConvertError> for AmfiteatrRlError<DP>{
+impl<S: Scheme> From<ConvertError> for AmfiteatrRlError<S>{
     fn from(value: ConvertError) -> Self {
         let ae = AmfiteatrError::from(value);
         ae.into()

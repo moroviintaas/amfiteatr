@@ -10,7 +10,7 @@ pub enum LearningError{
 }
 
 
-impl<DP: Scheme> From<LearningError> for AmfiteatrError<DP>{
+impl<S: Scheme> From<LearningError> for AmfiteatrError<S>{
     fn from(err: LearningError) -> Self {
         Self::Learning {
             error: err

@@ -5,26 +5,26 @@ use crate::scheme::Scheme;
 /// Error for capturing misbehavior in game protocol.
 #[derive(Debug, Clone, PartialEq, Eq, Error)]
 #[cfg_attr(feature = "speedy", derive(speedy::Writable, speedy::Readable))]
-pub enum ProtocolError<DP: Scheme>{
+pub enum ProtocolError<S: Scheme>{
     #[error("lost contact with {:}", .0)]
-    BrokenComm(DP::AgentId),
+    BrokenComm(S::AgentId),
     #[error("agent {:} attempted to move on turn of {:}", .0, .1)]
-    ViolatedOrder(DP::AgentId, DP::AgentId),
+    ViolatedOrder(S::AgentId, S::AgentId),
     #[error("agent {:} called to move, however called states that {:} should move this time", .0, .1)]
-    OrderDesync(DP::AgentId, DP::AgentId),
+    OrderDesync(S::AgentId, S::AgentId),
     #[error("agent {:} received kill", .0)]
-    ReceivedKill(DP::AgentId),
+    ReceivedKill(S::AgentId),
     #[error("agent {:} has no possible action", .0)]
-    NoPossibleAction(DP::AgentId),
+    NoPossibleAction(S::AgentId),
     #[error("agent {} has exited the game", .0)]
-    PlayerExited(DP::AgentId),
+    PlayerExited(S::AgentId),
     #[error("Player {} refused to select action (command Quit)", .0)]
-    PlayerSelectedNoneAction(DP::AgentId),
+    PlayerSelectedNoneAction(S::AgentId),
 
 }
 
-impl<DP: Scheme> From<ProtocolError<DP>> for AmfiteatrError<DP>{
-    fn from(value: ProtocolError<DP>) -> Self {
+impl<S: Scheme> From<ProtocolError<S>> for AmfiteatrError<S>{
+    fn from(value: ProtocolError<S>) -> Self {
         Self::Protocol{source: value}
     }
 }

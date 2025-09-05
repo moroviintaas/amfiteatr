@@ -3,9 +3,9 @@ use crate::scheme::Scheme;
 
 
 /// Environment that provide tracing game.
-pub trait TracingEnvironment<DP: Scheme, ST: SequentialGameState<DP>>{
+pub trait TracingEnvironment<S: Scheme, ST: SequentialGameState<S>>{
 
     
-    fn trajectory(&self) -> &GameTrajectory<DP, ST>;
+    fn trajectory(&self) -> &GameTrajectory<S, ST>;
 
 }

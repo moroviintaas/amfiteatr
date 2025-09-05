@@ -7,35 +7,35 @@ use crate::error::tensor::TensorError;
 /// Top level crate error, constructed from more specific error.
 #[derive(Debug, Clone, Error)]
 #[cfg_attr(feature = "speedy", derive(speedy::Writable, speedy::Readable))]
-pub enum AmfiteatrError<DP: Scheme>{
-    /// Error occurring in specific game logic, defined in generic parameter `DP:` [`DomainParameters`](crate::scheme::Scheme).
+pub enum AmfiteatrError<S: Scheme>{
+    /// Error occurring in specific game logic, defined in generic parameter `S:` [`DomainParameters`](crate::scheme::Scheme).
     #[error("Game error: {source}")]
     Game{
         #[source]
-        source: DP::GameErrorType
+        source: S::GameErrorType
     },
     #[error("Agent {agent} caused game error: {source}")]
     /// Similarly like [`Game`](crate::error::AmfiteatrError::Game), but also with pointing out agent who caused error.
     GameA{
         #[source]
-        source: DP::GameErrorType,
-        agent: DP::AgentId
+        source: S::GameErrorType,
+        agent: S::AgentId
     },
     /// Error in communication between agent and environment.
     #[error("Communication error: {source}")]
     Communication{
         #[source]
-        source: CommunicationError<DP>
+        source: CommunicationError<S>
     },
     /// General protocol violation, e.g .when agent makes action when it is not his turn.
     #[error("Protocol error: {source}")]
     Protocol{
         #[source]
-        source: ProtocolError<DP>
+        source: ProtocolError<S>
     },
 
     //#[error("Setup error: {0}")]
-    //Setup(SetupError<DP>),
+    //Setup(SetupError<S>),
     /// Error during data conversion - typically when encoding as tensors or decoding from them.
     #[error("Data convert - {0}")]
     DataConvert(ConvertError),
@@ -44,7 +44,7 @@ pub enum AmfiteatrError<DP: Scheme>{
     #[error("World maintenance error: {source}")]
     Model {
         #[source]
-        source: ModelError<DP>
+        source: ModelError<S>
     },
 
     /// Custom error to return if error does not fir any other category.
@@ -62,7 +62,7 @@ pub enum AmfiteatrError<DP: Scheme>{
     #[error("Trajectory maintenance error: {source:}")]
     Trajectory{
         #[source]
-        source: TrajectoryError<DP>
+        source: TrajectoryError<S>
     },
     /// Error originating in [`nom`](nom) crate.
     #[error("Error in nom parser: {explanation:}")]

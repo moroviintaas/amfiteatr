@@ -24,31 +24,31 @@ use crate::error::TrajectoryError::UpdateOnFinishedAgentTrajectory;
 /// For trace collected by central environment refer to [`GameTrajectory`](crate::agent::AgentTrajectory).
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Clone, Debug)]
-pub struct AgentStepView<'a, DP: Scheme, IS: InformationSet<DP>>{
+pub struct AgentStepView<'a, S: Scheme, IS: InformationSet<S>>{
 
     #[cfg_attr(feature = "serde", serde(bound(deserialize = "&'a IS: serde::Deserialize<'de>")))]
     #[cfg_attr(feature = "serde", serde(bound(serialize = "&'a IS: serde::Serialize")))]
     pub(crate) start_info_set: &'a IS,
-    #[cfg_attr(feature = "serde", serde(bound(serialize = "&'a DP::UniversalReward: serde::Serialize")))]
-    #[cfg_attr(feature = "serde", serde(bound(deserialize = "&'a DP::UniversalReward: serde::Deserialize<'de>")))]
-    pub(crate) start_payoff: &'a DP::UniversalReward,
+    #[cfg_attr(feature = "serde", serde(bound(serialize = "&'a S::UniversalReward: serde::Serialize")))]
+    #[cfg_attr(feature = "serde", serde(bound(deserialize = "&'a S::UniversalReward: serde::Deserialize<'de>")))]
+    pub(crate) start_payoff: &'a S::UniversalReward,
     #[cfg_attr(feature = "serde", serde(bound(deserialize = "&'a IS: serde::Deserialize<'de>")))]
     #[cfg_attr(feature = "serde", serde(bound(serialize = "&'a IS: serde::Serialize")))]
     pub(crate) end_info_set: &'a IS,
-    #[cfg_attr(feature = "serde", serde(bound(deserialize = "&'a DP::UniversalReward: serde::Deserialize<'de>")))]
-    #[cfg_attr(feature = "serde", serde(bound(serialize = "&'a DP::UniversalReward: serde::Serialize")))]
-    pub(crate) end_payoff: &'a DP::UniversalReward,
-    #[cfg_attr(feature = "serde", serde(bound(deserialize = "&'a DP::ActionType: serde::Deserialize<'de>")))]
-    #[cfg_attr(feature = "serde", serde(bound(serialize = "&'a DP::ActionType: serde::Serialize")))]
-    pub(crate) action: &'a DP::ActionType,
+    #[cfg_attr(feature = "serde", serde(bound(deserialize = "&'a S::UniversalReward: serde::Deserialize<'de>")))]
+    #[cfg_attr(feature = "serde", serde(bound(serialize = "&'a S::UniversalReward: serde::Serialize")))]
+    pub(crate) end_payoff: &'a S::UniversalReward,
+    #[cfg_attr(feature = "serde", serde(bound(deserialize = "&'a S::ActionType: serde::Deserialize<'de>")))]
+    #[cfg_attr(feature = "serde", serde(bound(serialize = "&'a S::ActionType: serde::Serialize")))]
+    pub(crate) action: &'a S::ActionType,
     pub(crate) legality: bool
 
 }
 
-impl<'a, DP: Scheme, IS: InformationSet<DP>> AgentStepView<'a, DP, IS>{
+impl<'a, S: Scheme, IS: InformationSet<S>> AgentStepView<'a, S, IS>{
     pub fn new(start_info_set: &'a IS, end_info_set: &'a IS,
-               start_payoff: &'a DP::UniversalReward, end_payoff: &'a DP::UniversalReward,
-    action: &'a DP::ActionType, legality: bool) -> Self{
+               start_payoff: &'a S::UniversalReward, end_payoff: &'a S::UniversalReward,
+    action: &'a S::ActionType, legality: bool) -> Self{
         Self{
             start_info_set,
             start_payoff,
@@ -63,7 +63,7 @@ impl<'a, DP: Scheme, IS: InformationSet<DP>> AgentStepView<'a, DP, IS>{
         self.start_info_set
     }
     /// Payoff set before taking action.
-    pub fn payoff(&self) -> &DP::UniversalReward{
+    pub fn payoff(&self) -> &S::UniversalReward{
         self.start_payoff
     }
     /// Information set after step completion (just before next step).
@@ -71,15 +71,15 @@ impl<'a, DP: Scheme, IS: InformationSet<DP>> AgentStepView<'a, DP, IS>{
         self.end_info_set
     }
     /// Payoff after step completion (just before next step).
-    pub fn late_payoff(&self) -> &DP::UniversalReward{
+    pub fn late_payoff(&self) -> &S::UniversalReward{
         self.end_payoff
     }
     /// Difference in late payoff and start payoff calculated via [`Reward::ref_sub`].
-    pub fn reward(&self) -> DP::UniversalReward{
+    pub fn reward(&self) -> S::UniversalReward{
         self.end_payoff.ref_sub(self.start_payoff)
     }
     /// Action taken in this step.
-    pub fn action(&self) -> &DP::ActionType{
+    pub fn action(&self) -> &S::ActionType{
         self.action
     }
 
@@ -129,36 +129,36 @@ impl<'a, DP: Scheme, IS: InformationSet<DP>> AgentStepView<'a, DP, IS>{
 /// can be done by subtracting [`current_assessment`](crate::agent::EvaluatedInformationSet::current_assessment).
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Clone, Debug)]
-pub struct AgentTrajectory<DP: Scheme, IS: InformationSet<DP>>{
+pub struct AgentTrajectory<S: Scheme, IS: InformationSet<S>>{
 
     #[cfg_attr(feature = "serde", serde(bound(deserialize = "IS: serde::Deserialize<'de>")))]
     #[cfg_attr(feature = "serde", serde(bound(serialize = "IS: serde::Serialize")))]
     information_sets: Vec<IS>,
-    #[cfg_attr(feature = "serde", serde(bound(deserialize = "DP::UniversalReward: serde::Deserialize<'de>")))]
-    #[cfg_attr(feature = "serde", serde(bound(serialize = "DP::UniversalReward: serde::Serialize")))]
-    payoffs: Vec<DP::UniversalReward>,
-    #[cfg_attr(feature = "serde", serde(bound(deserialize = "DP::ActionType: serde::Deserialize<'de>")))]
-    #[cfg_attr(feature = "serde", serde(bound(serialize = "DP::ActionType: serde::Serialize")))]
-    actions: Vec<DP::ActionType>,
+    #[cfg_attr(feature = "serde", serde(bound(deserialize = "S::UniversalReward: serde::Deserialize<'de>")))]
+    #[cfg_attr(feature = "serde", serde(bound(serialize = "S::UniversalReward: serde::Serialize")))]
+    payoffs: Vec<S::UniversalReward>,
+    #[cfg_attr(feature = "serde", serde(bound(deserialize = "S::ActionType: serde::Deserialize<'de>")))]
+    #[cfg_attr(feature = "serde", serde(bound(serialize = "S::ActionType: serde::Serialize")))]
+    actions: Vec<S::ActionType>,
 
     #[cfg_attr(feature = "serde", serde(bound(deserialize = "IS: serde::Deserialize<'de>")))]
     #[cfg_attr(feature = "serde", serde(bound(serialize = "IS: serde::Serialize")))]
     final_info_set: Option<IS>,
 
-    #[cfg_attr(feature = "serde", serde(bound(deserialize = "DP::UniversalReward: serde::Deserialize<'de>")))]
-    #[cfg_attr(feature = "serde", serde(bound(serialize = "DP::UniversalReward: serde::Serialize")))]
-    final_payoff: Option<DP::UniversalReward>,
+    #[cfg_attr(feature = "serde", serde(bound(deserialize = "S::UniversalReward: serde::Deserialize<'de>")))]
+    #[cfg_attr(feature = "serde", serde(bound(serialize = "S::UniversalReward: serde::Serialize")))]
+    final_payoff: Option<S::UniversalReward>,
 
     legalities: Vec<bool>,
 
-    //illegal_combinations: Vec<S,DP::ActionType>
+    //illegal_combinations: Vec<S,S::ActionType>
 
 
 }
 
 
 
-impl<DP: Scheme, IS: InformationSet<DP>>  Default for AgentTrajectory<DP, IS>{
+impl<S: Scheme, IS: InformationSet<S>>  Default for AgentTrajectory<S, IS>{
     fn default() -> Self {
         Self{ information_sets: vec![], payoffs: vec![], actions: vec![],
             final_info_set: None, final_payoff: None, legalities: vec![],
@@ -167,7 +167,7 @@ impl<DP: Scheme, IS: InformationSet<DP>>  Default for AgentTrajectory<DP, IS>{
     }
 }
 
-impl<DP: Scheme, IS: InformationSet<DP>> AgentTrajectory<DP, IS>{
+impl<S: Scheme, IS: InformationSet<S>> AgentTrajectory<S, IS>{
 
     /// Creates new trajectory. Initializing undergoing vectors with [`default`](Default::default).
     /// If size can be estimated before it will be better to use [`Self::with_capacity`]
@@ -199,8 +199,8 @@ impl<DP: Scheme, IS: InformationSet<DP>> AgentTrajectory<DP, IS>{
     }
 
     /// Register parameters for step. Provide starting information set, action and payoff at start.
-    pub fn register_step_point(&mut self, info_set: IS, action: DP::ActionType, payoff: DP::UniversalReward)
-                               -> Result<(), AmfiteatrError<DP>>{
+    pub fn register_step_point(&mut self, info_set: IS, action: S::ActionType, payoff: S::UniversalReward)
+                               -> Result<(), AmfiteatrError<S>>{
         if self.final_payoff.is_some() || self.final_info_set.is_some(){
             return Err(AmfiteatrError::Trajectory{ source: UpdateOnFinishedAgentTrajectory(info_set.agent_id().clone())})
         }
@@ -223,7 +223,7 @@ impl<DP: Scheme, IS: InformationSet<DP>> AgentTrajectory<DP, IS>{
 
     /// Registers final information set and payoff in trajectory. Marks Trajectory as finished
     /// and no later [`Self::register_step_point`] and [`Self::finish`] are allowed.
-    pub fn finish(&mut self, info_set: IS,  payoff: DP::UniversalReward) -> Result<(), AmfiteatrError<DP>>{
+    pub fn finish(&mut self, info_set: IS,  payoff: S::UniversalReward) -> Result<(), AmfiteatrError<S>>{
         if self.final_payoff.is_some() || self.final_info_set.is_some(){
             return Err(AmfiteatrError::Trajectory{ source: UpdateOnFinishedAgentTrajectory(info_set.agent_id().clone())})
         }
@@ -246,7 +246,7 @@ impl<DP: Scheme, IS: InformationSet<DP>> AgentTrajectory<DP, IS>{
     /// step measured between two last registered entries. If game is finished (trajectory invoked
     /// function [`AgentTrajectory::finish`]) then the step between last registered information set
     /// and information set provided for the finish function is used to mark last step.
-    pub fn last_view_step(&self) -> Option<AgentStepView<DP, IS>>{
+    pub fn last_view_step(&self) -> Option<AgentStepView<S, IS>>{
         if self.final_payoff.is_some() && self.final_info_set.is_some(){
             self.view_step(self.payoffs.len().saturating_sub(1))
         } else {
@@ -255,7 +255,7 @@ impl<DP: Scheme, IS: InformationSet<DP>> AgentTrajectory<DP, IS>{
     }
 
     /// Returns view of indexed step
-    pub fn view_step(&self, index: usize) -> Option<AgentStepView<DP, IS>>{
+    pub fn view_step(&self, index: usize) -> Option<AgentStepView<S, IS>>{
         //first check if there is next normal step
         self.information_sets.get(index+1).and_then(|se|{
             self.payoffs.get(index+1).map(|pe|{
@@ -343,7 +343,7 @@ impl<DP: Scheme, IS: InformationSet<DP>> AgentTrajectory<DP, IS>{
     }
 
     /// Returns iterator of step views.
-    pub fn iter(&self) -> AgentStepIterator<DP, IS>{
+    pub fn iter(&self) -> AgentStepIterator<S, IS>{
         AgentStepIterator{
             trajectory: self,
             index: 0,
@@ -354,7 +354,7 @@ impl<DP: Scheme, IS: InformationSet<DP>> AgentTrajectory<DP, IS>{
     #[inline]
     pub fn find_max_trajectory_len
     (
-        trajectories: &[AgentTrajectory<DP, IS>]
+        trajectories: &[AgentTrajectory<S, IS>]
     ) -> usize{
         trajectories.iter().map(|x|{
             x.number_of_steps()
@@ -365,7 +365,7 @@ impl<DP: Scheme, IS: InformationSet<DP>> AgentTrajectory<DP, IS>{
     #[inline]
     pub fn sum_trajectories_steps
     (
-        trajectories: &[AgentTrajectory<DP, IS>]
+        trajectories: &[AgentTrajectory<S, IS>]
     ) -> usize{
         trajectories.iter().fold(0, |acc, x|{
             acc + x.number_of_steps()
@@ -376,14 +376,14 @@ impl<DP: Scheme, IS: InformationSet<DP>> AgentTrajectory<DP, IS>{
 }
 
 /// Iterator for step views in agent trajectory
-pub struct AgentStepIterator<'a, DP: Scheme, IS: InformationSet<DP>>{
-    trajectory: &'a AgentTrajectory<DP, IS>,
+pub struct AgentStepIterator<'a, S: Scheme, IS: InformationSet<S>>{
+    trajectory: &'a AgentTrajectory<S, IS>,
     index: usize,
 }
 
 
-impl<'a, DP: Scheme, IS: InformationSet<DP>> Iterator for AgentStepIterator<'a, DP, IS>{
-    type Item = AgentStepView<'a, DP, IS>;
+impl<'a, S: Scheme, IS: InformationSet<S>> Iterator for AgentStepIterator<'a, S, IS>{
+    type Item = AgentStepView<'a, S, IS>;
 
     fn next(&mut self) -> Option<Self::Item> {
 
@@ -393,7 +393,7 @@ impl<'a, DP: Scheme, IS: InformationSet<DP>> Iterator for AgentStepIterator<'a, 
     }
 }
 
-impl<DP: Scheme, IS: InformationSet<DP>> ExactSizeIterator for AgentStepIterator<'_, DP, IS>{
+impl<S: Scheme, IS: InformationSet<S>> ExactSizeIterator for AgentStepIterator<'_, S, IS>{
     fn len(&self) -> usize{
         match self.trajectory.final_info_set{
             Some(_) => self.trajectory.information_sets.len(),

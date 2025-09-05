@@ -3,7 +3,7 @@ use crate::scheme::Scheme;
 use crate::error::AmfiteatrError;
 
 /// Environment that has state and can evaluate payoff for every player.
-pub trait ScoreEnvironment<DP: Scheme>: StatefulEnvironment<DP>{
+pub trait ScoreEnvironment<S: Scheme>: StatefulEnvironment<S>{
 
     /// This is substitute method for
     /// [`process_action`](crate::env::StatefulEnvironment::process_action).
@@ -13,17 +13,17 @@ pub trait ScoreEnvironment<DP: Scheme>: StatefulEnvironment<DP>{
     /// (i.e. for reinforcement learning). Game can be continued from previous state.
     fn process_action_penalise_illegal(
         &mut self,
-        agent: &DP::AgentId,
-        action: &DP::ActionType,
-        penalty_reward: DP::UniversalReward)
-        -> Result<<Self::State as SequentialGameState<DP>>::Updates, AmfiteatrError<DP>>;
+        agent: &S::AgentId,
+        action: &S::ActionType,
+        penalty_reward: S::UniversalReward)
+        -> Result<<Self::State as SequentialGameState<S>>::Updates, AmfiteatrError<S>>;
 
     /// Return actual payoff of player based on game state
-    fn actual_state_score_of_player(&self, agent: &DP::AgentId) -> DP::UniversalReward;
+    fn actual_state_score_of_player(&self, agent: &S::AgentId) -> S::UniversalReward;
     /// Return actual penalty accumulated of player
-    fn actual_penalty_score_of_player(&self, agent: &DP::AgentId) -> DP::UniversalReward;
+    fn actual_penalty_score_of_player(&self, agent: &S::AgentId) -> S::UniversalReward;
     /// Return actual payoff of player, sum of state related payoff and penalty
-    fn actual_score_of_player(&self, agent: &DP::AgentId) -> DP::UniversalReward{
+    fn actual_score_of_player(&self, agent: &S::AgentId) -> S::UniversalReward{
         self.actual_state_score_of_player(agent) + self.actual_penalty_score_of_player(agent)
     }
 

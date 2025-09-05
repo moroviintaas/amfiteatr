@@ -24,32 +24,32 @@ pub struct GeneticPolicyConfig{
 }
 
 
-pub struct GeneticPolicyGeneric<DP: Scheme, S: PolicySpecimen<DP, M> + Sized, M: Send>
+pub struct GeneticPolicyGeneric<S: Scheme, SP: PolicySpecimen<S, M> + Sized, M: Send>
 {
 
     config: GeneticPolicyConfig,
-    population: Vec<S>,
+    population: Vec<SP>,
     tboard_writer: Option<tboard::EventWriter<File>>,
     selected_specimen_index: usize,
-    saved_payoffs: Vec<Vec<DP::UniversalReward>>,
+    saved_payoffs: Vec<Vec<S::UniversalReward>>,
     _mutagen: PhantomData<M>
 }
 
 
 
-impl <DP: Scheme, S: PolicySpecimen<DP, M>, M: Send> GeneticPolicyGeneric<DP, S, M>
+impl <S: Scheme, PS: PolicySpecimen<S, M>, M: Send> GeneticPolicyGeneric<S, PS, M>
 {
 
 
-    pub fn new<G>(config: GeneticPolicyConfig, generator: G) -> GeneticPolicyGeneric<DP, S, M>
-    where G: Fn(usize) -> S{
+    pub fn new<G>(config: GeneticPolicyConfig, generator: G) -> GeneticPolicyGeneric<S, PS, M>
+    where G: Fn(usize) -> PS{
         /*let d = StandardUniform::default();
         let population: Vec<S> = (0..config.target_population)
             .map(|_| d.sample(&mut rand::rng())).collect();//vec![d.sample(&mut rand::rng());config.target_population];
         */
-        let population: Vec<S> = (0..config.target_population)
+        let population: Vec<PS> = (0..config.target_population)
             .map(|i| generator(i)).collect();//vec![d.sample(&mut rand::rng());config.target_population];
-        let saved_payoffs: Vec<Vec<DP::UniversalReward>> = vec![Vec::new(); population.len()];
+        let saved_payoffs: Vec<Vec<S::UniversalReward>> = vec![Vec::new(); population.len()];
         Self{
             population,
             config,
@@ -60,14 +60,14 @@ impl <DP: Scheme, S: PolicySpecimen<DP, M>, M: Send> GeneticPolicyGeneric<DP, S,
         }
     }
 
-    pub fn update_policy(&mut self) -> Result<(), AmfiteatrError<DP>>
-    where <DP as Scheme>::UniversalReward: Div<f64, Output=DP::UniversalReward>
+    pub fn update_policy(&mut self) -> Result<(), AmfiteatrError<S>>
+    where <S as Scheme>::UniversalReward: Div<f64, Output=S::UniversalReward>
     {
-    //where for<'a> &'a DP::UniversalReward: Sum + Div<f64> {
-        let _averages: Vec<DP::UniversalReward>  = self.saved_payoffs.iter()
-            //.map(|v|v.iter().sum::<DP::UniversalReward>()/self.population.len() as f64).collect();
+    //where for<'a> &'a S::UniversalReward: Sum + Div<f64> {
+        let _averages: Vec<S::UniversalReward>  = self.saved_payoffs.iter()
+            //.map(|v|v.iter().sum::<S::UniversalReward>()/self.population.len() as f64).collect();
             .map(|v|{
-                v.iter().fold(<DP::UniversalReward as Reward>::neutral(), |acc, x|{
+                v.iter().fold(<S::UniversalReward as Reward>::neutral(), |acc, x|{
                     acc+x
                 })/ self.population.len() as f64
             }).collect();
@@ -81,22 +81,22 @@ impl <DP: Scheme, S: PolicySpecimen<DP, M>, M: Send> GeneticPolicyGeneric<DP, S,
 }
 
 impl <
-    DP: Scheme,
-    IS: InformationSet<DP>,
-    SM: PolicySpecimen<DP, M> + Policy<DP, InfoSetType=IS> + Sized,
+    S: Scheme,
+    IS: InformationSet<S>,
+    SM: PolicySpecimen<S, M> + Policy<S, InfoSetType=IS> + Sized,
     M: Send
-> Policy<DP> for GeneticPolicyGeneric<DP, SM, M>
+> Policy<S> for GeneticPolicyGeneric<S, SM, M>
 {
     type InfoSetType = IS;
 
-    fn select_action(&self, state: &Self::InfoSetType) -> Result<DP::ActionType, AmfiteatrError<DP>> {
+    fn select_action(&self, state: &Self::InfoSetType) -> Result<S::ActionType, AmfiteatrError<S>> {
         let sub_policy = self.population.get(self.selected_specimen_index)
             .ok_or(AmfiteatrError::Custom(format!("Failed selecting genetic subpolicy with index: {}", self.selected_specimen_index)))?;
 
         sub_policy.select_action(state)
     }
 
-    fn call_on_episode_start(&mut self) -> Result<(), AmfiteatrError<DP>> {
+    fn call_on_episode_start(&mut self) -> Result<(), AmfiteatrError<S>> {
         let index = rand::distr::Uniform::new(0, self.population.len())
             .map_err(|e| AmfiteatrError::Custom("Creating index distribution for specimen {e}".into()))?
             .sample(&mut rand::rng());
@@ -104,13 +104,13 @@ impl <
         Ok(())
     }
 
-    fn call_on_episode_finish(&mut self, final_env_reward: DP::UniversalReward) -> Result<(), AmfiteatrError<DP>> {
+    fn call_on_episode_finish(&mut self, final_env_reward: S::UniversalReward) -> Result<(), AmfiteatrError<S>> {
         self.saved_payoffs[self.selected_specimen_index].push(final_env_reward);
 
         Ok(())
     }
 
-    fn call_between_epochs(&mut self) -> Result<(), AmfiteatrError<DP>> {
+    fn call_between_epochs(&mut self) -> Result<(), AmfiteatrError<S>> {
         for s in self.saved_payoffs.iter_mut(){
             s.clear();
         }

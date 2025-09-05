@@ -1,9 +1,11 @@
 # Changelog
 
 ## Version 0.12.0
++ (**super breaking**) - renamed `domain::DomainParameters` to `scheme::Scheme`, because domain parameters are inappropriate here (it is used in elliptic curve cryptography).
+This breaks almost everything, sorry. To migrate please refactor all occurrences.
 + Introduced experimental mutable calls on policy, that are called at the beginning, the end of episodes and between epochs.
-+ Renamed `LearningNetworkPolicy<DP: DomainParameters>` with generic `Summary` type to `LearningNetworkPolicyGeneric`.
-Introduced new `LearningNetworkPolicy<DP: DomainParameters> LearningNetworkPolicyGeneric<DP>` with `Summary` fixed on `LearnSummary`  type.
++ Renamed `LearningNetworkPolicy<S: DomainParameters>` with generic `Summary` type to `LearningNetworkPolicyGeneric`.
+Introduced new `LearningNetworkPolicy<S: DomainParameters> LearningNetworkPolicyGeneric<S>` with `Summary` fixed on `LearnSummary`  type.
 + In `RoundRobinEnvironment` changed names of `run_round_robin` and `run_round_robin_truncating` to
 respectively `run_round_robin_no_rewards` and `run_round_robin_no_rewards_truncating`.
 Making it more explicit to call environments without providing rewards.

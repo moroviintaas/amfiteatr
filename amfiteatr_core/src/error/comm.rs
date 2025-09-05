@@ -8,27 +8,27 @@ use crate::scheme::Scheme;
 /// Error during communication.
 #[derive(Debug, Clone, PartialEq, Eq, Error)]
 #[cfg_attr(feature = "speedy", derive(speedy::Writable, speedy::Readable))]
-pub enum CommunicationError<DP: Scheme>{
+pub enum CommunicationError<S: Scheme>{
     #[error("Send Error to {0}, text: {1}")]
-    SendError(DP::AgentId, String),
+    SendError(S::AgentId, String),
     #[error("Send Error, text: {0}")]
     SendErrorUnspecified(String),
     #[error("Broadcast Send Error (on {0})")]
-    BroadcastSendError(DP::AgentId),
+    BroadcastSendError(S::AgentId),
     #[error("Broadcast Send Error")]
     BroadcastSendErrorUnspecified,
     #[error("Recv Error from {0}, text: {1}")]
-    RecvError(DP::AgentId, String),
+    RecvError(S::AgentId, String),
     #[error("Recv Error, text: {0}")]
     RecvErrorUnspecified(String),
     #[error("TryRecv Error (empty) from {0}")]
-    RecvEmptyBufferError(DP::AgentId),
+    RecvEmptyBufferError(S::AgentId),
     #[error("TryRecv Error (empty")]
     RecvEmptyBufferErrorUnspecified,
     #[error("TryRecv Error (disconnected")]
     RecvPeerDisconnectedErrorUnspecified,
     #[error("TryRecv Error (disconnected) from {0}")]
-    RecvPeerDisconnectedError(DP::AgentId),
+    RecvPeerDisconnectedError(S::AgentId),
     #[error("Serialize Error, text: {0}")]
     SerializeError(String),
     #[error("Deserialize Error, text: {0}")]
@@ -36,9 +36,9 @@ pub enum CommunicationError<DP: Scheme>{
     #[error("No such` connection")]
     NoSuchConnection{ connection: String},
     #[error("Connection to agent {0} not found")]
-    ConnectionToAgentNotFound(DP::AgentId),
+    ConnectionToAgentNotFound(S::AgentId),
     #[error("Duplicated Agent: {0}")]
-    DuplicatedAgent(DP::AgentId),
+    DuplicatedAgent(S::AgentId),
     #[error("Connection initialization error for agent: {description:}")]
     ConnectionInitialization{
         description: String

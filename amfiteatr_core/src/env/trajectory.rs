@@ -13,16 +13,16 @@ use crate::error::{AmfiteatrError, TrajectoryError};
 /// Game step is measured from one state to the next (transaction is made by any agent performing action).
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Clone, Debug)]
-pub struct GameStepView<'a, DP: Scheme, ST: SequentialGameState<DP>>{
+pub struct GameStepView<'a, S: Scheme, ST: SequentialGameState<S>>{
     #[cfg_attr(feature = "serde", serde(bound(deserialize = "&'a ST: serde::Deserialize<'de>")))]
     #[cfg_attr(feature = "serde", serde(bound(serialize = "&'a ST: serde::Serialize")))]
     state_before: &'a ST,
-    #[cfg_attr(feature = "serde", serde(bound(deserialize = "&'a DP::AgentId: serde::Deserialize<'de>")))]
-    #[cfg_attr(feature = "serde", serde(bound(serialize = "&'a DP::AgentId: serde::Serialize")))]
-    agent: &'a DP::AgentId,
-    #[cfg_attr(feature = "serde", serde(bound(deserialize = "&'a DP::ActionType: serde::Deserialize<'de>")))]
-    #[cfg_attr(feature = "serde", serde(bound(serialize = "&'a DP::ActionType: serde::Serialize")))]
-    action: &'a DP::ActionType,
+    #[cfg_attr(feature = "serde", serde(bound(deserialize = "&'a S::AgentId: serde::Deserialize<'de>")))]
+    #[cfg_attr(feature = "serde", serde(bound(serialize = "&'a S::AgentId: serde::Serialize")))]
+    agent: &'a S::AgentId,
+    #[cfg_attr(feature = "serde", serde(bound(deserialize = "&'a S::ActionType: serde::Deserialize<'de>")))]
+    #[cfg_attr(feature = "serde", serde(bound(serialize = "&'a S::ActionType: serde::Serialize")))]
+    action: &'a S::ActionType,
     is_action_valid: bool,
 
     #[cfg_attr(feature = "serde", serde(bound(deserialize = "&'a ST: serde::Deserialize<'de>")))]
@@ -33,9 +33,9 @@ pub struct GameStepView<'a, DP: Scheme, ST: SequentialGameState<DP>>{
 
 }
 
-impl<'a, DP: Scheme, ST: SequentialGameState<DP>> Display for GameStepView<'a, DP, ST>
-    where &'a ST: Display, <DP as Scheme>::AgentId: Display,
-           &'a <DP as Scheme>::ActionType: Display{
+impl<'a, S: Scheme, ST: SequentialGameState<S>> Display for GameStepView<'a, S, ST>
+    where &'a ST: Display, <S as Scheme>::AgentId: Display,
+           &'a <S as Scheme>::ActionType: Display{
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "[ {} ]--[ {} / {}]-->[ {} ] ", self.state_before, self.agent, self.action, self.state_after)?;
         if !self.is_action_valid{
@@ -46,10 +46,10 @@ impl<'a, DP: Scheme, ST: SequentialGameState<DP>> Display for GameStepView<'a, D
     }
 }
 
-impl<'a, DP: Scheme, ST: SequentialGameState<DP>> GameStepView<'a, DP, ST>{
+impl<'a, S: Scheme, ST: SequentialGameState<S>> GameStepView<'a, S, ST>{
 
-    pub fn new(state_before: &'a ST, agent: &'a DP::AgentId,
-               action: &'a DP::ActionType, is_valid: bool, state_after: &'a ST) -> Self{
+    pub fn new(state_before: &'a ST, agent: &'a S::AgentId,
+               action: &'a S::ActionType, is_valid: bool, state_after: &'a ST) -> Self{
         Self{state_before, agent, action, is_action_valid: is_valid, state_after}
     }
 
@@ -63,12 +63,12 @@ impl<'a, DP: Scheme, ST: SequentialGameState<DP>> GameStepView<'a, DP, ST>{
     }
 
     /// Returns reference to the agent id who performed action in the step's early state.
-    pub fn agent(&self) -> &DP::AgentId{
+    pub fn agent(&self) -> &S::AgentId{
         self.agent
     }
 
     /// Returns reference to action performed during the step
-    pub fn action(&self) -> &DP::ActionType{
+    pub fn action(&self) -> &S::ActionType{
         self.action
     }
 
@@ -104,22 +104,22 @@ impl<'a, DP: Scheme, ST: SequentialGameState<DP>> GameStepView<'a, DP, ST>{
 /// For trace collected by players refer to [`AgentTrajectory`](crate::agent::AgentTrajectory).
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Clone, Debug)]
-pub struct GameTrajectory<DP: Scheme, ST: SequentialGameState<DP>>{
+pub struct GameTrajectory<S: Scheme, ST: SequentialGameState<S>>{
     #[cfg_attr(feature = "serde", serde(bound(deserialize = "ST: serde::Deserialize<'de>")))]
     #[cfg_attr(feature = "serde", serde(bound(serialize = "ST: serde::Serialize")))]
     states: Vec<ST>,
-    #[cfg_attr(feature = "serde", serde(bound(deserialize = "DP::AgentId: serde::Deserialize<'de>")))]
-    #[cfg_attr(feature = "serde", serde(bound(serialize = "DP::AgentId: serde::Serialize")))]
-    agents: Vec<DP::AgentId>,
-    #[cfg_attr(feature = "serde", serde(bound(deserialize = "DP::ActionType: serde::Deserialize<'de>")))]
-    #[cfg_attr(feature = "serde", serde(bound(serialize = "DP::ActionType: serde::Serialize")))]
-    actions: Vec<DP::ActionType>,
+    #[cfg_attr(feature = "serde", serde(bound(deserialize = "S::AgentId: serde::Deserialize<'de>")))]
+    #[cfg_attr(feature = "serde", serde(bound(serialize = "S::AgentId: serde::Serialize")))]
+    agents: Vec<S::AgentId>,
+    #[cfg_attr(feature = "serde", serde(bound(deserialize = "S::ActionType: serde::Deserialize<'de>")))]
+    #[cfg_attr(feature = "serde", serde(bound(serialize = "S::ActionType: serde::Serialize")))]
+    actions: Vec<S::ActionType>,
     validations: Vec<bool>,
     #[cfg_attr(feature = "serde", serde(bound(deserialize = "ST: serde::Deserialize<'de>")))]
     #[cfg_attr(feature = "serde", serde(bound(serialize = "ST: serde::Serialize")))]
     final_state: Option<ST>,
 }
-impl<DP: Scheme, ST: SequentialGameState<DP>> Default for GameTrajectory<DP, ST>{
+impl<S: Scheme, ST: SequentialGameState<S>> Default for GameTrajectory<S, ST>{
     fn default() -> Self {
         Self{
             states: vec![],
@@ -130,7 +130,7 @@ impl<DP: Scheme, ST: SequentialGameState<DP>> Default for GameTrajectory<DP, ST>
         }
     }
 }
-impl<DP: Scheme, ST: SequentialGameState<DP>> GameTrajectory<DP, ST>{
+impl<S: Scheme, ST: SequentialGameState<S>> GameTrajectory<S, ST>{
 
     /// Creates new trajectory. Initializing undergoing vectors with [`default`](Default::default).
     /// If size can be estimated before it will be better to use [`Self::with_capacity`]
@@ -205,8 +205,8 @@ impl<DP: Scheme, ST: SequentialGameState<DP>> GameTrajectory<DP, ST>{
         self.states.len()
     }
     /// Register parameters for step. Provide starting state, action and payoff at start.
-    pub fn register_step_point(&mut self, state: ST, agent: DP::AgentId, action: DP::ActionType, is_valid: bool)
-                               -> Result<(), AmfiteatrError<DP>>{
+    pub fn register_step_point(&mut self, state: ST, agent: S::AgentId, action: S::ActionType, is_valid: bool)
+                               -> Result<(), AmfiteatrError<S>>{
         if self.final_state.is_some(){
             return Err(TrajectoryError::UpdateOnFinishedGameTrajectory {
                 description: format!("{:?}", self)
@@ -221,7 +221,7 @@ impl<DP: Scheme, ST: SequentialGameState<DP>> GameTrajectory<DP, ST>{
     }
     /// Registers state set and payoff in trajectory. Marks Trajectory as finished
     /// and no later [`Self::register_step_point`] and [`Self::finish`] are allowed.
-    pub fn finish(&mut self, state: ST) -> Result<(), AmfiteatrError<DP>>{
+    pub fn finish(&mut self, state: ST) -> Result<(), AmfiteatrError<S>>{
         if self.final_state.is_some(){
             return Err(TrajectoryError::FinishingOnFinishedGameTrajectory {
                 description: format!("{:?}", &self)}.into())
@@ -241,7 +241,7 @@ impl<DP: Scheme, ST: SequentialGameState<DP>> GameTrajectory<DP, ST>{
     /// step measured between two last registered entries. If game is finished (trajectory invoked
     /// function [`GameTrajectory::finish`]) then the step between last registered information set
     /// and information set provided for the finish function is used to mark last step.
-    pub fn last_view_step(&self) -> Option<GameStepView<DP, ST>>{
+    pub fn last_view_step(&self) -> Option<GameStepView<S, ST>>{
         if self.final_state.is_some(){
             self.view_step(self.states.len().saturating_sub(1))
         } else {
@@ -249,7 +249,7 @@ impl<DP: Scheme, ST: SequentialGameState<DP>> GameTrajectory<DP, ST>{
         }
     }
     /// Returns view of indexed step
-    pub fn view_step(&self, index: usize) -> Option<GameStepView<DP, ST>>{
+    pub fn view_step(&self, index: usize) -> Option<GameStepView<S, ST>>{
         self.states.get(index+1).map(|se|{
             GameStepView::new(
                 &self.states[index],

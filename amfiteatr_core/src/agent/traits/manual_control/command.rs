@@ -16,21 +16,21 @@ use nom::Parser;
 /// about information set or ask for hint (e.g some Q-table).
 /// Example question implementation is [`TurnCommand`].
 /// *Implementation of human controlled playing interface is not a priority now, however this is current idea of how it would look like.*
-pub trait AssistingPolicy<DP: Scheme>: Policy<DP>{
+pub trait AssistingPolicy<S: Scheme>: Policy<S>{
 
     type Question;
 
-    fn assist(&self, question: Self::Question) -> Result<String, AmfiteatrError<DP>>;
+    fn assist(&self, question: Self::Question) -> Result<String, AmfiteatrError<S>>;
 
 }
 
 
 
-impl<DP: Scheme, IS: PresentPossibleActions<DP>> AssistingPolicy<DP> for RandomPolicy<DP, IS>
-    where <<IS as PresentPossibleActions<DP>>::ActionIteratorType as IntoIterator>::IntoIter : ExactSizeIterator{
+impl<S: Scheme, IS: PresentPossibleActions<S>> AssistingPolicy<S> for RandomPolicy<S, IS>
+    where <<IS as PresentPossibleActions<S>>::ActionIteratorType as IntoIterator>::IntoIter : ExactSizeIterator{
     type Question = ();
 
-    fn assist(&self, _: Self::Question) -> Result<String, AmfiteatrError<DP>> {
+    fn assist(&self, _: Self::Question) -> Result<String, AmfiteatrError<S>> {
         Ok("I am random policy, I do things at random. I cannot assist you with hints".into())
     }
 }
@@ -45,25 +45,25 @@ impl<DP: Scheme, IS: PresentPossibleActions<DP>> AssistingPolicy<DP> for RandomP
 ///
 /// *Implementation of human controlled playing interface is not a priority now, however this is current idea of how it would look like.*
 #[derive(Clone, Debug, PartialEq)]
-pub enum TurnCommand<DP: Scheme, P: AssistingPolicy<DP>>{
+pub enum TurnCommand<S: Scheme, P: AssistingPolicy<S>>{
     Quit,
-    Play(DP::ActionType),
+    Play(S::ActionType),
     Show,
     AskPolicy(P::Question)
 
 }
 
 
-impl<DP: Scheme, P: AssistingPolicy<DP>> StrParsed for TurnCommand<DP, P>
-    where DP::ActionType: StrParsed,
-    <P as AssistingPolicy<DP>>::Question: StrParsed{
+impl<S: Scheme, P: AssistingPolicy<S>> StrParsed for TurnCommand<S, P>
+    where S::ActionType: StrParsed,
+    <P as AssistingPolicy<S>>::Question: StrParsed{
     fn parse_from_str(input: &str) -> IResult<&str, Self> {
 
         if let Ok((action_str, (_, _))) = pair(
             alt((tag("do"), tag("action"), tag("play"), tag::<&str, &str, nom::error::Error<&str>>("a"))),
             space1
         ).parse(input){
-            <DP::ActionType as StrParsed>::parse_from_str(action_str)
+            <S::ActionType as StrParsed>::parse_from_str(action_str)
                 .map(|(rest, action)| (rest, Self::Play(action)))
         } else if let Ok((question_str, _)) = pair(
             alt((tag("hint"), tag("policy"), tag("Kowalski analysis"), tag("analysis"), tag("p"), tag::<&str, &str, nom::error::Error<&str>>("Kowalski"))),

@@ -18,15 +18,15 @@ use crate::torch_net::{ActorCriticOutput, NeuralNet, NeuralNetActorCritic, Tenso
 /// Policy A2C for discrete action space with single distribution using [`tch`] crate for `torch` backed
 /// [`Tensors`](tch::Tensor).
 pub struct PolicyDiscreteA2C<
-    DP: Scheme,
-    InfoSet: InformationSet<DP> + Debug + ContextEncodeTensor<InfoSetConversionContext>,
+    S: Scheme,
+    InfoSet: InformationSet<S> + Debug + ContextEncodeTensor<InfoSetConversionContext>,
     InfoSetConversionContext: TensorEncoding,
     ActionBuildContext: TensorDecoding,
 >{
     config: ConfigA2C,
     network: NeuralNetActorCritic,
     optimizer: Optimizer,
-    _dp: PhantomData<DP>,
+    _dp: PhantomData<S>,
     _is: PhantomData<InfoSet>,
     info_set_encoding: InfoSetConversionContext,
     action_encoding: ActionBuildContext,
@@ -38,11 +38,11 @@ pub struct PolicyDiscreteA2C<
 }
 
 impl<
-    DP: Scheme,
-    InfoSet: InformationSet<DP> + Debug + ContextEncodeTensor<InfoSetConversionContext>,
+    S: Scheme,
+    InfoSet: InformationSet<S> + Debug + ContextEncodeTensor<InfoSetConversionContext>,
     InfoSetConversionContext: TensorEncoding,
     ActionBuildContext: TensorDecoding,
-> PolicyDiscreteA2C<DP, InfoSet, InfoSetConversionContext, ActionBuildContext>{
+> PolicyDiscreteA2C<S, InfoSet, InfoSetConversionContext, ActionBuildContext>{
     pub fn new(
         config: ConfigA2C,
         network: NeuralNetActorCritic,
@@ -66,7 +66,7 @@ impl<
     /// Creates [`tboard::EventWriter`]. Initialy policy does not use `tensorboard` directory to store epoch
     /// training results (like entropy, policy loss, value loss). However, you cen provide it with directory
     /// to create tensorboard files.
-    pub fn add_tboard_directory<P: AsRef<std::path::Path>>(&mut self, directory_path: P) -> Result<(), AmfiteatrError<DP>>{
+    pub fn add_tboard_directory<P: AsRef<std::path::Path>>(&mut self, directory_path: P) -> Result<(), AmfiteatrError<S>>{
         let tboard = EventWriter::create(directory_path).map_err(|e|{
             AmfiteatrError::TboardFlattened {context: "Creating tboard EventWriter".into(), error: format!("{e}")}
         })?;
@@ -86,23 +86,23 @@ impl<
 }
 
 impl<
-    DP: Scheme,
-    InfoSet: InformationSet<DP> + Debug + ContextEncodeTensor<InfoSetConversionContext>,
+    S: Scheme,
+    InfoSet: InformationSet<S> + Debug + ContextEncodeTensor<InfoSetConversionContext>,
     InfoSetConversionContext: TensorEncoding,
     ActionBuildContext: TensorDecoding,
-> TensorboardSupport<DP> for PolicyDiscreteA2C<DP, InfoSet, InfoSetConversionContext, ActionBuildContext>
+> TensorboardSupport<S> for PolicyDiscreteA2C<S, InfoSet, InfoSetConversionContext, ActionBuildContext>
 {
     /// Creates [`tboard::EventWriter`]. Initially policy does not use `tensorboard` directory to store epoch
     /// training results (like entropy, policy loss, value loss). However, you cen provide it with directory
     /// to create tensorboard files.
-    fn add_tboard_directory<P: AsRef<std::path::Path>>(&mut self, directory_path: P) -> Result<(), AmfiteatrError<DP>> {
+    fn add_tboard_directory<P: AsRef<std::path::Path>>(&mut self, directory_path: P) -> Result<(), AmfiteatrError<S>> {
         let tboard = EventWriter::create(directory_path).map_err(|e| {
             AmfiteatrError::TboardFlattened { context: "Creating tboard EventWriter".into(), error: format!("{e}") }
         })?;
         self.tboard_writer = Some(tboard);
         Ok(())
     }
-    fn t_write_scalar(&mut self, step: i64, tag: &str, value: f32) -> Result<bool, AmfiteatrError<DP>> {
+    fn t_write_scalar(&mut self, step: i64, tag: &str, value: f32) -> Result<bool, AmfiteatrError<S>> {
         match &mut self.tboard_writer{
             None => Ok(false),
             Some(writer) => {
@@ -117,13 +117,13 @@ impl<
     }
 }
 impl<
-    DP: Scheme,
-    InfoSet: InformationSet<DP> + Debug + ContextEncodeTensor<InfoSetEncoding>,
+    S: Scheme,
+    InfoSet: InformationSet<S> + Debug + ContextEncodeTensor<InfoSetEncoding>,
     InfoSetEncoding: TensorEncoding,
     ActionEncoding: TensorDecoding + TensorIndexI64Encoding
     + tensor_data::ActionTensorFormat<Tensor>,
-> PolicyHelperA2C<DP> for PolicyDiscreteA2C<DP, InfoSet, InfoSetEncoding, ActionEncoding>
-where <DP as Scheme>::ActionType:
+> PolicyHelperA2C<S> for PolicyDiscreteA2C<S, InfoSet, InfoSetEncoding, ActionEncoding>
+where <S as Scheme>::ActionType:
 ContextDecodeIndexI64<ActionEncoding> + ContextEncodeIndexI64<ActionEncoding>{
     type InfoSet = InfoSet;
     type InfoSetConversionContext = InfoSetEncoding;
@@ -163,7 +163,7 @@ ContextDecodeIndexI64<ActionEncoding> + ContextEncodeIndexI64<ActionEncoding>{
         &self.action_encoding
     }
 
-    fn dist(&self, _info_set: &Self::InfoSet, network_output: &Self::NetworkOutput) -> Result<<Self::NetworkOutput as ActorCriticOutput>::ActionTensorType, AmfiteatrError<DP>> {
+    fn dist(&self, _info_set: &Self::InfoSet, network_output: &Self::NetworkOutput) -> Result<<Self::NetworkOutput as ActorCriticOutput>::ActionTensorType, AmfiteatrError<S>> {
         Ok(network_output.actor.f_softmax(-1, tch::Kind::Float)
             .map_err(|e| TensorError::from_tch_with_context(e, "Calculating action distribution (a2c_dist)".into()))?)
     }
@@ -172,7 +172,7 @@ ContextDecodeIndexI64<ActionEncoding> + ContextEncodeIndexI64<ActionEncoding>{
         false
     }
 
-    fn generate_action_masks(&self, _information_set: &Self::InfoSet) -> Result<<Self::NetworkOutput as ActorCriticOutput>::ActionTensorType, AmfiteatrError<DP>> {
+    fn generate_action_masks(&self, _information_set: &Self::InfoSet) -> Result<<Self::NetworkOutput as ActorCriticOutput>::ActionTensorType, AmfiteatrError<S>> {
         Err(AmfiteatrError::Custom("Action masking is not supported.".into()))
     }
 
@@ -180,23 +180,23 @@ ContextDecodeIndexI64<ActionEncoding> + ContextEncodeIndexI64<ActionEncoding>{
         self.exploration
     }
 
-    fn try_action_from_choice_tensor(&self, choice_tensor: &<Self::NetworkOutput as ActorCriticOutput>::ActionTensorType) -> Result<DP::ActionType, AmfiteatrError<DP>> {
+    fn try_action_from_choice_tensor(&self, choice_tensor: &<Self::NetworkOutput as ActorCriticOutput>::ActionTensorType) -> Result<S::ActionType, AmfiteatrError<S>> {
         let index = choice_tensor.f_int64_value(&[0])
             .map_err(|e| AmfiteatrError::Tensor { error: TensorError::Torch {
                 origin: format!("{}", e),
                 context: "Converting choice tensor to i64 action index.".to_string() } }
             )?;
-        Ok(<DP::ActionType>::try_from_index(index, &self.action_encoding)?)
+        Ok(<S::ActionType>::try_from_index(index, &self.action_encoding)?)
     }
 
-    fn vectorize_action_and_create_category_mask(&self, action: &DP::ActionType) -> Result<(<Self::NetworkOutput as ActorCriticOutput>::ActionTensorType, <Self::NetworkOutput as ActorCriticOutput>::ActionTensorType), AmfiteatrError<DP>> {
+    fn vectorize_action_and_create_category_mask(&self, action: &S::ActionType) -> Result<(<Self::NetworkOutput as ActorCriticOutput>::ActionTensorType, <Self::NetworkOutput as ActorCriticOutput>::ActionTensorType), AmfiteatrError<S>> {
         let act_i = action.try_to_index(&self.action_encoding)?;
 
 
         Ok((Tensor::from(act_i), Tensor::from(true)))
     }
 
-    fn batch_get_logprob_entropy_critic(&self, info_set_batch: &Tensor, action_param_batches: &<Self::NetworkOutput as ActorCriticOutput>::ActionTensorType, action_category_mask_batches: Option<&<Self::NetworkOutput as ActorCriticOutput>::ActionTensorType>, action_forward_mask_batches: Option<&<Self::NetworkOutput as ActorCriticOutput>::ActionTensorType>) -> Result<(Tensor, Tensor, Tensor), AmfiteatrError<DP>> {
+    fn batch_get_logprob_entropy_critic(&self, info_set_batch: &Tensor, action_param_batches: &<Self::NetworkOutput as ActorCriticOutput>::ActionTensorType, action_category_mask_batches: Option<&<Self::NetworkOutput as ActorCriticOutput>::ActionTensorType>, action_forward_mask_batches: Option<&<Self::NetworkOutput as ActorCriticOutput>::ActionTensorType>) -> Result<(Tensor, Tensor, Tensor), AmfiteatrError<S>> {
 
         /*
         let a2c_net = self.network().net()(info_set_batch);
@@ -212,7 +212,7 @@ ContextDecodeIndexI64<ActionEncoding> + ContextEncodeIndexI64<ActionEncoding>{
          */
         let critic_actor= self.network.net()(info_set_batch);
 
-        let batch_logprob = critic_actor.batch_log_probability_of_action::<DP>(
+        let batch_logprob = critic_actor.batch_log_probability_of_action::<S>(
             action_param_batches,
             action_forward_mask_batches,
             action_category_mask_batches
@@ -236,29 +236,29 @@ ContextDecodeIndexI64<ActionEncoding> + ContextEncodeIndexI64<ActionEncoding>{
 }
 
 impl<
-    DP: Scheme,
-    InfoSet: InformationSet<DP> + Debug + ContextEncodeTensor<InfoSetEncoding>,
+    S: Scheme,
+    InfoSet: InformationSet<S> + Debug + ContextEncodeTensor<InfoSetEncoding>,
     InfoSetEncoding: TensorEncoding,
     ActionEncoding: TensorDecoding + TensorIndexI64Encoding
     + tensor_data::ActionTensorFormat<Tensor>,
-> Policy<DP> for PolicyDiscreteA2C<DP, InfoSet, InfoSetEncoding, ActionEncoding>
-    where <DP as Scheme>::ActionType:
+> Policy<S> for PolicyDiscreteA2C<S, InfoSet, InfoSetEncoding, ActionEncoding>
+    where <S as Scheme>::ActionType:
     ContextDecodeIndexI64<ActionEncoding> + ContextEncodeIndexI64<ActionEncoding>{
     type InfoSetType = InfoSet;
 
-    fn select_action(&self, state: &Self::InfoSetType) -> Result<DP::ActionType, AmfiteatrError<DP>> {
+    fn select_action(&self, state: &Self::InfoSetType) -> Result<S::ActionType, AmfiteatrError<S>> {
         self.a2c_select_action(state)
     }
 }
 
 impl<
-    DP: Scheme,
-    InfoSet: InformationSet<DP> + Debug + ContextEncodeTensor<InfoSetEncoding>,
+    S: Scheme,
+    InfoSet: InformationSet<S> + Debug + ContextEncodeTensor<InfoSetEncoding>,
     InfoSetEncoding: TensorEncoding,
     ActionEncoding: TensorDecoding + TensorIndexI64Encoding
     + tensor_data::ActionTensorFormat<Tensor>,
-> LearningNetworkPolicyGeneric<DP> for PolicyDiscreteA2C<DP, InfoSet, InfoSetEncoding, ActionEncoding>
-    where <DP as Scheme>::ActionType:
+> LearningNetworkPolicyGeneric<S> for PolicyDiscreteA2C<S, InfoSet, InfoSetEncoding, ActionEncoding>
+    where <S as Scheme>::ActionType:
     ContextDecodeIndexI64<ActionEncoding> + ContextEncodeIndexI64<ActionEncoding>{
     type Summary = LearnSummary;
 
@@ -277,8 +277,8 @@ impl<
         self.exploration = enabled
     }
 
-    fn train_generic<R: Fn(&AgentStepView<DP, <Self as Policy<DP>>::InfoSetType>) -> Tensor>(&mut self, trajectories: &[AgentTrajectory<DP, <Self as Policy<DP>>::InfoSetType>], reward_f: R)
-                                                                                             -> Result<Self::Summary, AmfiteatrRlError<DP>> {
+    fn train_generic<R: Fn(&AgentStepView<S, <Self as Policy<S>>::InfoSetType>) -> Tensor>(&mut self, trajectories: &[AgentTrajectory<S, <Self as Policy<S>>::InfoSetType>], reward_f: R)
+                                                                                             -> Result<Self::Summary, AmfiteatrRlError<S>> {
         Ok(self.a2c_train_on_trajectories(trajectories, reward_f)?)
     }
 }
@@ -286,22 +286,22 @@ impl<
 
 /// Policy PPO structure for discrete action space with support of masking.
 pub struct PolicyMaskingDiscreteA2C<
-    DP: Scheme,
-    InfoSet: InformationSet<DP> + Debug + ContextEncodeTensor<InfoSetConversionContext> + MaskingInformationSetAction<DP, ActionBuildContext>,
+    S: Scheme,
+    InfoSet: InformationSet<S> + Debug + ContextEncodeTensor<InfoSetConversionContext> + MaskingInformationSetAction<S, ActionBuildContext>,
     InfoSetConversionContext: TensorEncoding,
     ActionBuildContext: TensorDecoding + TensorIndexI64Encoding,
 >{
     /// It wraps around 'normal' PPO policy, but with more traits enforced.
-    pub base: PolicyDiscreteA2C<DP, InfoSet, InfoSetConversionContext, ActionBuildContext>,
+    pub base: PolicyDiscreteA2C<S, InfoSet, InfoSetConversionContext, ActionBuildContext>,
 
 }
 
 impl <
-    DP: Scheme,
-    InfoSet: InformationSet<DP> + Debug + ContextEncodeTensor<InfoSetConversionContext> + MaskingInformationSetAction<DP, ActionBuildContext>,
+    S: Scheme,
+    InfoSet: InformationSet<S> + Debug + ContextEncodeTensor<InfoSetConversionContext> + MaskingInformationSetAction<S, ActionBuildContext>,
     InfoSetConversionContext: TensorEncoding,
     ActionBuildContext: TensorDecoding + TensorIndexI64Encoding,
-> PolicyMaskingDiscreteA2C<DP, InfoSet, InfoSetConversionContext, ActionBuildContext>{
+> PolicyMaskingDiscreteA2C<S, InfoSet, InfoSetConversionContext, ActionBuildContext>{
 
     pub fn new(
         config: ConfigA2C,
@@ -318,29 +318,29 @@ impl <
 }
 
 impl <
-    DP: Scheme,
-    InfoSet: InformationSet<DP> + Debug + ContextEncodeTensor<InfoSetConversionContext> + MaskingInformationSetAction<DP, ActionBuildContext>,
+    S: Scheme,
+    InfoSet: InformationSet<S> + Debug + ContextEncodeTensor<InfoSetConversionContext> + MaskingInformationSetAction<S, ActionBuildContext>,
     InfoSetConversionContext: TensorEncoding,
     ActionBuildContext: TensorDecoding + TensorIndexI64Encoding,
-> TensorboardSupport<DP> for PolicyMaskingDiscreteA2C<DP, InfoSet, InfoSetConversionContext, ActionBuildContext, >
+> TensorboardSupport<S> for PolicyMaskingDiscreteA2C<S, InfoSet, InfoSetConversionContext, ActionBuildContext, >
 {
     /// Creates [`tboard::EventWriter`]. Initially policy does not use `tensorboard` directory to store epoch
     /// training results (like entropy, policy loss, value loss). However, you cen provide it with directory
     /// to create tensorboard files.
-    fn add_tboard_directory<P: AsRef<std::path::Path>>(&mut self, directory_path: P) -> Result<(), AmfiteatrError<DP>> {
+    fn add_tboard_directory<P: AsRef<std::path::Path>>(&mut self, directory_path: P) -> Result<(), AmfiteatrError<S>> {
         self.base.add_tboard_directory(directory_path)
     }
-    fn t_write_scalar(&mut self, step: i64, tag: &str, value: f32) -> Result<bool, AmfiteatrError<DP>> {
+    fn t_write_scalar(&mut self, step: i64, tag: &str, value: f32) -> Result<bool, AmfiteatrError<S>> {
         self.base.t_write_scalar(step, tag, value)
     }
 }
 impl <
-    DP: Scheme,
-    InfoSet: InformationSet<DP> + Debug + ContextEncodeTensor<InfoSetEncoding> + MaskingInformationSetAction<DP, ActionEncoding>,
+    S: Scheme,
+    InfoSet: InformationSet<S> + Debug + ContextEncodeTensor<InfoSetEncoding> + MaskingInformationSetAction<S, ActionEncoding>,
     InfoSetEncoding: TensorEncoding,
     ActionEncoding: TensorDecoding + TensorIndexI64Encoding,
-> PolicyHelperA2C<DP> for PolicyMaskingDiscreteA2C<DP, InfoSet, InfoSetEncoding, ActionEncoding>
-    where <DP as Scheme>::ActionType:
+> PolicyHelperA2C<S> for PolicyMaskingDiscreteA2C<S, InfoSet, InfoSetEncoding, ActionEncoding>
+    where <S as Scheme>::ActionType:
     ContextDecodeIndexI64<ActionEncoding> + ContextEncodeIndexI64<ActionEncoding>{
     type InfoSet = InfoSet;
     type InfoSetConversionContext = InfoSetEncoding;
@@ -380,7 +380,7 @@ impl <
         self.base.action_encoding()
     }
 
-    fn dist(&self, info_set: &Self::InfoSet, network_output: &Self::NetworkOutput) -> Result<<Self::NetworkOutput as ActorCriticOutput>::ActionTensorType, AmfiteatrError<DP>> {
+    fn dist(&self, info_set: &Self::InfoSet, network_output: &Self::NetworkOutput) -> Result<<Self::NetworkOutput as ActorCriticOutput>::ActionTensorType, AmfiteatrError<S>> {
         /*
         let softmax = network_output.actor.f_softmax(-1, tch::Kind::Float)
             .map_err(|e| TensorError::from_tch_with_context(e, "PPO distribution (softmax)".into()))?;
@@ -414,7 +414,7 @@ impl <
         true
     }
 
-    fn generate_action_masks(&self, information_set: &Self::InfoSet) -> Result<<Self::NetworkOutput as ActorCriticOutput>::ActionTensorType, AmfiteatrError<DP>> {
+    fn generate_action_masks(&self, information_set: &Self::InfoSet) -> Result<<Self::NetworkOutput as ActorCriticOutput>::ActionTensorType, AmfiteatrError<S>> {
         information_set.try_build_mask(self.action_encoding())
     }
 
@@ -422,41 +422,41 @@ impl <
         self.base.is_exploration_on()
     }
 
-    fn try_action_from_choice_tensor(&self, choice_tensor: &<Self::NetworkOutput as ActorCriticOutput>::ActionTensorType) -> Result<DP::ActionType, AmfiteatrError<DP>> {
+    fn try_action_from_choice_tensor(&self, choice_tensor: &<Self::NetworkOutput as ActorCriticOutput>::ActionTensorType) -> Result<S::ActionType, AmfiteatrError<S>> {
         self.base.try_action_from_choice_tensor(choice_tensor)
     }
 
-    fn vectorize_action_and_create_category_mask(&self, action: &DP::ActionType) -> Result<(<Self::NetworkOutput as ActorCriticOutput>::ActionTensorType, <Self::NetworkOutput as ActorCriticOutput>::ActionTensorType), AmfiteatrError<DP>> {
+    fn vectorize_action_and_create_category_mask(&self, action: &S::ActionType) -> Result<(<Self::NetworkOutput as ActorCriticOutput>::ActionTensorType, <Self::NetworkOutput as ActorCriticOutput>::ActionTensorType), AmfiteatrError<S>> {
         self.base.vectorize_action_and_create_category_mask(action)
     }
 
-    fn batch_get_logprob_entropy_critic(&self, info_set_batch: &Tensor, action_param_batches: &<Self::NetworkOutput as ActorCriticOutput>::ActionTensorType, action_category_mask_batches: Option<&<Self::NetworkOutput as ActorCriticOutput>::ActionTensorType>, action_forward_mask_batches: Option<&<Self::NetworkOutput as ActorCriticOutput>::ActionTensorType>) -> Result<(Tensor, Tensor, Tensor), AmfiteatrError<DP>> {
+    fn batch_get_logprob_entropy_critic(&self, info_set_batch: &Tensor, action_param_batches: &<Self::NetworkOutput as ActorCriticOutput>::ActionTensorType, action_category_mask_batches: Option<&<Self::NetworkOutput as ActorCriticOutput>::ActionTensorType>, action_forward_mask_batches: Option<&<Self::NetworkOutput as ActorCriticOutput>::ActionTensorType>) -> Result<(Tensor, Tensor, Tensor), AmfiteatrError<S>> {
         self.base.batch_get_logprob_entropy_critic(info_set_batch, action_param_batches, action_category_mask_batches, action_forward_mask_batches)
     }
 }
 
 impl <
-    DP: Scheme,
-    InfoSet: InformationSet<DP> + Debug + ContextEncodeTensor<InfoSetEncoding> + MaskingInformationSetAction<DP, ActionEncoding>,
+    S: Scheme,
+    InfoSet: InformationSet<S> + Debug + ContextEncodeTensor<InfoSetEncoding> + MaskingInformationSetAction<S, ActionEncoding>,
     InfoSetEncoding: TensorEncoding,
     ActionEncoding: TensorDecoding + TensorIndexI64Encoding,
-> Policy<DP> for PolicyMaskingDiscreteA2C<DP, InfoSet, InfoSetEncoding, ActionEncoding>
-    where <DP as Scheme>::ActionType:
+> Policy<S> for PolicyMaskingDiscreteA2C<S, InfoSet, InfoSetEncoding, ActionEncoding>
+    where <S as Scheme>::ActionType:
     ContextDecodeIndexI64<ActionEncoding> + ContextEncodeIndexI64<ActionEncoding>{
     type InfoSetType = InfoSet;
 
-    fn select_action(&self, state: &Self::InfoSetType) -> Result<DP::ActionType, AmfiteatrError<DP>> {
+    fn select_action(&self, state: &Self::InfoSetType) -> Result<S::ActionType, AmfiteatrError<S>> {
         self.a2c_select_action(state)
     }
 }
 
 impl <
-    DP: Scheme,
-    InfoSet: InformationSet<DP> + Debug + ContextEncodeTensor<InfoSetEncoding> + MaskingInformationSetAction<DP, ActionEncoding>,
+    S: Scheme,
+    InfoSet: InformationSet<S> + Debug + ContextEncodeTensor<InfoSetEncoding> + MaskingInformationSetAction<S, ActionEncoding>,
     InfoSetEncoding: TensorEncoding,
     ActionEncoding: TensorDecoding + TensorIndexI64Encoding,
-> LearningNetworkPolicyGeneric<DP> for PolicyMaskingDiscreteA2C<DP, InfoSet, InfoSetEncoding, ActionEncoding>
-    where <DP as Scheme>::ActionType:
+> LearningNetworkPolicyGeneric<S> for PolicyMaskingDiscreteA2C<S, InfoSet, InfoSetEncoding, ActionEncoding>
+    where <S as Scheme>::ActionType:
     ContextDecodeIndexI64<ActionEncoding> + ContextEncodeIndexI64<ActionEncoding>{
     type Summary = LearnSummary;
 
@@ -466,8 +466,8 @@ impl <
         self.base.switch_explore(enabled)
     }
 
-    fn train_generic<R: Fn(&AgentStepView<DP, <Self as Policy<DP>>::InfoSetType>) -> Tensor>(&mut self, trajectories: &[AgentTrajectory<DP, <Self as Policy<DP>>::InfoSetType>], reward_f: R)
-                                                                                             -> Result<Self::Summary, AmfiteatrRlError<DP>> {
+    fn train_generic<R: Fn(&AgentStepView<S, <Self as Policy<S>>::InfoSetType>) -> Tensor>(&mut self, trajectories: &[AgentTrajectory<S, <Self as Policy<S>>::InfoSetType>], reward_f: R)
+                                                                                             -> Result<Self::Summary, AmfiteatrRlError<S>> {
         #[cfg(feature = "log_trace")]
         log::trace!("Train on trajectories start.");
         Ok(self.a2c_train_on_trajectories(trajectories, reward_f)?)

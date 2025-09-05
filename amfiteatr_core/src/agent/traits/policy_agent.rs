@@ -4,7 +4,7 @@ use crate::error::AmfiteatrError;
 
 /// Trait for agents that performs actions, possibly mutating some attributes of agent.
 ///
-pub trait ActingAgent<DP: Scheme>{
+pub trait ActingAgent<S: Scheme>{
 
     /// Agent selects action and performs optional changing operations.
     /// It has ability to mutate agent when he/she selects action.
@@ -15,19 +15,19 @@ pub trait ActingAgent<DP: Scheme>{
     /// [`AgentGenT`](crate::agent::TracingAgentGen) uses it also to add new step entry to his/her game trajectory.
     /// __Note__ that this method should not affect agents _information set_, as the way of changing it is through [`DomainParameters::UpdateType`](crate::scheme::Scheme::UpdateType)
     /// provided by _environment_.
-    fn select_action(&mut self) -> Result<DP::ActionType, AmfiteatrError<DP>>;
+    fn select_action(&mut self) -> Result<S::ActionType, AmfiteatrError<S>>;
 
     /// This method is meant to do optional actions of [`take_action`](crate::agent::ActingAgent::select_action)
     /// without selecting new action. Usually to be invoked at the end of game to commit last step to trace.
-    fn finalize(&mut self) -> Result<(), AmfiteatrError<DP>>;
+    fn finalize(&mut self) -> Result<(), AmfiteatrError<S>>;
 
 
-    fn react_refused_action(&mut self) -> Result<(), AmfiteatrError<DP>>;
+    fn react_refused_action(&mut self) -> Result<(), AmfiteatrError<S>>;
 }
 /// Agent that follows some policy, which can be referenced.
-pub trait PolicyAgent<DP: Scheme>: StatefulAgent<DP>{
+pub trait PolicyAgent<S: Scheme>: StatefulAgent<S>{
     /// Policy type that is used by agent
-    type Policy: Policy<DP, InfoSetType= <Self as StatefulAgent<DP>>::InfoSetType>;
+    type Policy: Policy<S, InfoSetType= <Self as StatefulAgent<S>>::InfoSetType>;
 
     /// Returns reference to policy followed by this instance of agent
     fn policy(&self) -> &Self::Policy;
@@ -38,7 +38,7 @@ pub trait PolicyAgent<DP: Scheme>: StatefulAgent<DP>{
     /// For example agent may want to log this event or store selected action
     /// (self reference is not mutable, however it can be cheated for example with [Cell](::std::cell::Cell))
     fn policy_select_action(&self)
-        -> Result<DP::ActionType, AmfiteatrError<DP>>{
+        -> Result<S::ActionType, AmfiteatrError<S>>{
         self.policy().select_action(self.info_set())
     }
 

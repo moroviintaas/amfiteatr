@@ -57,5 +57,5 @@ pub type ComplexComm128<OT, IT, E> = ComplexComm<OT, IT, E, 128>;
 pub type ComplexComm256<OT, IT, E> = ComplexComm<OT, IT, E, 256>;
 pub type ComplexComm512<OT, IT, E> = ComplexComm<OT, IT, E, 512>;
 
-pub type DomainCommE512<DP> = ComplexComm<EnvironmentMessage<DP>, AgentMessage<DP>, CommunicationError<DP>, 512>;
-pub type DomainCommA512<DP> = ComplexComm<AgentMessage<DP>, EnvironmentMessage<DP>,  CommunicationError<DP>, 512>;
+pub type DomainCommE512<S> = ComplexComm<EnvironmentMessage<S>, AgentMessage<S>, CommunicationError<S>, 512>;
+pub type DomainCommA512<S> = ComplexComm<AgentMessage<S>, EnvironmentMessage<S>,  CommunicationError<S>, 512>;

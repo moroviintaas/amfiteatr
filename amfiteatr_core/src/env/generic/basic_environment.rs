@@ -18,32 +18,32 @@ use crate::error::ProtocolError::PlayerExited;
 /// If you want tracing please refer to [`TracingEnvironment`](crate::env::TracingBasicEnvironment).
 #[derive(Debug, Clone)]
 pub struct BasicEnvironment<
-    DP: Scheme,
-    ST: SequentialGameState<DP>,
-    CP: EnvironmentAdapter<DP>
+    S: Scheme,
+    ST: SequentialGameState<S>,
+    CP: EnvironmentAdapter<S>
 >{
     adapter: CP,
     game_state: ST,
-    penalties: HashMap<DP::AgentId, DP::UniversalReward>,
+    penalties: HashMap<S::AgentId, S::UniversalReward>,
     game_steps: u64,
 }
 
 impl <
-    DP: Scheme,
-    ST: SequentialGameState<DP>,
-    CP: EnvironmentAdapter<DP>
-> BasicEnvironment<DP, ST, CP>{
+    S: Scheme,
+    ST: SequentialGameState<S>,
+    CP: EnvironmentAdapter<S>
+> BasicEnvironment<S, ST, CP>{
 
     pub fn new(game_state: ST, adapter: CP) -> Self{
         Self{game_state, adapter, penalties: HashMap::new(), game_steps: 0}
     }
 
-    pub fn insert_illegal_reward_template(&mut self, penalties:  HashMap<DP::AgentId, DP::UniversalReward>){
+    pub fn insert_illegal_reward_template(&mut self, penalties:  HashMap<S::AgentId, S::UniversalReward>){
 
         self.penalties = penalties;
 
     }
-    pub fn set_illegal_reward_template(&mut self, agent: DP::AgentId, penalty: DP::UniversalReward){
+    pub fn set_illegal_reward_template(&mut self, agent: S::AgentId, penalty: S::UniversalReward){
         self.penalties.insert(agent, penalty);
     }
     pub fn completed_steps(&self) -> u64{
@@ -52,30 +52,30 @@ impl <
 }
 
 impl<
-    DP: Scheme,
-    ST: SequentialGameState<DP>,
-    CP: EnvironmentAdapter<DP> + ListPlayers<DP>
-> ListPlayers<DP> for BasicEnvironment<DP, ST, CP>{
-    type IterType = <Vec<DP::AgentId> as IntoIterator>::IntoIter;
+    S: Scheme,
+    ST: SequentialGameState<S>,
+    CP: EnvironmentAdapter<S> + ListPlayers<S>
+> ListPlayers<S> for BasicEnvironment<S, ST, CP>{
+    type IterType = <Vec<S::AgentId> as IntoIterator>::IntoIter;
 
     fn players(&self) -> Self::IterType {
-        self.adapter.players().collect::<Vec<DP::AgentId>>().into_iter()
+        self.adapter.players().collect::<Vec<S::AgentId>>().into_iter()
     }
 }
 
 impl <
-    DP: Scheme,
-    ST: SequentialGameState<DP>,
-    OneComm: EnvironmentAdapter<DP>
-> StatefulEnvironment<DP> for BasicEnvironment<DP, ST, OneComm>{
+    S: Scheme,
+    ST: SequentialGameState<S>,
+    OneComm: EnvironmentAdapter<S>
+> StatefulEnvironment<S> for BasicEnvironment<S, ST, OneComm>{
     type State = ST;
 
     fn state(&self) -> &Self::State {
         &self.game_state
     }
 
-    fn process_action(&mut self, agent: &<DP as Scheme>::AgentId, action: &<DP as Scheme>::ActionType)
-                      -> Result<<Self::State as SequentialGameState<DP>>::Updates, AmfiteatrError<DP>> {
+    fn process_action(&mut self, agent: &<S as Scheme>::AgentId, action: &<S as Scheme>::ActionType)
+                      -> Result<<Self::State as SequentialGameState<S>>::Updates, AmfiteatrError<S>> {
         self.game_steps += 1;
         self.game_state.forward(agent.clone(), action.clone())
             .map_err(|e|{
@@ -86,33 +86,33 @@ impl <
 }
 
 impl <
-    DP: Scheme,
-    ST: SequentialGameState<DP> + Clone,
-    CP: BroadcastingEnvironmentAdapter<DP>,
+    S: Scheme,
+    ST: SequentialGameState<S> + Clone,
+    CP: BroadcastingEnvironmentAdapter<S>,
     Seed
-> ReseedEnvironment<DP, Seed> for BasicEnvironment<DP, ST, CP>
-where <Self as StatefulEnvironment<DP>>::State: Renew<DP, Seed>{
-    fn reseed(&mut self, seed: Seed) -> Result<(), AmfiteatrError<DP>>{
+> ReseedEnvironment<S, Seed> for BasicEnvironment<S, ST, CP>
+where <Self as StatefulEnvironment<S>>::State: Renew<S, Seed>{
+    fn reseed(&mut self, seed: Seed) -> Result<(), AmfiteatrError<S>>{
         self.game_steps = 0;
         self.game_state.renew_from(seed)
     }
 }
 
 impl <
-    DP: Scheme,
-    ST: SequentialGameState<DP> + Clone + RenewWithEffect<DP, Seed>,
-    CP: BroadcastingEnvironmentAdapter<DP>,
+    S: Scheme,
+    ST: SequentialGameState<S> + Clone + RenewWithEffect<S, Seed>,
+    CP: BroadcastingEnvironmentAdapter<S>,
     Seed,
     AgentSeed
-> ReseedEnvironmentWithObservation<DP, Seed> for BasicEnvironment<DP, ST, CP>
-where <Self as StatefulEnvironment<DP>>::State: RenewWithEffect<DP, Seed>,
- <<Self as StatefulEnvironment<DP>>::State as RenewWithEffect<DP, Seed>>::Effect:
-       IntoIterator<Item=(DP::AgentId, AgentSeed)>{
-    //type Observation = <<Self as StatefulEnvironment<DP>>::State as RenewWithSideEffect<DP, Seed>>::SideEffect;
+> ReseedEnvironmentWithObservation<S, Seed> for BasicEnvironment<S, ST, CP>
+where <Self as StatefulEnvironment<S>>::State: RenewWithEffect<S, Seed>,
+ <<Self as StatefulEnvironment<S>>::State as RenewWithEffect<S, Seed>>::Effect:
+       IntoIterator<Item=(S::AgentId, AgentSeed)>{
+    //type Observation = <<Self as StatefulEnvironment<S>>::State as RenewWithSideEffect<S, Seed>>::SideEffect;
     type Observation = AgentSeed;
-    type InitialObservations = HashMap<DP::AgentId, Self::Observation>;
+    type InitialObservations = HashMap<S::AgentId, Self::Observation>;
 
-    fn reseed_with_observation(&mut self, seed: Seed) -> Result<Self::InitialObservations, AmfiteatrError<DP>>{
+    fn reseed_with_observation(&mut self, seed: Seed) -> Result<Self::InitialObservations, AmfiteatrError<S>>{
         self.game_steps = 0;
         self.game_state.renew_with_effect_from(seed)
             .map(|agent_observation_iter|
@@ -121,20 +121,20 @@ where <Self as StatefulEnvironment<DP>>::State: RenewWithEffect<DP, Seed>,
 }
 
 impl <
-    DP: Scheme,
-    ST: GameStateWithPayoffs<DP>,
-    CP: EnvironmentAdapter<DP>
-> ScoreEnvironment<DP> for BasicEnvironment<DP, ST, CP>{
+    S: Scheme,
+    ST: GameStateWithPayoffs<S>,
+    CP: EnvironmentAdapter<S>
+> ScoreEnvironment<S> for BasicEnvironment<S, ST, CP>{
     fn process_action_penalise_illegal(
         &mut self,
-        agent: &<DP as Scheme>::AgentId,
-        action: &<DP as Scheme>::ActionType,
-        penalty_reward: <DP as Scheme>::UniversalReward)
-        -> Result<<Self::State as SequentialGameState<DP>>::Updates, AmfiteatrError<DP>> {
+        agent: &<S as Scheme>::AgentId,
+        action: &<S as Scheme>::ActionType,
+        penalty_reward: <S as Scheme>::UniversalReward)
+        -> Result<<Self::State as SequentialGameState<S>>::Updates, AmfiteatrError<S>> {
             self.game_steps +=1;
         
             self.game_state.forward(agent.clone(), action.clone()).map_err(|e|{
-                let actual_penalty = self.penalties.remove(agent).unwrap_or(<DP::UniversalReward as Reward>::neutral());
+                let actual_penalty = self.penalties.remove(agent).unwrap_or(<S::UniversalReward as Reward>::neutral());
 
                 self.penalties.insert(agent.clone(), penalty_reward + &actual_penalty);
                 AmfiteatrError::Game{source: e}
@@ -142,69 +142,69 @@ impl <
 
     }
 
-    fn actual_state_score_of_player(&self, agent: &<DP as Scheme>::AgentId) -> <DP as Scheme>::UniversalReward {
+    fn actual_state_score_of_player(&self, agent: &<S as Scheme>::AgentId) -> <S as Scheme>::UniversalReward {
         self.game_state.state_payoff_of_player(agent)
     }
 
-    fn actual_penalty_score_of_player(&self, agent: &<DP as Scheme>::AgentId) -> <DP as Scheme>::UniversalReward {
-        self.penalties.get(agent).unwrap_or(&DP::UniversalReward::neutral()).to_owned()
+    fn actual_penalty_score_of_player(&self, agent: &<S as Scheme>::AgentId) -> <S as Scheme>::UniversalReward {
+        self.penalties.get(agent).unwrap_or(&S::UniversalReward::neutral()).to_owned()
     }
 }
 
 impl <
-    DP: Scheme,
-    ST: SequentialGameState<DP>,
-    CP: BroadcastingEnvironmentAdapter<DP>
-> CommunicatingEnvironmentSingleQueue<DP> for BasicEnvironment<DP, ST, CP>{
-    fn send(&mut self, agent_id: &<DP as Scheme>::AgentId, message: crate::scheme::EnvironmentMessage<DP>)
-            -> Result<(), crate::error::CommunicationError<DP>> {
+    S: Scheme,
+    ST: SequentialGameState<S>,
+    CP: BroadcastingEnvironmentAdapter<S>
+> CommunicatingEnvironmentSingleQueue<S> for BasicEnvironment<S, ST, CP>{
+    fn send(&mut self, agent_id: &<S as Scheme>::AgentId, message: crate::scheme::EnvironmentMessage<S>)
+            -> Result<(), crate::error::CommunicationError<S>> {
         self.adapter.send( agent_id, message)
     }
 
     fn blocking_receive(&mut self)
-                        -> Result<(<DP as Scheme>::AgentId, crate::scheme::AgentMessage<DP>), crate::error::CommunicationError<DP>> {
+                        -> Result<(<S as Scheme>::AgentId, crate::scheme::AgentMessage<S>), crate::error::CommunicationError<S>> {
         self.adapter.receive_blocking()
     }
 
     fn nonblocking_receive(&mut self)
-                           -> Result<Option<(<DP as Scheme>::AgentId, crate::scheme::AgentMessage<DP>)>, crate::error::CommunicationError<DP>> {
+                           -> Result<Option<(<S as Scheme>::AgentId, crate::scheme::AgentMessage<S>)>, crate::error::CommunicationError<S>> {
         self.adapter.receive_non_blocking()
     }
 }
 
 
 impl <
-    DP: Scheme,
-    ST: SequentialGameState<DP>,
-    CP: BroadcastingEnvironmentAdapter<DP>
-> BroadcastingEnvironmentSingleQueue<DP> for BasicEnvironment<DP, ST, CP>{
+    S: Scheme,
+    ST: SequentialGameState<S>,
+    CP: BroadcastingEnvironmentAdapter<S>
+> BroadcastingEnvironmentSingleQueue<S> for BasicEnvironment<S, ST, CP>{
     
 
-    fn send_all(&mut self, message: crate::scheme::EnvironmentMessage<DP>) -> Result<(), crate::error::CommunicationError<DP>> {
+    fn send_all(&mut self, message: crate::scheme::EnvironmentMessage<S>) -> Result<(), crate::error::CommunicationError<S>> {
         self.adapter.send_all(message)
     }
 }
 
 impl <
-    DP: Scheme,
-    ST: SequentialGameState<DP>,
-    CP: BroadcastingEnvironmentAdapter<DP>
-> ReinitEnvironment<DP> for BasicEnvironment<DP, ST, CP>{
-    fn reinit(&mut self, initial_state: <Self as StatefulEnvironment<DP>>::State) {
+    S: Scheme,
+    ST: SequentialGameState<S>,
+    CP: BroadcastingEnvironmentAdapter<S>
+> ReinitEnvironment<S> for BasicEnvironment<S, ST, CP>{
+    fn reinit(&mut self, initial_state: <Self as StatefulEnvironment<S>>::State) {
         self.game_steps = 0;
         self.game_state = initial_state;
         for vals in self.penalties.values_mut(){
-            *vals = DP::UniversalReward::neutral();
+            *vals = S::UniversalReward::neutral();
         }
     }
 }
 
 impl <
-    DP: Scheme,
-    ST: SequentialGameState<DP>,
-    CP: BroadcastingEnvironmentAdapter<DP>
-> AutoEnvironment<DP> for BasicEnvironment<DP, ST, CP>{
-    fn run_truncating(&mut self, truncate_steps: Option<usize>) -> Result<(), AmfiteatrError<DP>> {
+    S: Scheme,
+    ST: SequentialGameState<S>,
+    CP: BroadcastingEnvironmentAdapter<S>
+> AutoEnvironment<S> for BasicEnvironment<S, ST, CP>{
+    fn run_truncating(&mut self, truncate_steps: Option<usize>) -> Result<(), AmfiteatrError<S>> {
 
         let mut current_step = 0;
         if let Some(initial_updates) = self.state().first_observations(){
@@ -323,11 +323,11 @@ impl <
 }
 
 impl <
-    DP: Scheme,
-    ST: GameStateWithPayoffs<DP>,
-    CP: EnvironmentAdapter<DP> + ListPlayers<DP> + BroadcastingEnvironmentAdapter<DP>
-> AutoEnvironmentWithScores<DP> for BasicEnvironment<DP, ST, CP>{
-    fn run_with_scores_truncating(&mut self, truncate_steps: Option<usize>) -> Result<(), AmfiteatrError<DP>> {
+    S: Scheme,
+    ST: GameStateWithPayoffs<S>,
+    CP: EnvironmentAdapter<S> + ListPlayers<S> + BroadcastingEnvironmentAdapter<S>
+> AutoEnvironmentWithScores<S> for BasicEnvironment<S, ST, CP>{
+    fn run_with_scores_truncating(&mut self, truncate_steps: Option<usize>) -> Result<(), AmfiteatrError<S>> {
         let mut current_step = 0;
         if let Some(initial_updates) = self.state().first_observations(){
             for (ag, update) in initial_updates{
@@ -337,9 +337,9 @@ impl <
                     })?;
             }
         }
-        let mut actual_universal_scores: HashMap<DP::AgentId, DP::UniversalReward> = self.players()
+        let mut actual_universal_scores: HashMap<S::AgentId, S::UniversalReward> = self.players()
             .map(|id|{
-                (id, DP::UniversalReward::neutral())
+                (id, S::UniversalReward::neutral())
             }).collect();
         let first_player = match self.current_player(){
             None => {
@@ -452,12 +452,12 @@ impl <
 }
 
 impl <
-    DP: Scheme,
-    ST: GameStateWithPayoffs<DP>,
-    CP: EnvironmentAdapter<DP> + ListPlayers<DP> + BroadcastingEnvironmentAdapter<DP>
-> AutoEnvironmentWithScoresAndPenalties<DP> for BasicEnvironment<DP, ST, CP> {
-    fn run_with_scores_and_penalties_truncating<P: Fn(&<Self as StatefulEnvironment<DP>>::State,&DP::AgentId)
-        -> DP::UniversalReward>(&mut self, penalty: P, truncate_steps: Option<usize>) -> Result<(), AmfiteatrError<DP>> {
+    S: Scheme,
+    ST: GameStateWithPayoffs<S>,
+    CP: EnvironmentAdapter<S> + ListPlayers<S> + BroadcastingEnvironmentAdapter<S>
+> AutoEnvironmentWithScoresAndPenalties<S> for BasicEnvironment<S, ST, CP> {
+    fn run_with_scores_and_penalties_truncating<P: Fn(&<Self as StatefulEnvironment<S>>::State,&S::AgentId)
+        -> S::UniversalReward>(&mut self, penalty: P, truncate_steps: Option<usize>) -> Result<(), AmfiteatrError<S>> {
 
         let mut current_step = 0;
         if let Some(initial_updates) = self.state().first_observations(){
@@ -468,9 +468,9 @@ impl <
                     })?;
             }
         }
-        let mut actual_universal_scores: HashMap<DP::AgentId, DP::UniversalReward> = self.players()
+        let mut actual_universal_scores: HashMap<S::AgentId, S::UniversalReward> = self.players()
             .map(|id|{
-                (id, DP::UniversalReward::neutral())
+                (id, S::UniversalReward::neutral())
             }).collect();
         let first_player = match self.current_player(){
             None => {

@@ -2,19 +2,19 @@ use std::error::Error;
 
 use crate::{scheme::{AgentMessage, EnvironmentMessage, Scheme}, error::CommunicationError};
 
-pub(crate) type AgentStampedMessage<DP> = (<DP as Scheme>::AgentId, AgentMessage<DP>);
+pub(crate) type AgentStampedMessage<S> = (<S as Scheme>::AgentId, AgentMessage<S>);
 /// Environment communicating with agent using 1-1 endpoints.
 /// This mean environment can receive from specified endpoint
 /// (from certain agent)
-pub trait CommunicatingEndpointEnvironment<DP: Scheme>{
+pub trait CommunicatingEndpointEnvironment<S: Scheme>{
     //type Outward;
     //type Inward;
     type CommunicationError: Error;
 
-    fn send_to(&mut self, agent_id: &DP::AgentId, message: EnvironmentMessage<DP>) -> Result<(), Self::CommunicationError>;
-    fn blocking_receive_from(&mut self, agent_id: &DP::AgentId) -> Result<AgentMessage<DP>, Self::CommunicationError>;
+    fn send_to(&mut self, agent_id: &S::AgentId, message: EnvironmentMessage<S>) -> Result<(), Self::CommunicationError>;
+    fn blocking_receive_from(&mut self, agent_id: &S::AgentId) -> Result<AgentMessage<S>, Self::CommunicationError>;
 
-    fn nonblocking_receive_from(&mut self, agent_id: &DP::AgentId) -> Result<Option<AgentMessage<DP>>, Self::CommunicationError>;
+    fn nonblocking_receive_from(&mut self, agent_id: &S::AgentId) -> Result<Option<AgentMessage<S>>, Self::CommunicationError>;
 
 
 }
@@ -28,17 +28,17 @@ pub trait BroadcastingEndpointEnvironment<Spec: Scheme>: CommunicatingEndpointEn
 /// Environment communicating with multi-agent (1-N) communication port.
 /// Receiving does not require to specify agent and first queued will be
 /// returned.
-pub trait CommunicatingEnvironmentSingleQueue<DP: Scheme>{
+pub trait CommunicatingEnvironmentSingleQueue<S: Scheme>{
     
-    fn send(&mut self, agent_id: &DP::AgentId,  message: EnvironmentMessage<DP>)
-        -> Result<(), CommunicationError<DP>>;
+    fn send(&mut self, agent_id: &S::AgentId,  message: EnvironmentMessage<S>)
+        -> Result<(), CommunicationError<S>>;
     fn blocking_receive(&mut self)
-                        -> Result<(DP::AgentId, AgentMessage<DP>), CommunicationError<DP>>;
+                        -> Result<(S::AgentId, AgentMessage<S>), CommunicationError<S>>;
     fn nonblocking_receive(&mut self)
-                           -> Result<Option<AgentStampedMessage<DP>>, CommunicationError<DP>>;
+                           -> Result<Option<AgentStampedMessage<S>>, CommunicationError<S>>;
         
 }
 /// Broadcasting extension to trait [`CommunicatingAdapterEnvironment`](CommunicatingEnvironmentSingleQueue)
-pub trait BroadcastingEnvironmentSingleQueue<DP: Scheme>{
-    fn send_all(&mut self, message: EnvironmentMessage<DP>) -> Result<(), CommunicationError<DP>>;
+pub trait BroadcastingEnvironmentSingleQueue<S: Scheme>{
+    fn send_all(&mut self, message: EnvironmentMessage<S>) -> Result<(), CommunicationError<S>>;
 }

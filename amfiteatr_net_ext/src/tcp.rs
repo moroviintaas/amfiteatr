@@ -47,16 +47,16 @@ impl<OT, IT, E: Error, const  SIZE: usize> PairedTcpEndpoint<OT, IT, E, SIZE>{
 
 
 }
-pub type PairedTcpEnvironmentEndpoint<DP, const SIZE: usize> = PairedTcpEndpoint<EnvironmentMessage<DP>, AgentMessage<DP>, CommunicationError<DP>, SIZE>;
-pub type PairedTcpAgentEndpoint<DP, const SIZE: usize> = PairedTcpEndpoint<AgentMessage<DP>, EnvironmentMessage<DP>, CommunicationError<DP>, SIZE>;
+pub type PairedTcpEnvironmentEndpoint<S, const SIZE: usize> = PairedTcpEndpoint<EnvironmentMessage<S>, AgentMessage<S>, CommunicationError<S>, SIZE>;
+pub type PairedTcpAgentEndpoint<S, const SIZE: usize> = PairedTcpEndpoint<AgentMessage<S>, EnvironmentMessage<S>, CommunicationError<S>, SIZE>;
 
-pub type MappedEnvironmentTcpEndpoints<DP, const SIZE: usize> = HashMap<<DP as Scheme>::AgentId, PairedTcpEnvironmentEndpoint<DP, SIZE>>;
-pub type MappedAgentTcpEndpoints<DP, const SIZE: usize> = HashMap<<DP as Scheme>::AgentId, PairedTcpAgentEndpoint<DP, SIZE>>;
+pub type MappedEnvironmentTcpEndpoints<S, const SIZE: usize> = HashMap<<S as Scheme>::AgentId, PairedTcpEnvironmentEndpoint<S, SIZE>>;
+pub type MappedAgentTcpEndpoints<S, const SIZE: usize> = HashMap<<S as Scheme>::AgentId, PairedTcpAgentEndpoint<S, SIZE>>;
 
-impl<DP: Scheme, const SIZE: usize> PairedTcpEnvironmentEndpoint<DP, SIZE>{
+impl<S: Scheme, const SIZE: usize> PairedTcpEnvironmentEndpoint<S, SIZE>{
 
 
-    pub fn create_local_net<'a>(port: u16, ids: impl Iterator<Item=&'a DP::AgentId>) -> Result<(MappedEnvironmentTcpEndpoints<DP, SIZE>, MappedAgentTcpEndpoints<DP, SIZE>), CommunicationError<DP>>{
+    pub fn create_local_net<'a>(port: u16, ids: impl Iterator<Item=&'a S::AgentId>) -> Result<(MappedEnvironmentTcpEndpoints<S, SIZE>, MappedAgentTcpEndpoints<S, SIZE>), CommunicationError<S>>{
 
 
         let mut results_environment_connections = HashMap::new();
@@ -67,7 +67,7 @@ impl<DP: Scheme, const SIZE: usize> PairedTcpEnvironmentEndpoint<DP, SIZE>{
             .map_err(|e| CommunicationError::ConnectionInitialization {
                 description: format!("Failed binding tcp listener to 127.0.0.1:{port}: {e:}")})?;
 
-        let ids_set_env: Vec<DP::AgentId> = ids.cloned().collect();
+        let ids_set_env: Vec<S::AgentId> = ids.cloned().collect();
         let ids_set_agents = ids_set_env.clone();
 
         thread::scope(|s|{
@@ -80,7 +80,7 @@ impl<DP: Scheme, const SIZE: usize> PairedTcpEnvironmentEndpoint<DP, SIZE>{
                         }
                         Err(e) => {
 
-                            results_environment_connections.insert(id.clone(), Err(CommunicationError::<DP>::ConnectionInitialization {
+                            results_environment_connections.insert(id.clone(), Err(CommunicationError::<S>::ConnectionInitialization {
                                 description: format!("Failed accepting connection: {e:}")
                             }));
                         }
@@ -94,7 +94,7 @@ impl<DP: Scheme, const SIZE: usize> PairedTcpEnvironmentEndpoint<DP, SIZE>{
                             results_agent_connections.insert(id, Ok(s));
                         }
                         Err(e) => {
-                            results_agent_connections.insert(id.clone(), Err(CommunicationError::<DP>::ConnectionInitialization {
+                            results_agent_connections.insert(id.clone(), Err(CommunicationError::<S>::ConnectionInitialization {
                                 description: format!("Failed accepting connection: {e:}")
                             }));
                         }
@@ -104,13 +104,13 @@ impl<DP: Scheme, const SIZE: usize> PairedTcpEnvironmentEndpoint<DP, SIZE>{
 
         });
 
-        let r_env_connections: Result<MappedEnvironmentTcpEndpoints<DP, SIZE>, CommunicationError<DP>>
+        let r_env_connections: Result<MappedEnvironmentTcpEndpoints<S, SIZE>, CommunicationError<S>>
             = results_environment_connections.into_iter().map(|(id, r)|{
                 r.map(|stream| (id, PairedTcpEnvironmentEndpoint::new(stream)))
 
         }).collect();
 
-        let r_agents_connections: Result<MappedAgentTcpEndpoints<DP, SIZE>, CommunicationError<DP>>
+        let r_agents_connections: Result<MappedAgentTcpEndpoints<S, SIZE>, CommunicationError<S>>
             = results_agent_connections.into_iter().map(|(id, r)| {
             r.map(|stream| (id, PairedTcpAgentEndpoint::new(stream)))
         }).collect();
@@ -122,7 +122,7 @@ impl<DP: Scheme, const SIZE: usize> PairedTcpEnvironmentEndpoint<DP, SIZE>{
 
     }
 
-    pub fn create_local_pair(port: u16) -> Result<(PairedTcpEnvironmentEndpoint<DP, SIZE>, PairedTcpAgentEndpoint<DP, SIZE>), CommunicationError<DP>>{
+    pub fn create_local_pair(port: u16) -> Result<(PairedTcpEnvironmentEndpoint<S, SIZE>, PairedTcpAgentEndpoint<S, SIZE>), CommunicationError<S>>{
         let (tx_env, rx_env) = mpsc::channel();
         let (tx_agent, rx_agent) = mpsc::channel();
 

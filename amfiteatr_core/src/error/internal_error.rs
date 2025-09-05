@@ -7,7 +7,7 @@ pub trait InternalGameError<Spec: Scheme>: Error + Clone + Debug + Send{
 }
 
 
-impl<T: Error + Clone + Debug + Send, DP: Scheme> InternalGameError<DP> for T{
+impl<T: Error + Clone + Debug + Send, S: Scheme> InternalGameError<S> for T{
 
 }
 /*

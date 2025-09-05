@@ -5,13 +5,13 @@ use crate::scheme::v1::game_scheme::Scheme;
 #[derive(Debug, Clone)]
 #[cfg_attr(feature = "speedy", derive(speedy::Writable, speedy::Readable))]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub enum AgentMessage<DP: Scheme>{
-    #[cfg_attr(feature = "serde", serde(bound(serialize = "DP::ActionType: serde::Serialize")))]
-    #[cfg_attr(feature = "serde", serde(bound(deserialize = "DP::ActionType: serde::Deserialize<'de>")))]
-    TakeAction(DP::ActionType),
-    #[cfg_attr(feature = "serde", serde(bound(serialize = "AmfiteatrError<DP>: serde::Serialize")))]
-    #[cfg_attr(feature = "serde", serde(bound(deserialize = "AmfiteatrError<DP>: serde::Deserialize<'de>")))]
-    NotifyError(AmfiteatrError<DP>),
+pub enum AgentMessage<S: Scheme>{
+    #[cfg_attr(feature = "serde", serde(bound(serialize = "S::ActionType: serde::Serialize")))]
+    #[cfg_attr(feature = "serde", serde(bound(deserialize = "S::ActionType: serde::Deserialize<'de>")))]
+    TakeAction(S::ActionType),
+    #[cfg_attr(feature = "serde", serde(bound(serialize = "AmfiteatrError<S>: serde::Serialize")))]
+    #[cfg_attr(feature = "serde", serde(bound(deserialize = "AmfiteatrError<S>: serde::Deserialize<'de>")))]
+    NotifyError(AmfiteatrError<S>),
     Quit,
 
 }

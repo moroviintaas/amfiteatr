@@ -16,8 +16,8 @@ pub enum TensorError{
 
 
 
-impl<DP: Scheme> From<TensorError> for AmfiteatrError<DP>{
-    fn from(source: TensorError) -> AmfiteatrError<DP>{
+impl<S: Scheme> From<TensorError> for AmfiteatrError<S>{
+    fn from(source: TensorError) -> AmfiteatrError<S>{
         AmfiteatrError::Tensor{
             error: source,
         }
@@ -49,8 +49,8 @@ impl From<tch::TchError> for TensorError{
 
 
 #[cfg(feature = "torch")]
-impl<DP: DomainParameters>  From<tch::TchError> for AmfiteatrError<DP>{
-    fn from(source: tch::TchError) -> AmfiteatrError<DP>{
+impl<S: DomainParameters>  From<tch::TchError> for AmfiteatrError<S>{
+    fn from(source: tch::TchError) -> AmfiteatrError<S>{
         AmfiteatrError::Tensor {
             error: TensorError::Torch {
                 transcript: format!("{}", source),

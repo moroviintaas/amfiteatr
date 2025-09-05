@@ -4,11 +4,11 @@ use crate::error::AmfiteatrError;
 
 
 /// Environment with ability to be reset wit new state.
-pub trait ReinitEnvironment<DP: Scheme>: StatefulEnvironment<DP>{
+pub trait ReinitEnvironment<S: Scheme>: StatefulEnvironment<S>{
     /// Reinitialisation should set new state (at the beginning of new game episode)
     /// and it should clear every data from previous episode (optionally it can
     /// store previous episodes information on some archive storage).
-    fn reinit(&mut self, initial_state: <Self as StatefulEnvironment<DP>>::State);
+    fn reinit(&mut self, initial_state: <Self as StatefulEnvironment<S>>::State);
 
 }
 
@@ -25,11 +25,11 @@ pub trait ReinitEnvironment<DP: Scheme>: StatefulEnvironment<DP>{
 /// information sets are derived as partial information from this sample.
 /// __Note__ that this only make sense when agents are trusted as with the seed
 /// they can receive complete information about the game.
-pub trait ReseedEnvironment<DP: Scheme, Seed>
+pub trait ReseedEnvironment<S: Scheme, Seed>
 {
     /// This method must do reinitialize environment i.e. set new game state.
     /// New game state should be derived from seed.
-    fn reseed(&mut self, seed: Seed) -> Result<(), AmfiteatrError<DP>>;
+    fn reseed(&mut self, seed: Seed) -> Result<(), AmfiteatrError<S>>;
 
 }
 
@@ -41,12 +41,12 @@ pub trait ReseedEnvironment<DP: Scheme, Seed>
 /// > and this information can be used to initialize their information set. Or when constructing similar environment
 /// > to [`Gymnasium`](https://gymnasium.farama.org/), while reseeding environment player observes the same data type
 /// > as when he makes _step_.
-pub trait ReseedEnvironmentWithObservation<DP: Scheme, Seed>{
+pub trait ReseedEnvironmentWithObservation<S: Scheme, Seed>{
     /// Observation type for one player (probably corresponding to `ReseedAgent's` [Seed](crate::agent::ReseedAgent)
     /// parameter
     type Observation;
     /// Aggregator for initial observations (e.g. [`HashMap<AgentId, Self::Observation`](std::collections::HashMap))
-    type InitialObservations: IntoIterator<Item=(DP::AgentId, Self::Observation)>;
+    type InitialObservations: IntoIterator<Item=(S::AgentId, Self::Observation)>;
 
-    fn reseed_with_observation(&mut self, seed: Seed) -> Result<Self::InitialObservations, AmfiteatrError<DP>>;
+    fn reseed_with_observation(&mut self, seed: Seed) -> Result<Self::InitialObservations, AmfiteatrError<S>>;
 }

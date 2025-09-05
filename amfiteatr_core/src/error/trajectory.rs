@@ -6,13 +6,13 @@ use crate::error::AmfiteatrError;
 /// Error dealing with game trajectory.
 #[derive(Debug, Clone, PartialEq, Eq, Error)]
 #[cfg_attr(feature = "speedy", derive(speedy::Writable, speedy::Readable))]
-pub enum TrajectoryError<DP: Scheme>{
+pub enum TrajectoryError<S: Scheme>{
     #[error("Agent {} tried registering step after closing trajectory", .0)]
-    UpdateOnFinishedAgentTrajectory(DP::AgentId),
+    UpdateOnFinishedAgentTrajectory(S::AgentId),
     #[error("Agent {} tried finishing step after closing trajectory", .0)]
-    FinishingOnFinishedAgentTrajectory(DP::AgentId),
+    FinishingOnFinishedAgentTrajectory(S::AgentId),
     #[error("Agent {} tried finishing step after without having played action in step", .0)]
-    TiedStepRecordWithNoAction(DP::AgentId),
+    TiedStepRecordWithNoAction(S::AgentId),
     #[error("Update on finished game trajectory: .0")]
     UpdateOnFinishedGameTrajectory{
         description: String
@@ -23,8 +23,8 @@ pub enum TrajectoryError<DP: Scheme>{
     },
 }
 
-impl<DP: Scheme> From<TrajectoryError<DP>> for AmfiteatrError<DP>{
-    fn from(value: TrajectoryError<DP>) -> Self {
+impl<S: Scheme> From<TrajectoryError<S>> for AmfiteatrError<S>{
+    fn from(value: TrajectoryError<S>) -> Self {
         Self::Trajectory {source: value}
     }
 }

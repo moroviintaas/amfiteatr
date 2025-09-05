@@ -2,7 +2,7 @@ use crate::scheme::{Scheme, Reward};
 
 /// Trait for agents collecting rewards sent them by environment.
 ///
-pub trait RewardedAgent<DP: Scheme>{
+pub trait RewardedAgent<S: Scheme>{
     /// Returns currently stored universal reward
     /// This should be sum of partial rewards
     /// received by agent since his last action.
@@ -18,13 +18,13 @@ pub trait RewardedAgent<DP: Scheme>{
     /// > Action that gives `+3` score but immediately is punished by other player with `-1` to `-2`
     /// > will be better than action giving `+10` and immediately punished by `-100`, right?.
     /// > So this should return score change since last action performed by this agent.
-    fn current_universal_reward(&self) -> DP::UniversalReward;
-    //fn set_current_universal_reward(&mut self, reward: DP::UniversalReward);
+    fn current_universal_reward(&self) -> S::UniversalReward;
+    //fn set_current_universal_reward(&mut self, reward: S::UniversalReward);
     /// Add partial reward to currently stacked reward since last action.
-    fn current_universal_reward_add(&mut self, reward_fragment: &DP::UniversalReward);
+    fn current_universal_reward_add(&mut self, reward_fragment: &S::UniversalReward);
     /// Return score since the beginning to this moment. Usually it will be sum
     /// of _committed_ score and current partial rewards.
-    fn current_universal_score(&self) -> DP::UniversalReward;
+    fn current_universal_score(&self) -> S::UniversalReward;
     /// Commits current partial rewards to locked score and resets partial reward to
     /// neutral value.
     fn commit_partial_rewards(&mut self);
@@ -53,7 +53,7 @@ pub trait RewardedAgent<DP: Scheme>{
     /// assert_eq!(agent.current_universal_reward(), -2.0);
     /// assert_eq!(agent.current_universal_score(), 9.0);
     /// ```
-    fn current_universal_score_set_without_commit(&mut self, payoff: &DP::UniversalReward){
+    fn current_universal_score_set_without_commit(&mut self, payoff: &S::UniversalReward){
         let current_score_total = self.current_universal_score(); // 8.0 // (11.0 - 3.0)
         let difference = payoff // 9.0
             .ref_sub(&current_score_total); // 1.0 // 9.0 - (11.0 - 3.0)
@@ -61,7 +61,7 @@ pub trait RewardedAgent<DP: Scheme>{
             //.ref_sub(&self.current_universal_reward()); // 1.0
         self.current_universal_reward_add(&difference); //
     }
-    fn current_universal_score_set_and_commit(&mut self, payoff: &DP::UniversalReward){
+    fn current_universal_score_set_and_commit(&mut self, payoff: &S::UniversalReward){
         self.current_universal_score_set_without_commit(payoff);
         self.commit_partial_rewards();
     }

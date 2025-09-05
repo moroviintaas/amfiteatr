@@ -4,9 +4,9 @@ use crate::error::AmfiteatrError;
 /// Trait for objects that can be renewed using some data.
 /// For example agents can be renewed with new state for new game episode without changing
 /// things that do not need to be changed (like communication interface or trajectory archive).
-pub trait Renew<DP: Scheme, S>{
+pub trait Renew<S: Scheme, T>{
 
-    fn renew_from(&mut self, base: S) -> Result<(), AmfiteatrError<DP>>;
+    fn renew_from(&mut self, base: T) -> Result<(), AmfiteatrError<S>>;
 }
 
 
@@ -18,9 +18,9 @@ pub trait Renew<DP: Scheme, S>{
 /// you would like to give them unfair advantage and show other players' cards before the game. W
 /// Fair game protocol does not have [`UpdateType`](crate::scheme::Scheme::UpdateType) to do such
 /// nasty thing.
-pub trait RenewWithEffect<DP: Scheme, S>{
+pub trait RenewWithEffect<S: Scheme, T>{
 
     type Effect;
-    fn renew_with_effect_from(&mut self, base: S) -> Result<Self::Effect, AmfiteatrError<DP>>;
+    fn renew_with_effect_from(&mut self, base: T) -> Result<Self::Effect, AmfiteatrError<S>>;
 
 }

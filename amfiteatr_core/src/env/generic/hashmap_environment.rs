@@ -21,33 +21,33 @@ use crate::scheme::{AgentMessage, Scheme, EnvironmentMessage, Renew, RenewWithEf
 /// If you need tracing refer to analogous implementation of
 /// [`TracingHashMapEnvironment`](crate::env::TracingHashMapEnvironment).
 pub struct HashMapEnvironment<
-    DP: Scheme,
-    ST: SequentialGameState<DP>,
-    C: EnvironmentEndpoint<DP>>{
+    S: Scheme,
+    ST: SequentialGameState<S>,
+    C: EnvironmentEndpoint<S>>{
 
-    comm_endpoints: HashMap<DP::AgentId, C>,
-    penalties: HashMap<DP::AgentId, DP::UniversalReward>,
+    comm_endpoints: HashMap<S::AgentId, C>,
+    penalties: HashMap<S::AgentId, S::UniversalReward>,
     game_state: ST,
     game_steps: u64,
 }
 
 impl <
-    DP: Scheme,
-    ST: SequentialGameState<DP>,
-    C: EnvironmentEndpoint<DP>>
-HashMapEnvironment<DP, ST, C>{
+    S: Scheme,
+    ST: SequentialGameState<S>,
+    C: EnvironmentEndpoint<S>>
+HashMapEnvironment<S, ST, C>{
 
     pub fn new(
         game_state: ST,
-        comm_endpoints:  HashMap<DP::AgentId, C>) -> Self{
+        comm_endpoints:  HashMap<S::AgentId, C>) -> Self{
 
         #[cfg(feature = "log_debug")]
-        let k:Vec<DP::AgentId> = comm_endpoints.keys().cloned().collect();
+        let k:Vec<S::AgentId> = comm_endpoints.keys().cloned().collect();
         #[cfg(feature = "log_debug")]
         log::debug!("Creating environment with:{k:?}");
 
-        let penalties: HashMap<DP::AgentId, DP::UniversalReward> = comm_endpoints.keys()
-            .map(|agent| (agent.clone(), DP::UniversalReward::neutral()))
+        let penalties: HashMap<S::AgentId, S::UniversalReward> = comm_endpoints.keys()
+            .map(|agent| (agent.clone(), S::UniversalReward::neutral()))
             .collect();
 
         Self{comm_endpoints, game_state, penalties, game_steps: 0}
@@ -57,10 +57,10 @@ HashMapEnvironment<DP, ST, C>{
         self.game_state = state
     }
 
-    pub fn comms(&self) -> &HashMap<DP::AgentId, C> {
+    pub fn comms(&self) -> &HashMap<S::AgentId, C> {
         &self.comm_endpoints
     }
-    pub fn comms_mut(&mut self) -> &mut HashMap<DP::AgentId, C> {
+    pub fn comms_mut(&mut self) -> &mut HashMap<S::AgentId, C> {
         &mut self.comm_endpoints
     }
 
@@ -71,20 +71,20 @@ HashMapEnvironment<DP, ST, C>{
 
 
 impl<
-    DP: Scheme,
-    ST: SequentialGameState<DP>,
-    C: EnvironmentEndpoint<DP>>
-StatefulEnvironment<DP> for HashMapEnvironment<DP, ST, C>{
+    S: Scheme,
+    ST: SequentialGameState<S>,
+    C: EnvironmentEndpoint<S>>
+StatefulEnvironment<S> for HashMapEnvironment<S, ST, C>{
 
     type State = ST;
-    //type Updates = <Vec<(DP::AgentId, DP::UpdateType)> as IntoIterator>::IntoIter;
+    //type Updates = <Vec<(S::AgentId, S::UpdateType)> as IntoIterator>::IntoIter;
 
     fn state(&self) -> &Self::State {
         &self.game_state
     }
 
-    fn process_action(&mut self, agent: &DP::AgentId, action: &DP::ActionType) 
-        -> Result<<Self::State as SequentialGameState<DP>>::Updates, AmfiteatrError<DP>> {
+    fn process_action(&mut self, agent: &S::AgentId, action: &S::ActionType)
+        -> Result<<Self::State as SequentialGameState<S>>::Updates, AmfiteatrError<S>> {
         self.game_steps += 1;
         self.game_state.forward(agent.clone(), action.clone())
             .map_err(|e| AmfiteatrError::Game{source: e})
@@ -98,17 +98,17 @@ StatefulEnvironment<DP> for HashMapEnvironment<DP, ST, C>{
 }
 
 impl<
-    DP: Scheme,
-    ST: GameStateWithPayoffs<DP>,
-    C: EnvironmentEndpoint<DP> >
-ScoreEnvironment<DP> for HashMapEnvironment<DP, ST, C>{
+    S: Scheme,
+    ST: GameStateWithPayoffs<S>,
+    C: EnvironmentEndpoint<S> >
+ScoreEnvironment<S> for HashMapEnvironment<S, ST, C>{
 
     fn process_action_penalise_illegal(
         &mut self,
-        agent: &DP::AgentId,
-        action: &DP::ActionType,
-        penalty_reward: DP::UniversalReward)
-        -> Result<<Self::State as SequentialGameState<DP>>::Updates, AmfiteatrError<DP>> {
+        agent: &S::AgentId,
+        action: &S::ActionType,
+        penalty_reward: S::UniversalReward)
+        -> Result<<Self::State as SequentialGameState<S>>::Updates, AmfiteatrError<S>> {
         self.game_steps += 1;
 
         self.game_state.forward(agent.clone(), action.clone())
@@ -120,28 +120,28 @@ ScoreEnvironment<DP> for HashMapEnvironment<DP, ST, C>{
     }
 
     fn actual_state_score_of_player(
-        &self, agent: &DP::AgentId) -> DP::UniversalReward {
+        &self, agent: &S::AgentId) -> S::UniversalReward {
 
         self.game_state.state_payoff_of_player(agent)
     }
 
     fn actual_penalty_score_of_player
-    (&self, agent: &DP::AgentId) -> DP::UniversalReward {
+    (&self, agent: &S::AgentId) -> S::UniversalReward {
 
-        self.penalties.get(agent).unwrap_or(&DP::UniversalReward::neutral()).to_owned()
+        self.penalties.get(agent).unwrap_or(&S::UniversalReward::neutral()).to_owned()
     }
 }
 
 
 
 impl<
-    DP: Scheme,
-    ST: SequentialGameState<DP>,
-    C: EnvironmentEndpoint<DP>>
-CommunicatingEndpointEnvironment<DP> for HashMapEnvironment<DP, ST, C> {
-    type CommunicationError = CommunicationError<DP>;
+    S: Scheme,
+    ST: SequentialGameState<S>,
+    C: EnvironmentEndpoint<S>>
+CommunicatingEndpointEnvironment<S> for HashMapEnvironment<S, ST, C> {
+    type CommunicationError = CommunicationError<S>;
 
-    fn send_to(&mut self, agent_id: &DP::AgentId, message: EnvironmentMessage<DP>)
+    fn send_to(&mut self, agent_id: &S::AgentId, message: EnvironmentMessage<S>)
         -> Result<(), Self::CommunicationError> {
 
         self.comm_endpoints.get_mut(agent_id).ok_or(CommunicationError::NoSuchConnection{
@@ -150,8 +150,8 @@ CommunicatingEndpointEnvironment<DP> for HashMapEnvironment<DP, ST, C> {
             .map(|v| v.send(message))?
     }
 
-    fn blocking_receive_from(&mut self, agent_id: &DP::AgentId)
-                             -> Result<AgentMessage<DP>, Self::CommunicationError> {
+    fn blocking_receive_from(&mut self, agent_id: &S::AgentId)
+                             -> Result<AgentMessage<S>, Self::CommunicationError> {
 
         self.comm_endpoints.get_mut(agent_id).ok_or(CommunicationError::NoSuchConnection{
             connection: format!("To agent {agent_id:}")
@@ -159,8 +159,8 @@ CommunicatingEndpointEnvironment<DP> for HashMapEnvironment<DP, ST, C> {
             .map(|v| v.receive_blocking())?
     }
 
-    fn nonblocking_receive_from(&mut self, agent_id: &DP::AgentId)
-                                -> Result<Option<AgentMessage<DP>>, Self::CommunicationError> {
+    fn nonblocking_receive_from(&mut self, agent_id: &S::AgentId)
+                                -> Result<Option<AgentMessage<S>>, Self::CommunicationError> {
 
         self.comm_endpoints.get_mut(agent_id).ok_or(CommunicationError::NoSuchConnection{
             connection: format!("To agent {agent_id:}")
@@ -170,11 +170,11 @@ CommunicatingEndpointEnvironment<DP> for HashMapEnvironment<DP, ST, C> {
 }
 
 impl<
-    DP: Scheme,
-    ST: SequentialGameState<DP>,
-    C: EnvironmentEndpoint<DP>>
-BroadcastingEndpointEnvironment<DP> for HashMapEnvironment<DP, ST, C>{
-    fn send_to_all(&mut self, message: EnvironmentMessage<DP>) -> Result<(), Self::CommunicationError> {
+    S: Scheme,
+    ST: SequentialGameState<S>,
+    C: EnvironmentEndpoint<S>>
+BroadcastingEndpointEnvironment<S> for HashMapEnvironment<S, ST, C>{
+    fn send_to_all(&mut self, message: EnvironmentMessage<S>) -> Result<(), Self::CommunicationError> {
         let mut result:Option<Self::CommunicationError> = None;
 
         for (_id, comm) in self.comm_endpoints.iter_mut(){
@@ -194,11 +194,11 @@ BroadcastingEndpointEnvironment<DP> for HashMapEnvironment<DP, ST, C>{
     }
 }
 
-impl<DP: Scheme,
-    ST: SequentialGameState<DP>,
-    C: EnvironmentEndpoint<DP>>
- EnvironmentWithAgents<DP> for HashMapEnvironment<DP, ST, C>{
-    type PlayerIterator = Vec<DP::AgentId>;
+impl<S: Scheme,
+    ST: SequentialGameState<S>,
+    C: EnvironmentEndpoint<S>>
+ EnvironmentWithAgents<S> for HashMapEnvironment<S, ST, C>{
+    type PlayerIterator = Vec<S::AgentId>;
 
     fn players(&self) -> Self::PlayerIterator {
         self.comm_endpoints.keys().cloned().collect()
@@ -207,14 +207,14 @@ impl<DP: Scheme,
 
 }
 
-impl<DP: Scheme,
-    ST: SequentialGameState<DP>,
-    C: EnvironmentEndpoint<DP>>
-ListPlayers<DP> for HashMapEnvironment<DP, ST, C>{
-    type IterType = <Vec<DP::AgentId> as IntoIterator>::IntoIter;
+impl<S: Scheme,
+    ST: SequentialGameState<S>,
+    C: EnvironmentEndpoint<S>>
+ListPlayers<S> for HashMapEnvironment<S, ST, C>{
+    type IterType = <Vec<S::AgentId> as IntoIterator>::IntoIter;
 
     fn players(&self) -> Self::IterType {
-        self.comm_endpoints.keys().cloned().collect::<Vec<DP::AgentId>>().into_iter()
+        self.comm_endpoints.keys().cloned().collect::<Vec<S::AgentId>>().into_iter()
     }
 
 
@@ -225,17 +225,17 @@ ListPlayers<DP> for HashMapEnvironment<DP, ST, C>{
 
 /// __(Experimental)__ builder for [`HashMapEnvironment`]
 pub struct HashMapEnvironmentBuilder<
-    DP: Scheme,
-    ST: SequentialGameState<DP>,
-    C: EnvironmentEndpoint<DP> >{
+    S: Scheme,
+    ST: SequentialGameState<S>,
+    C: EnvironmentEndpoint<S> >{
     state_opt: Option<ST>,
-    comm_endpoints: HashMap<DP::AgentId,  C>,
+    comm_endpoints: HashMap<S::AgentId,  C>,
 
 
 }
 
-impl <DP: Scheme, ST: SequentialGameState<DP>, C: EnvironmentEndpoint<DP>>
-HashMapEnvironmentBuilder<DP, ST, C>{
+impl <S: Scheme, ST: SequentialGameState<S>, C: EnvironmentEndpoint<S>>
+HashMapEnvironmentBuilder<S, ST, C>{
 
 
     pub fn new() -> Self{
@@ -247,10 +247,10 @@ HashMapEnvironmentBuilder<DP, ST, C>{
 
 
 impl<
-    DP: Scheme,
-    ST: SequentialGameState<DP>,
-    C: EnvironmentEndpoint<DP>>
-Default for HashMapEnvironmentBuilder<DP, ST, C> {
+    S: Scheme,
+    ST: SequentialGameState<S>,
+    C: EnvironmentEndpoint<S>>
+Default for HashMapEnvironmentBuilder<S, ST, C> {
 
     fn default() -> Self {
         Self{
@@ -261,13 +261,13 @@ Default for HashMapEnvironmentBuilder<DP, ST, C> {
 }
 
 impl<
-    DP: Scheme,
-    ST: SequentialGameState<DP>,
-    C: EnvironmentEndpoint<DP>>
-EnvironmentBuilderTrait<DP, HashMapEnvironment<DP, ST, C>> for HashMapEnvironmentBuilder<DP, ST, C>{
+    S: Scheme,
+    ST: SequentialGameState<S>,
+    C: EnvironmentEndpoint<S>>
+EnvironmentBuilderTrait<S, HashMapEnvironment<S, ST, C>> for HashMapEnvironmentBuilder<S, ST, C>{
     type Comm = C;
 
-    fn build(self) -> Result<HashMapEnvironment<DP, ST, C>, ModelError<DP>>{
+    fn build(self) -> Result<HashMapEnvironment<S, ST, C>, ModelError<S>>{
 
 
         Ok(HashMapEnvironment::new(
@@ -276,60 +276,60 @@ EnvironmentBuilderTrait<DP, HashMapEnvironment<DP, ST, C>> for HashMapEnvironmen
 
     }
 
-    fn add_comm(mut self, agent_id: &DP::AgentId, comm: C) -> Result<Self, ModelError<DP>>{
+    fn add_comm(mut self, agent_id: &S::AgentId, comm: C) -> Result<Self, ModelError<S>>{
 
         let _ = &mut self.comm_endpoints.insert(agent_id.clone(), comm);
         Ok(self)
     }
 
-    fn with_state(mut self, state: ST) -> Result<Self, ModelError<DP>>{
+    fn with_state(mut self, state: ST) -> Result<Self, ModelError<S>>{
         self.state_opt = Some(state);
         Ok(self)
     }
 }
 
 impl<
-DP: Scheme,
-    ST: SequentialGameState<DP>,
-    C: EnvironmentEndpoint<DP>>
-ReinitEnvironment<DP> for HashMapEnvironment<DP, ST, C>{
-    fn reinit(&mut self, initial_state: <Self as StatefulEnvironment<DP>>::State) {
+S: Scheme,
+    ST: SequentialGameState<S>,
+    C: EnvironmentEndpoint<S>>
+ReinitEnvironment<S> for HashMapEnvironment<S, ST, C>{
+    fn reinit(&mut self, initial_state: <Self as StatefulEnvironment<S>>::State) {
 
         self.game_state = initial_state;
         self.game_steps = 0;
         for vals in self.penalties.values_mut(){
-            *vals = DP::UniversalReward::neutral();
+            *vals = S::UniversalReward::neutral();
         }
     }
 }
 impl <
-    DP: Scheme,
-    ST: SequentialGameState<DP> + Clone,
-    CP: EnvironmentEndpoint<DP>,
+    S: Scheme,
+    ST: SequentialGameState<S> + Clone,
+    CP: EnvironmentEndpoint<S>,
     Seed
-> ReseedEnvironment<DP, Seed> for HashMapEnvironment<DP, ST, CP>
-    where <Self as StatefulEnvironment<DP>>::State: Renew<DP, Seed>{
-    fn reseed(&mut self, seed: Seed) -> Result<(), AmfiteatrError<DP>>{
+> ReseedEnvironment<S, Seed> for HashMapEnvironment<S, ST, CP>
+    where <Self as StatefulEnvironment<S>>::State: Renew<S, Seed>{
+    fn reseed(&mut self, seed: Seed) -> Result<(), AmfiteatrError<S>>{
         self.game_steps = 0;
         self.game_state.renew_from(seed)
     }
 }
 
 impl <
-    DP: Scheme,
-    ST: SequentialGameState<DP> + Clone + RenewWithEffect<DP, Seed>,
-    CP: EnvironmentEndpoint<DP>,
+    S: Scheme,
+    ST: SequentialGameState<S> + Clone + RenewWithEffect<S, Seed>,
+    CP: EnvironmentEndpoint<S>,
     Seed,
     AgentSeed
-> ReseedEnvironmentWithObservation<DP, Seed> for HashMapEnvironment<DP, ST, CP>
-    where <Self as StatefulEnvironment<DP>>::State: RenewWithEffect<DP, Seed>,
-          <<Self as StatefulEnvironment<DP>>::State as RenewWithEffect<DP, Seed>>::Effect:
-          IntoIterator<Item=(DP::AgentId, AgentSeed)>{
-    //type Observation = <<Self as StatefulEnvironment<DP>>::State as RenewWithSideEffect<DP, Seed>>::SideEffect;
+> ReseedEnvironmentWithObservation<S, Seed> for HashMapEnvironment<S, ST, CP>
+    where <Self as StatefulEnvironment<S>>::State: RenewWithEffect<S, Seed>,
+          <<Self as StatefulEnvironment<S>>::State as RenewWithEffect<S, Seed>>::Effect:
+          IntoIterator<Item=(S::AgentId, AgentSeed)>{
+    //type Observation = <<Self as StatefulEnvironment<S>>::State as RenewWithSideEffect<S, Seed>>::SideEffect;
     type Observation = AgentSeed;
-    type InitialObservations = HashMap<DP::AgentId, Self::Observation>;
+    type InitialObservations = HashMap<S::AgentId, Self::Observation>;
 
-    fn reseed_with_observation(&mut self, seed: Seed) -> Result<Self::InitialObservations, AmfiteatrError<DP>>{
+    fn reseed_with_observation(&mut self, seed: Seed) -> Result<Self::InitialObservations, AmfiteatrError<S>>{
         self.game_steps = 0;
         self.game_state.renew_with_effect_from(seed)
             .map(|agent_observation_iter|
@@ -337,31 +337,31 @@ impl <
     }
 }
 
-impl<DP: Scheme,
-    ST: SequentialGameState<DP>,
-    C: EnvironmentEndpoint<DP>>
-AutoEnvironment<DP> for HashMapEnvironment<DP, ST, C>
-where Self: CommunicatingEndpointEnvironment<DP, CommunicationError=CommunicationError<DP>>
-+ StatefulEnvironment<DP>
-+ EnvironmentWithAgents<DP>
-+ BroadcastingEndpointEnvironment<DP>, DP: Scheme
+impl<S: Scheme,
+    ST: SequentialGameState<S>,
+    C: EnvironmentEndpoint<S>>
+AutoEnvironment<S> for HashMapEnvironment<S, ST, C>
+where Self: CommunicatingEndpointEnvironment<S, CommunicationError=CommunicationError<S>>
++ StatefulEnvironment<S>
++ EnvironmentWithAgents<S>
++ BroadcastingEndpointEnvironment<S>, S: Scheme
 {
-    fn run_truncating(&mut self, truncate_steps: Option<usize>) -> Result<(), AmfiteatrError<DP>> {
+    fn run_truncating(&mut self, truncate_steps: Option<usize>) -> Result<(), AmfiteatrError<S>> {
         self.run_round_robin_no_rewards_truncating(truncate_steps)
     }
 }
 
-impl<DP: Scheme,
-    ST: SequentialGameState<DP> ,
-    C: EnvironmentEndpoint<DP>>
-AutoEnvironmentWithScores<DP> for HashMapEnvironment<DP, ST, C>
-    where HashMapEnvironment<DP, ST, C>:
-    CommunicatingEndpointEnvironment<DP, CommunicationError=CommunicationError<DP>>
-    + ScoreEnvironment<DP>
-    + EnvironmentWithAgents<DP>
-    + BroadcastingEndpointEnvironment<DP>
+impl<S: Scheme,
+    ST: SequentialGameState<S> ,
+    C: EnvironmentEndpoint<S>>
+AutoEnvironmentWithScores<S> for HashMapEnvironment<S, ST, C>
+    where HashMapEnvironment<S, ST, C>:
+    CommunicatingEndpointEnvironment<S, CommunicationError=CommunicationError<S>>
+    + ScoreEnvironment<S>
+    + EnvironmentWithAgents<S>
+    + BroadcastingEndpointEnvironment<S>
 {
-    fn run_with_scores_truncating(&mut self, truncate_steps: Option<usize>) -> Result<(), AmfiteatrError<DP>> {
+    fn run_with_scores_truncating(&mut self, truncate_steps: Option<usize>) -> Result<(), AmfiteatrError<S>> {
         self.run_round_robin_with_rewards_truncating(truncate_steps)
     }
 }

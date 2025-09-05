@@ -20,32 +20,32 @@ use crate::scheme::Scheme;
 /// //                      InformationSet-------------------------^
 /// ```
 /// This trait has blanket implementation for types implementing its supertraits
-pub trait ModelAgent<DP: Scheme, Seed, IS: InformationSet<DP>>:
+pub trait ModelAgent<S: Scheme, Seed, IS: InformationSet<S>>:
 
-    AutomaticAgent<DP>
-    //SelfEvaluatingAgent<DP, Assessment= <IS as EvaluatedInformationSet<DP>>::RewardType>
-    + ReseedAgent<DP, Seed>
-    + MultiEpisodeAutoAgent<DP, Seed>
-    + StatefulAgent<DP, InfoSetType=IS>
-    + TracingAgent<DP, IS>
-    + RewardedAgent<DP>
+    AutomaticAgent<S>
+    //SelfEvaluatingAgent<S, Assessment= <IS as EvaluatedInformationSet<S>>::RewardType>
+    + ReseedAgent<S, Seed>
+    + MultiEpisodeAutoAgent<S, Seed>
+    + StatefulAgent<S, InfoSetType=IS>
+    + TracingAgent<S, IS>
+    + RewardedAgent<S>
     + Send
 {}
 
 impl<
-    DP: Scheme,
+    S: Scheme,
     Seed,
-    IS: InformationSet<DP>,
-    T: AutomaticAgent<DP>
-        //+ SelfEvaluatingAgent<DP, Assessment= <IS as EvaluatedInformationSet<DP>>::RewardType>
-        + ReseedAgent<DP, Seed>
-        + MultiEpisodeAutoAgent<DP, Seed>
-        + StatefulAgent<DP, InfoSetType=IS>
-        + TracingAgent<DP, IS>
-        + RewardedAgent<DP>
+    IS: InformationSet<S>,
+    T: AutomaticAgent<S>
+        //+ SelfEvaluatingAgent<S, Assessment= <IS as EvaluatedInformationSet<S>>::RewardType>
+        + ReseedAgent<S, Seed>
+        + MultiEpisodeAutoAgent<S, Seed>
+        + StatefulAgent<S, InfoSetType=IS>
+        + TracingAgent<S, IS>
+        + RewardedAgent<S>
         + Send
 
-> ModelAgent<DP, Seed, IS> for T {}
+> ModelAgent<S, Seed, IS> for T {}
 
 
 

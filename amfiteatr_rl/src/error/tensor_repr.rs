@@ -42,7 +42,7 @@ pub enum TensorRepresentationError{
 
 }
 
-impl<DP: Scheme> From<TensorRepresentationError> for AmfiteatrRlError<DP>{
+impl<S: Scheme> From<TensorRepresentationError> for AmfiteatrRlError<S>{
     fn from(value: TensorRepresentationError) -> Self {
         AmfiteatrRlError::TensorRepresentation{source: value}
     }

@@ -14,8 +14,8 @@ pub enum DataError{
         context: String,
     }
 }
-impl<DP: Scheme> From<DataError> for AmfiteatrError<DP>{
-    fn from(source: DataError) -> AmfiteatrError<DP>{
+impl<S: Scheme> From<DataError> for AmfiteatrError<S>{
+    fn from(source: DataError) -> AmfiteatrError<S>{
         AmfiteatrError::Data{
             error: source,
         }

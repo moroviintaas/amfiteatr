@@ -73,9 +73,9 @@ impl RlPolicyConfigBasic for ConfigPPO {
 /// + [`PolicyPpoMultiDiscrete`](crate::policy::ppo::PolicyMultiDiscretePPO);
 /// + [`PolicyMaskingPpoDiscrete`](crate::policy::ppo::PolicyMaskingDiscretePPO);
 ///+ [`PolicyMaskingPpoMultiDiscrete`](crate::policy::ppo::PolicyMaskingMultiDiscretePPO).
-pub trait PolicyHelperPPO<DP: Scheme>
+pub trait PolicyHelperPPO<S: Scheme>
 {
-    type InfoSet: InformationSet<DP> + ContextEncodeTensor<Self::InfoSetConversionContext>;
+    type InfoSet: InformationSet<S> + ContextEncodeTensor<Self::InfoSetConversionContext>;
     type InfoSetConversionContext: TensorEncoding;
     type ActionConversionContext: ActionTensorFormat<<Self::NetworkOutput as ActorCriticOutput>::ActionTensorType>;
 
@@ -99,7 +99,7 @@ pub trait PolicyHelperPPO<DP: Scheme>
 
     /// Uses information set (state) and network output to calculate (masked) action distribution(s).
     fn ppo_dist(&self, info_set: &Self::InfoSet, network_output: &Self::NetworkOutput)
-        -> Result<<Self::NetworkOutput as ActorCriticOutput>::ActionTensorType, AmfiteatrError<DP>>;
+        -> Result<<Self::NetworkOutput as ActorCriticOutput>::ActionTensorType, AmfiteatrError<S>>;
 
 
     /// Indicate if action masking is supported.
@@ -109,7 +109,7 @@ pub trait PolicyHelperPPO<DP: Scheme>
     /// Generate action masks for information set.
     /// Let's say that action space is 5 and actions 0,2,3 are illegal now.
     /// The result should be Tensor([false, true, false, false, true])
-    fn generate_action_masks(&self, information_set: &Self::InfoSet) -> Result<<Self::NetworkOutput as ActorCriticOutput>::ActionTensorType, AmfiteatrError<DP>>;
+    fn generate_action_masks(&self, information_set: &Self::InfoSet) -> Result<<Self::NetworkOutput as ActorCriticOutput>::ActionTensorType, AmfiteatrError<S>>;
 
     /// If policy in mode of exploration i.e. if it is not suppressed to select always the best looking action without random walk
     fn ppo_exploration(&self) -> bool;
@@ -118,7 +118,7 @@ pub trait PolicyHelperPPO<DP: Scheme>
     /// Tries converting choice tensor to action - for example for single tensor choice `Tensor([3])` - meaning the aaction  with index `3` is selected, the proper action type is constructed.
     fn ppo_try_action_from_choice_tensor(&self,
         choice_tensor: &<Self::NetworkOutput as ActorCriticOutput>::ActionTensorType,
-    ) -> Result<DP::ActionType, AmfiteatrError<DP>>;
+    ) -> Result<S::ActionType, AmfiteatrError<S>>;
 
 
 
@@ -131,11 +131,11 @@ pub trait PolicyHelperPPO<DP: Scheme>
     /// So in this case we would produce from B(7,3):
     /// 1. Vector of choice tensors `vec![[1], [?], [7], [3], [?]]`
     /// 2. Vector of parameter masks: `vec![[true], [false], [true], [true], [false]`).
-    fn ppo_vectorise_action_and_create_category_mask(&self, action: &DP::ActionType)
+    fn ppo_vectorise_action_and_create_category_mask(&self, action: &S::ActionType)
         -> Result<(
             <Self::NetworkOutput as ActorCriticOutput>::ActionTensorType,
             <Self::NetworkOutput as ActorCriticOutput>::ActionTensorType
-        ), AmfiteatrError<DP>>;
+        ), AmfiteatrError<S>>;
 
 
     /// Calculate  actions (choices in batch) a triple of
@@ -148,10 +148,10 @@ pub trait PolicyHelperPPO<DP: Scheme>
         action_param_batches: &<Self::NetworkOutput as ActorCriticOutput>::ActionTensorType,
         action_category_mask_batches: Option<&<Self::NetworkOutput as ActorCriticOutput>::ActionTensorType>,
         action_forward_mask_batches: Option<&<Self::NetworkOutput as ActorCriticOutput>::ActionTensorType>,
-    ) -> Result<(Tensor, Tensor, Tensor), AmfiteatrError<DP>>;
+    ) -> Result<(Tensor, Tensor, Tensor), AmfiteatrError<S>>;
 
     /// Automatically implemented action selection using required methods.
-    fn ppo_select_action(&self, info_set: &Self::InfoSet) -> Result<DP::ActionType, AmfiteatrError<DP>>{
+    fn ppo_select_action(&self, info_set: &Self::InfoSet) -> Result<S::ActionType, AmfiteatrError<S>>{
         let state_tensor = info_set.to_tensor(self.info_set_conversion_context());
         let out = tch::no_grad(|| (self.ppo_network().net())(&state_tensor));
         //let actor = out.actor;
@@ -177,11 +177,11 @@ pub trait PolicyHelperPPO<DP: Scheme>
     }
 
     fn ppo_train_on_trajectories<
-        R: Fn(&AgentStepView<DP, Self::InfoSet>) -> Tensor>
+        R: Fn(&AgentStepView<S, Self::InfoSet>) -> Tensor>
     (
-        &mut self, trajectories: &[AgentTrajectory<DP, Self::InfoSet>],
+        &mut self, trajectories: &[AgentTrajectory<S, Self::InfoSet>],
         reward_f: R
-    ) -> Result<(), AmfiteatrRlError<DP>>{
+    ) -> Result<(), AmfiteatrRlError<S>>{
         #[cfg(feature = "log_trace")]
         log::trace!("Starting training PPO.");
 
@@ -478,16 +478,16 @@ pub trait PolicyHelperPPO<DP: Scheme>
 /// Helper trait to build create training interface for PPO Policy.
 /// It provides automatic [`ppo_train_on_trajectories`](PolicyTrainHelperPPO::ppo_train_on_trajectories)
 /// implementation for any (policy) type implementing [`PolicyHelperA2C`].
-pub trait PolicyTrainHelperPPO<DP: Scheme> : PolicyHelperA2C<DP, Config=ConfigPPO>{
+pub trait PolicyTrainHelperPPO<S: Scheme> : PolicyHelperA2C<S, Config=ConfigPPO>{
 
 
     /// Method provided that executes learning step on PPO policy, based on provided [`PolicyHelperA2C`]
     fn ppo_train_on_trajectories<
-        R: Fn(&AgentStepView<DP, Self::InfoSet>) -> Tensor>
+        R: Fn(&AgentStepView<S, Self::InfoSet>) -> Tensor>
     (
-        &mut self, trajectories: &[AgentTrajectory<DP, Self::InfoSet>],
+        &mut self, trajectories: &[AgentTrajectory<S, Self::InfoSet>],
         reward_f: R
-    ) -> Result<LearnSummary, AmfiteatrError<DP>>{
+    ) -> Result<LearnSummary, AmfiteatrError<S>>{
 
         #[cfg(feature = "log_trace")]
         log::trace!("Starting training PPO.");
@@ -859,7 +859,7 @@ pub trait PolicyTrainHelperPPO<DP: Scheme> : PolicyHelperA2C<DP, Config=ConfigPP
             }
 
             self.set_global_learning_step(self.global_learning_step()+1);
-            Result::<(), AmfiteatrError<DP>>::Ok(())
+            Result::<(), AmfiteatrError<S>>::Ok(())
         })?;
 
 
@@ -875,8 +875,8 @@ pub trait PolicyTrainHelperPPO<DP: Scheme> : PolicyHelperA2C<DP, Config=ConfigPP
     }
 }
 
-impl<T, DP: Scheme> PolicyTrainHelperPPO<DP> for T
-    where T: PolicyHelperA2C<DP, Config=ConfigPPO>{}
+impl<T, S: Scheme> PolicyTrainHelperPPO<S> for T
+    where T: PolicyHelperA2C<S, Config=ConfigPPO>{}
 
 
-//impl<P:PolicyPPO<DP>, DP: DomainParameters> Policy<DP> for P
+//impl<P:PolicyPPO<S>, S: DomainParameters> Policy<S> for P

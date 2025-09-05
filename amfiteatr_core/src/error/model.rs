@@ -6,18 +6,18 @@ use crate::scheme::Scheme;
 
 #[derive(Debug, Clone, Error)]
 #[cfg_attr(feature = "speedy", derive(speedy::Writable, speedy::Readable))]
-pub enum ModelError<DP: Scheme>{
+pub enum ModelError<S: Scheme>{
 
     #[error("Agent's Id: {0} is duplicated")]
-    DuplicateId(DP::AgentId),
+    DuplicateId(S::AgentId),
     #[error("Missing Agent's Id: {0}")]
-    MissingId(DP::AgentId),
+    MissingId(S::AgentId),
     #[error("Missing environment initial state")]
     MissingState,
 }
 
-impl<DP: Scheme> From<ModelError<DP>> for AmfiteatrError<DP>{
-    fn from(value: ModelError<DP>) -> Self {
+impl<S: Scheme> From<ModelError<S>> for AmfiteatrError<S>{
+    fn from(value: ModelError<S>) -> Self {
         Self::Model { source: value}
     }
 }

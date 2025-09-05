@@ -14,14 +14,14 @@ use crate::scheme::{AgentMessage, EnvironmentMessage, Scheme};
 
 /// Helping trait for almost automatic agent.
 /// It is used as frame implementation of automatic agent.
-pub trait ProcedureAgent<DP: Scheme>: RewardedAgent<DP> + IdAgent<DP>
-+ CommunicatingAgent<DP> + ActingAgent<DP> + StatefulAgent<DP>{
+pub trait ProcedureAgent<S: Scheme>: RewardedAgent<S> + IdAgent<S>
++ CommunicatingAgent<S> + ActingAgent<S> + StatefulAgent<S>{
 
     /// Runs automatic agent provided with function selecting action.
     /// This is meant to be backend implementation for [`AutomaticAgent::run`] and [`CliAgent`](crate::agent::manual_control::CliAgent).
     fn run_protocol<
-        P: Fn(&mut Self) -> Result<DP::ActionType, AmfiteatrError<DP>>,
-    >(&mut self, action_selector: P) -> Result<(), AmfiteatrError<DP>>{
+        P: Fn(&mut Self) -> Result<S::ActionType, AmfiteatrError<S>>,
+    >(&mut self, action_selector: P) -> Result<(), AmfiteatrError<S>>{
         #[cfg(feature = "log_info")]
         log::info!("Agent {} starts", self.id());
 
@@ -112,27 +112,27 @@ pub trait ProcedureAgent<DP: Scheme>: RewardedAgent<DP> + IdAgent<DP>
 
 }
 
-impl<A, DP: Scheme> ProcedureAgent<DP> for A
-where A: RewardedAgent<DP> + IdAgent<DP>
-+ CommunicatingAgent<DP> + ActingAgent<DP> + StatefulAgent<DP>
+impl<A, S: Scheme> ProcedureAgent<S> for A
+where A: RewardedAgent<S> + IdAgent<S>
++ CommunicatingAgent<S> + ActingAgent<S> + StatefulAgent<S>
 {
 
 }
 
 /// Trait for agents that perform their interactions with environment automatically,
 /// without waiting for interrupting interaction from anyone but environment.
-pub trait AutomaticAgent<DP: Scheme>{
+pub trait AutomaticAgent<S: Scheme>{
 
 
 
     /// Runs agent beginning in its current state (information set)
     /// and returns when game is finished.
-    fn run(&mut self) -> Result<(), AmfiteatrError<DP>>;
+    fn run(&mut self) -> Result<(), AmfiteatrError<S>>;
 }
 
-impl<A, DP: Scheme> AutomaticAgent<DP> for A
-where A: ProcedureAgent<DP> + PolicyAgent<DP>{
-    fn run(&mut self) -> Result<(), AmfiteatrError<DP>>{
+impl<A, S: Scheme> AutomaticAgent<S> for A
+where A: ProcedureAgent<S> + PolicyAgent<S>{
+    fn run(&mut self) -> Result<(), AmfiteatrError<S>>{
         self.run_protocol(|s| s.select_action())
     }
 

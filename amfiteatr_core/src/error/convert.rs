@@ -55,7 +55,7 @@ pub enum ConvertError{
 
 
 
-impl<DP: Scheme> From<ConvertError> for AmfiteatrError<DP>{
+impl<S: Scheme> From<ConvertError> for AmfiteatrError<S>{
     fn from(error: ConvertError) -> Self {
         AmfiteatrError::DataConvert(error)
     }
@@ -71,7 +71,7 @@ impl From<tch::TchError> for ConvertError{
 
 /*
 
-impl<DP: DomainParameters, E: Into<ConvertError>> From<E> for AmfiteatrError<DP>{
+impl<S: DomainParameters, E: Into<ConvertError>> From<E> for AmfiteatrError<S>{
     fn from(error: E) -> Self {
         AmfiteatrError::DataConvert(error.into())
     }

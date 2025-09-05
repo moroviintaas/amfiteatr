@@ -21,15 +21,15 @@ use crate::policy::TrainConfig;
 #[deprecated(since = "0.12.0", note = "Please use [`PolicyDiscreteA2C`](PolicyDiscreteA2C) instead")]
 /// Generic implementation of Advantage Actor Critic policy
 pub struct ActorCriticPolicy<
-    DP: Scheme,
-    InfoSet: InformationSet<DP> + Debug + ContextEncodeTensor<InfoSetConversionContext>,
+    S: Scheme,
+    InfoSet: InformationSet<S> + Debug + ContextEncodeTensor<InfoSetConversionContext>,
     InfoSetConversionContext: TensorEncoding,
    // ActionConversionContext: ConversionFromTensor,
 > {
     network: A2CNet,
     //#[allow(dead_code)]
     optimizer: Optimizer,
-    _dp: PhantomData<DP>,
+    _dp: PhantomData<S>,
     _is: PhantomData<InfoSet>,
     //state_converter: StateConverter,
     info_set_conversion_context: InfoSetConversionContext,
@@ -40,13 +40,13 @@ pub struct ActorCriticPolicy<
 
 }
 impl<
-    DP: Scheme,
-    InfoSet: InformationSet<DP>  + Debug + ContextEncodeTensor<InfoSetConversionContext>,
+    S: Scheme,
+    InfoSet: InformationSet<S>  + Debug + ContextEncodeTensor<InfoSetConversionContext>,
     InfoSetConversionContext: TensorEncoding,
     //ActionConversionContext: ConversionFromTensor,
     >
 ActorCriticPolicy<
-    DP,
+    S,
     InfoSet,
     InfoSetConversionContext,
     //ActionConversionContext
@@ -106,23 +106,23 @@ ActorCriticPolicy<
 
 }
 
-impl<DP: Scheme,
-    //InfoSet: InformationSet<DP> + Debug,
+impl<S: Scheme,
+    //InfoSet: InformationSet<S> + Debug,
     //TB: ConvStateToTensor<InfoSet>,
-    InfoSet: InformationSet<DP> + Debug + ContextEncodeTensor<InfoSetConversionContext>,
+    InfoSet: InformationSet<S> + Debug + ContextEncodeTensor<InfoSetConversionContext>,
     InfoSetConversionContext: TensorEncoding,
     //ActionConversionContext: ConversionFromTensor,
-> Policy<DP> for ActorCriticPolicy<
-    DP,
+> Policy<S> for ActorCriticPolicy<
+    S,
     InfoSet,
     //TB,
     InfoSetConversionContext,
     //ActionConversionContext,
 >
-where <DP as Scheme>::ActionType: TryFromTensor{
+where <S as Scheme>::ActionType: TryFromTensor{
     type InfoSetType = InfoSet;
 
-    fn select_action(&self, state: &Self::InfoSetType) -> Result<DP::ActionType, AmfiteatrError<DP>> {
+    fn select_action(&self, state: &Self::InfoSetType) -> Result<S::ActionType, AmfiteatrError<S>> {
         //let state_tensor = self.state_converter.build_tensor(state)
         //    .unwrap_or_else(|_| panic!("Failed converting state to Tensor: {:?}", state));
         //let state_tensor = self.state_converter.make_tensor(state);
@@ -138,11 +138,11 @@ where <DP as Scheme>::ActionType: TryFromTensor{
             #[cfg(feature = "log_trace")]
             log::trace!("After selecting action, before converting from tensor to action form");
             //self.action_interpreter.interpret_tensor(&atensor)
-            Ok(DP::ActionType::try_from_tensor(&atensor)
+            Ok(S::ActionType::try_from_tensor(&atensor)
                 .expect("Failed converting tensor to action"))
         } else {
             let atensor = probs.argmax(None, false).unsqueeze(-1);
-            Ok(DP::ActionType::try_from_tensor(&atensor)
+            Ok(S::ActionType::try_from_tensor(&atensor)
                 .expect("Failed converting tensor to action (no explore)"))
         }
 
@@ -152,13 +152,13 @@ where <DP as Scheme>::ActionType: TryFromTensor{
 
 
 impl<
-    DP: Scheme,
-    InfoSet: InformationSet<DP>  + Debug + ContextEncodeTensor<InfoSetWay>,
+    S: Scheme,
+    InfoSet: InformationSet<S>  + Debug + ContextEncodeTensor<InfoSetWay>,
     InfoSetWay: TensorEncoding,
-    //InfoSet: ScoringInformationSet<DP> + Debug,
+    //InfoSet: ScoringInformationSet<S> + Debug,
     //StateConverter: ConvStateToTensor<InfoSet>>
-    > LearningNetworkPolicyGeneric<DP> for ActorCriticPolicy<DP, InfoSet, InfoSetWay>
-    where <DP as Scheme>::ActionType: TryFromTensor + TryIntoTensor,
+    > LearningNetworkPolicyGeneric<S> for ActorCriticPolicy<S, InfoSet, InfoSetWay>
+    where <S as Scheme>::ActionType: TryFromTensor + TryIntoTensor,
 
 {
     type Summary = LearnSummary;
@@ -185,12 +185,12 @@ impl<
 
 
 
-    fn train_generic<R: Fn(&AgentStepView<DP, InfoSet>) -> Tensor>(
+    fn train_generic<R: Fn(&AgentStepView<S, InfoSet>) -> Tensor>(
 
         &mut self,
-        trajectories: &[AgentTrajectory<DP, InfoSet>],
+        trajectories: &[AgentTrajectory<S, InfoSet>],
         reward_f: R,
-    ) -> Result<LearnSummary, AmfiteatrRlError<DP>>{
+    ) -> Result<LearnSummary, AmfiteatrRlError<S>>{
 
 
         let device = self.network.device();
@@ -235,7 +235,7 @@ impl<
             }
             #[cfg(feature = "log_trace")]
             log::trace!("Discounted_rewards_tensor_vec len before inserting: {}", discounted_payoff_tensor_vec.len());
-            //let mut discounted_rewards_tensor_vec: Vec<Tensor> = vec![Tensor::zeros(DP::UniversalReward::total_size(), (Kind::Float, self.network.device())); steps_in_trajectory+1];
+            //let mut discounted_rewards_tensor_vec: Vec<Tensor> = vec![Tensor::zeros(S::UniversalReward::total_size(), (Kind::Float, self.network.device())); steps_in_trajectory+1];
             #[cfg(feature = "log_trace")]
             log::trace!("Reward stream: {:?}", t.iter().map(|x| reward_f(&x)).collect::<Vec<Tensor>>());
             //discounted_payoff_tensor_vec.last_mut().unwrap().copy_(&final_score_t);
@@ -307,22 +307,22 @@ impl<
 }
 /*
 impl<
-    DP: DomainParameters,
-    InfoSet: InformationSet<DP> + Debug + ConvertToTensor<InfoSetWay>,
+    S: DomainParameters,
+    InfoSet: InformationSet<S> + Debug + ConvertToTensor<InfoSetWay>,
     InfoSetWay: ConversionToTensor,
-    //InfoSet: InformationSet<DP> + Debug,
+    //InfoSet: InformationSet<S> + Debug,
     //TB: ConvStateToTensor<InfoSet>,
     >
-SelfExperiencingPolicy<DP> for ActorCriticPolicy<
-    DP,
+SelfExperiencingPolicy<S> for ActorCriticPolicy<
+    S,
     InfoSet,
     //TB,
     InfoSetWay,
     /*ActInterpreter*/>
-where DP::ActionType: From<i64>{
+where S::ActionType: From<i64>{
     type PolicyUpdateError = tch::TchError;
 
-    fn select_action_and_collect_experience(&mut self) -> Option<DP::ActionType> {
+    fn select_action_and_collect_experience(&mut self) -> Option<S::ActionType> {
         todo!()
     }
 
