@@ -51,8 +51,8 @@ fn main() -> Result<(), ErrorRL>{
         ComputeDevice::Cpu => Device::Cpu,
         ComputeDevice::Cuda => Device::Cuda(0),
     };
-    let mut agent_policy_0 = build_ppo_policy(&cli.layer_sizes_0[..], device, ppo_config, cli.learning_rate).unwrap();
-    let mut agent_policy_1 = build_ppo_policy(&cli.layer_sizes_1[..], device, ppo_config, cli.learning_rate).unwrap();
+    let agent_policy_0 = build_ppo_policy(&cli.layer_sizes_0[..], device, ppo_config, cli.learning_rate).unwrap();
+    let agent_policy_1 = build_ppo_policy(&cli.layer_sizes_1[..], device, ppo_config, cli.learning_rate).unwrap();
 
 
 

@@ -3,9 +3,8 @@ use clap::Parser;
 use amfiteatr_classic::scheme::AgentNum;
 use amfiteatr_examples::common::PolicySelect;
 use amfiteatr_examples::replicators::error::ReplError;
-use amfiteatr_examples::replicators::model::{ReplicatorModelBuilder, ReplicatorNetworkPolicy};
+use amfiteatr_examples::replicators::model::{ReplicatorModelBuilder};
 use amfiteatr_examples::replicators::policy_builder::{LearningPolicyBuilder, ReplPolicyBuilderPPO};
-use amfiteatr_rl::tch::Device;
 pub fn setup_logger(options: &ReplicatorOptions) -> Result<(), fern::InitError> {
     let dispatch  = fern::Dispatch::new()
 
@@ -82,7 +81,7 @@ fn main() -> Result<(), anyhow::Error>{
             create_and_run_model(&args, policy_builders)?;
 
         }
-        any_other => {
+        _any_other => {
             todo!()
         }
     }

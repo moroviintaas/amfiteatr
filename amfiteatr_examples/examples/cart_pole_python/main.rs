@@ -55,7 +55,7 @@ fn train_epoch<R: RlModelAgent<CartPoleScheme, CartPoleObservation, PythonGymnas
     -> Result<(), AmfiteatrRlError<CartPoleScheme>>
 where <R as PolicyAgent<CartPoleScheme>>::Policy: LearningNetworkPolicyGeneric<CartPoleScheme>{
 
-    agent.clear_episodes();
+    agent.clear_episodes()?;
     for _ in 0..number_of_games{
         let mut observation = env.reseed_with_observation(())?;
         let observation = observation.remove(&SINGLE_PLAYER_ID)

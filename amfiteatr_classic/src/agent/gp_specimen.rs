@@ -3,7 +3,7 @@ use rand::distr::{Bernoulli, Distribution};
 use rand::Rng;
 use amfiteatr_core::agent::Policy;
 use amfiteatr_core::error::AmfiteatrError;
-use amfiteatr_rl::policy::PolicySpecimen;
+//use amfiteatr_rl::policy::PolicySpecimen;
 use crate::agent::LocalHistoryInfoSet;
 use crate::scheme::{ClassicAction, ClassicScheme, UsizeAgentId};
 
@@ -213,7 +213,7 @@ impl<ID: UsizeAgentId> Policy< ClassicScheme<ID>> for GpClassic{
         }
     }
 }
-
+/*
 impl<ID: UsizeAgentId> PolicySpecimen<ClassicScheme<ID>, ()> for GpClassic{
 
     fn cross(&self, other: &Self) -> Self {
@@ -226,3 +226,5 @@ impl<ID: UsizeAgentId> PolicySpecimen<ClassicScheme<ID>, ()> for GpClassic{
 
     }
 }
+
+ */

@@ -5,7 +5,7 @@ mod learning_policy;
 mod train_config;
 mod ppo;
 mod common;
-mod genetic;
+//mod genetic;
 
 
 pub use actor_critic::*;
@@ -15,4 +15,4 @@ pub use learning_policy::*;
 pub use train_config::*;
 pub use ppo::*;
 pub use common::*;
-pub use genetic::*;
+//pub use genetic::*;

@@ -17,14 +17,13 @@ use crate::options::{CCOptions, CommunicationMedium};
 pub type EUD = ExpensiveUpdateScheme;
 pub type EUS = ExpensiveUpdateState;
 pub type EUSI = ExpensiveUpdateInformationSet;
-pub type ErrorAmfi = AmfiteatrError<EUD>;
 
 
 //type MapEnvironment = HashMapEnvironment<EUD, EUS, DomainCommE512<EUD>>;
 type MapEnvironment<C: EnvironmentEndpoint<EUD> + Send> = HashMapEnvironment<EUD, EUS, C>;
 type CentralEnvironment = BasicEnvironment<EUD, EUS, EnvironmentMpscPort<EUD>>;
 
-type MappedAgent<C: AgentEndpoint<EUD> + Send> = AgentGen<EUD, RandomPolicy<EUD, EUSI>, C>;
+type MappedAgent<C> = AgentGen<EUD, RandomPolicy<EUD, EUSI>, C>;
 type CAgent = AgentGen<EUD, RandomPolicy<EUD, EUSI>, AgentMpscAdapter<EUD>>;
 pub const BANDITS: [(f32, f32);3] = [(1.0, 3.0), (5.6, 6.7), (0.1, 9.0)];
 
@@ -218,7 +217,7 @@ impl CentralModel{
 
     pub fn new(
         options: &CCOptions) -> Result<Self, anyhow::Error>{
-        let number_of_bandits = BANDITS.len();
+        //let number_of_bandits = BANDITS.len();
 
         let mut agents = Vec::new();
 
