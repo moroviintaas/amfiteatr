@@ -235,6 +235,10 @@ impl<LP: ReplicatorNetworkPolicy> ReplicatorModel<LP> {
         }
     }
 
+
+    pub fn environment(&self) -> &ModelEnvironment{
+        &self.environment
+    }
     pub fn register_tboard_writers_from_program_args(&mut self, options: &ReplicatorOptions) -> Result<(), ReplError> {
         if let Some(tboard_path) = &options.tboard{
             self.tboard_writer = Some(tboard::EventWriter::create(tboard_path)

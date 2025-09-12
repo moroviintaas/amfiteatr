@@ -386,7 +386,8 @@ P: Fn(&<Self as StatefulEnvironment<S>>::State, &S::AgentId) -> S::UniversalRewa
                         AgentMessage::TakeAction(action) => {
                             #[cfg(feature = "log_info")]
                             log::info!("Player {} performs action: {:#}", &player, &action);
-                            match self.process_action(&player, &action){
+                            let potential_penalty = penalty_fn(&self.state(), &player);
+                            match self.process_action_penalise_illegal(&player, &action, potential_penalty){
                                 Ok(updates) => {
                                     current_step += 1;
                                     for (ag, update) in updates{

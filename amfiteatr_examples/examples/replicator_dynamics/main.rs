@@ -1,6 +1,7 @@
 use amfiteatr_examples::replicators::options::ReplicatorOptions;
 use clap::Parser;
 use amfiteatr_classic::scheme::AgentNum;
+use amfiteatr_core::env::TracingEnvironment;
 use amfiteatr_examples::common::PolicySelect;
 use amfiteatr_examples::replicators::error::ReplError;
 use amfiteatr_examples::replicators::model::{ReplicatorModelBuilder};
@@ -56,6 +57,11 @@ fn create_and_run_model<PB: LearningPolicyBuilder>(options: &ReplicatorOptions, 
     model.register_tboard_writers_from_program_args(&options)?;
     //model.run_episode()?;
     model.run_training_session(options.games, options.epochs)?;
+
+    model.run_episode()?;
+
+
+    println!("{:?}", model.environment().trajectory());
     Ok(())
 }
 
@@ -79,6 +85,7 @@ fn main() -> Result<(), anyhow::Error>{
                 }).collect();
 
             create_and_run_model(&args, policy_builders)?;
+
 
         }
         _any_other => {

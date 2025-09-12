@@ -244,9 +244,15 @@ impl<S: Scheme,
     ST: SequentialGameState<S>,
     C: EnvironmentEndpoint<S>>
 AutoEnvironment<S> for TracingHashMapEnvironment<S, ST, C>
-where  HashMapEnvironment<S, ST, C>: AutoEnvironment<S>{
+where  HashMapEnvironment<S, ST, C>: AutoEnvironment<S>,
+       Self: CommunicatingEndpointEnvironment<S, CommunicationError=CommunicationError<S>>
+       + StatefulEnvironment<S>
+       + EnvironmentWithAgents<S>
+       + BroadcastingEndpointEnvironment<S>, S: Scheme
+
+{
     fn run_truncating(&mut self, truncate_steps: Option<usize>) -> Result<(), AmfiteatrError<S>> {
-        self.base_environment.run_round_robin_no_rewards_truncating(truncate_steps)
+        self.run_round_robin_no_rewards_truncating(truncate_steps)
     }
 }
 
@@ -259,6 +265,6 @@ Self: ScoreEnvironment<S>
 
 {
     fn run_with_scores_truncating(&mut self, truncate_steps: Option<usize>) -> Result<(), AmfiteatrError<S>> {
-        self.base_environment.run_round_robin_with_rewards_truncating(truncate_steps)
+        self.run_round_robin_with_rewards_truncating(truncate_steps)
     }
 }

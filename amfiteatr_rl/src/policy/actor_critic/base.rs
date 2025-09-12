@@ -530,7 +530,7 @@ pub trait PolicyTrainHelperA2C<S: Scheme> : PolicyHelperA2C<S, Config=ConfigA2C>
 
             summary_vec_vf_loss.push(value_loss);
             summary_vec_pg_loss.push(action_loss);
-            summary_vec_entropy.push(-entropy_mean);
+            summary_vec_entropy.push(entropy_mean);
 
         }
 
