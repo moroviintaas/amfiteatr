@@ -1,6 +1,7 @@
 use std::cmp::min;
 use getset::{Getters, Setters};
 use rand::prelude::SliceRandom;
+use serde::{Deserialize, Serialize};
 use tch::nn::Optimizer;
 use tch::{Kind, TchError, Tensor};
 use tch::Kind::Float;
@@ -15,7 +16,7 @@ use crate::torch_net::{ActorCriticOutput, DeviceTransfer, NeuralNet};
 
 
 /// Configuration structure for A2C
-#[derive(Copy, Clone, Debug, Getters, Setters)]
+#[derive(Copy, Clone, Debug, Getters, Setters, Serialize, Deserialize)]
 pub struct ConfigA2C{
     pub gamma: f64,
     pub mini_batch_size: Option<usize>,

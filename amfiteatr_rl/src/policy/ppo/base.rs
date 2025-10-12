@@ -3,6 +3,7 @@
 use std::cmp::min;
 use getset::{Getters, Setters};
 use rand::prelude::SliceRandom;
+use serde::{Deserialize, Serialize};
 use tch::{Kind, Tensor};
 use tch::Kind::Float;
 use tch::nn::Optimizer;
@@ -16,7 +17,7 @@ use crate::torch_net::{ActorCriticOutput, DeviceTransfer, NeuralNet};
 
 
 /// Configuration structure for PPO Policy
-#[derive(Copy, Clone, Debug, Getters, Setters)]
+#[derive(Copy, Clone, Debug, Getters, Setters, Serialize, Deserialize)]
 pub struct ConfigPPO {
     pub gamma: f64,
     pub clip_vloss: bool,
@@ -27,6 +28,7 @@ pub struct ConfigPPO {
     pub gae_lambda_old: f64,
     pub gae_lambda: Option<f64>,
     pub mini_batch_size: usize,
+    #[serde(with = "crate::policy::serde_kind")]
     pub tensor_kind: tch::kind::Kind,
     pub update_epochs: usize,
     pub target_kl: Option<f64>,
