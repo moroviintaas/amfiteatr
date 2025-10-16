@@ -20,6 +20,9 @@ use crate::torch_net::{ActorCriticOutput, DeviceTransfer, NeuralNet};
 pub struct ConfigA2C{
     pub gamma: f64,
     pub mini_batch_size: Option<usize>,
+    /// For now only works [`Float`](tch::kind::Kind::Float)
+    #[serde(with = "crate::policy::serde_kind", default = "crate::policy::serde_kind::default_kind")]
+    pub tensor_kind: tch::kind::Kind,
     pub ent_coef: f64,
     pub vf_coef: f64,
     pub gae_lambda: Option<f64>
@@ -40,6 +43,7 @@ impl Default for ConfigA2C {
         Self{
             gamma: 0.99,
             mini_batch_size: Some(16),
+            tensor_kind: Kind::Float,
             ent_coef: 0.01,
             vf_coef: 0.5,
             gae_lambda: None

@@ -28,7 +28,8 @@ pub struct ConfigPPO {
     pub gae_lambda_old: f64,
     pub gae_lambda: Option<f64>,
     pub mini_batch_size: usize,
-    #[serde(with = "crate::policy::serde_kind")]
+    /// For now only works [`Float`](tch::kind::Kind::Float)
+    #[serde(with = "crate::policy::serde_kind", default = "crate::policy::serde_kind::default_kind")]
     pub tensor_kind: tch::kind::Kind,
     pub update_epochs: usize,
     pub target_kl: Option<f64>,
