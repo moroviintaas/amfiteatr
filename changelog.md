@@ -18,7 +18,8 @@ to send agents initial observations (now they can be provided by environment, in
 This is logically necessary.
 + Added provided method `current_universal_score_set_without_commit` to trait `RewardedAgent` to allow not only adding reward fragment to uncommited step draft, but also
 set uncommitted step draft's partial reward so that total payoff is has certain value. It is helpful for models without unrolling episode in protocol.
-
++ Changed `TensorboardSupport` trait's method `add_tboard_directory`, to use `directory_path: &Path` argument instead of
+generic `<P: AsRef<Path>>` what has been making it non trait object safe.
 ## Version 0.11.0
 + Changed masking in A2C and PPO policies to use `f_where_self` instead of `f_mul`,
 now masks must be `Tensor` with datatype `Bool`

@@ -78,7 +78,7 @@ pub fn create_ppo_policy(layer_sizes: &[i64], var_store: VarStore, options: &Rep
         //let path = PathBuf::from(format!("{}/{}", tboard_path_base, agent_num));
         let path: PathBuf = [tboard_path_base.as_ref(), std::path::Path::new(&format!("{}", agent_num))].iter().collect();
         debug!("Registering tboard for agent {agent_num} with path {:?}", path);
-        policy.add_tboard_directory(path)?;
+        policy.add_tboard_directory(path.as_path())?;
     }
     Ok(policy)
 

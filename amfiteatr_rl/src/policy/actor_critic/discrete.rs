@@ -95,7 +95,7 @@ impl<
     /// Creates [`tboard::EventWriter`]. Initially policy does not use `tensorboard` directory to store epoch
     /// training results (like entropy, policy loss, value loss). However, you cen provide it with directory
     /// to create tensorboard files.
-    fn add_tboard_directory<P: AsRef<std::path::Path>>(&mut self, directory_path: P) -> Result<(), AmfiteatrError<S>> {
+    fn add_tboard_directory(&mut self, directory_path: &std::path::Path) -> Result<(), AmfiteatrError<S>> {
         let tboard = EventWriter::create(directory_path).map_err(|e| {
             AmfiteatrError::TboardFlattened { context: "Creating tboard EventWriter".into(), error: format!("{e}") }
         })?;
@@ -327,7 +327,7 @@ impl <
     /// Creates [`tboard::EventWriter`]. Initially policy does not use `tensorboard` directory to store epoch
     /// training results (like entropy, policy loss, value loss). However, you cen provide it with directory
     /// to create tensorboard files.
-    fn add_tboard_directory<P: AsRef<std::path::Path>>(&mut self, directory_path: P) -> Result<(), AmfiteatrError<S>> {
+    fn add_tboard_directory(&mut self, directory_path: &std::path::Path) -> Result<(), AmfiteatrError<S>> {
         self.base.add_tboard_directory(directory_path)
     }
     fn t_write_scalar(&mut self, step: i64, tag: &str, value: f32) -> Result<bool, AmfiteatrError<S>> {

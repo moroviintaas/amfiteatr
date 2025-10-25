@@ -448,7 +448,7 @@ for TracingAgentGen<S, P, Comm>{
     //! Please note that this implementation uses internal implementation of inbound policy.
     //! If you change agent's policy in runtime, the tensorboard setting is gone.
     //! You should set it up again with [`add_tboard_directory`].
-    fn add_tboard_directory<Pt: AsRef<Path>>(&mut self, directory_path: Pt) -> Result<(), AmfiteatrError<S>> {
+    fn add_tboard_directory(&mut self, directory_path: &std::path::Path) -> Result<(), AmfiteatrError<S>> {
         self.policy.add_tboard_directory(directory_path)
     }
 
