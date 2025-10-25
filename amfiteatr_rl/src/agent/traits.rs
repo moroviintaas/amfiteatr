@@ -2,6 +2,7 @@ use amfiteatr_core::agent::*;
 use amfiteatr_core::comm::BidirectionalEndpoint;
 use amfiteatr_core::scheme::{AgentMessage, Scheme, EnvironmentMessage, Renew};
 use amfiteatr_core::error::{CommunicationError};
+use amfiteatr_core::util::TensorboardSupport;
 use crate::error::AmfiteatrRlError;
 use crate::policy::LearningNetworkPolicyGeneric;
 use crate::tensor_data::FloatTensorReward;
@@ -87,6 +88,9 @@ AutomaticAgent<S> + ReseedAgent<S, Seed> + Send + MultiEpisodeAutoAgent<S, Seed>
     //fn get_var_store(&self) -> &VarStore;
 
 }
+
+
+
 
 
 

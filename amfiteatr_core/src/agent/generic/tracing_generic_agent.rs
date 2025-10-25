@@ -1,10 +1,11 @@
 use std::marker::PhantomData;
+use std::path::Path;
 
 use crate::agent::*;
 use crate::comm::BidirectionalEndpoint;
 use crate::error::{AmfiteatrError, CommunicationError};
 use crate::scheme::{AgentMessage, Scheme, EnvironmentMessage, Renew, Reward};
-
+use crate::util::TensorboardSupport;
 
 
 /// Generic agent implementing traits proposed in this crate.
@@ -430,5 +431,28 @@ where <P as Policy<S>>::InfoSetType: InformationSet<S>{
         //self.state_before_last_action = None;
         //self.last_action = None;
 
+    }
+}
+
+impl<
+    S: Scheme,
+    P: Policy<S> + TensorboardSupport<S>,
+    Comm: BidirectionalEndpoint<
+        OutwardType=AgentMessage<S>,
+        InwardType=EnvironmentMessage<S>,
+        Error=CommunicationError<S>
+    >
+> TensorboardSupport<S>
+for TracingAgentGen<S, P, Comm>{
+
+    //! Please note that this implementation uses internal implementation of inbound policy.
+    //! If you change agent's policy in runtime, the tensorboard setting is gone.
+    //! You should set it up again with [`add_tboard_directory`].
+    fn add_tboard_directory<Pt: AsRef<Path>>(&mut self, directory_path: Pt) -> Result<(), AmfiteatrError<S>> {
+        self.policy.add_tboard_directory(directory_path)
+    }
+
+    fn t_write_scalar(&mut self, index: i64, tag: &str, value: f32) -> Result<bool, AmfiteatrError<S>> {
+        self.policy.t_write_scalar(index, tag, value)
     }
 }
