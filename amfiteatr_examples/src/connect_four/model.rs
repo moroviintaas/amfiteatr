@@ -448,8 +448,8 @@ impl<
             None => None,
         };
 
-        let thread_pool = options.rayon_pool.and_then(|s|
-            Some(rayon::ThreadPoolBuilder::new().num_threads(s).build().unwrap())
+        let thread_pool = options.rayon_pool.map(|s|
+            rayon::ThreadPoolBuilder::new().num_threads(s).build().unwrap()
         );
 
         Self{
@@ -508,8 +508,8 @@ impl<
             }
             None => None,
         };
-        let thread_pool = options.rayon_pool.and_then(|s|
-            Some(rayon::ThreadPoolBuilder::new().num_threads(s).build().unwrap())
+        let thread_pool = options.rayon_pool.map(|s|
+            rayon::ThreadPoolBuilder::new().num_threads(s).build().unwrap()
         );
         Self{
             env,
@@ -567,8 +567,8 @@ impl<
             }
             None => None,
         };
-        let thread_pool = options.rayon_pool.and_then(|s|
-            Some(rayon::ThreadPoolBuilder::new().num_threads(s).build().unwrap())
+        let thread_pool = options.rayon_pool.map(|s|
+            rayon::ThreadPoolBuilder::new().num_threads(s).build().unwrap()
         );
 
         Self{
@@ -629,8 +629,8 @@ impl<
             }
             None => None,
         };
-        let thread_pool = options.rayon_pool.and_then(|s|
-            Some(rayon::ThreadPoolBuilder::new().num_threads(s).build().unwrap())
+        let thread_pool = options.rayon_pool.map(|s|
+            rayon::ThreadPoolBuilder::new().num_threads(s).build().unwrap()
         );
 
         Self{
@@ -696,8 +696,8 @@ impl<
             None => None,
         };
 
-        let thread_pool = options.rayon_pool.and_then(|s|
-            Some(rayon::ThreadPoolBuilder::new().num_threads(s).build().unwrap())
+        let thread_pool = options.rayon_pool.map(|s|
+            rayon::ThreadPoolBuilder::new().num_threads(s).build().unwrap()
         );
 
         Self{

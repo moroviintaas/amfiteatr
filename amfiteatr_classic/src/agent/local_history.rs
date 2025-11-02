@@ -78,17 +78,13 @@ impl<ID: UsizeAgentId> LocalHistoryInfoSet<ID>{
                     }
 
                 }
-                if p1 == Up {
-                    if report.other_player_action == Up{
-                        counts.count_im_punished_immediately += 1.0;
-                        if let (Some(pp1), _) = past_previous{
-                            if pp1 == Up{
-                                counts.count_im_punished_after2 += 1.0;
-                            }
+                if p1 == Up && report.other_player_action == Up {
+                    counts.count_im_punished_immediately += 1.0;
+                    if let (Some(pp1), _) = past_previous{
+                        if pp1 == Up{
+                            counts.count_im_punished_after2 += 1.0;
                         }
                     }
-
-
                 }
 
                 if p1 == Down && report.other_player_action == Down{
@@ -103,29 +99,29 @@ impl<ID: UsizeAgentId> LocalHistoryInfoSet<ID>{
             match (report.own_action, report.other_player_action){
                 (Up, Up) => {
                     counts.count_up_v_up += 1.0;
-                    past_previous = previous.clone();
+                    past_previous = previous;
                     previous = (Some(Up), Some(Up))
                 },
                 (Up, Down) =>{
                     counts.count_up_v_down += 1.0;
-                    past_previous = previous.clone();
+                    past_previous = previous;
                     previous = (Some(Up), Some(Down));
                 },
                 (Down, Up) => {
                     counts.count_down_v_up += 1.0;
-                    past_previous = previous.clone();
+                    past_previous = previous;
                     previous = (Some(Down), Some(Up));
                 },
                 (Down, Down) => {
                     counts.count_down_v_down += 1.0;
-                    past_previous = previous.clone();
+                    past_previous = previous;
                     previous = (Some(Down), Some(Down))
                 }
             }
         }
         let factor = self.previous_encounters.len() as f64;
 
-        if self.previous_encounters.len() > 0{
+        if !self.previous_encounters.is_empty(){
 
             counts.count_up_v_up /= factor;
             counts.count_down_v_up /= factor;

@@ -174,8 +174,8 @@ impl ConnectFourBinaryObservation{
 
         //let mut b: [[[u8;2];7];6] = Default::default();
         let mut observation = ConnectFourBinaryObservation::default();
-        for row in 0..board.len(){
-            for column in 0..board[row].len(){
+        for (row_number, row) in board.iter().enumerate(){
+            for (column_number, column) in row.iter().enumerate(){
                 /*
                 observation.board[row][column] = match board[row][column]{
                     None => [0,0],
@@ -184,15 +184,15 @@ impl ConnectFourBinaryObservation{
                 };
 
                  */
-                match board[row][column] {
+                match column {
                     None => {
                         //observation.board(row, column, 0)
                     },
-                    Some(own) if own == for_agent => {
-                        observation.board[(row, column, 0)] = 1
+                    Some(own) if *own == for_agent => {
+                        observation.board[(row_number, column_number, 0)] = 1
                     },
                     Some(_other) => {
-                        observation.board[(row, column, 1)] = 1
+                        observation.board[(row_number, column_number, 1)] = 1
                     }
                 }
 

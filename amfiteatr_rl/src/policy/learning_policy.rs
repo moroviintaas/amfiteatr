@@ -113,8 +113,8 @@ impl<S: Scheme, T: LearningNetworkPolicyGeneric<S>> LearningNetworkPolicyGeneric
     type Summary = T::Summary;
 
     fn switch_explore(&mut self, enabled: bool) {
-        match self.lock(){
-            Ok(mut internal_policy) => {
+        match self.get_mut(){
+            Ok(internal_policy) => {
                 internal_policy.switch_explore(enabled)
             }
             Err(e) => {
@@ -124,8 +124,8 @@ impl<S: Scheme, T: LearningNetworkPolicyGeneric<S>> LearningNetworkPolicyGeneric
     }
 
     fn train_generic<R: Fn(&AgentStepView<S, <Self as Policy<S>>::InfoSetType>) -> Tensor>(&mut self, trajectories: &[AgentTrajectory<S, <Self as Policy<S>>::InfoSetType>], reward_f: R) -> Result<Self::Summary, AmfiteatrRlError<S>> {
-        match self.lock(){
-            Ok(mut internal_policy) => {
+        match self.get_mut(){
+            Ok(internal_policy) => {
                 internal_policy.train_generic(trajectories, reward_f)
             }
             Err(e) => Err(AmfiteatrRlError::Amfiteatr{source: AmfiteatrError::Lock { description: e.to_string(), object: "Learning policy".to_string() }})

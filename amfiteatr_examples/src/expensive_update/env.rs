@@ -57,7 +57,7 @@ impl SequentialGameState<ExpensiveUpdateScheme> for ExpensiveUpdateState{
         _action: <ExpensiveUpdateScheme as Scheme>::ActionType
     ) -> Result<Self::Updates, <ExpensiveUpdateScheme as Scheme>::GameErrorType> {
 
-        if Some(agent) != self.current_player() || self.current_player() == None{
+        if Some(agent) != self.current_player() || self.current_player().is_none(){
             return Err(DemoError(format!("Agent {agent} does not match current player {}", self.current_player_index)))
         }
 

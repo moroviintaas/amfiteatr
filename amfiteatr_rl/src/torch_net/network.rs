@@ -1,5 +1,4 @@
 use std::marker::PhantomData;
-use serde::{Deserialize, Serialize};
 use tch::{Device, TchError, Tensor};
 use tch::nn::{Optimizer, OptimizerConfig, Path,  VarStore};
 use crate::torch_net::{MultiDiscreteTensor, NetOutput, TensorActorCritic, TensorMultiParamActorCritic};

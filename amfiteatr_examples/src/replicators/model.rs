@@ -55,6 +55,11 @@ pub struct ReplicatorModelBuilder<LP: ReplicatorNetworkPolicy>
     //new_agent_index: u32,
 }
 
+impl<LP: ReplicatorNetworkPolicy> Default for ReplicatorModelBuilder<LP> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
 
 impl <LP: ReplicatorNetworkPolicy>ReplicatorModelBuilder<LP>
 //ReplicatorModelBuilder
@@ -81,15 +86,15 @@ impl <LP: ReplicatorNetworkPolicy>ReplicatorModelBuilder<LP>
     }
 
     pub fn add_learning_agent(&mut self, agent_id: u32, policy: LP) -> Result<(), ReplError>{
-        if self.communication_map.contains_key(&agent_id) {
-            Err(ReplError::AgentDuplication(agent_id))
-        } else{
-            let info_set = <LP as Policy<ReplScheme>>::InfoSetType::create(agent_id, self.reward_table.clone());
+        if let std::collections::hash_map::Entry::Vacant(e) = self.communication_map.entry(agent_id) {
+            let info_set = <LP as Policy<ReplScheme>>::InfoSetType::create(agent_id, self.reward_table);
             let (env_comm, agent_comm) = StdEnvironmentEndpoint::new_pair();
             let agent = TracingAgentGen::new(info_set, agent_comm, policy);
-            self.communication_map.insert(agent_id, env_comm);
+            e.insert(env_comm);
             self.network_learning_agents.push(Arc::new(Mutex::new(agent)));
             Ok(())
+        } else {
+            Err(ReplError::AgentDuplication(agent_id))
         }
     }
     pub fn with_learning_agent(mut self, agent_id: u32, policy: LP) -> Result<Self, ReplError>{
@@ -99,45 +104,47 @@ impl <LP: ReplicatorNetworkPolicy>ReplicatorModelBuilder<LP>
     }
 
     pub fn add_dove_agent(&mut self, agent_id: u32) -> Result<(), ReplError>{
-        if self.communication_map.contains_key(&agent_id) {
-            Err(ReplError::AgentDuplication(agent_id))
-        } else{
+        if let std::collections::hash_map::Entry::Vacant(e) = self.communication_map.entry(agent_id) {
             let policy = PurePolicy::new(ClassicAction::Down);
-            let info_set = LocalHistoryInfoSet::new(agent_id, self.reward_table.clone());
+            let info_set = LocalHistoryInfoSet::new(agent_id, self.reward_table);
             let (env_comm, agent_comm) = StdEnvironmentEndpoint::new_pair();
             let agent = AgentGen::new(info_set, agent_comm, policy);
-            self.communication_map.insert(agent_id, env_comm);
+            e.insert(env_comm);
             self.pure_doves.push(Arc::new(Mutex::new(agent)));
             Ok(())
+        } else {
+            Err(ReplError::AgentDuplication(agent_id))
         }
     }
 
     pub fn add_hawk_agent(&mut self, agent_id: u32) -> Result<(), ReplError>{
-        if self.communication_map.contains_key(&agent_id) {
-            Err(ReplError::AgentDuplication(agent_id))
-        } else{
+        if let std::collections::hash_map::Entry::Vacant(e) = self.communication_map.entry(agent_id) {
             let policy = PurePolicy::new(ClassicAction::Up);
-            let info_set = LocalHistoryInfoSet::new(agent_id, self.reward_table.clone());
+            let info_set = LocalHistoryInfoSet::new(agent_id, self.reward_table);
             let (env_comm, agent_comm) = StdEnvironmentEndpoint::new_pair();
             let agent = AgentGen::new(info_set, agent_comm, policy);
-            self.communication_map.insert(agent_id, env_comm);
+            e.insert(env_comm);
             self.pure_hawks.push(Arc::new(Mutex::new(agent)));
             Ok(())
+        } else {
+            Err(ReplError::AgentDuplication(agent_id))
         }
     }
 
     pub fn add_mixed_agent(&mut self, agent_id: u32, probability: f64) -> Result<(), ReplError>{
-        if self.communication_map.contains_key(&agent_id) {
-            Err(ReplError::AgentDuplication(agent_id))
-        } else{
+
+
+        if let std::collections::hash_map::Entry::Vacant(e) = self.communication_map.entry(agent_id) {
             let policy = ClassicMixedStrategy::new_checked(probability)
                 .map_err(|_e| ReplError::PolicyBuilderError("Mixed probability not in range (0.0, 1.0)".to_string()))?;
-            let info_set = LocalHistoryInfoSet::new(agent_id, self.reward_table.clone());
+            let info_set = LocalHistoryInfoSet::new(agent_id, self.reward_table);
             let (env_comm, agent_comm) = StdEnvironmentEndpoint::new_pair();
             let agent = AgentGen::new(info_set, agent_comm, policy);
-            self.communication_map.insert(agent_id, env_comm);
+            e.insert(env_comm);
             self.mixed_agents.push(Arc::new(Mutex::new(agent)));
             Ok(())
+        } else {
+            Err(ReplError::AgentDuplication(agent_id))
         }
     }
 
@@ -345,21 +352,21 @@ impl<LP: ReplicatorNetworkPolicy> ReplicatorModel<LP> {
         let mut description = EpochDescription::default();
         for agent in self.network_learning_agents.iter(){
             let guard = agent.lock();
-            description.scores.insert(guard.id().clone(), Vec::with_capacity(capacity));
-            description.network_learning_hawk_moves.insert(guard.id().clone(), Vec::with_capacity(capacity));
-            description.network_learning_dove_moves.insert(guard.id().clone(), Vec::with_capacity(capacity));
+            description.scores.insert(*guard.id(), Vec::with_capacity(capacity));
+            description.network_learning_hawk_moves.insert(*guard.id(), Vec::with_capacity(capacity));
+            description.network_learning_dove_moves.insert(*guard.id(), Vec::with_capacity(capacity));
         }
         for agent in self.pure_doves.iter(){
             let guard = agent.lock();
-            description.scores.insert(guard.id().clone(), Vec::with_capacity(capacity));
+            description.scores.insert(*guard.id(), Vec::with_capacity(capacity));
         }
         for agent in self.pure_hawks.iter(){
             let guard = agent.lock();
-            description.scores.insert(guard.id().clone(), Vec::with_capacity(capacity));
+            description.scores.insert(*guard.id(), Vec::with_capacity(capacity));
         }
         for agent in self.mixed_agents.iter(){
             let guard = agent.lock();
-            description.scores.insert(guard.id().clone(), Vec::with_capacity(capacity));
+            description.scores.insert(*guard.id(), Vec::with_capacity(capacity));
         }
 
         description
@@ -468,9 +475,9 @@ impl<LP: ReplicatorNetworkPolicy> ReplicatorModel<LP> {
                             let mut guard = agentc.lock();
                             let trajectories = guard.take_episodes();
                             let summary = guard.policy_mut().train(&trajectories[..])?;
-                            txc.send((guard.info_set().agent_id().clone(), summary )).map_err(|e|{
+                            txc.send((*guard.info_set().agent_id(), summary )).map_err(|e|{
                                AmfiteatrError::Communication {
-                                   source: CommunicationError::SendError(guard.info_set().agent_id().clone(), e.to_string())
+                                   source: CommunicationError::SendError(*guard.info_set().agent_id(), e.to_string())
                                }
                             })?;
                             Ok::<_, AmfiteatrError<ReplScheme>>(())

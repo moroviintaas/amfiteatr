@@ -44,7 +44,7 @@ pub mod serde_kind{
 
     pub struct KindVisitor;
 
-    impl <'de> Visitor<'de> for KindVisitor{
+    impl Visitor<'_> for KindVisitor{
         type Value = Kind;
 
         fn expecting(&self, formatter: &mut Formatter) -> std::fmt::Result {

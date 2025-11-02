@@ -25,9 +25,18 @@ pub fn create_ppo_policy(layer_sizes: &[i64], var_store: VarStore, options: &Rep
     let input_shape = info_set_repr.desired_shape_flatten();
     let hidden_layers = layer_sizes;
     let output_shape = 2i64;
+    let config = ConfigPPO{
+        vf_coef: options.value_loss_coef,
+        ent_coef: options.entropy_coefficient,
+        ..Default::default()
+    };
+    /*
     let mut config = ConfigPPO::default();
     config.vf_coef = options.value_loss_coef;
     config.ent_coef = options.entropy_coefficient;
+
+     */
+
     let network_pattern = NeuralNetTemplate::new(|path| {
         let mut seq = nn::seq();
         let mut last_dim = None;
@@ -98,7 +107,7 @@ pub struct ReplPolicyBuilderPPO<'a>{
     pub agent_id: u32
 }
 
-impl<'a> LearningPolicyBuilder for ReplPolicyBuilderPPO<'a>{
+impl LearningPolicyBuilder for ReplPolicyBuilderPPO<'_>{
     type ReplPolicy = PolicyDiscretePPO<ReplScheme, LocalHistoryInfoSetNumbered, LocalHistoryConversionToTensor, ClassicActionTensorRepresentation>;
 
     fn build(self) -> Result<Self::ReplPolicy, ReplError> {

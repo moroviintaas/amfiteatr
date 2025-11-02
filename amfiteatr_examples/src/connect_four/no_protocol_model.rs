@@ -280,7 +280,7 @@ impl<
         }
 
         for (agent_id, agent) in self.agents.iter_mut(){
-            let step_reward = self.env_state.state_payoff_of_player(&agent_id) - agent_commited_payoffs[&agent_id];
+            let step_reward = self.env_state.state_payoff_of_player(agent_id) - agent_commited_payoffs[agent_id];
             agent.current_universal_reward_add(&step_reward);
             agent.finalize()?;
             if store_episode{
