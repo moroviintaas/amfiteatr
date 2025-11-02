@@ -1,5 +1,5 @@
 mod network;
-//mod sequential_builder;
+//mod builder;
 mod net_output;
 //mod net_input;
 

@@ -1,8 +1,7 @@
 use amfiteatr_core::agent::*;
 use amfiteatr_core::comm::BidirectionalEndpoint;
-use amfiteatr_core::scheme::{AgentMessage, Scheme, EnvironmentMessage, Renew};
-use amfiteatr_core::error::{CommunicationError};
-use amfiteatr_core::util::TensorboardSupport;
+use amfiteatr_core::scheme::{AgentMessage, EnvironmentMessage, Renew, Scheme};
+use amfiteatr_core::error::CommunicationError;
 use crate::error::AmfiteatrRlError;
 use crate::policy::LearningNetworkPolicyGeneric;
 use crate::tensor_data::FloatTensorReward;

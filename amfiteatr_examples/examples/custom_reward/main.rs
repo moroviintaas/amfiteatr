@@ -17,7 +17,7 @@ use amfiteatr_classic::agent::{LocalHistoryInfoSet, LocalHistoryConversionToTens
 use amfiteatr_classic::scheme::{AgentNum, ClassicScheme, ClassicGameSchemeNumbered};
 use amfiteatr_classic::scheme::ClassicAction::Down;
 use amfiteatr_classic::env::PairingState;
-use amfiteatr_classic::SymmetricRewardTableInt;
+use amfiteatr_classic::{ClassicActionTensorRepresentation, SymmetricRewardTableInt};
 use amfiteatr_rl::policy::*;
 use crate::options::EducatorOptions;
 use crate::options::SecondPolicy;
@@ -153,7 +153,8 @@ fn main() -> Result<(), AmfiteatrError<ClassicScheme<AgentNum>>>{
 
     let net0 = A2CNet::new(VarStore::new(device), net_template.get_net_closure());
     let opt0 = net0.build_optimizer(Adam::default(), 1e-4).unwrap();
-    let normal_policy = ActorCriticPolicy::new(net0, opt0, tensor_repr, TrainConfig {gamma: 0.99});
+    let normal_policy = PolicyDiscreteA2C::new(ConfigA2C::default(), net0, opt0,
+                                               tensor_repr, ClassicActionTensorRepresentation{});
     let state0 = LocalHistoryInfoSet::new(0, reward_table.into());
     let mut agent_0 = TracingAgentGen::new(state0, comm0, normal_policy);
 
@@ -163,7 +164,7 @@ fn main() -> Result<(), AmfiteatrError<ClassicScheme<AgentNum>>>{
 
     let net1 = A2CNet::new(VarStore::new(device), net_template.get_net_closure());
     let opt1 = net1.build_optimizer(Adam::default(), 1e-4).unwrap();
-    let policy1 = ActorCriticPolicy::new(net1, opt1, tensor_repr, TrainConfig {gamma: 0.99});
+    let policy1 = PolicyDiscreteA2C::new(ConfigA2C::default(), net1, opt1, tensor_repr, ClassicActionTensorRepresentation{});
     //let mut agent_1 = AgentGenT::new(state1, comm1, Arc::new(Mutex::new(policy1)));
     let mut agent_1 = TracingAgentGen::new(state1, comm1, policy1);
 

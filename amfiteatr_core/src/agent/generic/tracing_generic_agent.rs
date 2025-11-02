@@ -1,6 +1,4 @@
 use std::marker::PhantomData;
-use std::path::Path;
-
 use crate::agent::*;
 use crate::comm::BidirectionalEndpoint;
 use crate::error::{AmfiteatrError, CommunicationError};

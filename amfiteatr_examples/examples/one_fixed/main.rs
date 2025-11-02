@@ -19,8 +19,8 @@ use amfiteatr_classic::scheme::{AgentNum, ClassicScheme, ClassicGameSchemeNumber
 use amfiteatr_classic::scheme::ClassicAction::{Down, Up};
 use amfiteatr_classic::env::PairingState;
 use amfiteatr_classic::policy::ClassicMixedStrategy;
-use amfiteatr_classic::SymmetricRewardTableInt;
-use amfiteatr_rl::policy::{ActorCriticPolicy, LearningNetworkPolicyGeneric, TrainConfig};
+use amfiteatr_classic::{ClassicActionTensorRepresentation, SymmetricRewardTableInt};
+use amfiteatr_rl::policy::{ConfigA2C, LearningNetworkPolicyGeneric, PolicyDiscreteA2C};
 use crate::options::EducatorOptions;
 use crate::options::SecondPolicy;
 use amfiteatr_examples::plots::{plot_many_series, PlotSeries};
@@ -160,14 +160,14 @@ fn main() -> Result<(), AmfiteatrError<ClassicScheme<AgentNum>>>{
 
     let net0 = A2CNet::new(VarStore::new(device), net_template.get_net_closure());
     let opt0 = net0.build_optimizer(Adam::default(), 1e-4).unwrap();
-    let normal_policy = ActorCriticPolicy::new(net0, opt0, tensor_repr, TrainConfig {gamma: 0.99});
+    let normal_policy = PolicyDiscreteA2C::new(ConfigA2C::default(), net0, opt0, tensor_repr, ClassicActionTensorRepresentation{});
     let state0 = LocalHistoryInfoSet::new(0, reward_table.into());
     let mut agent_0 = TracingAgentGen::new(state0, comm0, normal_policy);
 
 
     let state1 = LocalHistoryInfoSet::new(1, reward_table.into());
 
-    let mut agent_1: Box<dyn ModelAgent<D, (), LocalHistoryInfoSetNumbered, >> = match args.policy{
+    let mut agent_1: Box<dyn ModelAgent<D, (), LocalHistoryInfoSetNumbered>> = match args.policy{
         SecondPolicy::Mixed => {
             Box::new(TracingAgentGen::new(state1, comm1, ClassicMixedStrategy::new(args.defect_proba as f64)))
         }

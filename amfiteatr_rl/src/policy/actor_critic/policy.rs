@@ -56,10 +56,9 @@ ActorCriticPolicy<
     /// use tch::{Device, nn, Tensor};
     /// use tch::nn::{Adam, VarStore};
     /// use amfiteatr_core::demo::{DemoScheme, DemoInfoSet};
-    /// use amfiteatr_rl::policy::ActorCriticPolicy;
-    /// use amfiteatr_rl::demo::DemoConversionToTensor;
+    /// use amfiteatr_rl::demo::{DemoActionConversionContext, DemoConversionToTensor};
     /// use amfiteatr_rl::torch_net::{A2CNet, TensorActorCritic};
-    /// use amfiteatr_rl::policy::TrainConfig;
+    /// use amfiteatr_rl::policy::{ConfigA2C, PolicyDiscreteA2C, TrainConfig};
     /// let var_store = VarStore::new(Device::Cpu);
     /// let neural_net = A2CNet::new(var_store, |path|{
     ///     let seq = nn::seq()
@@ -76,8 +75,8 @@ ActorCriticPolicy<
     /// });
     /// let optimizer = neural_net.build_optimizer(Adam::default(), 0.01).unwrap();
     ///
-    /// let policy: ActorCriticPolicy<DemoScheme, DemoInfoSet, DemoConversionToTensor>
-    ///     = ActorCriticPolicy::new(neural_net, optimizer, DemoConversionToTensor{}, TrainConfig { gamma: 0.99 });
+    /// let policy: PolicyDiscreteA2C<DemoScheme, DemoInfoSet, DemoConversionToTensor,DemoActionConversionContext>
+    ///     = PolicyDiscreteA2C::new(ConfigA2C::default(), neural_net, optimizer, DemoConversionToTensor{}, DemoActionConversionContext{});
     /// ```
     pub fn new(network: A2CNet,
                optimizer: Optimizer,

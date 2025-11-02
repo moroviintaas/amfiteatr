@@ -1,4 +1,5 @@
 use std::marker::PhantomData;
+use serde::{Deserialize, Serialize};
 use tch::{Device, TchError, Tensor};
 use tch::nn::{Optimizer, OptimizerConfig, Path,  VarStore};
 use crate::torch_net::{MultiDiscreteTensor, NetOutput, TensorActorCritic, TensorMultiParamActorCritic};
@@ -195,3 +196,21 @@ NeuralNetTemplate<O, N, F>{
         self.net_closure.clone()
     }
 }
+
+
+/*
+To be added in 0.13, I hope
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub enum Layer{
+    Reshape(Vec<i64>),
+    Relu,
+
+    Tanh,
+    Linear(i64),
+}
+
+ */
+/*
+pub struct NetworkActorCritic{
+    func: Box<dyn Fn>
+}*/

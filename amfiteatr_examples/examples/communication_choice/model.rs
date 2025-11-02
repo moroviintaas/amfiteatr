@@ -2,10 +2,10 @@ use std::cmp::min;
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 use amfiteatr_core::agent::{AgentGen, AutomaticAgent, InformationSet, Policy, RandomPolicy, ReseedAgent};
-use amfiteatr_core::comm::{AgentEndpoint, AgentMpscAdapter, BidirectionalEndpoint, EnvironmentAdapter, EnvironmentEndpoint, EnvironmentMpscPort, StdEnvironmentEndpoint};
+use amfiteatr_core::comm::{AgentEndpoint, AgentMpscAdapter, BidirectionalEndpoint, EnvironmentEndpoint, EnvironmentMpscPort, StdEnvironmentEndpoint};
 use amfiteatr_core::scheme::{AgentMessage, Scheme, EnvironmentMessage, Renew};
 use amfiteatr_core::env::{AutoEnvironmentWithScores, BasicEnvironment, HashMapEnvironment, ReseedEnvironment, RoundRobinUniversalEnvironment, SequentialGameState};
-use amfiteatr_core::error::{AmfiteatrError, CommunicationError};
+use amfiteatr_core::error::CommunicationError;
 use amfiteatr_examples::expensive_update::agent::ExpensiveUpdateInformationSet;
 use amfiteatr_examples::expensive_update::scheme::ExpensiveUpdateScheme;
 use amfiteatr_examples::expensive_update::env::ExpensiveUpdateState;
@@ -20,12 +20,12 @@ pub type EUSI = ExpensiveUpdateInformationSet;
 
 
 //type MapEnvironment = HashMapEnvironment<EUD, EUS, DomainCommE512<EUD>>;
-type MapEnvironment<C: EnvironmentEndpoint<EUD> + Send> = HashMapEnvironment<EUD, EUS, C>;
+type MapEnvironment<C> = HashMapEnvironment<EUD, EUS, C>;
 type CentralEnvironment = BasicEnvironment<EUD, EUS, EnvironmentMpscPort<EUD>>;
 
 type MappedAgent<C> = AgentGen<EUD, RandomPolicy<EUD, EUSI>, C>;
 type CAgent = AgentGen<EUD, RandomPolicy<EUD, EUSI>, AgentMpscAdapter<EUD>>;
-pub const BANDITS: [(f32, f32);3] = [(1.0, 3.0), (5.6, 6.7), (0.1, 9.0)];
+//pub const BANDITS: [(f32, f32);3] = [(1.0, 3.0), (5.6, 6.7), (0.1, 9.0)];
 
 pub struct MapModel<CE:EnvironmentEndpoint<EUD>, CA:  AgentEndpoint<EUD>> {
 
@@ -68,7 +68,7 @@ impl MapModel<
                     agents.push(Arc::new(Mutex::new(AgentGen::new(info_set, Box::new(a_comm), random_policy.clone()))))
                 }
 
-                for id in (tcp_agents..options.number_of_players){
+                for id in tcp_agents..options.number_of_players{
                     let (e,a) = StdEnvironmentEndpoint::new_pair();
                     env_comms.insert(id, Box::new(e));
                     let info_set = EUSI::new(id);
@@ -117,8 +117,6 @@ impl MapModel<
 impl MapModel<SchemeCommE512<EUD>, SchemeCommA512<EUD>>{
     pub fn new(
         options: &CCOptions) -> Result<Self, anyhow::Error>{
-
-        let number_of_bandits = BANDITS.len();
 
         let mut agents = Vec::new();
         let mut env_comms = HashMap::new();
