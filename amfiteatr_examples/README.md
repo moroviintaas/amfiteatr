@@ -18,3 +18,6 @@ policy.
 
 Example of many agents simulating replicator dynamics in classic 
 _chicken game_ (optionally with modifying game parameters).
+
+## [`cart_pole`]
+**Status** TODO!() - It does not work at the moment.

@@ -9,6 +9,7 @@ use amfiteatr_core::env::{AutoEnvironmentWithScores, BasicEnvironment, ReseedEnv
 use amfiteatr_core::error::AmfiteatrError;
 use amfiteatr_rl::agent::RlModelAgent;
 use amfiteatr_rl::error::AmfiteatrRlError;
+#[allow(deprecated)]
 use amfiteatr_rl::policy::{ActorCriticPolicy, LearningNetworkPolicyGeneric, TrainConfig};
 use amfiteatr_rl::tch::{Device, nn, Tensor};
 use amfiteatr_rl::tch::nn::{Adam, VarStore};
@@ -105,6 +106,7 @@ fn main() {
     let net =  A2CNet::new(var_store, net_template.get_net_closure());
     let optimizer = net.build_optimizer(Adam::default(), 1e-4).unwrap();
 
+    #[allow(deprecated)]
     let policy = ActorCriticPolicy::new(net,
                                         optimizer,
                                         CART_POLE_TENSOR_REPR,

@@ -23,9 +23,9 @@ name = "custom_reward"
 [[example]]
 name = "one_fixed"
 
-[[example]]
-name = "cart_pole_python"
-required-features = ["rl-python"]
+#[[example]]
+#name = "cart_pole_python"
+#required-features = ["rl-python"]
 
 #[[example]]
 #name = "cart_pole_pure_rust"

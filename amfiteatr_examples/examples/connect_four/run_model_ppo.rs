@@ -6,7 +6,7 @@ use amfiteatr_examples::connect_four::common::ErrorRL;
 use amfiteatr_examples::connect_four::env::ConnectFourRustEnvState;
 use amfiteatr_examples::connect_four::env_nd::ConnectFourRustNdEnvState;
 use amfiteatr_examples::connect_four::env_wrapped::PythonPettingZooStateWrap;
-use amfiteatr_examples::connect_four::model::{build_ppo_policy, C4PPOPolicy, C4PPOPolicyMasking, ConnectFourModelRust};
+use amfiteatr_examples::connect_four::model::{build_ppo_policy, C4PPOPolicy, ConnectFourModelRust};
 use amfiteatr_examples::connect_four::no_protocol_model::ConnectFourModelRustNoProtocol;
 use amfiteatr_examples::connect_four::options::{ConnectFourOptions, Implementation};
 use amfiteatr_rl::policy::ConfigPPO;
