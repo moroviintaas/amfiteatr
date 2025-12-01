@@ -1,6 +1,6 @@
 [package]
 name = "amfiteatr_rl"
-version = "0.12.0"
+version = "0.13.0"
 edition = "2024"
 repository = "https://github.com/moroviintaas/amfiteatr"
 license-file = "LICENSE"
@@ -14,14 +14,14 @@ name = "multi_actor_entropy"
 
 [dependencies]
 
-tch = "0.20.0"
-log = { version = "0.4.26", optional = true }
-thiserror = "2.0.11"
-rand = "0.9.0"
+tch = "0.22.0"
+log = { version = "0.4.27", optional = true }
+thiserror = "2.0.12"
+rand = "0.9.2"
 generic-array = "1.2.0"
-getset = "0.1.4"
+getset = "0.1.5"
 
-amfiteatr_core = {version = "0.12.0",  features = ["demo", "torch", "tboard"]}
+amfiteatr_core = {version = "0.13.0",  features = ["demo", "torch", "tboard"]}
 tboard = { version = "0.1.1"}
 serde = { version = "1.0.219", features = ["derive"] }
 
