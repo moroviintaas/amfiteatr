@@ -20,13 +20,15 @@ classic game theory games (like prisoners' dilemma).
 5. [`amfiteatr_examples`](https://github.com/moroviintaas/amfiteatr_examples.git) - repository with some examples
 of using the library. Hopefully it will be expanded in the future.
 
-### Other projects:
-Currently, I develop some projects using this library, that can show current possibilities 
-1. [`brydz_model`](https://github.com/moroviintaas/brydz_model) - Simulation and reinforcement learning model
-for contract bridge card game. Can be used as example of implementing 4 player game.
-2. [`brydz_dd`](https://github.com/moroviintaas/brydz_model) - early project of Double Dummy solver for contract bridge
-   (card faced up analysis of optimal game solution). __Warning__ it uses alpha-beta algorithm variants and on
-current level of optimisation it cannot be used to solve full 52 card problems.
+
+## Linker issue
+Since version `1.90` Rust by default uses linker `ldd`, which cannot be 
+used in with `libtorch`. 
+To use `libtorch` one needs to use `ld`, therefore in the 
+crates there are `.cargo/config.toml` files to force usage of `ld`.
+If you include these crates in projects, you may need to do  the same
+on workspace level. Or on global level (`~/.cargo/config.toml`).
+
 
 ## Development stage
 It is my education and research project. Many elements will change or vanish in the future and some breaking changes
@@ -38,6 +40,13 @@ __TL;DR__ It's early and unstable stage.
 
 ## Licence: MIT
 
+## Other projects:
+Currently, I develop some projects using this library, that can show current possibilities
+1. [`brydz_model`](https://github.com/moroviintaas/brydz_model) - Simulation and reinforcement learning model
+   for contract bridge card game. Can be used as example of implementing 4 player game.
+2. [`brydz_dd`](https://github.com/moroviintaas/brydz_model) - early project of Double Dummy solver for contract bridge
+   (card faced up analysis of optimal game solution). __Warning__ it uses alpha-beta algorithm variants and on
+   current level of optimisation it cannot be used to solve full 52 card problems.
 
 
 
