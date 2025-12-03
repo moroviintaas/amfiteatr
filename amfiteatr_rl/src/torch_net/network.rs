@@ -1,8 +1,9 @@
 use std::marker::PhantomData;
-use tch::{Device, TchError, Tensor};
+use tch::{nn, Device, TchError, Tensor};
 use tch::nn::{Optimizer, OptimizerConfig, Path,  VarStore};
-use crate::torch_net::{MultiDiscreteTensor, NetOutput, TensorActorCritic, TensorMultiParamActorCritic};
-
+use crate::torch_net::{ActorCriticOutput, MultiDiscreteTensor, NetOutput, TensorActorCritic, TensorMultiParamActorCritic};
+use serde::{Serialize, Deserialize};
+use std::default::Default;
 /// Structure wrapping [`VarStore`] and network closure used to build neural network based function.
 /// Examples in [`tch`](https://github.com/LaurentMazare/tch-rs) show how neural networks are used.
 /// This structure shortens some steps of setting and provides some helpful functions - especially
@@ -197,19 +198,166 @@ NeuralNetTemplate<O, N, F>{
 }
 
 
-/*
-To be added in 0.13, I hope
+
+//To be added in 0.13, I hope
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub enum Layer{
-    Reshape(Vec<i64>),
+    //Reshape(Vec<i64>),
     Relu,
 
     Tanh,
     Linear(i64),
 }
 
- */
+
+pub struct NeuralNetTemplateDiscreteAC{
+    //func: Box<dyn Fn(Tensor) -> TensorActorCritic>
+    layers: Vec<Layer>,
+    input_shape: Vec<i64>,
+    actor_shape: i64,
+
+
+
+}
+
+pub fn create_net_model_discrete_ac<'a>(path: &'a nn::Path, layers: &[Layer], input_shape: &[i64], actor_shape: i64)
+    ->  Box<dyn Fn(&Tensor) -> TensorActorCritic + 'a>
+{
+    let mut seq = nn::seq();
+    let mut current_dim = input_shape[0];
+    let mut next_dim = input_shape[0];
+    let mut last_dim = None;
+    if !layers.is_empty() {
+        let mut layer = layers[0].clone();
+        last_dim = Some(layer.clone());
+        seq = match layer {
+            Layer::Relu => { seq.add_fn(|x| x.relu()) },
+            Layer::Tanh => { seq.add_fn(|x| x.tanh()) },
+            Layer::Linear(output) => {
+                next_dim = output;
+                seq.add(
+                    nn::linear(path / "0", current_dim, output, Default::default())
+                )
+            }
+        };
+        current_dim = next_dim;
+        for (i, new_layer) in layers.iter().enumerate().skip(1) {
+            seq = match new_layer {
+                Layer::Relu => { seq.add_fn(|x| x.relu()) },
+                Layer::Tanh => { seq.add_fn(|x| x.tanh()) },
+                Layer::Linear(output) => {
+                    next_dim = *output;
+                    seq.add(
+                        nn::linear(path / &format!("lin_{}", i), current_dim, *output, Default::default()))
+                }
+            };
+            current_dim = next_dim;
+        }
+        let (actor, critic) = (
+            nn::linear(path / "actor", current_dim, actor_shape, Default::default()),
+            nn::linear(path / "critic", current_dim, 1, Default::default())
+        );
+        //{
+        Box::new(
+            move |xs: &Tensor| {
+                let device = path.device();
+                let xs = xs.to_device(device).apply(&seq);
+                TensorActorCritic {
+                    critic: xs.apply(&critic),
+                    actor: xs.apply(&actor),
+                }
+            }
+            //}
+        )
+
+
+    } else{
+        panic!("Empty layer sequence")
+    }
+
+}
+
+
 /*
-pub struct NetworkActorCritic{
-    func: Box<dyn Fn>
-}*/
+impl NeuralNetTemplateDiscreteAC {
+    pub fn new(layer_description: Vec<Layer>, input_shape: Vec<i64>, actor_shape: i64) -> Self{
+        Self{
+            layers: layer_description, input_shape,
+            actor_shape,
+        }
+    }
+
+    //pub fn get_closure<N: 'static + Send + Fn(&Tensor) -> TensorActorCritic>(&self)
+    //    -> Box<dyn Fn(&tch::nn::Path) -> N>{
+
+    pub fn get_model(&self, path: &nn::Path)
+        ->  Box<dyn Fn(&Tensor) -> TensorActorCritic+ '_>
+    {
+
+        //! TODO non 1-d input (require flatten before linear
+        //let network_pattern = Box::new(|path: &tch::nn::Path|{
+            //Box::new(|t: tch::Tensor|{
+
+
+
+
+            let mut seq = nn::seq();
+            let mut current_dim = self.input_shape[0];
+            let mut next_dim = self.input_shape[0];
+            let mut last_dim = None;
+            if !self.layers.is_empty() {
+                let mut layer = self.layers[0];
+                last_dim = Some(layer);
+                seq = match layer {
+                    Layer::Relu => { seq.add_fn(|x| x.relu()) },
+                    Layer::Tanh => { seq.add_fn(|x| x.tanh()) },
+                    Layer::Linear(output) => {
+                        next_dim = output;
+                        seq.add(
+                            nn::linear(path / "0", current_dim, output, Default::default())
+                        )
+                    }
+                };
+                current_dim = next_dim;
+                for (i, new_layer) in self.layers.iter().enumerate().skip(1) {
+                    seq = match new_layer {
+                        Layer::Relu => { seq.add_fn(|x| x.relu()) },
+                        Layer::Tanh => { seq.add_fn(|x| x.tanh()) },
+                        Layer::Linear(output) => {
+                            next_dim = *output;
+                            seq.add(
+                                nn::linear(path / &format!("lin_{}", i), current_dim, *output, Default::default()))
+                        }
+                    };
+                    current_dim = next_dim;
+                }
+                let (actor, critic) = (
+                    nn::linear(path / "actor", current_dim, self.actor_shape, Default::default()),
+                    nn::linear(path / "critic", current_dim, 1, Default::default())
+                );
+                //{
+                Box::new(
+                move |xs: &Tensor| {
+                    let device = path.device();
+                    let xs = xs.to_device(device).apply(&seq);
+                    TensorActorCritic {
+                        critic: xs.apply(&critic),
+                        actor: xs.apply(&actor),
+                    }
+                }
+                //}
+            )
+
+
+        } else{
+                panic!("Empty layer sequence")
+            }
+
+        //});
+
+        //})
+
+        //network_pattern
+    }
+}
+*/

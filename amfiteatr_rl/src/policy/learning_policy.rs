@@ -164,3 +164,60 @@ pub trait LearningNetworkPolicy<S: Scheme> : LearningNetworkPolicyGeneric<S, Sum
 impl<S: Scheme, P: LearningNetworkPolicyGeneric<S, Summary=LearnSummary>> LearningNetworkPolicy<S> for P{
 
 }
+
+
+pub trait LearningNetworkPolicyDynamicCustomSummary<S: Scheme> : Policy<S>
+where <Self as Policy<S>>::InfoSetType: InformationSet<S>
+{
+    type Summary: Send;
+
+    /*
+    /// Returns reference to underlying [`VarStore`]
+    fn var_store(&self) -> &VarStore;
+    /// Returns mutable reference to underlying [`VarStore`]
+    fn var_store_mut(&mut self) -> &mut VarStore;
+
+     */
+
+    /// Switch exploring on and off
+    fn switch_explore(&mut self, enabled: bool);
+
+
+
+
+
+    /*
+    /// If supported enable or disable exploration (with disabled exploration policy is expected to always select
+    /// action that seems the best).
+    fn enable_exploration(&mut self, enable: bool);
+
+
+     */
+    ///// Returns reference to current config of policy
+    //fn config(&self) -> &Self::TrainConfig;
+    /// This is generic training function. Generic type `R` must produce reward tensor that
+    /// agent got in this step. In traditional RL model it will be vectorised reward calculated
+    /// by environment. This is in fact implemented by [`train_on_trajectories_env_reward`](LearningNetworkPolicyGeneric::train).
+    fn train_dynamic_target(
+        &mut self,
+        trajectories: &[AgentTrajectory<S, <Self as Policy<S>>::InfoSetType>],
+        reward_f: Box<dyn Fn(&AgentStepView<S, <Self as Policy<S>>::InfoSetType>) -> Tensor>,
+    ) -> Result<Self::Summary, AmfiteatrRlError<S>>;
+
+    /// Training implementation using environment distributed reward
+    fn train_env_target(&mut self,
+             trajectories: &[AgentTrajectory<S, <Self as Policy<S>>::InfoSetType>]) -> Result<Self::Summary, AmfiteatrRlError<S>>
+    where <S as Scheme>::UniversalReward: FloatTensorReward{
+
+        self.train_dynamic_target(trajectories, Box::new(|step| step.reward().to_tensor()))
+    }
+
+
+
+}
+
+pub trait LearningNetworkPolicyDynamic<S: Scheme>: LearningNetworkPolicyDynamicCustomSummary<S, Summary=LearnSummary>{}
+
+impl<S: Scheme, T: LearningNetworkPolicyDynamicCustomSummary<S, Summary=LearnSummary>> LearningNetworkPolicyDynamic<S> for T{
+
+}

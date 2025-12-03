@@ -1,5 +1,9 @@
 # Changelog
 
+## Version 0.13.0-rc (Work in Progress)
++ Previously used `LearningNetworkPolicy` is not Dyn compatible. Introducing `LearningNetworkPolicyDynamic` and `LearningNetworkPolicyDynamicCustomSummary` that use boxed target function instead of generic.
+**The names can change**
+
 ## Version 0.12.0
 + (**super breaking**) - renamed `domain::DomainParameters` to `scheme::Scheme`, because domain parameters are inappropriate here (it is used in elliptic curve cryptography).
 This breaks almost everything, sorry. To migrate please refactor all occurrences.
