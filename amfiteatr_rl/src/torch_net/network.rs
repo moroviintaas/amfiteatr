@@ -77,6 +77,12 @@ impl<Output: NetOutput> NeuralNet< Output>{
             //_input: Default::default()
         }
     }
+
+    pub fn new_from_box(var_store: VarStore, network_f: Box<dyn Fn(&Tensor) -> Output + Send>) -> Self{
+        Self{var_store, net: network_f}
+    }
+
+
     /// Build optimiser for network, given `OptimizerConfig`. Uses [`VarStore`] stored in [`NeuralNet`] struct;
     pub fn build_optimizer<OptC: OptimizerConfig>
         (&self, optimiser_config: OptC, learning_rate: f64) -> Result<Optimizer, TchError>{
@@ -220,9 +226,10 @@ pub struct NeuralNetTemplateDiscreteAC{
 
 }
 
-pub fn create_net_model_discrete_ac<'a>(path: &'a nn::Path, layers: &[Layer], input_shape: &[i64], actor_shape: i64)
-    ->  Box<dyn Fn(&Tensor) -> TensorActorCritic + 'a>
+pub fn create_net_model_discrete_ac<'a>(path: nn::Path<'a>, layers: &[Layer], input_shape: &[i64], actor_shape: i64)
+    ->  Box<dyn Fn(&Tensor) -> TensorActorCritic + 'a + Send>
 {
+
     let mut seq = nn::seq();
     let mut current_dim = input_shape[0];
     let mut next_dim = input_shape[0];
@@ -236,7 +243,7 @@ pub fn create_net_model_discrete_ac<'a>(path: &'a nn::Path, layers: &[Layer], in
             Layer::Linear(output) => {
                 next_dim = output;
                 seq.add(
-                    nn::linear(path / "0", current_dim, output, Default::default())
+                    nn::linear(path.clone() / "0", current_dim, output, Default::default())
                 )
             }
         };
@@ -248,14 +255,14 @@ pub fn create_net_model_discrete_ac<'a>(path: &'a nn::Path, layers: &[Layer], in
                 Layer::Linear(output) => {
                     next_dim = *output;
                     seq.add(
-                        nn::linear(path / &format!("lin_{}", i), current_dim, *output, Default::default()))
+                        nn::linear(path.clone() / &format!("lin_{}", i), current_dim, *output, Default::default()))
                 }
             };
             current_dim = next_dim;
         }
         let (actor, critic) = (
-            nn::linear(path / "actor", current_dim, actor_shape, Default::default()),
-            nn::linear(path / "critic", current_dim, 1, Default::default())
+            nn::linear(path.clone() / "actor", current_dim, actor_shape, Default::default()),
+            nn::linear(path.clone() / "critic", current_dim, 1, Default::default())
         );
         //{
         Box::new(

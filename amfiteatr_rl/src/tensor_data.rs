@@ -32,6 +32,12 @@ pub trait TensorEncoding: Send{
     }
 }
 
+impl<T: TensorEncoding> TensorEncoding for Box<T> {
+    fn desired_shape(&self) -> &[i64]{
+        self.as_ref().desired_shape()
+    }
+}
+
 /// Trait for structs that can be represented as traits, for example game information sets (game states).
 /// It could be resolved by requiring `&T: Into<Tensor>`, however using associated type
 /// [`TensorEncoding`] allows to implement different conversion. This may be useful when you
