@@ -88,7 +88,7 @@ where <S as Scheme>::ActionType:
         action_forward_mask_batches: Option<&Vec<Tensor>>,
     ) -> Result<(Tensor, Tensor, Tensor), AmfiteatrError<S>>{
 
-        let critic_actor= self.network.net()(info_set_batch);
+        let critic_actor= self.network.operator()(self.network.var_store(), info_set_batch);
 
         let batch_logprob = critic_actor.batch_log_probability_of_action::<S>(
             action_param_batches,

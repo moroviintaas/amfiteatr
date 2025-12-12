@@ -139,7 +139,7 @@ pub trait PolicyHelperA2C<S: Scheme>{
     fn a2c_select_action(&self, info_set: &Self::InfoSet) -> Result<S::ActionType, AmfiteatrError<S>>{
         let state_tensor = info_set.to_tensor(self.info_set_encoding());
         //println!("state tensor: {state_tensor}");
-        let out = tch::no_grad(|| (self.network().net())(&state_tensor));
+        let out = tch::no_grad(|| (self.network().operator())(&self.network().var_store(), &state_tensor));
         //println!("out: {out:?}");
         let probs = tch::no_grad(||self.dist(info_set, &out))?;
         let choices = tch::no_grad(|| match self.is_exploration_on(){
@@ -345,7 +345,7 @@ pub trait PolicyTrainHelperA2C<S: Scheme> : PolicyHelperA2C<S, Config=ConfigA2C>
         let sample_info_set = step_example.information_set();
 
         let sample_info_set_t = sample_info_set.try_to_tensor(self.info_set_encoding())?;
-        let sample_net_output = tch::no_grad(|| self.network().net()(&sample_info_set_t));
+        let sample_net_output = tch::no_grad(|| self.network().operator()(self.network().var_store(), &sample_info_set_t));
         let action_params = sample_net_output.param_dimension_size() as usize;
 
 
@@ -415,7 +415,7 @@ pub trait PolicyTrainHelperA2C<S: Scheme> : PolicyHelperA2C<S, Config=ConfigA2C>
                 }) ?.to_device(device);
             #[cfg(feature = "log_trace")]
             log::trace!("Tmp infoset shape = {:?}", information_set_t.size());
-            let net_out = tch::no_grad(|| (self.network().net())(&information_set_t));
+            let net_out = tch::no_grad(|| (self.network().operator())(&self.network().var_store(), &information_set_t));
             let critic_t = net_out.critic();
             #[cfg(feature = "log_trace")]
             log::trace!("Tmp values_t shape = {:?}", critic_t.size());

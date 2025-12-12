@@ -156,7 +156,7 @@ pub trait PolicyHelperPPO<S: Scheme>
     /// Automatically implemented action selection using required methods.
     fn ppo_select_action(&self, info_set: &Self::InfoSet) -> Result<S::ActionType, AmfiteatrError<S>>{
         let state_tensor = info_set.to_tensor(self.info_set_conversion_context());
-        let out = tch::no_grad(|| (self.ppo_network().net())(&state_tensor));
+        let out = tch::no_grad(|| (self.ppo_network().operator())(self.ppo_network().var_store(), &state_tensor));
         //let actor = out.actor;
         //println!("out: {:?}", out);
         let probs = self.ppo_dist(info_set, &out)?;
@@ -203,7 +203,7 @@ pub trait PolicyHelperPPO<S: Scheme>
         let sample_info_set = step_example.information_set();
 
         let sample_info_set_t = sample_info_set.try_to_tensor(self.info_set_conversion_context())?;
-        let sample_net_output = tch::no_grad(|| self.ppo_network().net()(&sample_info_set_t));
+        let sample_net_output = tch::no_grad(|| self.ppo_network().operator()(self.ppo_network().var_store(), &sample_info_set_t));
         let action_params = sample_net_output.param_dimension_size() as usize;
         //let info_set_example = step_example.in
 
@@ -274,7 +274,7 @@ pub trait PolicyHelperPPO<S: Scheme>
                 #[cfg(feature = "log_trace")]
                 log::trace!("Tmp infoset shape = {:?}, device: {:?}", information_set_t.size(), information_set_t.device());
 
-                let net_out = tch::no_grad(|| self.ppo_network().net()(&information_set_t));
+                let net_out = tch::no_grad(|| self.ppo_network().operator()(self.ppo_network().var_store(), &information_set_t));
                 let critic_t = net_out.critic();
                 #[cfg(feature = "log_trace")]
                 log::trace!("Tmp values_t shape = {:?}", critic_t.size());
@@ -515,7 +515,7 @@ pub trait PolicyTrainHelperPPO<S: Scheme> : PolicyHelperA2C<S, Config=ConfigPPO>
         let sample_info_set = step_example.information_set();
 
         let sample_info_set_t = sample_info_set.try_to_tensor(self.info_set_encoding())?;
-        let sample_net_output = tch::no_grad(|| self.network().net()(&sample_info_set_t));
+        let sample_net_output = tch::no_grad(|| self.network().operator()(self.network().var_store(), &sample_info_set_t));
         let action_params = sample_net_output.param_dimension_size() as usize;
 
         let mut rng = rand::rng();
@@ -585,7 +585,7 @@ pub trait PolicyTrainHelperPPO<S: Scheme> : PolicyHelperA2C<S, Config=ConfigPPO>
 
                 #[cfg(feature = "log_trace")]
                 log::trace!("Tmp infoset = {}", information_set_t);
-                let net_out = tch::no_grad(|| (self.network().net())(&information_set_t));
+                let net_out = tch::no_grad(|| (self.network().operator())(self.network().var_store(), &information_set_t));
                 let critic_t = net_out.critic();
                 #[cfg(feature = "log_trace")]
                 log::trace!("Critic: {}", critic_t);

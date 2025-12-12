@@ -103,7 +103,21 @@ fn main() {
             TensorActorCritic {critic: xs.apply(&critic), actor: xs.apply(&actor)}
         }}
     });
-    let net =  A2CNet::new(var_store, net_template.get_net_closure());
+
+    let operator = Box::new(move |vs: &VarStore, tensor: &Tensor|{
+        let seq = nn::seq()
+            .add(nn::linear(vs.root() / "input", 4, 128, Default::default()))
+            .add_fn(|xs| xs.relu());
+
+        let actor = nn::linear(vs.root() / "al", 128, 2, Default::default());
+        let critic = nn::linear(vs.root() / "ac", 128, 1, Default::default());
+
+        let xs = tensor.to_device(device).apply(&seq);
+        TensorActorCritic {critic: xs.apply(&critic), actor: xs.apply(&actor)}
+
+    });
+
+    let net =  A2CNet::new(var_store, operator);
     let optimizer = net.build_optimizer(Adam::default(), 1e-4).unwrap();
 
     #[allow(deprecated)]

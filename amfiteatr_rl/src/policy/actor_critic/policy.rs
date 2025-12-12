@@ -60,19 +60,18 @@ ActorCriticPolicy<
     /// use amfiteatr_rl::torch_net::{A2CNet, TensorActorCritic};
     /// use amfiteatr_rl::policy::{ConfigA2C, PolicyDiscreteA2C, TrainConfig};
     /// let var_store = VarStore::new(Device::Cpu);
-    /// let neural_net = A2CNet::new(var_store, |path|{
+    /// let neural_net = A2CNet::new(var_store, Box::new(|vs: &VarStore, tensor: &Tensor|{
     ///     let seq = nn::seq()
-    ///         .add(nn::linear(path / "input", 1, 128, Default::default()))
-    ///         .add(nn::linear(path / "hidden", 128, 128, Default::default()));
-    ///     let actor = nn::linear(path / "al", 128, 2, Default::default());
-    ///     let critic = nn::linear(path / "cl", 128, 1, Default::default());
-    ///     let device = path.device();
-    ///     {move |xs: &Tensor|{
-    ///         let xs = xs.to_device(device).apply(&seq);
-    ///         TensorActorCritic{critic: xs.apply(&critic), actor: xs.apply(&actor)}
-    ///     }}
+    ///         .add(nn::linear(vs.root() / "input", 1, 128, Default::default()))
+    ///         .add(nn::linear(vs.root() / "hidden", 128, 128, Default::default()));
+    ///     let actor = nn::linear(vs.root() / "al", 128, 2, Default::default());
+    ///     let critic = nn::linear(vs.root() / "cl", 128, 1, Default::default());
+    ///     let device = vs.device();
+///         let xs = tensor.to_device(device).apply(&seq);
+///         TensorActorCritic{critic: xs.apply(&critic), actor: xs.apply(&actor)}
     ///
-    /// });
+    ///
+    /// }));
     /// let optimizer = neural_net.build_optimizer(Adam::default(), 0.01).unwrap();
     ///
     /// let policy: PolicyDiscreteA2C<DemoScheme, DemoInfoSet, DemoConversionToTensor,DemoActionConversionContext>
@@ -125,7 +124,7 @@ where <S as Scheme>::ActionType: TryFromTensor{
         #[cfg(feature = "log_trace")]
         log::trace!("Selecting action");
         let state_tensor = state.to_tensor(&self.info_set_conversion_context);
-        let out = tch::no_grad(|| (self.network.net())(&state_tensor));
+        let out = tch::no_grad(|| (self.network.operator())(self.network.var_store(),  &state_tensor));
         let actor = out.actor;
         //somewhen it may be changed with temperature
         let probs = actor.softmax(-1, Float);
@@ -263,7 +262,7 @@ impl<
         log::trace!("Result batch: {:?}", results_batch);
         #[cfg(feature = "log_trace")]
         log::trace!("Action batch: {:?}", action_batch);
-        let TensorActorCritic {actor, critic} = (self.network.net())(&states_batch);
+        let TensorActorCritic {actor, critic} = (self.network.operator())(self.network.var_store(), &states_batch);
         let log_probs = actor.log_softmax(-1, Kind::Float);
         let probs = actor.softmax(-1, Float);
         let action_log_probs = {

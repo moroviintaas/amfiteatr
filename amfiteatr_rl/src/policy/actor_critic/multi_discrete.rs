@@ -221,7 +221,7 @@ where
     }
 
     fn batch_get_logprob_entropy_critic(&self, info_set_batch: &Tensor, action_param_batches: &<Self::NetworkOutput as ActorCriticOutput>::ActionTensorType, action_category_mask_batches: Option<&<Self::NetworkOutput as ActorCriticOutput>::ActionTensorType>, action_forward_mask_batches: Option<&<Self::NetworkOutput as ActorCriticOutput>::ActionTensorType>) -> Result<(Tensor, Tensor, Tensor), AmfiteatrError<S>> {
-        let a2c_net = self.network().net()(info_set_batch);
+        let a2c_net = self.network().operator()(self.network().var_store(),info_set_batch);
 
         let (log_prob, entropy) = a2c_net.batch_get_logprob_and_entropy(
             action_param_batches,

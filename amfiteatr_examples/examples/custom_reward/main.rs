@@ -123,6 +123,7 @@ fn main() -> Result<(), AmfiteatrError<ClassicScheme<AgentNum>>>{
         args.defect_versus_coop,
         args.defect_versus_defect);
 
+    /*
     let net_template = NeuralNetTemplate::new(|path|{
         let seq = nn::seq()
             .add(nn::linear(path / "input", input_size, 512, Default::default()))
@@ -141,6 +142,24 @@ fn main() -> Result<(), AmfiteatrError<ClassicScheme<AgentNum>>>{
         }}
     });
 
+     */
+
+    let operator = Box::new(move |vs: &VarStore, tensor: &Tensor|{
+        let seq = nn::seq()
+            .add(nn::linear(vs.root() / "input", input_size, 512, Default::default()))
+            //.add(nn::linear(path / "h1", 256, 256, Default::default()))
+            .add(nn::linear(vs.root() / "hidden1", 512, 512, Default::default()))
+            .add_fn(|xs| xs.tanh())
+            .add(nn::linear(vs.root() / "hidden2", 512, 256, Default::default()))
+            .add_fn(|xs| xs.tanh())
+            .add_fn(|xs|xs.relu());
+        //.add(nn::linear(path / "h2", 512, 512, Default::default()));
+        let actor = nn::linear(vs.root() / "al", 256, 2, Default::default());
+        let critic =  nn::linear(vs.root() / "ac", 256, 1, Default::default());
+        let xs = tensor.to_device(vs.device()).apply(&seq);
+        TensorActorCritic {critic: xs.apply(&critic), actor: xs.apply(&actor)}
+    });
+
 
 
 
@@ -151,7 +170,7 @@ fn main() -> Result<(), AmfiteatrError<ClassicScheme<AgentNum>>>{
     let mut environment = TracingBasicEnvironment::new(env_state_template.clone(), env_adapter);
 
 
-    let net0 = A2CNet::new(VarStore::new(device), net_template.get_net_closure());
+    let net0 = A2CNet::new(VarStore::new(device), operator.clone());
     let opt0 = net0.build_optimizer(Adam::default(), 1e-4).unwrap();
     let normal_policy = PolicyDiscreteA2C::new(ConfigA2C::default(), net0, opt0,
                                                tensor_repr, ClassicActionTensorRepresentation{});
@@ -162,7 +181,7 @@ fn main() -> Result<(), AmfiteatrError<ClassicScheme<AgentNum>>>{
     let state1 = LocalHistoryInfoSet::new(1, reward_table.into());
     //let test_policy = ClassicPureStrategy::new(ClassicAction::Defect);
 
-    let net1 = A2CNet::new(VarStore::new(device), net_template.get_net_closure());
+    let net1 = A2CNet::new(VarStore::new(device), operator);
     let opt1 = net1.build_optimizer(Adam::default(), 1e-4).unwrap();
     let policy1 = PolicyDiscreteA2C::new(ConfigA2C::default(), net1, opt1, tensor_repr, ClassicActionTensorRepresentation{});
     //let mut agent_1 = AgentGenT::new(state1, comm1, Arc::new(Mutex::new(policy1)));

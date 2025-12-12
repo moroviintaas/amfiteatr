@@ -18,7 +18,7 @@ use crate::replicators::model::{ReplScheme, ReplicatorNetworkPolicy};
 use crate::replicators::options::ReplicatorOptions;
 
 
-pub fn create_ppo_policy(layer_sizes: &[i64], var_store: VarStore, options: &ReplicatorOptions, agent_num: AgentNum)
+pub fn create_ppo_policy(layer_sizes: Vec<i64>, var_store: VarStore, options: &ReplicatorOptions, agent_num: AgentNum)
     -> Result<ReplPPO, AmfiteatrError<ReplScheme>>{
     //todo this should be macro probably one day
     let info_set_repr = LocalHistoryConversionToTensor::new(options.number_of_rounds);
@@ -36,6 +36,7 @@ pub fn create_ppo_policy(layer_sizes: &[i64], var_store: VarStore, options: &Rep
     config.ent_coef = options.entropy_coefficient;
 
      */
+    /*
 
     let network_pattern = NeuralNetTemplate::new(|path| {
         let mut seq = nn::seq();
@@ -75,10 +76,49 @@ pub fn create_ppo_policy(layer_sizes: &[i64], var_store: VarStore, options: &Rep
         }}
     });
 
-    let network = network_pattern.get_net_closure();
+
+     */
+
+    let mut operator = Box::new(move |vs: &VarStore, tensor: &Tensor|{
+        let mut seq = nn::seq();
+        let mut last_dim = None;
+        if !hidden_layers.is_empty(){
+            let mut ld = hidden_layers[0];
+
+            last_dim = Some(ld);
+            seq = seq.add(nn::linear(vs.root() / "INPUT", input_shape, ld, Default::default()));
+
+            for (i, ld_new) in hidden_layers.iter().enumerate().skip(1){
+                seq = seq.add(nn::linear(vs.root() / &format!("h_{:}", i+1), ld, *ld_new, Default::default()))
+                    .add_fn(|xs| xs.tanh());
+
+                ld = *ld_new;
+                last_dim = Some(ld);
+            }
+        }
+        let (actor, critic) = match last_dim{
+            None => {
+                (nn::linear(vs.root() / "al", input_shape, output_shape, Default::default()),
+                 nn::linear(vs.root() / "cl", input_shape, 1, Default::default()))
+            }
+            Some(ld) => {
+                (nn::linear(vs.root() / "al", ld, output_shape, Default::default()),
+                 nn::linear(vs.root() / "cl", ld, 1, Default::default()))
+            }
+        };
+        let device = vs.device();
+            if seq.is_empty(){
+                TensorActorCritic {critic: tensor.apply(&critic), actor: tensor.apply(&actor)}
+            } else {
+                let xs = tensor.to_device(device).apply(&seq);
+                TensorActorCritic {critic: xs.apply(&critic), actor: xs.apply(&actor)}
+            }
+
+    });
+    //let network = network_pattern.get_net_closure();
     let optimiser = Adam::default().build(&var_store, options.learning_rate)
         .map_err(|origin|AmfiteatrError::Tensor {error: TensorError::Torch {origin: format!("{origin}"), context: "Creating optimser".to_string() } })?;
-    let net = A2CNet::new(var_store, network);
+    let net = A2CNet::new(var_store, operator);
 
     let mut policy = ReplPPO::new(config, net, optimiser, info_set_repr, ClassicActionTensorRepresentation{});
     if let Some(tboard_path_base) = &options.agent_tboard{
@@ -117,7 +157,7 @@ impl LearningPolicyBuilder for ReplPolicyBuilderPPO<'_>{
 
         });
 
-        Ok(create_ppo_policy(&self.options.layer_sizes[..], var_store, self.options, self.agent_id)?)
+        Ok(create_ppo_policy((&self.options.layer_sizes[..]).to_vec(), var_store, self.options, self.agent_id)?)
 
 
     }

@@ -3,7 +3,53 @@
 ## Version 0.13.0-rc (Work in Progress)
 + Previously used `LearningNetworkPolicy` is not Dyn compatible. Introducing `LearningNetworkPolicyDynamic` and `LearningNetworkPolicyDynamicCustomSummary` that use boxed target function instead of generic.
 **The names can change**
-+ Added possibility to create `NeuralNet<..>` using constructor based on `Box<dyn Box<dyn Fn(&Tensor) -> Output + Send>`.
++ Changing `NeuralNet<T>` struct. Previously it aggregated  `Box<dyn Fn(&Tensor) -> Output + Send >` 
+and now `Box<dyn Fn(&VarStore, &Tensor) -> Output + Send>`. Previously it was constructed
+the function on `Tensor` needed to embed `Path` from `VarStore` which prevented from 
+constructing networks in dynamic way. Usually I have been constructing network using template helper like:
+```rust
+let nc = NeuralNetTemplate::new(|path|{
+    let seq = nn::seq()
+        .add(nn::linear(path / "input", 32, 8, Default::default()))
+        .add(nn::linear(path / "h1", 8, 4, Default::default()));
+    let actor = nn::linear(vs.root() / "al", 4, 2, Default::default());
+    let critic = nn::linear(vs.root() / "cl", 4, 1, Default::default());
+
+    move |tensor| {
+        let xs = tensor.apply(&seq);
+        TensorActorCritic{critic: xs.apply(&critic), actor: xs.apply(&actor)}
+    }
+});
+let closure = nc.get_net_closure();
+let vs = VarStore::new(Device::Cpu);
+let net = NeuralNet::new(vs, closure);
+```
+This template step was problematic, and I could not create more complex methods to 
+build networks with more convenient functions, because of lifetime problems, as it often needed that
+reference of `VarStore` to be `'static`.
+With new approach the closure step can be omitted and a new (possibly more convenient) method is possible.
+Now one could do something like this to create actor-critic network:
+```rust
+let operator = NeuralNetTemplate::new(Box::new(|vs: &VarStore, tensor: &Tensor|{
+    let seq = nn::seq()
+        .add(nn::linear(path / "input", 32, 4, Default::default()))
+        .add(nn::linear(path / "h1", 4, 2, Default::default()));
+    let actor = nn::linear(vs.root() / "al", 4, 2, Default::default());
+    let critic = nn::linear(vs.root() / "cl", 4, 1, Default::default());
+    let xs = tensor.apply(&seq);
+    TensorActorCritic{critic: xs.apply(&critic), actor: xs.apply(&actor)}
+});
+let vs = VarStore::new(Device::Cpu);
+let net = NeuralNet::new(vs, operator);
+```
+or:
+```rust
+
+let operator = build_network_operator_ac(vec![Layer::Linear(8), Layer::Linear(4)], 4, 2);
+let net = NeuralNet::new(vs, operator);
+```
+Due to said problems with lifetimes I failed to implement latter method without changing the `NeuralNet` construction.
+This obviously breaks builds, and I am sorry.
 
 ## Version 0.12.0
 + (**super breaking**) - renamed `domain::DomainParameters` to `scheme::Scheme`, because domain parameters are inappropriate here (it is used in elliptic curve cryptography).

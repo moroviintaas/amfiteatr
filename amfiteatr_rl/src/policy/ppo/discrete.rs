@@ -54,18 +54,16 @@ impl<
     /// use amfiteatr_rl::policy::{ConfigPPO, PolicyDiscretePPO};
     /// use amfiteatr_rl::torch_net::{NeuralNetActorCritic, TensorActorCritic};
     /// let var_store = VarStore::new(Device::Cpu);
-    /// let net = NeuralNetActorCritic::new(var_store, |path|{
+    /// let net = NeuralNetActorCritic::new(var_store, Box::new(|vs: &VarStore, tensor: &Tensor|{
     ///     let seq = nn::seq()
-    ///         .add(nn::linear(path / "input", 1, 128, Default::default()))
-    ///         .add(nn::linear(path / "hidden", 128, 128, Default::default()));
-    ///     let actor = nn::linear(path / "al", 128, 2, Default::default());
-    ///     let critic = nn::linear(path / "cl", 128, 1, Default::default());
-    ///     let device = path.device();
-    ///     {move |xs: &Tensor|{
-    ///         let xs = xs.to_device(device).apply(&seq);
-    ///         TensorActorCritic{critic: xs.apply(&critic), actor: xs.apply(&actor)}
-    ///     }}
-    /// });
+    ///         .add(nn::linear(vs.root() / "input", 1, 128, Default::default()))
+    ///         .add(nn::linear(vs.root() / "hidden", 128, 128, Default::default()));
+    ///     let actor = nn::linear(vs.root() / "al", 128, 2, Default::default());
+    ///     let critic = nn::linear(vs.root() / "cl", 128, 1, Default::default());
+    ///     let device = vs.device();
+///         let xs = tensor.to_device(device).apply(&seq);
+///         TensorActorCritic{critic: xs.apply(&critic), actor: xs.apply(&actor)}
+    /// }));
     /// let optimizer = net.build_optimizer(Adam::default(), 0.01).unwrap();
     /// let config = ConfigPPO::default();
     /// let demo_info_set_ctx = DemoConversionToTensor::default();
@@ -261,7 +259,7 @@ impl<
     }
 
     fn batch_get_logprob_entropy_critic(&self, info_set_batch: &Tensor, action_param_batches: &<Self::NetworkOutput as ActorCriticOutput>::ActionTensorType, action_category_mask_batches: Option<&<Self::NetworkOutput as ActorCriticOutput>::ActionTensorType>, action_forward_mask_batches: Option<&<Self::NetworkOutput as ActorCriticOutput>::ActionTensorType>) -> Result<(Tensor, Tensor, Tensor), AmfiteatrError<S>> {
-        let critic_actor= self.network.net()(info_set_batch);
+        let critic_actor= self.network.operator()(self.network.var_store(), info_set_batch);
 
         let batch_logprob = critic_actor.batch_log_probability_of_action::<S>(
             action_param_batches,

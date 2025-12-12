@@ -132,6 +132,7 @@ fn main() -> Result<(), AmfiteatrError<ClassicScheme<AgentNum>>>{
     );
 
 
+    /*
     let net_template = NeuralNetTemplate::new(|path|{
         let seq = nn::seq()
             .add(nn::linear(path / "input", input_size, 512, Default::default()))
@@ -148,6 +149,24 @@ fn main() -> Result<(), AmfiteatrError<ClassicScheme<AgentNum>>>{
         }}
     });
 
+     */
+
+    let operator = Box::new(move |vs: &VarStore, tensor: &Tensor|{
+        let seq = nn::seq()
+            .add(nn::linear(vs.root() / "input", input_size, 512, Default::default()))
+            //.add(nn::linear(path / "h1", 256, 256, Default::default()))
+            .add(nn::linear(vs.root() / "hidden1", 512, 512, Default::default()))
+            .add_fn(|xs| xs.tanh())
+            .add(nn::linear(vs.root() / "hidden2", 512, 256, Default::default()))
+            .add_fn(|xs| xs.tanh())
+            .add_fn(|xs|xs.relu());
+        //.add(nn::linear(path / "h2", 512, 512, Default::default()));
+        let actor = nn::linear(vs.root() / "al", 256, 2, Default::default());
+        let critic =  nn::linear(vs.root() / "ac", 256, 1, Default::default());
+        let xs = tensor.to_device(vs.device()).apply(&seq);
+        TensorActorCritic {critic: xs.apply(&critic), actor: xs.apply(&actor)}
+    });
+
 
 
 
@@ -158,7 +177,7 @@ fn main() -> Result<(), AmfiteatrError<ClassicScheme<AgentNum>>>{
     let mut environment = TracingBasicEnvironment::new(env_state_template.clone(), env_adapter);
 
 
-    let net0 = A2CNet::new(VarStore::new(device), net_template.get_net_closure());
+    let net0 = A2CNet::new(VarStore::new(device), operator);
     let opt0 = net0.build_optimizer(Adam::default(), 1e-4).unwrap();
     let normal_policy = PolicyDiscreteA2C::new(ConfigA2C::default(), net0, opt0, tensor_repr, ClassicActionTensorRepresentation{});
     let state0 = LocalHistoryInfoSet::new(0, reward_table.into());
