@@ -3,6 +3,7 @@
 ## Version 0.13.0-rc (Work in Progress)
 + Previously used `LearningNetworkPolicy` is not Dyn compatible. Introducing `LearningNetworkPolicyDynamic` and `LearningNetworkPolicyDynamicCustomSummary` that use boxed target function instead of generic.
 **The names can change**
++ Added possibility to create `NeuralNet<..>` using constructor based on `Box<dyn Box<dyn Fn(&Tensor) -> Output + Send>`.
 
 ## Version 0.12.0
 + (**super breaking**) - renamed `domain::DomainParameters` to `scheme::Scheme`, because domain parameters are inappropriate here (it is used in elliptic curve cryptography).

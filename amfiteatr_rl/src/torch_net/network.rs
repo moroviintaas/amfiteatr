@@ -9,7 +9,7 @@ use std::default::Default;
 /// This structure shortens some steps of setting and provides some helpful functions - especially
 /// [`build_optimiser`](NeuralNet::build_optimizer).
 pub struct NeuralNet<Output: NetOutput>{
-    net: Box<dyn Fn(&Tensor) -> Output + Send>,
+    net: Box<dyn Fn(&Tensor) -> Output + Send >,
     var_store: VarStore,
     //_input: PhantomData<Input>,
 }
@@ -226,8 +226,70 @@ pub struct NeuralNetTemplateDiscreteAC{
 
 }
 
-pub fn create_net_model_discrete_ac<'a>(path: nn::Path<'a>, layers: &[Layer], input_shape: &[i64], actor_shape: i64)
-    ->  Box<dyn Fn(&Tensor) -> TensorActorCritic + 'a + Send>
+/*
+impl NeuralNetActorCritic{
+
+    pub fn new_from_layers(vs: VarStore, layers: &[Layer], input_shape: &[i64], actor_shape: i64) -> Self{
+        let mut seq = nn::seq();
+        let mut current_dim = input_shape[0];
+        let mut next_dim = input_shape[0];
+        let mut last_dim = None;
+        if !layers.is_empty() {
+            let mut layer = layers[0].clone();
+            last_dim = Some(layer.clone());
+            seq = match layer {
+                Layer::Relu => { seq.add_fn(|x| x.relu()) },
+                Layer::Tanh => { seq.add_fn(|x| x.tanh()) },
+                Layer::Linear(output) => {
+                    next_dim = output;
+                    seq.add(
+                        nn::linear(vs.root() / "0", current_dim, output, Default::default())
+                    )
+                }
+            };
+            current_dim = next_dim;
+            for (i, new_layer) in layers.iter().enumerate().skip(1) {
+                seq = match new_layer {
+                    Layer::Relu => { seq.add_fn(|x| x.relu()) },
+                    Layer::Tanh => { seq.add_fn(|x| x.tanh()) },
+                    Layer::Linear(output) => {
+                        next_dim = *output;
+                        seq.add(
+                            nn::linear(vs.root() / &format!("lin_{}", i), current_dim, *output, Default::default()))
+                    }
+                };
+                current_dim = next_dim;
+            }
+            let (actor, critic) = (
+                nn::linear(vs.root() / "actor", current_dim, actor_shape, Default::default()),
+                nn::linear(vs.root() / "critic", current_dim, 1, Default::default())
+            );
+            //{
+            let p = vs.root();
+            let device = vs.device();
+            let operation = Box::new(
+                |xs: &Tensor| { ;
+                    let xs = xs.to_device(device).apply(&seq);
+                    TensorActorCritic {
+                        critic: xs.apply(&critic),
+                        actor: xs.apply(&actor),
+                    }
+                }
+                //}
+            );
+            Self{var_store: vs, net: operation }
+
+
+        } else{
+            panic!("Empty layer sequence")
+        }
+    }
+}
+
+*/
+/*
+pub fn create_net_model_discrete_ac<'a>(vs: &'a VarStore, layers: &[Layer], input_shape: &[i64], actor_shape: i64)
+    ->  Box<dyn Fn(&Tensor) -> TensorActorCritic + Send + 'a>
 {
 
     let mut seq = nn::seq();
@@ -243,7 +305,7 @@ pub fn create_net_model_discrete_ac<'a>(path: nn::Path<'a>, layers: &[Layer], in
             Layer::Linear(output) => {
                 next_dim = output;
                 seq.add(
-                    nn::linear(path.clone() / "0", current_dim, output, Default::default())
+                    nn::linear(vs.root() / "0", current_dim, output, Default::default())
                 )
             }
         };
@@ -255,19 +317,19 @@ pub fn create_net_model_discrete_ac<'a>(path: nn::Path<'a>, layers: &[Layer], in
                 Layer::Linear(output) => {
                     next_dim = *output;
                     seq.add(
-                        nn::linear(path.clone() / &format!("lin_{}", i), current_dim, *output, Default::default()))
+                        nn::linear(vs.root() / &format!("lin_{}", i), current_dim, *output, Default::default()))
                 }
             };
             current_dim = next_dim;
         }
         let (actor, critic) = (
-            nn::linear(path.clone() / "actor", current_dim, actor_shape, Default::default()),
-            nn::linear(path.clone() / "critic", current_dim, 1, Default::default())
+            nn::linear(vs.root() / "actor", current_dim, actor_shape, Default::default()),
+            nn::linear(vs.root() / "critic", current_dim, 1, Default::default())
         );
         //{
         Box::new(
             move |xs: &Tensor| {
-                let device = path.device();
+                let device = vs.device();
                 let xs = xs.to_device(device).apply(&seq);
                 TensorActorCritic {
                     critic: xs.apply(&critic),
@@ -284,7 +346,76 @@ pub fn create_net_model_discrete_ac<'a>(path: nn::Path<'a>, layers: &[Layer], in
 
 }
 
+ */
 
+/*
+pub fn create_net_template_discrete_ac<'a>(layers: &[Layer], input_shape: &[i64], actor_shape: i64)
+                                        ->  Box<dyn Fn(nn::Path) -> Box<dyn Fn(&Tensor) -> TensorActorCritic + 'a + Send>>
+{
+
+
+
+    if !layers.is_empty() {
+
+        //{
+        Box::new(|p: nn::Path|{
+            let mut next_dim = input_shape[0];
+            let mut last_dim = None;
+            let mut seq = nn::seq();
+            let mut current_dim = input_shape[0];
+            let mut layer = layers[0].clone();
+            last_dim = Some(layer.clone());
+            seq = match layer {
+                Layer::Relu => { seq.add_fn(|x| x.relu()) },
+                Layer::Tanh => { seq.add_fn(|x| x.tanh()) },
+                Layer::Linear(output) => {
+                    next_dim = output;
+                    seq.add(
+                        nn::linear(p.clone() / "0", current_dim, output, Default::default())
+                    )
+                }
+            };
+            current_dim = next_dim;
+            for (i, new_layer) in layers.iter().enumerate().skip(1) {
+                seq = match new_layer {
+                    Layer::Relu => { seq.add_fn(|x| x.relu()) },
+                    Layer::Tanh => { seq.add_fn(|x| x.tanh()) },
+                    Layer::Linear(output) => {
+                        next_dim = *output;
+                        seq.add(
+                            nn::linear(p.clone() / &format!("lin_{}", i), current_dim, *output, Default::default()))
+                    }
+                };
+                current_dim = next_dim;
+            }
+            let (actor, critic) = (
+                nn::linear(p.clone() / "actor", current_dim, actor_shape, Default::default()),
+                nn::linear(p.clone() / "critic", current_dim, 1, Default::default())
+            );
+            Box::new(
+                move |xs: &Tensor| {
+                    let device = p.device();
+                    let xs = xs.to_device(device).apply(&seq);
+                    TensorActorCritic {
+                        critic: xs.apply(&critic),
+                        actor: xs.apply(&actor),
+                    }
+                }
+                //}
+            )
+        })
+
+
+
+    } else{
+        panic!("Empty layer sequence")
+    }
+
+}
+
+
+
+ */
 /*
 impl NeuralNetTemplateDiscreteAC {
     pub fn new(layer_description: Vec<Layer>, input_shape: Vec<i64>, actor_shape: i64) -> Self{
