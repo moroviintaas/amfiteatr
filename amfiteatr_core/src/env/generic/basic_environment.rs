@@ -26,6 +26,7 @@ pub struct BasicEnvironment<
     game_state: ST,
     penalties: HashMap<S::AgentId, S::UniversalReward>,
     game_steps: u64,
+    game_violators: Option<S::AgentId>,
 }
 
 impl <
@@ -35,7 +36,7 @@ impl <
 > BasicEnvironment<S, ST, CP>{
 
     pub fn new(game_state: ST, adapter: CP) -> Self{
-        Self{game_state, adapter, penalties: HashMap::new(), game_steps: 0}
+        Self{game_state, adapter, penalties: HashMap::new(), game_steps: 0, game_violators: None}
     }
 
     pub fn insert_illegal_reward_template(&mut self, penalties:  HashMap<S::AgentId, S::UniversalReward>){
@@ -83,6 +84,14 @@ impl <
             })
 
     }
+
+    fn game_violator(&self) -> Option<&S::AgentId> {
+        self.game_violators.as_ref()
+    }
+
+    fn set_game_violator(&mut self, game_violator: Option<S::AgentId>) {
+        self.game_violators = game_violator;
+    }
 }
 
 impl <
@@ -93,6 +102,7 @@ impl <
 > ReseedEnvironment<S, Seed> for BasicEnvironment<S, ST, CP>
 where <Self as StatefulEnvironment<S>>::State: Renew<S, Seed>{
     fn reseed(&mut self, seed: Seed) -> Result<(), AmfiteatrError<S>>{
+        self.set_game_violator(None);
         self.game_steps = 0;
         self.game_state.renew_from(seed)
     }
@@ -113,6 +123,7 @@ where <Self as StatefulEnvironment<S>>::State: RenewWithEffect<S, Seed>,
     type InitialObservations = HashMap<S::AgentId, Self::Observation>;
 
     fn reseed_with_observation(&mut self, seed: Seed) -> Result<Self::InitialObservations, AmfiteatrError<S>>{
+        self.set_game_violator(None);
         self.game_steps = 0;
         self.game_state.renew_with_effect_from(seed)
             .map(|agent_observation_iter|
@@ -251,6 +262,7 @@ impl <
                                     log::error!("Action was refused or caused error in updating state: {e:}");
                                     let _ = self.send(&player, EnvironmentMessage::MoveRefused);
                                     let _ = self.send_all(EnvironmentMessage::GameFinishedWithIllegalAction(player.clone()));
+                                    self.set_game_violator(Some(player));
                                     return Err(e);
                                 }
                             }
@@ -383,6 +395,7 @@ impl <
                                     log::error!("Action was refused or caused error in updating state: {e:}");
                                     let _ = self.send(&player, EnvironmentMessage::MoveRefused);
                                     let _ = self.send_all(EnvironmentMessage::GameFinishedWithIllegalAction(player.clone()));
+                                    self.set_game_violator(Some(player));
                                     return Err(e);
                                 }
                             }
@@ -520,7 +533,9 @@ impl <
                                         *score = self.actual_score_of_player(player);
                                         let _ = self.send(player, EnvironmentMessage::RewardFragment(reward));
                                     }
+
                                     let _ = self.send_all(EnvironmentMessage::GameFinishedWithIllegalAction(player.clone()));
+                                    self.set_game_violator(Some(player));
                                     return Err(e);
                                 }
                             }

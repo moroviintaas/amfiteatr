@@ -29,6 +29,7 @@ pub struct HashMapEnvironment<
     penalties: HashMap<S::AgentId, S::UniversalReward>,
     game_state: ST,
     game_steps: u64,
+    game_violator: Option<S::AgentId>,
 }
 
 impl <
@@ -50,7 +51,7 @@ HashMapEnvironment<S, ST, C>{
             .map(|agent| (agent.clone(), S::UniversalReward::neutral()))
             .collect();
 
-        Self{comm_endpoints, game_state, penalties, game_steps: 0}
+        Self{comm_endpoints, game_state, penalties, game_steps: 0, game_violator: None}
     }
 
     pub fn replace_state(&mut self, state: ST){
@@ -92,9 +93,13 @@ StatefulEnvironment<S> for HashMapEnvironment<S, ST, C>{
 
     }
 
+    fn game_violator(&self) -> Option<&S::AgentId> {
+        self.game_violator.as_ref()
+    }
 
-
-
+    fn set_game_violator(&mut self, game_violator: Option<S::AgentId>) {
+        self.game_violator = game_violator;
+    }
 }
 
 impl<
@@ -205,6 +210,8 @@ impl<S: Scheme,
     }
 
 
+
+
 }
 
 impl<S: Scheme,
@@ -310,6 +317,7 @@ impl <
 > ReseedEnvironment<S, Seed> for HashMapEnvironment<S, ST, CP>
     where <Self as StatefulEnvironment<S>>::State: Renew<S, Seed>{
     fn reseed(&mut self, seed: Seed) -> Result<(), AmfiteatrError<S>>{
+        self.set_game_violator(None);
         self.game_steps = 0;
         self.game_state.renew_from(seed)
     }
@@ -330,6 +338,7 @@ impl <
     type InitialObservations = HashMap<S::AgentId, Self::Observation>;
 
     fn reseed_with_observation(&mut self, seed: Seed) -> Result<Self::InitialObservations, AmfiteatrError<S>>{
+        self.set_game_violator(None);
         self.game_steps = 0;
         self.game_state.renew_with_effect_from(seed)
             .map(|agent_observation_iter|

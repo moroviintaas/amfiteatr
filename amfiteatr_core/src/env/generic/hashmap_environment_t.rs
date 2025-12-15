@@ -94,6 +94,14 @@ StatefulEnvironment<S> for TracingHashMapEnvironment<S, ST,C>{
             }
         }
     }
+
+    fn game_violator(&self) -> Option<&S::AgentId> {
+        self.base_environment.game_violator()
+    }
+
+    fn set_game_violator(&mut self, game_violator: Option<S::AgentId>) {
+        self.base_environment.set_game_violator(game_violator)
+    }
 }
 
 impl<

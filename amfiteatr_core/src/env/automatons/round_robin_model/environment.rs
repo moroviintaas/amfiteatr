@@ -156,6 +156,7 @@ where Env: CommunicatingEndpointEnvironment<S, CommunicationError=CommunicationE
                                     log::error!("Action was refused or caused error in updating state: {e:}");
                                     let _ = self.send_to(&player, EnvironmentMessage::MoveRefused);
                                     let _ = self.send_to_all(EnvironmentMessage::GameFinishedWithIllegalAction(player.clone()));
+                                    self.set_game_violator(Some(player));
                                     return Err(e);
                                 }
                             }
@@ -284,6 +285,7 @@ where Env: CommunicatingEndpointEnvironment<S, CommunicationError=CommunicationE
                                     let _ = self.send_to(&player, EnvironmentMessage::MoveRefused);
 
                                     let _ = self.send_to_all(EnvironmentMessage::GameFinishedWithIllegalAction(player.clone()));
+                                    self.set_game_violator(Some(player));
                                     return Err(e);
                                 }
                             }
@@ -416,6 +418,7 @@ P: Fn(&<Self as StatefulEnvironment<S>>::State, &S::AgentId) -> S::UniversalRewa
                                         let _ = self.send_to(player, EnvironmentMessage::RewardFragment(reward));
                                     }
                                     let _ = self.send_to_all(EnvironmentMessage::GameFinishedWithIllegalAction(player.clone()));
+                                    self.set_game_violator(Some(player));
                                     return Err(e);
                                 }
                             }

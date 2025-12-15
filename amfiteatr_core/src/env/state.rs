@@ -19,6 +19,25 @@ pub trait SequentialGameState<S: Scheme>: Send + Debug{
     fn first_observations(&self) -> Option<Self::Updates>{
         None
     }
+
+    /*
+    /// Implement this method to enable pointing agent that violated rules in the game.
+    /// Default implementation always returns `None` which is considered that no rules were violated,
+    /// and the game is in proper state.
+    fn game_violator(&self) -> Option<S::AgentId>{
+        None
+    }
+
+
+    /// Implement this method to enable setting agent that violated rules in the game.
+    /// Default implementation does not do anything.
+    /// This method will be used by automatic agents to set this information if
+    /// method [`forward`] returns an error. If it is not implemented.
+    fn set_game_violator(&mut self, game_violator: Option<S::AgentId>){
+
+    }
+
+     */
 }
 
 //pub trait EnvStateSimultaneous{}
