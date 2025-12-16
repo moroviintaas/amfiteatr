@@ -1,14 +1,14 @@
 use std::collections::HashMap;
 use crate::env::SequentialGameState;
 use crate::scheme::{Reward, Scheme};
-use getset::{CloneGetters, CopyGetters, Getters};
-#[derive(Getters, CopyGetters)]
+use getset::{CloneGetters, CopyGetters, Getters, Setters};
+#[derive(Getters, CopyGetters, Setters)]
 pub struct GameSummaryGen<S: Scheme>{
     #[getset(get = "pub")]
     scores: HashMap<S::AgentId, S::UniversalReward>,
     #[getset(get_copy = "pub")]
     steps: u64,
-    #[getset(get = "pub")]
+    #[getset(get = "pub", set = "pub")]
     violating_agent: Option<S::AgentId>,
 }
 
