@@ -130,6 +130,11 @@ where <P as Policy<S>>::InfoSetType: InformationSet<S>
         &mut self.comm
     }
 
+
+    pub fn swap_policy(&mut self, policy: &mut P){
+        std::mem::swap(&mut self.policy, policy)
+    }
+
     /*
     /// Adds current partial reward to actual score, and then neutralises universal reward
     fn commit_reward_to_score(&mut self){

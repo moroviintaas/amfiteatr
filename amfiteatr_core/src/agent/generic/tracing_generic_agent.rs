@@ -146,6 +146,10 @@ where <P as Policy<S>>::InfoSetType: InformationSet<S>{
         v
     }
 
+    pub fn swap_policy(&mut self, policy: &mut P){
+        std::mem::swap(&mut self.policy, policy)
+    }
+
 
 }
 
