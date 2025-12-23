@@ -78,6 +78,8 @@ where <Self as Policy<S>>::InfoSetType: InformationSet<S>
         self.train_generic(trajectories, |step| step.reward().to_tensor())
     }
 
+    fn set_gradient_tracing(&mut self, enabled: bool);
+
 
 
 }
@@ -107,6 +109,13 @@ impl<S: Scheme, T: LearningNetworkPolicyGeneric<S>> LearningNetworkPolicyGeneric
             Err(e) => Err(AmfiteatrRlError::Amfiteatr{source: AmfiteatrError::Lock { description: e.to_string(), object: "Learning policy".to_string() }})
         }
     }
+
+    fn set_gradient_tracing(&mut self, enabled: bool) {
+        if let Ok(mut internal_policy) = self.as_ref().lock(){
+                internal_policy.set_gradient_tracing(enabled)
+        }
+
+    }
 }
 
 impl<S: Scheme, T: LearningNetworkPolicyGeneric<S>> LearningNetworkPolicyGeneric<S> for Mutex<T>{
@@ -131,6 +140,12 @@ impl<S: Scheme, T: LearningNetworkPolicyGeneric<S>> LearningNetworkPolicyGeneric
             Err(e) => Err(AmfiteatrRlError::Amfiteatr{source: AmfiteatrError::Lock { description: e.to_string(), object: "Learning policy".to_string() }})
         }
     }
+
+    fn set_gradient_tracing(&mut self, enabled: bool) {
+        if let Ok(mut internal_policy) = self.get_mut(){
+            internal_policy.set_gradient_tracing(enabled)
+        }
+    }
 }
 
 impl<S: Scheme, T: LearningNetworkPolicyGeneric<S>> LearningNetworkPolicyGeneric<S> for RwLock<T>{
@@ -153,6 +168,12 @@ impl<S: Scheme, T: LearningNetworkPolicyGeneric<S>> LearningNetworkPolicyGeneric
                 internal_policy.train_generic(trajectories, reward_f)
             }
             Err(e) => Err(AmfiteatrRlError::Amfiteatr{source: AmfiteatrError::Lock { description: e.to_string(), object: "Learning policy".to_string() }})
+        }
+    }
+
+    fn set_gradient_tracing(&mut self, enabled: bool) {
+        if let Ok(mut internal_policy) = self.write(){
+            internal_policy.set_gradient_tracing(enabled)
         }
     }
 }

@@ -283,6 +283,14 @@ where <S as Scheme>::ActionType: ContextDecodeMultiIndexI64<ActionBuildContext>
         Ok(self.a2c_train_on_trajectories(trajectories, reward_f)?)
 
     }
+
+    fn set_gradient_tracing(&mut self, enabled: bool) {
+        match enabled{
+            true => self.network.var_store_mut().unfreeze(),
+            false => self.network.var_store_mut().freeze(),
+        }
+
+    }
 }
 
 /// Experimental PPO policy for actions from discrete actions space but sampled from
@@ -485,5 +493,10 @@ where
     fn train_generic<R: Fn(&AgentStepView<S, <Self as Policy<S>>::InfoSetType>) -> Tensor>(&mut self, trajectories: &[AgentTrajectory<S, <Self as Policy<S>>::InfoSetType>], reward_f: R)
                                                                                              -> Result<Self::Summary, AmfiteatrRlError<S>> {
         Ok(self.a2c_train_on_trajectories(trajectories, reward_f)?)
+    }
+
+    fn set_gradient_tracing(&mut self, enabled: bool) {
+        self.base.set_gradient_tracing(enabled)
+
     }
 }

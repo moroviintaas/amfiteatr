@@ -281,6 +281,14 @@ impl<
                                                                                              -> Result<Self::Summary, AmfiteatrRlError<S>> {
         Ok(self.a2c_train_on_trajectories(trajectories, reward_f)?)
     }
+
+    fn set_gradient_tracing(&mut self, enabled: bool) {
+        match enabled{
+            true => self.network.var_store_mut().unfreeze(),
+            false => self.network.var_store_mut().freeze(),
+        }
+
+    }
 }
 
 
@@ -471,5 +479,10 @@ impl <
         #[cfg(feature = "log_trace")]
         log::trace!("Train on trajectories start.");
         Ok(self.a2c_train_on_trajectories(trajectories, reward_f)?)
+    }
+
+    fn set_gradient_tracing(&mut self, enabled: bool) {
+        self.base.switch_explore(enabled)
+
     }
 }
