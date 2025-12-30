@@ -1,7 +1,12 @@
 use std::marker::PhantomData;
 use tch::{nn, Device, TchError, Tensor};
 use tch::nn::{Optimizer, OptimizerConfig, Path,  VarStore};
-use crate::torch_net::{ActorCriticOutput, MultiDiscreteTensor, NetOutput, TensorActorCritic, TensorMultiParamActorCritic};
+use crate::torch_net::{
+    MultiDiscreteTensor,
+    NetOutput,
+    TensorActorCritic,
+    TensorMultiParamActorCritic
+};
 use serde::{Serialize, Deserialize};
 use std::default::Default;
 /// Structure wrapping [`VarStore`] and network closure used to build neural network based function.
@@ -157,7 +162,7 @@ pub struct NeuralNetTemplate<
 
 
 #[deprecated(since = "0.13.0", note = "Please build `NeuralNetTemplate` with function `new` using operator Box.\
-The whole structure does not make sence anymore since NuralNet use `Box<dyn Fn(&VarStore, &Tensor) -> Output>` \
+The whole structure does not make sense anymore since NuralNet use `Box<dyn Fn(&VarStore, &Tensor) -> Output>` \
 and not `Box<dyn Fn(&Tensor) -> Output + Send >` which led to problems with constructing dynamic network shape without templating them in closures.")]
 impl<
     O: NetOutput,
@@ -232,7 +237,7 @@ pub enum Layer{
     Linear(i64),
 }
 
-
+/*
 pub struct NeuralNetTemplateDiscreteAC{
     //func: Box<dyn Fn(Tensor) -> TensorActorCritic>
     layers: Vec<Layer>,
@@ -243,7 +248,7 @@ pub struct NeuralNetTemplateDiscreteAC{
 
 }
 
-/*
+
 impl NeuralNetActorCritic{
 
     pub fn new_from_layers(vs: VarStore, layers: &[Layer], input_shape: &[i64], actor_shape: i64) -> Self{
@@ -317,9 +322,9 @@ pub fn build_network_operator_ac(layers: Vec<Layer>, input_shape:  Vec<i64>, act
             let mut seq = nn::seq();
             let mut current_dim = input_shape[0];
             let mut next_dim = input_shape[0];
-            let mut last_dim = None;
-            let mut layer = layers[0].clone();
-            last_dim = Some(layer.clone());
+            //let mut last_dim = None;
+            let layer = layers[0].clone();
+            //last_dim = Some(layer.clone());
             seq = match layer {
                 Layer::Relu => { seq.add_fn(|x| x.relu()) },
                 Layer::Tanh => { seq.add_fn(|x| x.tanh()) },

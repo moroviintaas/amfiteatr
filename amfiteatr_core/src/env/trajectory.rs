@@ -241,7 +241,7 @@ impl<S: Scheme, ST: SequentialGameState<S>> GameTrajectory<S, ST>{
     /// step measured between two last registered entries. If game is finished (trajectory invoked
     /// function [`GameTrajectory::finish`]) then the step between last registered information set
     /// and information set provided for the finish function is used to mark last step.
-    pub fn last_view_step(&self) -> Option<GameStepView<S, ST>>{
+    pub fn last_view_step(&self) -> Option<GameStepView<'_, S, ST>>{
         if self.final_state.is_some(){
             self.view_step(self.states.len().saturating_sub(1))
         } else {
@@ -249,7 +249,7 @@ impl<S: Scheme, ST: SequentialGameState<S>> GameTrajectory<S, ST>{
         }
     }
     /// Returns view of indexed step
-    pub fn view_step(&self, index: usize) -> Option<GameStepView<S, ST>>{
+    pub fn view_step(&self, index: usize) -> Option<GameStepView<'_, S, ST>>{
         self.states.get(index+1).map(|se|{
             GameStepView::new(
                 &self.states[index],

@@ -7,7 +7,7 @@ use log::{debug, info};
 use amfiteatr_rl::tch::{Device, nn, Tensor};
 use amfiteatr_rl::tch::nn::{Adam, VarStore};
 use amfiteatr_rl::tensor_data::{TensorEncoding};
-use amfiteatr_rl::torch_net::{A2CNet, NeuralNetTemplate, TensorActorCritic};
+use amfiteatr_rl::torch_net::{A2CNet, TensorActorCritic};
 use clap::{Parser};
 use plotters::style::colors;
 use amfiteatr_core::agent::*;

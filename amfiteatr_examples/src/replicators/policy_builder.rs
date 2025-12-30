@@ -10,7 +10,7 @@ use amfiteatr_rl::tch;
 use amfiteatr_rl::tch::{nn, Tensor};
 use amfiteatr_rl::tch::nn::{Adam, OptimizerConfig, VarStore};
 use amfiteatr_rl::tensor_data::TensorEncoding;
-use amfiteatr_rl::torch_net::{A2CNet, NeuralNetTemplate, TensorActorCritic};
+use amfiteatr_rl::torch_net::{A2CNet, TensorActorCritic};
 use crate::common::ComputeDevice;
 use crate::replicators::aliases::ReplPPO;
 use crate::replicators::error::ReplError;
@@ -79,7 +79,7 @@ pub fn create_ppo_policy(layer_sizes: Vec<i64>, var_store: VarStore, options: &R
 
      */
 
-    let mut operator = Box::new(move |vs: &VarStore, tensor: &Tensor|{
+    let operator = Box::new(move |vs: &VarStore, tensor: &Tensor|{
         let mut seq = nn::seq();
         let mut last_dim = None;
         if !hidden_layers.is_empty(){

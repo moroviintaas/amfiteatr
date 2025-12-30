@@ -246,7 +246,7 @@ impl<S: Scheme, IS: InformationSet<S>> AgentTrajectory<S, IS>{
     /// step measured between two last registered entries. If game is finished (trajectory invoked
     /// function [`AgentTrajectory::finish`]) then the step between last registered information set
     /// and information set provided for the finish function is used to mark last step.
-    pub fn last_view_step(&self) -> Option<AgentStepView<S, IS>>{
+    pub fn last_view_step(&self) -> Option<AgentStepView<'_, S, IS>>{
         if self.final_payoff.is_some() && self.final_info_set.is_some(){
             self.view_step(self.payoffs.len().saturating_sub(1))
         } else {
@@ -255,7 +255,7 @@ impl<S: Scheme, IS: InformationSet<S>> AgentTrajectory<S, IS>{
     }
 
     /// Returns view of indexed step
-    pub fn view_step(&self, index: usize) -> Option<AgentStepView<S, IS>>{
+    pub fn view_step(&self, index: usize) -> Option<AgentStepView<'_, S, IS>>{
         //first check if there is next normal step
         self.information_sets.get(index+1).and_then(|se|{
             self.payoffs.get(index+1).map(|pe|{
@@ -343,7 +343,7 @@ impl<S: Scheme, IS: InformationSet<S>> AgentTrajectory<S, IS>{
     }
 
     /// Returns iterator of step views.
-    pub fn iter(&self) -> AgentStepIterator<S, IS>{
+    pub fn iter(&self) -> AgentStepIterator<'_, S, IS>{
         AgentStepIterator{
             trajectory: self,
             index: 0,

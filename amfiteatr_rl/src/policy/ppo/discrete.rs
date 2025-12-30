@@ -9,9 +9,22 @@ use amfiteatr_core::scheme::Scheme;
 use amfiteatr_core::error::{AmfiteatrError, TensorError};
 use amfiteatr_core::util::TensorboardSupport;
 use crate::error::AmfiteatrRlError;
-use crate::policy::{ConfigPPO, LearnSummary, LearningNetworkPolicyDynamic, LearningNetworkPolicyGeneric, PolicyHelperA2C, PolicyTrainHelperPPO};
+use crate::policy::{
+    ConfigPPO,
+    LearnSummary,
+    LearningNetworkPolicyGeneric,
+    PolicyHelperA2C,
+    PolicyTrainHelperPPO
+};
 use crate::{tensor_data, MaskingInformationSetAction};
-use crate::tensor_data::{ContextEncodeIndexI64, ContextEncodeTensor, TensorDecoding, TensorIndexI64Encoding, TensorEncoding, ContextDecodeIndexI64};
+use crate::tensor_data::{
+    ContextEncodeIndexI64,
+    ContextEncodeTensor,
+    TensorDecoding,
+    TensorIndexI64Encoding,
+    TensorEncoding,
+    ContextDecodeIndexI64
+};
 use crate::torch_net::{ActorCriticOutput, NeuralNet, NeuralNetActorCritic, TensorActorCritic};
 
 

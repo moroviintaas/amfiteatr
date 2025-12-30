@@ -6,7 +6,7 @@ use log::{debug, info};
 use amfiteatr_rl::tch::{Device, nn, Tensor};
 use amfiteatr_rl::tch::nn::{Adam, VarStore};
 use amfiteatr_rl::tensor_data::{TensorEncoding};
-use amfiteatr_rl::torch_net::{A2CNet, NeuralNetTemplate, TensorActorCritic};
+use amfiteatr_rl::torch_net::{A2CNet, TensorActorCritic};
 use clap::{Parser};
 use plotters::style::colors;
 use amfiteatr_core::agent::*;
@@ -123,26 +123,7 @@ fn main() -> Result<(), AmfiteatrError<ClassicScheme<AgentNum>>>{
         args.defect_versus_coop,
         args.defect_versus_defect);
 
-    /*
-    let net_template = NeuralNetTemplate::new(|path|{
-        let seq = nn::seq()
-            .add(nn::linear(path / "input", input_size, 512, Default::default()))
-            //.add(nn::linear(path / "h1", 256, 256, Default::default()))
-            .add(nn::linear(path / "hidden1", 512, 512, Default::default()))
-            .add_fn(|xs| xs.tanh())
-            .add(nn::linear(path / "hidden2", 512, 256, Default::default()))
-            .add_fn(|xs| xs.tanh())
-            .add_fn(|xs|xs.relu());
-            //.add(nn::linear(path / "h2", 512, 512, Default::default()));
-        let actor = nn::linear(path / "al", 256, 2, Default::default());
-        let critic =  nn::linear(path / "ac", 256, 1, Default::default());
-        {move |input: &Tensor|{
-            let xs = input.to_device(device).apply(&seq);
-            TensorActorCritic {critic: xs.apply(&critic), actor: xs.apply(&actor)}
-        }}
-    });
 
-     */
 
     let operator = Box::new(move |vs: &VarStore, tensor: &Tensor|{
         let seq = nn::seq()

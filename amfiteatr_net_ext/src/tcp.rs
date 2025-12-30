@@ -6,7 +6,6 @@ use std::marker::PhantomData;
 use std::net::TcpStream;
 use std::sync::mpsc;
 use std::thread;
-use log::{error};
 use speedy::{LittleEndian, Readable, Writable};
 use amfiteatr_core::error::CommunicationError;
 use thiserror::Error;

@@ -13,7 +13,7 @@ use amfiteatr_rl::error::AmfiteatrRlError;
 use amfiteatr_rl::policy::{ActorCriticPolicy, LearningNetworkPolicyGeneric, TrainConfig};
 use amfiteatr_rl::tch::{Device, nn, Tensor};
 use amfiteatr_rl::tch::nn::{Adam, VarStore};
-use amfiteatr_rl::torch_net::{A2CNet, NeuralNetTemplate, TensorActorCritic};
+use amfiteatr_rl::torch_net::{A2CNet, TensorActorCritic};
 use crate::agent::{CART_POLE_TENSOR_REPR, PythonGymnasiumCartPoleInformationSet};
 use crate::common::{CartPoleScheme, CartPoleObservation, SINGLE_PLAYER_ID};
 use crate::env::PythonGymnasiumCartPoleState;
@@ -91,6 +91,7 @@ fn main() {
 
     let mut environment = BasicEnvironment::new(env_state, env_comm);
 
+    /* old
     let net_template = NeuralNetTemplate::new(|path|{
         let seq = nn::seq()
             .add(nn::linear(path / "input", 4, 128, Default::default()))
@@ -103,6 +104,8 @@ fn main() {
             TensorActorCritic {critic: xs.apply(&critic), actor: xs.apply(&actor)}
         }}
     });
+
+     */
 
     let operator = Box::new(move |vs: &VarStore, tensor: &Tensor|{
         let seq = nn::seq()

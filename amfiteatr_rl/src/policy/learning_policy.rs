@@ -142,7 +142,7 @@ impl<S: Scheme, T: LearningNetworkPolicyGeneric<S>> LearningNetworkPolicyGeneric
     }
 
     fn set_gradient_tracing(&mut self, enabled: bool) {
-        if let Ok(mut internal_policy) = self.get_mut(){
+        if let Ok(internal_policy) = self.get_mut(){
             internal_policy.set_gradient_tracing(enabled)
         }
     }

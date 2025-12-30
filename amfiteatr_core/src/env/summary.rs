@@ -1,7 +1,6 @@
 use std::collections::HashMap;
-use crate::env::SequentialGameState;
 use crate::scheme::{Reward, Scheme};
-use getset::{CloneGetters, CopyGetters, Getters, Setters};
+use getset::{CopyGetters, Getters, Setters};
 #[derive(Getters, CopyGetters, Setters)]
 pub struct GameSummaryGen<S: Scheme>{
     #[getset(get = "pub")]
@@ -39,7 +38,7 @@ impl<S: Scheme> EpochSummaryGen<S>{
 
         for s in &game_summaries{
             if let Some(agent) = s.violating_agent(){
-                let mut previous_faults = faults.entry(agent.clone()).or_insert(0);
+                let previous_faults = faults.entry(agent.clone()).or_insert(0);
                 *previous_faults += 1;
             }
         }
