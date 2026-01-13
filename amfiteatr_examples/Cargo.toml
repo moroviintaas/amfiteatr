@@ -27,8 +27,9 @@ name = "one_fixed"
 #name = "cart_pole_python"
 #required-features = ["rl-python"]
 
-#[[example]]
-#name = "cart_pole_pure_rust"
+[[example]]
+name = "cart_pole"
+path = "examples/cart_pole/main.rs"
 
 [[example]]
 name = "connect_four_a2c"

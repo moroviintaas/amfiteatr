@@ -369,7 +369,7 @@ pub fn build_ppo_policy_masking(layer_sizes: &[i64], device: Device, config: Con
     //let var_store = VarStore::new(Device::Cuda(0));
     let input_shape = ConnectFourTensorReprD1{}.desired_shape()[0];
     let hidden_layers = layer_sizes.to_vec();
-    /*
+    /* OLD way:
     let network_pattern = NeuralNetTemplate::new(|path| {
         let mut seq = nn::seq();
         let mut last_dim = None;

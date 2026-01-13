@@ -1,11 +1,12 @@
 use std::fmt::{Display, Formatter};
+use amfiteatr_core::error::ConvertError;
 use amfiteatr_core::scheme::{Action, Scheme};
 use amfiteatr_rl::error::TensorRepresentationError;
 use amfiteatr_rl::tch::Tensor;
-use amfiteatr_rl::tensor_data::TryIntoTensor;
+use amfiteatr_rl::tensor_data::{ContextDecodeIndexI64, ContextEncodeIndexI64, TensorDecoding, TensorIndexI64Encoding, TryIntoTensor};
+use crate::connect_four::agent::ConnectFourActionTensorRepresentation;
 
-
-pub const _SINGLE_PLAYER_ID: u64 = 1;
+pub const SINGLE_PLAYER_ID: u64 = 0;
 #[derive(Debug, Clone)]
 pub struct CartPoleScheme{}
 
@@ -32,6 +33,9 @@ pub enum CartPoleAction{
     Right
 }
 
+
+
+
 impl Action for CartPoleAction {}
 
 impl Display for CartPoleAction {
@@ -50,6 +54,43 @@ impl TryIntoTensor for CartPoleAction {
         match self {
             CartPoleAction::Left => Ok(Tensor::from_slice(&[0.0f32])),
             CartPoleAction::Right => Ok(Tensor::from_slice(&[1.0f32])),
+        }
+    }
+}
+
+pub struct CartPoleActionEncoding{}
+
+impl TensorIndexI64Encoding for CartPoleActionEncoding{
+    fn min(&self) -> i64 {
+        0
+    }
+
+    fn limit(&self) -> i64 {
+        1
+    }
+}
+
+impl TensorDecoding for CartPoleActionEncoding{
+    fn expected_input_shape(&self) -> &[i64] {
+        &[1]
+    }
+}
+
+impl ContextDecodeIndexI64<CartPoleActionEncoding> for CartPoleAction{
+    fn try_from_index(index: i64, _encoding: &CartPoleActionEncoding) -> Result<Self, ConvertError> {
+        match index{
+            0 => Ok(CartPoleAction::Left),
+            1 => Ok(CartPoleAction::Right),
+            any =>  Err(ConvertError::ConvertFromTensor{ origin: "".to_string(), context: format!("Failed converting number {any:} to CartPoleAction") })
+        }
+    }
+}
+
+impl ContextEncodeIndexI64<CartPoleActionEncoding> for CartPoleAction{
+    fn try_to_index(&self, _encoding: &CartPoleActionEncoding) -> Result<i64, ConvertError> {
+        match self{
+            CartPoleAction::Left => Ok(0),
+            CartPoleAction::Right => Ok(1)
         }
     }
 }

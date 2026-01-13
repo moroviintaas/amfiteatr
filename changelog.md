@@ -1,6 +1,6 @@
 # Changelog
 
-## Version 0.13.0-rc (Work in Progress)
+## Version 0.13.0
 + Previously used `LearningNetworkPolicy` is not Dyn compatible. Introducing `LearningNetworkPolicyDynamic` and `LearningNetworkPolicyDynamicCustomSummary` that use boxed target function instead of generic.
 **The names can change**
 + Changing `NeuralNet<T>` struct. Previously it aggregated  `Box<dyn Fn(&Tensor) -> Output + Send >` 
