@@ -4,7 +4,7 @@
 use std::fmt::Debug;
 use rand::Rng;
 use amfiteatr_core::scheme::{Renew, Scheme};
-use amfiteatr_core::env::SequentialGameState;
+use amfiteatr_core::env::{GameStateWithPayoffs, SequentialGameState};
 use amfiteatr_core::error::AmfiteatrError;
 use crate::cart_pole::common::{CartPoleAction, CartPoleScheme, CartPoleObservation, CartPoleRustError, SINGLE_PLAYER_ID};
 #[derive(Debug, Clone)]
@@ -75,17 +75,19 @@ impl CartPoleEnvStateRust {
             angular_velocity: rng.sample(d),
         };
 
+        let mass_pole = 0.1;
+        let length = 0.5;
         Self{
             sutton_barto_reward,
             gravity: 9.8,
-            mass_cart: 0.0,
-            mass_pole: 0.0,
-            length: 0.0,
-            pole_mass_length: 0.0,
-            force_mag: 0.0,
-            tau: 0.0,
+            mass_cart: 1.0,
+            mass_pole,
+            length,
+            pole_mass_length: mass_pole * length,
+            force_mag: 10.0,
+            tau: 0.02,
             kinematics_integrator: KinematicsIntegrator::Euler,
-            theta_threshold_radians: 0.0,
+            theta_threshold_radians: 12.0 * 2.0 * std::f32::consts::PI / 360.0,
             x_threshold,
             //is_open: false,
             state: Some(state),
@@ -119,6 +121,7 @@ impl SequentialGameState<CartPoleScheme> for CartPoleEnvStateRust{
 
     fn forward(&mut self, _agent: <CartPoleScheme as Scheme>::AgentId, action: <CartPoleScheme as Scheme>::ActionType) -> Result<Self::Updates, <CartPoleScheme as Scheme>::GameErrorType> {
 
+        log::trace!("In state: {:?} making step: {:?}", self.state, action);
         let s = self.state.as_ref().ok_or(CartPoleRustError::GameStateNotInitialized)?;
         //let CartPoleObservation{position: x, velocity: x_dot, angle: theta, angular_velocity: theta_dot} = s;
         let (mut x, mut x_dot, mut theta, mut theta_dot) = (s.position, s.velocity, s.angle, s.angular_velocity);
@@ -159,13 +162,17 @@ impl SequentialGameState<CartPoleScheme> for CartPoleEnvStateRust{
         s.angle = theta;
         s.angular_velocity = theta_dot;
 
-        let terminated =
+        log::trace!("Cart Pole observation: {:?}", self.state);
+
+        self.terminated =
                 x < -self.x_threshold
                 || x > self.x_threshold
                 || theta < -self.theta_threshold_radians
                 || theta > self.theta_threshold_radians;
 
-        let reward = match terminated{
+
+
+        let reward = match self.terminated{
             false => match self.sutton_barto_reward{
                 true => 0.0,
                 false => 1.0,
@@ -217,5 +224,11 @@ impl Renew<CartPoleScheme, (), > for CartPoleEnvStateRust {
         self.steps_beyond_terminated = None;
 
         Ok(())
+    }
+}
+
+impl GameStateWithPayoffs<CartPoleScheme> for CartPoleEnvStateRust {
+    fn state_payoff_of_player(&self, _agent: &<CartPoleScheme as Scheme>::AgentId) -> <CartPoleScheme as Scheme>::UniversalReward {
+        self.payoff
     }
 }

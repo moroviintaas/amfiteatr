@@ -272,48 +272,7 @@ pub fn build_a2c_policy_masking(layer_sizes: &[i64], device: Device, config: Con
     let var_store = VarStore::new(device);
     let input_shape = ConnectFourTensorReprD1{}.desired_shape()[0];
     let hidden_layers = layer_sizes.to_vec();
-    /*
-    let network_pattern = NeuralNetTemplate::new(|path| {
-        let mut seq = nn::seq();
-        let mut last_dim = None;
-        if !hidden_layers.is_empty(){
-            let mut ld = hidden_layers[0];
 
-            last_dim = Some(ld);
-            seq = seq.add(nn::linear(path / "INPUT", input_shape, ld, Default::default()));
-
-            for (i, ld_new) in hidden_layers.iter().enumerate().skip(1){
-                seq = seq.add(nn::linear(path / &format!("h_{:}", i+1), ld, *ld_new, Default::default()))
-                    .add_fn(|xs| xs.tanh());
-
-                ld = *ld_new;
-                last_dim = Some(ld);
-            }
-        }
-        let (actor, critic) = match last_dim{
-            None => {
-                (nn::linear(path / "al", input_shape, 7, Default::default()),
-                 nn::linear(path / "cl", input_shape, 1, Default::default()))
-            }
-            Some(ld) => {
-                (nn::linear(path / "al", ld, 7, Default::default()),
-                 nn::linear(path / "cl", ld, 1, Default::default()))
-            }
-        };
-        let device = path.device();
-        {move |xs: &Tensor|{
-            if seq.is_empty(){
-                TensorActorCritic {critic: xs.apply(&critic), actor: xs.apply(&actor)}
-            } else {
-                let xs = xs.to_device(device).apply(&seq);
-                TensorActorCritic {critic: xs.apply(&critic), actor: xs.apply(&actor)}
-            }
-        }}
-    });
-
-    let net = network_pattern.get_net_closure();
-
-     */
     let operator = Box::new(move |vs: &VarStore, tensor: &Tensor|{
         let mut seq = nn::seq();
         let mut last_dim = None;
@@ -497,36 +456,7 @@ pub struct ConnectFourModelRust<ST: GameStateWithPayoffs<ConnectFourScheme>, P: 
     //model_tboard: Option<tboard::EventWriter<File>>
 
 }
-/*
-impl<
-    S:  GameStateWithPayoffs<ConnectFourDomain> + Clone + Renew<ConnectFourDomain, ()>,
-> ConnectFourModelRust<S, C4A2CPolicyOld>{
-    #[allow(dead_code)]
-    pub fn new_a2c_old(agent_layers_1: &[i64], agent_layers_2: &[i64], device: Device) -> Self
-    where S: Default{
 
-        let (c_env1, c_a1) = StdEnvironmentEndpoint::new_pair();
-        let (c_env2, c_a2) = StdEnvironmentEndpoint::new_pair();
-
-        let mut hm = HashMap::new();
-        hm.insert(ConnectFourPlayer::One, c_env1);
-        hm.insert(ConnectFourPlayer::Two, c_env2);
-
-
-        let env = Environment::new(S::default(), hm, );
-        let agent_policy_1 = build_a2c_policy_old(agent_layers_1, device).unwrap();
-        let agent_policy_2 = build_a2c_policy_old(agent_layers_2, device).unwrap();
-        let agent_1 = Agent::new(ConnectFourInfoSet::new(ConnectFourPlayer::One), c_a1, agent_policy_1);
-        let agent_2 = Agent::new(ConnectFourInfoSet::new(ConnectFourPlayer::Two), c_a2, agent_policy_2);
-
-        Self{
-            env,
-            agent1: agent_1,
-            agent2: agent_2
-        }
-    }
-}
-*/
 
 impl<
     S:  Default + GameStateWithPayoffs<ConnectFourScheme> + Clone + Renew<ConnectFourScheme, ()>,

@@ -1,6 +1,6 @@
 use std::fmt::{Display, Formatter};
-use amfiteatr_core::error::ConvertError;
-use amfiteatr_core::scheme::{Action, Scheme};
+use amfiteatr_core::error::{AmfiteatrError, ConvertError};
+use amfiteatr_core::scheme::{Action, Renew, Scheme};
 use amfiteatr_rl::error::TensorRepresentationError;
 use amfiteatr_rl::tch::Tensor;
 use amfiteatr_rl::tensor_data::{ContextDecodeIndexI64, ContextEncodeIndexI64, TensorDecoding, TensorIndexI64Encoding, TryIntoTensor};
@@ -31,6 +31,16 @@ impl CartPoleObservation{
 pub enum CartPoleAction{
     Left,
     Right
+}
+
+impl Renew<CartPoleScheme, ()> for CartPoleObservation{
+    fn renew_from(&mut self, _base: ()) -> Result<(), AmfiteatrError<CartPoleScheme>> {
+        self.angle = 0.0;
+        self.velocity = 0.0;
+        self.angular_velocity = 0.0;
+        self.position = 0.0;
+        Ok(())
+    }
 }
 
 
