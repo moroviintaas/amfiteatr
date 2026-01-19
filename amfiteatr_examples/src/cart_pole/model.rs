@@ -3,10 +3,11 @@ use std::ops::Add;
 use std::fs::File;
 use std::path::PathBuf;
 use clap::Parser;
-use log::LevelFilter;
+use log::{info, LevelFilter};
 use tboard::EventWriter;
-use amfiteatr_rl::policy::ConfigPPO;
-use amfiteatr_core::agent::{AutomaticAgent, MultiEpisodeAutoAgent, ReseedAgent, TracingAgentGen};
+use tboard::tensorboard::WorkerShutdownMode::Default;
+use amfiteatr_rl::policy::{ConfigPPO, LearnSummary};
+use amfiteatr_core::agent::{AutomaticAgent, MultiEpisodeAutoAgent, PolicyAgent, ReseedAgent, TracingAgentGen};
 use amfiteatr_core::comm::{AgentMpscAdapter, EnvironmentMpscPort};
 use amfiteatr_core::env::{AutoEnvironment, AutoEnvironmentWithScores, BasicEnvironment, ReseedEnvironment, SequentialGameState, StatefulEnvironment};
 use amfiteatr_core::error::AmfiteatrError;
@@ -20,17 +21,23 @@ use crate::cart_pole::agent::CartPoleObservationEncoding;
 use crate::cart_pole::common::{CartPoleActionEncoding, CartPoleObservation, CartPoleScheme, SINGLE_PLAYER_ID};
 use crate::cart_pole::env::CartPoleEnvStateRust;
 use amfiteatr_rl::tch::nn::OptimizerConfig;
-use crate::connect_four::common::{ConnectFourPlayer, ConnectFourScheme};
+use crate::connect_four::common::{ConnectFourPlayer, ConnectFourScheme, ErrorRL};
 use amfiteatr_core::env::GameStateWithPayoffs;
-
+use amfiteatr_rl::policy::LearningNetworkPolicyGeneric;
 pub type CartPolePolicy = PolicyDiscretePPO<CartPoleScheme, CartPoleObservation, CartPoleObservationEncoding, CartPoleActionEncoding>;
-
 
 #[derive(Clone, Debug, Default)]
 pub struct EpochSummary {
     pub games_played: f64,
     pub score: f64,
     pub game_steps: f64,
+}
+
+impl EpochSummary{
+    pub fn describe_as_collected(&self) -> String{
+        format!("games played: {}, average game steps: {:.2} | average score: {:.2},",
+                self.games_played, self.game_steps, self.score)
+    }
 }
 
 impl Add<EpochSummary> for EpochSummary {
@@ -73,6 +80,17 @@ impl Div<f64> for EpochSummary {
 
 #[derive(Clone, Parser, Debug)]
 pub struct CartPoleModelOptions{
+
+
+    #[arg(short = 'v', long = "log-level", value_enum, default_value = "info")]
+    pub log_level: LevelFilter,
+
+    #[arg(short = 'a', long = "log-level-amfiteatr", value_enum, default_value = "off")]
+    pub log_level_amfiteatr: LevelFilter,
+
+    #[arg(short = 'A', long = "log-level-amfiteatr-rl", value_enum, default_value = "off")]
+    pub log_level_amfiteatr_rl: LevelFilter,
+
     #[arg(long = "tensorboard", help = "directory for tensorboard summary")]
     pub tboard_writer_path: Option<PathBuf>,
     #[arg(long = "tensorboard-agent", help = "directory for tensorboard agent summary")]
@@ -80,11 +98,27 @@ pub struct CartPoleModelOptions{
     #[arg(short = 'b', long = "sutton-barto-reward", help = "Use Sutton-Barto reward")]
     pub sutton_barto: bool,
 
-    #[arg(short = 'v', long = "log-level", value_enum, default_value = "info")]
-    pub log_level: LevelFilter,
+
 
     #[arg(short = 'o', long = "logfile")]
     pub log_file: Option<PathBuf>,
+
+    #[arg(short = 't', long = "test-games", default_value = "100", help = "Number of test games in epoch")]
+    pub test_games: usize,
+
+    #[arg(short = 'g', long = "games", default_value = "100")]
+    pub num_episodes: usize,
+
+    #[arg(long = "limit-steps-in-epoch")]
+    pub limit_steps_in_epochs: Option<usize>,
+
+    #[arg(short = 'e', long = "epochs", default_value = "100")]
+    pub epochs: usize,
+
+    #[arg( long = "entropy-coefficient", default_value = "0.5")]
+    pub ent_coef: f64,
+    #[arg( long = "value-coefficient", default_value = "0.5")]
+    pub vf_coef: f64,
 
 }
 
@@ -111,8 +145,12 @@ impl CartPoleModelRust{
         let optimizer = AdamW::default().build(&vs, 0.001)?;
         let network = NeuralNetActorCritic::new(vs, operator);
 
+        let mut config_ppo = ConfigPPO::default();
+        config_ppo.vf_coef = options.vf_coef;
+        config_ppo.ent_coef = options.ent_coef;
         let mut policy = CartPolePolicy::new(
-            ConfigPPO::default(),
+
+            config_ppo,
             network,
             optimizer,
             CartPoleObservationEncoding {},
@@ -162,5 +200,122 @@ impl CartPoleModelRust{
         }
 
         Ok(summary)
+    }
+
+    pub fn play_epoch(
+        &mut self,
+        number_of_games: usize,
+        summarize: bool,
+        training_epoch: bool,
+        max_steps: Option<usize>
+    ) -> Result<EpochSummary, AmfiteatrRlError<CartPoleScheme>>{
+
+        let mut steps_left = max_steps;
+        let mut number_of_games_played = 0;
+
+        self.agent.clear_episodes()?;
+
+        let mut summaries = match summarize{
+            true => Vec::with_capacity(number_of_games),
+            false => vec![]
+        };
+
+        for i in 0..number_of_games{
+            let summary = self.play_one_game(training_epoch, steps_left)?;
+            if summarize{
+                summaries.push(summary);
+            }
+
+            number_of_games_played += 1;
+
+            if let Some(step_pool) = steps_left{
+                let remaining_steps = step_pool.saturating_sub(self.env.completed_steps() as usize);
+                steps_left = Some(remaining_steps);
+                log::debug!("Remaining {} steps for epoch", step_pool);
+                if remaining_steps == 0{
+                    break;
+                }
+            }
+        }
+
+        if summarize{
+            let summary_sum: EpochSummary = summaries.iter().fold(EpochSummary::default(), |acc, x| &acc+x);
+            let n = number_of_games_played as f64;
+            log::debug!("Epoch sum score: {}, games played: {}, number of games: {}", summary_sum.score, summary_sum.games_played, number_of_games_played);
+            Ok(EpochSummary {
+                games_played: summary_sum.games_played,
+                score: summary_sum.score/n,
+                game_steps: summary_sum.game_steps / n,
+            })
+        } else {
+            Ok(EpochSummary::default())
+        }
+
+
+    }
+
+    pub fn train_agents_on_experience(&mut self) -> Result<LearnSummary, AmfiteatrRlError<CartPoleScheme>>{
+        let t = self.agent.take_episodes();
+        let s = self.agent.policy_mut().train(&t[..])?;
+        Ok(s)
+    }
+
+    pub fn run_session(&mut self, options: CartPoleModelOptions) -> Result<(), AmfiteatrRlError<CartPoleScheme>>{
+        info!("Starting session");
+        let pre_training_summary = self.play_epoch(options.test_games, true, false, options.limit_steps_in_epochs)?;
+        info!("Summary before training: {}", pre_training_summary.describe_as_collected());
+
+        let mut results_learn = Vec::with_capacity(options.epochs);
+        let mut results_test = Vec::with_capacity(options.epochs);
+        let mut l_summaries = Vec::with_capacity(options.epochs);
+
+        for e in 0..options.epochs{
+            let s = self.play_epoch(options.num_episodes, true, true, options.limit_steps_in_epochs)?;
+            self.agent.policy_mut().t_write_scalar(e as i64, "train_epoch/score", s.score as f32)?;
+
+            if let Some(ref mut tboard) = self.tboard_writer{
+                tboard.write_scalar(e as i64, "train_epoch/number_of_games", s.games_played as f32)
+                    .map_err(|e| AmfiteatrError::TboardFlattened {context: "Saving games in epoch (train)".into(), error: format!("{e}")})?;
+                tboard.write_scalar(e as i64, "train_epoch/number_of_steps_in_game", s.game_steps as f32)
+                    .map_err(|e| AmfiteatrError::TboardFlattened {context: "Saving average game steps in epoch (train)".into(), error: format!("{e}")})?;
+
+            }
+
+            log::debug!("{s:?}");
+            results_learn.push(s.clone());
+
+            let st = self.train_agents_on_experience()?;
+
+            info!("Summary of games in epoch {}: {}", e+1, s.describe_as_collected());
+
+            info!("Training epoch {}: Critic loss {:.3}; Actor loss {:.3}; entropy loss {:.3}",
+                e+1, st.value_loss.unwrap(),
+                st.policy_gradient_loss.unwrap(),
+                st.entropy_loss.unwrap(),
+            );
+
+            if options.test_games > 0{
+                let s =self.play_epoch(options.test_games, true, false, options.limit_steps_in_epochs)?;
+                results_test.push(s.clone());
+                l_summaries.push(s.clone());
+
+
+
+                info!("Summary of tests after epoch {}: {}", e+1, s.describe_as_collected());
+                if let Some(ref mut tboard) = self.tboard_writer{
+                    tboard.write_scalar(e as i64, "test_epoch/number_of_games", s.games_played as f32)
+                        .map_err(|e| AmfiteatrError::TboardFlattened {context: "Saving games in epoch (test)".into(), error: format!("{e}")})?;
+                    tboard.write_scalar(e as i64, "test_epoch/number_of_steps_in_game", s.game_steps as f32)
+                        .map_err(|e| AmfiteatrError::TboardFlattened {context: "Saving average game steps in epoch (test)".into(), error: format!("{e}")})?;
+
+                }
+
+            }
+
+        }
+
+        Ok(())
+
+
     }
 }

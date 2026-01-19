@@ -19,7 +19,9 @@ pub fn setup_logger(options: &cart_pole::model::CartPoleModelOptions) -> Result<
             ))
         })
         .level_for("amfiteatr_examples", options.log_level)
-        .level(options.log_level)
+        .level_for("amfiteatr_core", options.log_level_amfiteatr)
+        .level_for("amfiteatr_rl", options.log_level_amfiteatr_rl)
+        //.level(options.log_level)
 
     ;
         //.level_for("amfiteatr_core", options.log_level_amfi);
@@ -39,7 +41,7 @@ fn main() -> anyhow::Result<()> {
 
     let mut model = cart_pole::model::CartPoleModelRust::new_simple(&options)?;
 
-    let summary = model.play_one_game(true, None)?;
+    let summary = model.run_session(options)?;
     println!("summary:\n{:?}", summary);
 
 

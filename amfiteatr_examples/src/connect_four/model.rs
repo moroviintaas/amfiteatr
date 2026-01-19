@@ -900,15 +900,10 @@ where <P as Policy<ConnectFourScheme>>::InfoSetType: Renew<ConnectFourScheme, ()
     //}
 
     pub fn train_agents_on_experience(&mut self) -> Result<(LearnSummary,LearnSummary), ErrorRL>{
-        //println!("Training agent 0");
         let t1 = self.agent0.take_episodes();
         let s1 = self.agent0.policy_mut().train(&t1)?;
         let t2 = self.agent1.take_episodes();
-        //println!("eps1: {}", t1.len());
-        //println!("eps2: {}", t2.len());
-        //println!("Training agent 1");
         let s2 = self.agent1.policy_mut().train(&t2)?;
-        //self.agent2.policy_mut().train_on_trajectories(&t2, |step| Tensor::from(-1.0 + (2.0 * step.reward())))?;
 
         Ok((s1, s2))
     }

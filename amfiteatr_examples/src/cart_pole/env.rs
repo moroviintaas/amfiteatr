@@ -219,6 +219,8 @@ impl Renew<CartPoleScheme, (), > for CartPoleEnvStateRust {
             angle: rng.sample(d),
             angular_velocity: rng.sample(d),
         };
+        self.terminated = false;
+        self.steps_made = 0;
         self.state = Some(state);
         self.payoff = 0.0;
         self.steps_beyond_terminated = None;
