@@ -901,11 +901,24 @@ where <P as Policy<ConnectFourScheme>>::InfoSetType: Renew<ConnectFourScheme, ()
 
     pub fn train_agents_on_experience(&mut self) -> Result<(LearnSummary,LearnSummary), ErrorRL>{
         let t1 = self.agent0.take_episodes();
+        info!("Episodes: {}: [{:?}]", t1.len(), t1.iter().map(|x| x.number_of_steps()).collect::<Vec<usize>>());
         let s1 = self.agent0.policy_mut().train(&t1)?;
         let t2 = self.agent1.take_episodes();
+        info!("Episodes: {}: [{:?}]", t2.len(), t2.iter().map(|x| x.number_of_steps()).collect::<Vec<usize>>());
         let s2 = self.agent1.policy_mut().train(&t2)?;
 
         Ok((s1, s2))
+    }
+
+    pub fn dummy_train_agents_on_experience(&mut self) -> Result<(LearnSummary,LearnSummary), ErrorRL>{
+
+        let es = LearnSummary{
+            value_loss: None,
+            policy_gradient_loss: None,
+            entropy_loss: None,
+            approx_kl: None,
+        };
+        Ok((es.clone(), es))
     }
 
     pub fn train_agent0_only(&mut self) -> Result<LearnSummary, ErrorRL>{
@@ -946,10 +959,10 @@ where <P as Policy<ConnectFourScheme>>::InfoSetType: Renew<ConnectFourScheme, ()
         let pre_training_summary = self.play_epoch(options.num_test_episodes, true, false, options.limit_steps_in_epochs)?;
         info!("Summary before training: {}", pre_training_summary.describe_as_collected());
 
-        let mut results_learn = Vec::with_capacity(options.epochs);
-        let mut results_test = Vec::with_capacity(options.epochs);
-        let mut l_summaries_1 = Vec::with_capacity(options.epochs);
-        let mut l_summaries_2 = Vec::with_capacity(options.epochs);
+        //let mut results_learn = Vec::with_capacity(options.epochs);
+        //let mut results_test = Vec::with_capacity(options.epochs);
+        //let mut l_summaries_1 = Vec::with_capacity(options.epochs);
+        //let mut l_summaries_2 = Vec::with_capacity(options.epochs);
 
         for e in 0..options.epochs{
             let s = self.play_epoch(options.num_episodes, true, true, options.limit_steps_in_epochs)?;
@@ -983,26 +996,31 @@ where <P as Policy<ConnectFourScheme>>::InfoSetType: Renew<ConnectFourScheme, ()
                     .map_err(|e| AmfiteatrError::TboardFlattened {context: "Saving average game steps in epoch (train)".into(), error: format!("{e}")})?;
 
             }
-            results_learn.push(s);
+            //results_learn.push(s);
 
-            //let (s1,s2) = self.train_agents_on_experience()?;
+
             let (s1,s2) = match self.shared_policy{
                 false => self.train_agents_on_experience(),
                 true => self.train_agent0_on_both_experiences()
             }?;
 
 
+
+
             info!("Summary of games in epoch {}: {}", e+1, s.describe_as_collected());
+
             info!("Training epoch {}: Critic losses {:.3}, {:.3}; Actor loss {:.3}, {:.3}; entropy loss {:.3}, {:.3}",
                 e+1, s1.value_loss.unwrap(), s2.value_loss.unwrap(),
                 s1.policy_gradient_loss.unwrap(), s2.policy_gradient_loss.unwrap(),
                 s1.entropy_loss.unwrap(), s2.entropy_loss.unwrap()
             );
+
+
             if options.num_test_episodes > 0{
                 let s =self.play_epoch(options.num_test_episodes, true, false, options.limit_steps_in_epochs)?;
-                results_test.push(s);
-                l_summaries_1.push(s1);
-                l_summaries_2.push(s2);
+                //results_test.push(s);
+                //l_summaries_1.push(s1);
+                //l_summaries_2.push(s2);
 
 
 
@@ -1018,6 +1036,7 @@ where <P as Policy<ConnectFourScheme>>::InfoSetType: Renew<ConnectFourScheme, ()
             }
 
         }
+        /*
         if let Some(result_file) = &options.save_path_train_param_summary{
             let yaml = serde_yaml::to_string(&(l_summaries_1, l_summaries_2)).unwrap();
             let mut file = File::create(result_file).map_err(|e| AmfiteatrError::IO { explanation: format!("{e}") })?;
@@ -1035,6 +1054,8 @@ where <P as Policy<ConnectFourScheme>>::InfoSetType: Renew<ConnectFourScheme, ()
             let mut file = File::create(result_file).map_err(|e| AmfiteatrError::IO { explanation: format!("{e}") })?;
             write!(file, "{}", &yaml).map_err(|e| AmfiteatrError::IO { explanation: format!("{e}") })?;
         }
+
+         */
 
         for e in 0..options.extended_epochs{
             let s = self.play_epoch(options.num_episodes, true, true, options.limit_steps_in_epochs)?;

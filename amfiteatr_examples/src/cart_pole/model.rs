@@ -139,15 +139,22 @@ impl CartPoleModelRust{
         let agent_comm = env_communicator.register_agent(SINGLE_PLAYER_ID)?;
         let env = BasicEnvironment::new(initial_state, env_communicator);
 
-        let operator = build_network_operator_ac(vec![Layer::Linear(64), Layer::Linear(64)],
+        let operator = build_network_operator_ac(vec![
+            Layer::Linear(64),
+            Layer::Tanh,
+            Layer::Linear(64),
+            Layer::Tanh,
+        ],
                                                  vec![4], 2);
         let vs = VarStore::new(tch::Device::Cpu);
-        let optimizer = AdamW::default().build(&vs, 0.001)?;
+        let optimizer = AdamW::default().build(&vs, 0.0003)?;
         let network = NeuralNetActorCritic::new(vs, operator);
 
         let mut config_ppo = ConfigPPO::default();
         config_ppo.vf_coef = options.vf_coef;
         config_ppo.ent_coef = options.ent_coef;
+        config_ppo.update_epochs = 10;
+        config_ppo.mini_batch_size=64;
         let mut policy = CartPolePolicy::new(
 
             config_ppo,
@@ -256,6 +263,15 @@ impl CartPoleModelRust{
 
     pub fn train_agents_on_experience(&mut self) -> Result<LearnSummary, AmfiteatrRlError<CartPoleScheme>>{
         let t = self.agent.take_episodes();
+
+        info!("Episodes: {}: [{:?}]", t.len(), t.iter().map(|x| x.number_of_steps()).collect::<Vec<usize>>());
+        /*
+        print!("Episodes: {}", t.len());
+        for i in &t{
+            print!("{} ", i.number_of_steps());
+        }
+        println!();
+        */
         let s = self.agent.policy_mut().train(&t[..])?;
         Ok(s)
     }

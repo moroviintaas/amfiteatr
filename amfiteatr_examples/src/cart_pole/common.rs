@@ -33,6 +33,15 @@ pub enum CartPoleAction{
     Right
 }
 
+impl CartPoleAction{
+    pub fn index(&self) -> usize{
+        match self{
+            CartPoleAction::Left => 0,
+            CartPoleAction::Right => 1
+        }
+    }
+}
+
 impl Renew<CartPoleScheme, ()> for CartPoleObservation{
     fn renew_from(&mut self, _base: ()) -> Result<(), AmfiteatrError<CartPoleScheme>> {
         self.angle = 0.0;
@@ -109,6 +118,8 @@ impl ContextEncodeIndexI64<CartPoleActionEncoding> for CartPoleAction{
 pub enum CartPoleRustError {
     #[error("Game not initialized. Use reseed().")]
     GameStateNotInitialized,
+    #[error("Custom {0}")]
+    Custom(String),
 
 }
 impl Scheme for CartPoleScheme{

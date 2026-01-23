@@ -205,12 +205,14 @@ impl SequentialGameState<CartPoleScheme> for CartPoleEnvStateRust{
     }
 
     fn first_observations(&self) -> Option<Self::Updates> {
+        log::trace!("First observation: {:?}", self.state);
         self.state.clone().and_then(|s| Some([(SINGLE_PLAYER_ID, s)]))
     }
 }
 
 impl Renew<CartPoleScheme, (), > for CartPoleEnvStateRust {
     fn renew_from(&mut self, _base: ()) -> Result<(), AmfiteatrError<CartPoleScheme>> {
+
         let d = rand::distr::Uniform::new(-0.05, 0.05).unwrap();
         let mut rng = rand::rng();
         let state = CartPoleObservation{
@@ -219,6 +221,15 @@ impl Renew<CartPoleScheme, (), > for CartPoleEnvStateRust {
             angle: rng.sample(d),
             angular_velocity: rng.sample(d),
         };
+        /*
+        let state = CartPoleObservation{
+            position: 0.0,
+            velocity: 0.0,
+            angle: 0.0,
+            angular_velocity: 0.0,
+        };
+
+         */
         self.terminated = false;
         self.steps_made = 0;
         self.state = Some(state);

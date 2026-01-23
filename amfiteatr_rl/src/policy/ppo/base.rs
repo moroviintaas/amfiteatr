@@ -155,28 +155,31 @@ pub trait PolicyHelperPPO<S: Scheme>
 
     /// Automatically implemented action selection using required methods.
     fn ppo_select_action(&self, info_set: &Self::InfoSet) -> Result<S::ActionType, AmfiteatrError<S>>{
-        let state_tensor = info_set.to_tensor(self.info_set_conversion_context());
-        let out = tch::no_grad(|| (self.ppo_network().operator())(self.ppo_network().var_store(), &state_tensor));
-        //let actor = out.actor;
-        //println!("out: {:?}", out);
-        let probs = self.ppo_dist(info_set, &out)?;
-        //println!("probs: {:?}", probs);
-        let choices = match self.ppo_exploration(){
-            true => {
+        tch::no_grad(||{
+            let state_tensor = info_set.to_tensor(self.info_set_conversion_context());
+            let out = (self.ppo_network().operator())(self.ppo_network().var_store(), &state_tensor);
+            //let actor = out.actor;
+            //println!("out: {:?}", out);
+            let probs = self.ppo_dist(info_set, &out)?;
+            //println!("probs: {:?}", probs);
+            let choices = match self.ppo_exploration(){
+                true => {
 
-                Self::NetworkOutput::perform_choice(&probs, |t| t.f_multinomial(1, true))?
-            },
-              //  probs.into_iter().map(|t| t.multinomial(1, true)).collect(),
+                    Self::NetworkOutput::perform_choice(&probs, |t| t.f_multinomial(1, true))?
+                },
+                //  probs.into_iter().map(|t| t.multinomial(1, true)).collect(),
 
-            false => Self::NetworkOutput::perform_choice(&probs, |t| t.f_argmax(None, false)?.f_unsqueeze(-1))?,
+                false => Self::NetworkOutput::perform_choice(&probs, |t| t.f_argmax(None, false)?.f_unsqueeze(-1))?,
                 //probs.into_iter().map(|t| t.argmax(None, false).unsqueeze(-1)).collect()
-        };
+            };
 
-        self.ppo_try_action_from_choice_tensor( &choices).map_err(|err| {
-            #[cfg(feature = "log_error")]
-            log::error!("Failed creating action from choices tensor. Error: {}. Tensor: {:?}", err, choices);
-            err
+            self.ppo_try_action_from_choice_tensor( &choices).map_err(|err| {
+                #[cfg(feature = "log_error")]
+                log::error!("Failed creating action from choices tensor. Error: {}. Tensor: {:?}", err, choices);
+                err
+            })
         })
+
     }
 
     fn ppo_train_on_trajectories<
@@ -236,89 +239,98 @@ pub trait PolicyHelperPPO<S: Scheme>
 
         #[cfg(feature = "log_debug")]
         log::debug!("Starting operations on trajectories.",);
-        for t in trajectories{
 
 
-            if let Some(_last_step) = t.last_view_step(){
+        tch::no_grad::<Result<(), AmfiteatrRlError<S>>, _>(||{
+            for t in trajectories{
 
-                tmp_trajectory_state_tensor_vec.clear();
-                Self::NetworkOutput::clear_batch_dim_in_batch(&mut tmp_trajectory_action_tensor_vecs);
-                Self::NetworkOutput::clear_batch_dim_in_batch(&mut tmp_trajectory_action_category_mask_vecs);
-                //let final_reward_t = reward_f(&last_step).to_device(device);
-                tmp_trajectory_reward_vec.clear();
-                for step in t.iter(){
+
+                if let Some(_last_step) = t.last_view_step(){
+
+                    tmp_trajectory_state_tensor_vec.clear();
+                    Self::NetworkOutput::clear_batch_dim_in_batch(&mut tmp_trajectory_action_tensor_vecs);
+                    Self::NetworkOutput::clear_batch_dim_in_batch(&mut tmp_trajectory_action_category_mask_vecs);
+                    //let final_reward_t = reward_f(&last_step).to_device(device);
+                    tmp_trajectory_reward_vec.clear();
+                    for step in t.iter(){
+                        #[cfg(feature = "log_trace")]
+                        log::trace!("Adding information set tensor to single trajectory vec.",);
+                        tmp_trajectory_state_tensor_vec.push(step.information_set().try_to_tensor(self.info_set_conversion_context())?);
+                        #[cfg(feature = "log_trace")]
+                        log::trace!("Added information set tensor to single trajectory vec.",);
+                        //let (act_t, cat_mask_t) = step.action().action_index_and_mask_tensor_vecs(&self.action_conversion_context())?;
+                        let (act_t, cat_mask_t) = self.ppo_vectorise_action_and_create_category_mask(step.action())?;
+                        #[cfg(feature = "log_trace")]
+                        log::trace!("act_t: {:?}", act_t);
+                        Self::NetworkOutput::push_to_vec_batch(&mut tmp_trajectory_action_tensor_vecs, act_t);
+
+                        #[cfg(feature = "log_trace")]
+                        log::trace!("tmp_trajectory_action_tensor_vecs: {:?}", tmp_trajectory_action_tensor_vecs);
+                        Self::NetworkOutput::push_to_vec_batch(&mut tmp_trajectory_action_category_mask_vecs, cat_mask_t);
+
+                        tmp_trajectory_reward_vec.push(reward_f(&step));
+                        if self.is_action_masking_supported(){
+                            //action_masks_vec.push(self.generate_action_masks(step.information_set())?);
+                            Self::NetworkOutput::push_to_vec_batch(&mut action_masks_vec, self.generate_action_masks(step.information_set())?);
+                        }
+                    }
+
+
+                    let information_set_t = Tensor::f_stack(&tmp_trajectory_state_tensor_vec[..],0)?.f_to_device(device)?;
                     #[cfg(feature = "log_trace")]
-                    log::trace!("Adding information set tensor to single trajectory vec.",);
-                    tmp_trajectory_state_tensor_vec.push(step.information_set().try_to_tensor(self.info_set_conversion_context())?);
-                    #[cfg(feature = "log_trace")]
-                    log::trace!("Added information set tensor to single trajectory vec.",);
-                    //let (act_t, cat_mask_t) = step.action().action_index_and_mask_tensor_vecs(&self.action_conversion_context())?;
-                    let (act_t, cat_mask_t) = self.ppo_vectorise_action_and_create_category_mask(step.action())?;
-                    #[cfg(feature = "log_trace")]
-                    log::trace!("act_t: {:?}", act_t);
-                    Self::NetworkOutput::push_to_vec_batch(&mut tmp_trajectory_action_tensor_vecs, act_t);
+                    log::trace!("Tmp infoset shape = {:?}, device: {:?}", information_set_t.size(), information_set_t.device());
 
+                    let net_out = tch::no_grad(|| self.ppo_network().operator()(self.ppo_network().var_store(), &information_set_t));
+                    let critic_t = net_out.critic();
+                    #[cfg(feature = "log_trace")]
+                    log::trace!("Tmp values_t shape = {:?}", critic_t.size());
+                    let rewards_t = Tensor::f_stack(&tmp_trajectory_reward_vec[..],0)?.f_to_device(device)?;
+
+                    let advantages_t = Tensor::zeros(critic_t.size(), (Kind::Float, device));
+                    //let advantages_t2 = Tensor::zeros(critic_t.size(), (Kind::Float, device));
+                    //let mut next_is_final = 1f32;
+                    let mut last_gae_lambda = Tensor::from(0.0).to_device(device);
+                    //let mut last_gae_lambda2 = Tensor::from(0.0).to_device(device);
+                    for index in (0..t.number_of_steps()).rev()
+                        .map(|i, | i as i64,){
+                        //chgeck if last step
+                        let (next_nonterminal, next_value) = match index == t.number_of_steps() as i64 -1{
+                            true => (0.0, Tensor::zeros(critic_t.f_get(0)?.size(), (Kind::Float, device))),
+                            false => (1.0, critic_t.f_get(index+1)?)
+                        };
+                        let delta   = rewards_t.f_get(index)? + (next_value.f_mul_scalar(self.config().gamma)?.f_mul_scalar(next_nonterminal)?) - critic_t.f_get(index)?;
+                        //last_gae_lambda = &delta + (  self.config().gamma * self.config().gae_lambda * next_nonterminal);
+                        last_gae_lambda = delta + ( last_gae_lambda * self.config().gamma * self.config().gae_lambda_old * next_nonterminal);
+                        advantages_t.f_get(index)?.f_copy_(&last_gae_lambda.detach_copy())?;
+                        //advantages_t2.f_get(index)?.f_copy_(&last_gae_lambda2)?;
+                    }
+                    returns_vec.push(advantages_t.f_add(critic_t)?);
+
+                    state_tensor_vec.push(information_set_t);
+                    advantage_tensor_vec.push(advantages_t);
                     #[cfg(feature = "log_trace")]
                     log::trace!("tmp_trajectory_action_tensor_vecs: {:?}", tmp_trajectory_action_tensor_vecs);
-                    Self::NetworkOutput::push_to_vec_batch(&mut tmp_trajectory_action_category_mask_vecs, cat_mask_t);
+                    #[cfg(feature = "log_trace")]
+                    log::trace!("multi_action_tensor_vec: {:?}", multi_action_tensor_vec);
+                    Self::NetworkOutput::append_vec_batch(&mut multi_action_tensor_vec, &mut tmp_trajectory_action_tensor_vecs );
 
-                    tmp_trajectory_reward_vec.push(reward_f(&step));
-                    if self.is_action_masking_supported(){
-                        //action_masks_vec.push(self.generate_action_masks(step.information_set())?);
-                        Self::NetworkOutput::push_to_vec_batch(&mut action_masks_vec, self.generate_action_masks(step.information_set())?);
-                    }
+                    Self::NetworkOutput::append_vec_batch(&mut multi_action_cat_mask_tensor_vec, &mut tmp_trajectory_action_category_mask_vecs );
+
+
+
+                } else {
+                    #[cfg(feature = "log_debug")]
+                    log::debug!("Slipping empty trajectory.")
                 }
 
 
-                let information_set_t = Tensor::f_stack(&tmp_trajectory_state_tensor_vec[..],0)?.f_to_device(device)?;
-                #[cfg(feature = "log_trace")]
-                log::trace!("Tmp infoset shape = {:?}, device: {:?}", information_set_t.size(), information_set_t.device());
-
-                let net_out = tch::no_grad(|| self.ppo_network().operator()(self.ppo_network().var_store(), &information_set_t));
-                let critic_t = net_out.critic();
-                #[cfg(feature = "log_trace")]
-                log::trace!("Tmp values_t shape = {:?}", critic_t.size());
-                let rewards_t = Tensor::f_stack(&tmp_trajectory_reward_vec[..],0)?.f_to_device(device)?;
-
-                let advantages_t = Tensor::zeros(critic_t.size(), (Kind::Float, device));
-                //let advantages_t2 = Tensor::zeros(critic_t.size(), (Kind::Float, device));
-                //let mut next_is_final = 1f32;
-                let mut last_gae_lambda = Tensor::from(0.0).to_device(device);
-                //let mut last_gae_lambda2 = Tensor::from(0.0).to_device(device);
-                for index in (0..t.number_of_steps()).rev()
-                    .map(|i, | i as i64,){
-                    //chgeck if last step
-                    let (next_nonterminal, next_value) = match index == t.number_of_steps() as i64 -1{
-                        true => (0.0, Tensor::zeros(critic_t.f_get(0)?.size(), (Kind::Float, device))),
-                        false => (1.0, critic_t.f_get(index+1)?)
-                    };
-                    let delta   = rewards_t.f_get(index)? + (next_value.f_mul_scalar(self.config().gamma)?.f_mul_scalar(next_nonterminal)?) - critic_t.f_get(index)?;
-                    //last_gae_lambda = &delta + (  self.config().gamma * self.config().gae_lambda * next_nonterminal);
-                    last_gae_lambda = delta + ( last_gae_lambda * self.config().gamma * self.config().gae_lambda_old * next_nonterminal);
-                    advantages_t.f_get(index)?.f_copy_(&last_gae_lambda.detach_copy())?;
-                    //advantages_t2.f_get(index)?.f_copy_(&last_gae_lambda2)?;
-                }
-                returns_vec.push(advantages_t.f_add(critic_t)?);
-
-                state_tensor_vec.push(information_set_t);
-                advantage_tensor_vec.push(advantages_t);
-                #[cfg(feature = "log_trace")]
-                log::trace!("tmp_trajectory_action_tensor_vecs: {:?}", tmp_trajectory_action_tensor_vecs);
-                #[cfg(feature = "log_trace")]
-                log::trace!("multi_action_tensor_vec: {:?}", multi_action_tensor_vec);
-                Self::NetworkOutput::append_vec_batch(&mut multi_action_tensor_vec, &mut tmp_trajectory_action_tensor_vecs );
-
-                Self::NetworkOutput::append_vec_batch(&mut multi_action_cat_mask_tensor_vec, &mut tmp_trajectory_action_category_mask_vecs );
-
-
-
-            } else {
-                #[cfg(feature = "log_debug")]
-                log::debug!("Slipping empty trajectory.")
             }
+            Ok(())
+        });
 
 
-        }
+
+
         let batch_info_sets_t = Tensor::f_vstack(&state_tensor_vec)?.move_to_device(device);
         let action_forward_masks = match self.is_action_masking_supported(){
             true => Some(Self::NetworkOutput::stack_tensor_batch(&action_masks_vec)?.move_to_device(device)),
@@ -805,9 +817,10 @@ pub trait PolicyTrainHelperPPO<S: Scheme> : PolicyHelperA2C<S, Config=ConfigPPO>
                 self.optimizer_mut().zero_grad();
 
                 self.optimizer_mut().backward_step(&loss);
+                drop(loss);
 
                 if let Some(tkl) = self.config().target_kl{
-                    if approx_kl.double_value(&[0]) > 1.5 * tkl{
+                    if approx_kl.detach().double_value(&[0]) > 1.5 * tkl{
                         #[cfg(feature = "log_info")]
                         log::info!("Early leaving learning at step due to reached kl_target");
                         continue_training = false;
@@ -830,10 +843,10 @@ pub trait PolicyTrainHelperPPO<S: Scheme> : PolicyHelperA2C<S, Config=ConfigPPO>
 
         }
 
-        let value_loss_avg = Tensor::vstack(&summary_vec_vf_loss).mean(Kind::Double);
-        let pg_loss_mean = Tensor::vstack(&summary_vec_pg_loss).mean(Kind::Double);
-        let entropy_mean = Tensor::vstack(&summary_vec_entropy_mean).mean(Kind::Double);
-        let kl_approx_mean = Tensor::vstack(&summary_kl_aprox).mean(Kind::Double);
+        let value_loss_avg = Tensor::vstack(&summary_vec_vf_loss).mean(Kind::Double).detach();
+        let pg_loss_mean = Tensor::vstack(&summary_vec_pg_loss).mean(Kind::Double).detach();
+        let entropy_mean = Tensor::vstack(&summary_vec_entropy_mean).mean(Kind::Double).detach();
+        let kl_approx_mean = Tensor::vstack(&summary_kl_aprox).mean(Kind::Double).detach();
         #[cfg(feature = "log_debug")]
         log::debug!("Mean Critic loss tensor after training: {value_loss_avg}");
         #[cfg(feature = "log_debug")]
@@ -865,16 +878,36 @@ pub trait PolicyTrainHelperPPO<S: Scheme> : PolicyHelperA2C<S, Config=ConfigPPO>
             Result::<(), AmfiteatrError<S>>::Ok(())
         })?;
 
+        /*
+        let summary = LearnSummary{
+            value_loss: None,
+            policy_gradient_loss: None,
+            entropy_loss: None,
+            approx_kl: None,
+        };
 
+         */
 
-        Ok(LearnSummary{
+        let summary = LearnSummary{
             value_loss: Some(value_loss_avg.double_value(&[])),
             policy_gradient_loss: Some(pg_loss_mean.double_value(&[])),
             entropy_loss: Some(entropy_mean.double_value(&[])),
             approx_kl: Some(kl_approx_mean.double_value(&[])),
 
 
-        })
+        };
+
+        self.optimizer_mut().zero_grad();
+
+        drop(value_loss_avg);
+        drop(pg_loss_mean);
+        drop(entropy_mean);
+        drop(kl_approx_mean);
+
+        Ok(summary)
+
+
+        //Ok()
     }
 }
 
