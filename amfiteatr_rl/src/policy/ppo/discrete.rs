@@ -277,6 +277,9 @@ impl<
     fn batch_get_logprob_entropy_critic(&self, info_set_batch: &Tensor, action_param_batches: &<Self::NetworkOutput as ActorCriticOutput>::ActionTensorType, action_category_mask_batches: Option<&<Self::NetworkOutput as ActorCriticOutput>::ActionTensorType>, action_forward_mask_batches: Option<&<Self::NetworkOutput as ActorCriticOutput>::ActionTensorType>) -> Result<(Tensor, Tensor, Tensor), AmfiteatrError<S>> {
         let critic_actor= self.network.net()(info_set_batch);
 
+        #[cfg(feature = "log_trace")]
+        log::trace!("Actor on batch: {}, Critic on batch: {}", critic_actor.actor, critic_actor.critic);
+
         let batch_logprob = critic_actor.batch_log_probability_of_action::<S>(
             action_param_batches,
             action_forward_mask_batches,

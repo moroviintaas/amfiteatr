@@ -307,7 +307,7 @@ pub fn build_a2c_policy(layer_sizes: &[i64], device: Device, config: ConfigA2C, 
     });
 
          */
-    let model = build_network_model_ac(layers, input_shape.to_vec(), 1, &var_store.root());
+    let model = build_network_model_ac(layers, input_shape.to_vec(), 7, &var_store.root());
     //let net = network_pattern.get_net_closure();
     let optimiser = Adam::default().build(&var_store, learning_rate)?;
 
@@ -376,7 +376,7 @@ pub fn build_a2c_policy_masking(layer_sizes: &[i64], device: Device, config: Con
     });
 
      */
-    let model = build_network_model_ac(layers, input_shape.to_vec(), 1, &var_store.root());
+    let model = build_network_model_ac(layers, input_shape.to_vec(), 7, &var_store.root());
     //let net = network_pattern.get_net_closure();
     let optimiser = Adam::default().build(&var_store, learning_rate)?;
 
@@ -485,7 +485,7 @@ pub fn build_ppo_policy_masking(layer_sizes: &[i64], device: Device, config: Con
 
      */
 
-    let model = build_network_model_ac(layers, input_shape.to_vec(), 1, &var_store.root());
+    let model = build_network_model_ac(layers, input_shape.to_vec(), 7, &var_store.root());
     //let net = network_pattern.get_net_closure();
     let optimiser = Adam::default().build(&var_store, learning_rate)?;
 
