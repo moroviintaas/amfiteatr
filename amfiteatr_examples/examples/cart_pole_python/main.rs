@@ -120,7 +120,7 @@ fn main() {
 
     });
 
-    let net =  A2CNet::new(var_store, operator);
+    let net =  A2CNet::new_concept_1(var_store, operator);
     let optimizer = net.build_optimizer(Adam::default(), 1e-4).unwrap();
 
     #[allow(deprecated)]

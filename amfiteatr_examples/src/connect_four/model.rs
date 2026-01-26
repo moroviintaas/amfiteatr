@@ -40,7 +40,7 @@ use amfiteatr_rl::policy::{
 use amfiteatr_rl::tch::{Device, nn, Tensor};
 use amfiteatr_rl::tch::nn::{Adam, OptimizerConfig, VarStore};
 use amfiteatr_rl::tensor_data::TensorEncoding;
-use amfiteatr_rl::torch_net::{A2CNet, TensorActorCritic};
+use amfiteatr_rl::torch_net::{build_network_model_ac, A2CNet, Layer, NeuralNet, TensorActorCritic};
 use crate::connect_four::common::{ConnectFourScheme, ConnectFourPlayer, ErrorRL};
 use crate::connect_four::agent::{ConnectFourActionTensorRepresentation, ConnectFourInfoSet, ConnectFourTensorReprD1};
 
@@ -172,8 +172,15 @@ fn build_a2c_policy_old(layer_sizes: &[i64], device: Device) -> Result<C4A2CPoli
 */
 pub fn build_a2c_policy(layer_sizes: &[i64], device: Device, config: ConfigA2C, learning_rate: f64) -> Result<C4A2CPolicy, AmfiteatrRlError<ConnectFourScheme>>{
     let var_store = VarStore::new(device);
-    let input_shape = ConnectFourTensorReprD1{}.desired_shape()[0].clone();
+    //let input_shape = ConnectFourTensorReprD1{}.desired_shape()[0].clone();
+    let input_shape = ConnectFourTensorReprD1{}.desired_shape().clone();
     let hidden_layers = layer_sizes.to_vec();
+
+    let mut layers = Vec::new();
+    for l in layer_sizes{
+        layers.push(Layer::Linear(*l));
+        layers.push(Layer::Tanh);
+    }
     /*
     let network_pattern = NeuralNetTemplate::new(|path| {
         let mut seq = nn::seq();
@@ -214,18 +221,20 @@ pub fn build_a2c_policy(layer_sizes: &[i64], device: Device, config: ConfigA2C, 
     });
 
      */
+    //let root_path = &var_store.root();
 
-    let operator = Box::new(move |vs: &VarStore, tensor: &Tensor|{
+    /*
+    let net_cl = Box::new(move |tensor: &Tensor|{
         let mut seq = nn::seq();
         let mut last_dim = None;
         if !hidden_layers.is_empty(){
             let mut ld = hidden_layers[0];
 
             last_dim = Some(ld);
-            seq = seq.add(nn::linear(vs.root() / "INPUT", input_shape, ld, Default::default()));
+            seq = seq.add(nn::linear(root_path / "INPUT", input_shape, ld, Default::default()));
 
             for (i, ld_new) in hidden_layers.iter().enumerate().skip(1){
-                seq = seq.add(nn::linear(vs.root() / &format!("h_{:}", i+1), ld, *ld_new, Default::default()))
+                seq = seq.add(nn::linear(root_path / &format!("h_{:}", i+1), ld, *ld_new, Default::default()))
                     .add_fn(|xs| xs.tanh());
 
                 ld = *ld_new;
@@ -234,27 +243,76 @@ pub fn build_a2c_policy(layer_sizes: &[i64], device: Device, config: ConfigA2C, 
         }
         let (actor, critic) = match last_dim{
             None => {
-                (nn::linear(vs.root() / "al", input_shape, 7, Default::default()),
-                 nn::linear(vs.root() / "cl", input_shape, 1, Default::default()))
+                (nn::linear(root_path / "al", input_shape, 7, Default::default()),
+                 nn::linear(root_path/ "cl", input_shape, 1, Default::default()))
             }
             Some(ld) => {
-                (nn::linear(vs.root() / "al", ld, 7, Default::default()),
-                 nn::linear(vs.root() / "cl", ld, 1, Default::default()))
+                (nn::linear(root_path / "al", ld, 7, Default::default()),
+                 nn::linear(root_path / "cl", ld, 1, Default::default()))
             }
         };
-        let device = vs.device();
+        let device = &var_store.device();
         if seq.is_empty(){
             TensorActorCritic {critic: tensor.apply(&critic), actor: tensor.apply(&actor)}
         } else {
-            let xs = tensor.to_device(device).apply(&seq);
+            let xs = tensor.to_device(*device).apply(&seq);
             TensorActorCritic {critic: xs.apply(&critic), actor: xs.apply(&actor)}
         }
 
     });
 
+     */
+
+    /*
+
+    let net = A2CNet::new_concept_3(var_store, |v|{
+
+
+        Box::new(move |tensor: &Tensor|{
+            let mut seq = nn::seq();
+            let mut last_dim = None;
+            if !hidden_layers.is_empty(){
+                let mut ld = hidden_layers[0];
+
+                last_dim = Some(ld);
+                seq = seq.add(nn::linear(v / "INPUT", input_shape, ld, Default::default()));
+
+                for (i, ld_new) in hidden_layers.iter().enumerate().skip(1){
+                    seq = seq.add(nn::linear(v / &format!("h_{:}", i+1), ld, *ld_new, Default::default()))
+                        .add_fn(|xs| xs.tanh());
+
+                    ld = *ld_new;
+                    last_dim = Some(ld);
+                }
+            }
+            let (actor, critic) = match last_dim{
+                None => {
+                    (nn::linear(v / "al", input_shape, 7, Default::default()),
+                     nn::linear(v/ "cl", input_shape, 1, Default::default()))
+                }
+                Some(ld) => {
+                    (nn::linear(v / "al", ld, 7, Default::default()),
+                     nn::linear(v / "cl", ld, 1, Default::default()))
+                }
+            };
+            let device = v.device();
+            if seq.is_empty(){
+                TensorActorCritic {critic: tensor.apply(&critic), actor: tensor.apply(&actor)}
+            } else {
+                let xs = tensor.to_device(device).apply(&seq);
+                TensorActorCritic {critic: xs.apply(&critic), actor: xs.apply(&actor)}
+            }
+
+        })
+    });
+
+         */
+    let model = build_network_model_ac(layers, input_shape.to_vec(), 1, &var_store.root());
     //let net = network_pattern.get_net_closure();
     let optimiser = Adam::default().build(&var_store, learning_rate)?;
-    let net = A2CNet::new(var_store, operator );
+
+    let net = NeuralNet::new_concept_4(var_store, model);
+
 
     //let mut config = ConfigA2C::default();
     //config.gae_lambda = gae_lambda;
@@ -270,20 +328,27 @@ pub fn build_a2c_policy(layer_sizes: &[i64], device: Device, config: ConfigA2C, 
 #[allow(dead_code)]
 pub fn build_a2c_policy_masking(layer_sizes: &[i64], device: Device, config: ConfigA2C, learning_rate: f64) -> Result<C4A2CPolicyMasking, AmfiteatrRlError<ConnectFourScheme>>{
     let var_store = VarStore::new(device);
-    let input_shape = ConnectFourTensorReprD1{}.desired_shape()[0];
+    //let input_shape = ConnectFourTensorReprD1{}.desired_shape()[0].clone();
+    let input_shape = ConnectFourTensorReprD1{}.desired_shape().clone();
     let hidden_layers = layer_sizes.to_vec();
 
-    let operator = Box::new(move |vs: &VarStore, tensor: &Tensor|{
+    let mut layers = Vec::new();
+    for l in layer_sizes{
+        layers.push(Layer::Linear(*l));
+        layers.push(Layer::Tanh);
+    }
+    /*
+    let net = Box::new(move |tensor: &Tensor|{
         let mut seq = nn::seq();
         let mut last_dim = None;
         if !hidden_layers.is_empty(){
             let mut ld = hidden_layers[0];
 
             last_dim = Some(ld);
-            seq = seq.add(nn::linear(vs.root() / "INPUT", input_shape, ld, Default::default()));
+            seq = seq.add(nn::linear(var_store.root() / "INPUT", input_shape, ld, Default::default()));
 
             for (i, ld_new) in hidden_layers.iter().enumerate().skip(1){
-                seq = seq.add(nn::linear(vs.root() / &format!("h_{:}", i+1), ld, *ld_new, Default::default()))
+                seq = seq.add(nn::linear(var_store.root() / &format!("h_{:}", i+1), ld, *ld_new, Default::default()))
                     .add_fn(|xs| xs.tanh());
 
                 ld = *ld_new;
@@ -292,15 +357,15 @@ pub fn build_a2c_policy_masking(layer_sizes: &[i64], device: Device, config: Con
         }
         let (actor, critic) = match last_dim{
             None => {
-                (nn::linear(vs.root() / "al", input_shape, 7, Default::default()),
-                 nn::linear(vs.root() / "cl", input_shape, 1, Default::default()))
+                (nn::linear(var_store.root() / "al", input_shape, 7, Default::default()),
+                 nn::linear(var_store.root() / "cl", input_shape, 1, Default::default()))
             }
             Some(ld) => {
-                (nn::linear(vs.root() / "al", ld, 7, Default::default()),
-                 nn::linear(vs.root() / "cl", ld, 1, Default::default()))
+                (nn::linear(var_store.root() / "al", ld, 7, Default::default()),
+                 nn::linear(var_store.root() / "cl", ld, 1, Default::default()))
             }
         };
-        let device = vs.device();
+        let device = var_store.device();
         if seq.is_empty(){
             TensorActorCritic {critic: tensor.apply(&critic), actor: tensor.apply(&actor)}
         } else {
@@ -309,8 +374,13 @@ pub fn build_a2c_policy_masking(layer_sizes: &[i64], device: Device, config: Con
         }
 
     });
+
+     */
+    let model = build_network_model_ac(layers, input_shape.to_vec(), 1, &var_store.root());
+    //let net = network_pattern.get_net_closure();
     let optimiser = Adam::default().build(&var_store, learning_rate)?;
-    let net = A2CNet::new(var_store, operator);
+
+    let net = NeuralNet::new_concept_4(var_store, model);
 
     //let mut config = ConfigA2C::default();
     // config.gae_lambda = gae_lambda;
@@ -325,9 +395,15 @@ pub fn build_a2c_policy_masking(layer_sizes: &[i64], device: Device, config: Con
 }
 pub fn build_ppo_policy_masking(layer_sizes: &[i64], device: Device, config: ConfigPPO, learning_rate: f64) -> Result<C4PPOPolicyMasking, AmfiteatrRlError<ConnectFourScheme>>{
     let var_store = VarStore::new(device);
-    //let var_store = VarStore::new(Device::Cuda(0));
-    let input_shape = ConnectFourTensorReprD1{}.desired_shape()[0];
+    //let input_shape = ConnectFourTensorReprD1{}.desired_shape()[0].clone();
+    let input_shape = ConnectFourTensorReprD1{}.desired_shape().clone();
     let hidden_layers = layer_sizes.to_vec();
+
+    let mut layers = Vec::new();
+    for l in layer_sizes{
+        layers.push(Layer::Linear(*l));
+        layers.push(Layer::Tanh);
+    }
     /* OLD way:
     let network_pattern = NeuralNetTemplate::new(|path| {
         let mut seq = nn::seq();
@@ -370,17 +446,18 @@ pub fn build_ppo_policy_masking(layer_sizes: &[i64], device: Device, config: Con
     let net = network_pattern.get_net_closure();
 
      */
-    let operator = Box::new(move |vs: &VarStore, tensor: &Tensor| {
+    /*
+    let net = Box::new(move | tensor: &Tensor| {
         let mut seq = nn::seq();
         let mut last_dim = None;
         if !hidden_layers.is_empty() {
             let mut ld = hidden_layers[0];
 
             last_dim = Some(ld);
-            seq = seq.add(nn::linear(vs.root() / "INPUT", input_shape, ld, Default::default()));
+            seq = seq.add(nn::linear(var_store.root() / "INPUT", input_shape, ld, Default::default()));
 
             for (i, ld_new) in hidden_layers.iter().enumerate().skip(1) {
-                seq = seq.add(nn::linear(vs.root() / &format!("h_{:}", i + 1), ld, *ld_new, Default::default()))
+                seq = seq.add(nn::linear(var_store.root() / &format!("h_{:}", i + 1), ld, *ld_new, Default::default()))
                     .add_fn(|xs| xs.tanh());
 
                 ld = *ld_new;
@@ -389,15 +466,15 @@ pub fn build_ppo_policy_masking(layer_sizes: &[i64], device: Device, config: Con
         }
         let (actor, critic) = match last_dim {
             None => {
-                (nn::linear(vs.root() / "al", input_shape, 7, Default::default()),
-                 nn::linear(vs.root() / "cl", input_shape, 1, Default::default()))
+                (nn::linear(var_store.root() / "al", input_shape, 7, Default::default()),
+                 nn::linear(var_store.root() / "cl", input_shape, 1, Default::default()))
             }
             Some(ld) => {
-                (nn::linear(vs.root() / "al", ld, 7, Default::default()),
-                 nn::linear(vs.root() / "cl", ld, 1, Default::default()))
+                (nn::linear(var_store.root() / "al", ld, 7, Default::default()),
+                 nn::linear(var_store.root() / "cl", ld, 1, Default::default()))
             }
         };
-        let device = vs.device();
+        let device = var_store.device();
         if seq.is_empty() {
             TensorActorCritic { critic: tensor.apply(&critic), actor: tensor.apply(&actor) }
         } else {
@@ -406,8 +483,13 @@ pub fn build_ppo_policy_masking(layer_sizes: &[i64], device: Device, config: Con
         }
     });
 
+     */
+
+    let model = build_network_model_ac(layers, input_shape.to_vec(), 1, &var_store.root());
+    //let net = network_pattern.get_net_closure();
     let optimiser = Adam::default().build(&var_store, learning_rate)?;
-    let net = A2CNet::new(var_store, operator );
+
+    let net = NeuralNet::new_concept_4(var_store, model);
 
     Ok(PolicyMaskingDiscretePPO::new(
         config,
@@ -901,10 +983,10 @@ where <P as Policy<ConnectFourScheme>>::InfoSetType: Renew<ConnectFourScheme, ()
 
     pub fn train_agents_on_experience(&mut self) -> Result<(LearnSummary,LearnSummary), ErrorRL>{
         let t1 = self.agent0.take_episodes();
-        info!("Episodes: {}: [{:?}]", t1.len(), t1.iter().map(|x| x.number_of_steps()).collect::<Vec<usize>>());
+        //info!("Episodes: {}: [{:?}]", t1.len(), t1.iter().map(|x| x.number_of_steps()).collect::<Vec<usize>>());
         let s1 = self.agent0.policy_mut().train(&t1)?;
         let t2 = self.agent1.take_episodes();
-        info!("Episodes: {}: [{:?}]", t2.len(), t2.iter().map(|x| x.number_of_steps()).collect::<Vec<usize>>());
+        //info!("Episodes: {}: [{:?}]", t2.len(), t2.iter().map(|x| x.number_of_steps()).collect::<Vec<usize>>());
         let s2 = self.agent1.policy_mut().train(&t2)?;
 
         Ok((s1, s2))

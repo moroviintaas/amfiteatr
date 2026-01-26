@@ -24,6 +24,7 @@ use amfiteatr_rl::tch::nn::OptimizerConfig;
 use crate::connect_four::common::{ConnectFourPlayer, ConnectFourScheme, ErrorRL};
 use amfiteatr_core::env::GameStateWithPayoffs;
 use amfiteatr_rl::policy::LearningNetworkPolicyGeneric;
+use amfiteatr_rl::torch_net::build_network_model_ac;
 pub type CartPolePolicy = PolicyDiscretePPO<CartPoleScheme, CartPoleObservation, CartPoleObservationEncoding, CartPoleActionEncoding>;
 
 #[derive(Clone, Debug, Default)]
@@ -138,17 +139,17 @@ impl CartPoleModelRust{
         let obs = initial_state.first_observations().unwrap()[0].1.clone();
         let agent_comm = env_communicator.register_agent(SINGLE_PLAYER_ID)?;
         let env = BasicEnvironment::new(initial_state, env_communicator);
-
-        let operator = build_network_operator_ac(vec![
+        let vs = VarStore::new(tch::Device::Cpu);
+        let model = build_network_model_ac(vec![
             Layer::Linear(64),
             Layer::Tanh,
             Layer::Linear(64),
             Layer::Tanh,
         ],
-                                                 vec![4], 2);
-        let vs = VarStore::new(tch::Device::Cpu);
+                                                 vec![4], 2, &vs.root());
+
         let optimizer = AdamW::default().build(&vs, 0.0003)?;
-        let network = NeuralNetActorCritic::new(vs, operator);
+        let network = NeuralNetActorCritic::new_concept_4(vs, model);
 
         let mut config_ppo = ConfigPPO::default();
         config_ppo.vf_coef = options.vf_coef;
@@ -264,7 +265,7 @@ impl CartPoleModelRust{
     pub fn train_agents_on_experience(&mut self) -> Result<LearnSummary, AmfiteatrRlError<CartPoleScheme>>{
         let t = self.agent.take_episodes();
 
-        info!("Episodes: {}: [{:?}]", t.len(), t.iter().map(|x| x.number_of_steps()).collect::<Vec<usize>>());
+        //info!("Episodes: {}: [{:?}]", t.len(), t.iter().map(|x| x.number_of_steps()).collect::<Vec<usize>>());
         /*
         print!("Episodes: {}", t.len());
         for i in &t{

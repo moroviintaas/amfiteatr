@@ -10,7 +10,7 @@ use amfiteatr_rl::tch;
 use amfiteatr_rl::tch::{nn, Tensor};
 use amfiteatr_rl::tch::nn::{Adam, OptimizerConfig, VarStore};
 use amfiteatr_rl::tensor_data::TensorEncoding;
-use amfiteatr_rl::torch_net::{A2CNet, TensorActorCritic};
+use amfiteatr_rl::torch_net::{build_network_model_ac, A2CNet, Layer, NeuralNet, TensorActorCritic};
 use crate::common::ComputeDevice;
 use crate::replicators::aliases::ReplPPO;
 use crate::replicators::error::ReplError;
@@ -22,14 +22,21 @@ pub fn create_ppo_policy(layer_sizes: Vec<i64>, var_store: VarStore, options: &R
     -> Result<ReplPPO, AmfiteatrError<ReplScheme>>{
     //todo this should be macro probably one day
     let info_set_repr = LocalHistoryConversionToTensor::new(options.number_of_rounds);
-    let input_shape = info_set_repr.desired_shape_flatten();
-    let hidden_layers = layer_sizes;
+    //let input_shape = info_set_repr.desired_shape_flatten();
+    let input_shape = info_set_repr.desired_shape().to_vec();
+    //let hidden_layers = layer_sizes;
     let output_shape = 2i64;
     let config = ConfigPPO{
         vf_coef: options.value_loss_coef,
         ent_coef: options.entropy_coefficient,
         ..Default::default()
     };
+
+    let mut layers = Vec::new();
+    for l in layer_sizes{
+        layers.push(Layer::Linear(l));
+        layers.push(Layer::Tanh);
+    }
     /*
     let mut config = ConfigPPO::default();
     config.vf_coef = options.value_loss_coef;
@@ -79,17 +86,18 @@ pub fn create_ppo_policy(layer_sizes: Vec<i64>, var_store: VarStore, options: &R
 
      */
 
-    let operator = Box::new(move |vs: &VarStore, tensor: &Tensor|{
+    /*
+    let operator = Box::new(move | tensor: &Tensor|{
         let mut seq = nn::seq();
         let mut last_dim = None;
         if !hidden_layers.is_empty(){
             let mut ld = hidden_layers[0];
 
             last_dim = Some(ld);
-            seq = seq.add(nn::linear(vs.root() / "INPUT", input_shape, ld, Default::default()));
+            seq = seq.add(nn::linear(var_store.root() / "INPUT", input_shape, ld, Default::default()));
 
             for (i, ld_new) in hidden_layers.iter().enumerate().skip(1){
-                seq = seq.add(nn::linear(vs.root() / &format!("h_{:}", i+1), ld, *ld_new, Default::default()))
+                seq = seq.add(nn::linear(var_store.root() / &format!("h_{:}", i+1), ld, *ld_new, Default::default()))
                     .add_fn(|xs| xs.tanh());
 
                 ld = *ld_new;
@@ -98,15 +106,15 @@ pub fn create_ppo_policy(layer_sizes: Vec<i64>, var_store: VarStore, options: &R
         }
         let (actor, critic) = match last_dim{
             None => {
-                (nn::linear(vs.root() / "al", input_shape, output_shape, Default::default()),
-                 nn::linear(vs.root() / "cl", input_shape, 1, Default::default()))
+                (nn::linear(var_store.root() / "al", input_shape, output_shape, Default::default()),
+                 nn::linear(var_store.root() / "cl", input_shape, 1, Default::default()))
             }
             Some(ld) => {
-                (nn::linear(vs.root() / "al", ld, output_shape, Default::default()),
-                 nn::linear(vs.root() / "cl", ld, 1, Default::default()))
+                (nn::linear(var_store.root() / "al", ld, output_shape, Default::default()),
+                 nn::linear(var_store.root() / "cl", ld, 1, Default::default()))
             }
         };
-        let device = vs.device();
+        let device = var_store.device();
             if seq.is_empty(){
                 TensorActorCritic {critic: tensor.apply(&critic), actor: tensor.apply(&actor)}
             } else {
@@ -115,10 +123,15 @@ pub fn create_ppo_policy(layer_sizes: Vec<i64>, var_store: VarStore, options: &R
             }
 
     });
+
+     */
     //let network = network_pattern.get_net_closure();
+    let model = build_network_model_ac(layers, input_shape, 1, &var_store.root());
     let optimiser = Adam::default().build(&var_store, options.learning_rate)
         .map_err(|origin|AmfiteatrError::Tensor {error: TensorError::Torch {origin: format!("{origin}"), context: "Creating optimser".to_string() } })?;
-    let net = A2CNet::new(var_store, operator);
+    //let net = A2CNet::new_concept_3(var_store, |_| operator);
+
+    let net = NeuralNet::new_concept_4(var_store, model);
 
     let mut policy = ReplPPO::new(config, net, optimiser, info_set_repr, ClassicActionTensorRepresentation{});
     if let Some(tboard_path_base) = &options.agent_tboard{

@@ -131,6 +131,7 @@ where <<InfoSet as PresentPossibleActions<S>>::ActionIteratorType as IntoIterato
             explore_enabled: true}
     }
 
+    /*
     pub fn var_store(&self) -> &VarStore {
         self.network.var_store()
     }
@@ -138,6 +139,8 @@ where <<InfoSet as PresentPossibleActions<S>>::ActionIteratorType as IntoIterato
     pub fn var_store_mut(&mut self) -> &mut VarStore {
         self.network.var_store_mut()
     }
+
+     */
 
 }
 
@@ -225,7 +228,7 @@ where <<InfoSet as PresentPossibleActions<S>>::ActionIteratorType as IntoIterato
                 let s = step.information_set().to_tensor(&self.info_set_way);
                 let a = step.action().to_tensor(&self.action_way);
                 let t = Tensor::cat(&[s,a], 0);
-                let q = (self.network.operator())(self.network.var_store(), &t);
+                let q = (self.network.net())(&t);
                 qval_tensor_vec_t.push(q);
                 t
 
@@ -288,6 +291,7 @@ where <<InfoSet as PresentPossibleActions<S>>::ActionIteratorType as IntoIterato
         Ok(Default::default())
     }
 
+    /*
     fn set_gradient_tracing(&mut self, enabled: bool) {
         match enabled{
             true => self.network.var_store_mut().unfreeze(),
@@ -295,6 +299,8 @@ where <<InfoSet as PresentPossibleActions<S>>::ActionIteratorType as IntoIterato
         }
 
     }
+
+     */
 }
 
 
@@ -313,7 +319,7 @@ where <<InfoSet as PresentPossibleActions<S>>::ActionIteratorType as IntoIterato
         let q_predictions : Vec<_>/*<Tensor>*/ = state.available_actions().into_iter().map(|a|{
             let action_tensor = a.to_tensor(&self.action_way);
             let input_tensor = Tensor::cat(&[state.to_tensor(&self.info_set_way), action_tensor], 0);
-            let q_val = self.network.operator()(self.network.var_store(), &input_tensor).narrow(0,0,1);
+            let q_val = self.network.net()(&input_tensor).narrow(0,0,1);
             actions.push(a);
             q_val
         }).collect();

@@ -88,7 +88,7 @@ where <S as Scheme>::ActionType:
         action_forward_mask_batches: Option<&Vec<Tensor>>,
     ) -> Result<(Tensor, Tensor, Tensor), AmfiteatrError<S>>{
 
-        let critic_actor= self.network.operator()(self.network.var_store(), info_set_batch);
+        let critic_actor= self.network.net()(info_set_batch);
 
         let batch_logprob = critic_actor.batch_log_probability_of_action::<S>(
             action_param_batches,
@@ -168,6 +168,7 @@ where <S as Scheme>::ActionType: ContextDecodeMultiIndexI64<ActionBuildContext>
         Ok(())
     }
 
+    /*
     pub fn var_store(&self) -> &VarStore {
         self.network.var_store()
     }
@@ -175,6 +176,8 @@ where <S as Scheme>::ActionType: ContextDecodeMultiIndexI64<ActionBuildContext>
     pub fn var_store_mut(&mut self) -> &mut VarStore {
         self.network.var_store_mut()
     }
+
+     */
 }
 
 impl<
@@ -231,12 +234,6 @@ where <S as Scheme>::ActionType: ContextDecodeMultiIndexI64<ActionBuildContext>
 
     }
 
-    fn set_gradient_tracing(&mut self, enabled: bool) {
-        match enabled{
-            true => self.network.var_store_mut().unfreeze(),
-            false => self.network.var_store_mut().freeze(),
-        }
-    }
 }
 
 
@@ -478,6 +475,7 @@ impl<
     }
 
 
+    /*
     pub fn var_store(&self) -> &VarStore {
         self.base.var_store()
     }
@@ -485,6 +483,8 @@ impl<
     pub fn var_store_mut(&mut self) -> &mut VarStore {
         self.base.var_store_mut()
     }
+
+     */
 
 }
 
@@ -763,7 +763,4 @@ impl<
         Ok(self.ppo_train_on_trajectories(trajectories, reward_f)?)
     }
 
-    fn set_gradient_tracing(&mut self, enabled: bool) {
-        self.base.set_gradient_tracing(enabled)
-    }
 }

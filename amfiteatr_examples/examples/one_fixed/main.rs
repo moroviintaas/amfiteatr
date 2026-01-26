@@ -177,7 +177,7 @@ fn main() -> Result<(), AmfiteatrError<ClassicScheme<AgentNum>>>{
     let mut environment = TracingBasicEnvironment::new(env_state_template.clone(), env_adapter);
 
 
-    let net0 = A2CNet::new(VarStore::new(device), operator);
+    let net0 = A2CNet::new_concept_1(VarStore::new(device), operator);
     let opt0 = net0.build_optimizer(Adam::default(), 1e-4).unwrap();
     let normal_policy = PolicyDiscreteA2C::new(ConfigA2C::default(), net0, opt0, tensor_repr, ClassicActionTensorRepresentation{});
     let state0 = LocalHistoryInfoSet::new(0, reward_table.into());

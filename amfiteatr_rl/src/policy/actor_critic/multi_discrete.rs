@@ -22,6 +22,7 @@ use crate::torch_net::{ActorCriticOutput, DeviceTransfer, NeuralNet, NeuralNetMu
 /// It is an __experimental__ approach disassembling cartesian action space of size `N x P1 x P2 x ... Pk` into
 /// `k + 1` distribution of action parameters.
 pub struct PolicyMultiDiscreteA2C<
+    
     S: Scheme,
     InfoSet: InformationSet<S> + Debug + ContextEncodeTensor<InfoSetConversionContext>,
     InfoSetConversionContext: TensorEncoding,
@@ -43,11 +44,12 @@ pub struct PolicyMultiDiscreteA2C<
 }
 
 impl<
+    
     S: Scheme,
     InfoSet: InformationSet<S> + Debug + ContextEncodeTensor<InfoSetConversionContext>,
     InfoSetConversionContext: TensorEncoding,
     ActionBuildContext:  MultiTensorIndexI64Encoding,
-> PolicyMultiDiscreteA2C<S, InfoSet, InfoSetConversionContext, ActionBuildContext>
+> PolicyMultiDiscreteA2C< S, InfoSet, InfoSetConversionContext, ActionBuildContext>
 where <S as Scheme>::ActionType:
 ContextDecodeMultiIndexI64<ActionBuildContext>
 + ContextEncodeMultiIndexI64<ActionBuildContext>
@@ -86,6 +88,7 @@ ContextDecodeMultiIndexI64<ActionBuildContext>
         Ok(())
     }
 
+    /*
     pub fn var_store(&self) -> &VarStore {
         self.network.var_store()
     }
@@ -94,14 +97,17 @@ ContextDecodeMultiIndexI64<ActionBuildContext>
         self.network.var_store_mut()
     }
 
+     */
+
 }
 
 impl<
+    
     S: Scheme,
     InfoSet: InformationSet<S> + Debug + ContextEncodeTensor<InfoSetConversionContext>,
     InfoSetConversionContext: TensorEncoding,
     ActionBuildContext:  MultiTensorIndexI64Encoding,
-> TensorboardSupport<S> for PolicyMultiDiscreteA2C<S, InfoSet, InfoSetConversionContext, ActionBuildContext>
+> TensorboardSupport<S> for PolicyMultiDiscreteA2C< S, InfoSet, InfoSetConversionContext, ActionBuildContext>
 {
     /// Creates [`tboard::EventWriter`]. Initially policy does not use `tensorboard` directory to store epoch
     /// training results (like entropy, policy loss, value loss). However, you cen provide it with directory
@@ -128,12 +134,13 @@ impl<
     }
 }
 impl<
+    
     S: Scheme,
     InfoSet: InformationSet<S> + Debug + ContextEncodeTensor<InfoSetConversionContext> ,
     InfoSetConversionContext: TensorEncoding,
     ActionBuildContext: MultiTensorDecoding + MultiTensorIndexI64Encoding + tensor_data::ActionTensorFormat<Vec<Tensor>>,
 >
-PolicyHelperA2C<S> for PolicyMultiDiscreteA2C<S, InfoSet, InfoSetConversionContext, ActionBuildContext>
+PolicyHelperA2C<S> for PolicyMultiDiscreteA2C< S, InfoSet, InfoSetConversionContext, ActionBuildContext>
 where
     <S as Scheme>::ActionType:
     ContextDecodeMultiIndexI64<ActionBuildContext, > + ContextEncodeMultiIndexI64<ActionBuildContext>,
@@ -221,7 +228,7 @@ where
     }
 
     fn batch_get_logprob_entropy_critic(&self, info_set_batch: &Tensor, action_param_batches: &<Self::NetworkOutput as ActorCriticOutput>::ActionTensorType, action_category_mask_batches: Option<&<Self::NetworkOutput as ActorCriticOutput>::ActionTensorType>, action_forward_mask_batches: Option<&<Self::NetworkOutput as ActorCriticOutput>::ActionTensorType>) -> Result<(Tensor, Tensor, Tensor), AmfiteatrError<S>> {
-        let a2c_net = self.network().operator()(self.network().var_store(),info_set_batch);
+        let a2c_net = self.network().net()(info_set_batch);
 
         let (log_prob, entropy) = a2c_net.batch_get_logprob_and_entropy(
             action_param_batches,
@@ -234,12 +241,13 @@ where
 }
 
 impl<
+    
     S: Scheme,
     InfoSet: InformationSet<S> + Debug + ContextEncodeTensor<InfoSetConversionContext> ,
     InfoSetConversionContext: TensorEncoding,
     ActionBuildContext: MultiTensorDecoding + MultiTensorIndexI64Encoding + tensor_data::ActionTensorFormat<Vec<Tensor>>,
 >
-Policy<S> for PolicyMultiDiscreteA2C<S, InfoSet, InfoSetConversionContext, ActionBuildContext>
+Policy<S> for PolicyMultiDiscreteA2C< S, InfoSet, InfoSetConversionContext, ActionBuildContext>
 where
     <S as Scheme>::ActionType:
     ContextDecodeMultiIndexI64<ActionBuildContext, > + ContextEncodeMultiIndexI64<ActionBuildContext>,
@@ -255,11 +263,12 @@ where
 }
 
 impl<
+    
     S: Scheme,
     InfoSet: InformationSet<S> + Debug + ContextEncodeTensor<InfoSetConversionContext>,
     InfoSetConversionContext: TensorEncoding,
     ActionBuildContext: MultiTensorDecoding + MultiTensorIndexI64Encoding + tensor_data::ActionTensorFormat<Vec<Tensor>>,
-> LearningNetworkPolicyGeneric<S> for PolicyMultiDiscreteA2C<S, InfoSet, InfoSetConversionContext, ActionBuildContext>
+> LearningNetworkPolicyGeneric<S> for PolicyMultiDiscreteA2C< S, InfoSet, InfoSetConversionContext, ActionBuildContext>
 where <S as Scheme>::ActionType: ContextDecodeMultiIndexI64<ActionBuildContext>
 + ContextEncodeMultiIndexI64<ActionBuildContext>,
 {
@@ -284,6 +293,7 @@ where <S as Scheme>::ActionType: ContextDecodeMultiIndexI64<ActionBuildContext>
 
     }
 
+    /*
     fn set_gradient_tracing(&mut self, enabled: bool) {
         match enabled{
             true => self.network.var_store_mut().unfreeze(),
@@ -291,26 +301,30 @@ where <S as Scheme>::ActionType: ContextDecodeMultiIndexI64<ActionBuildContext>
         }
 
     }
+
+     */
 }
 
 /// Experimental PPO policy for actions from discrete actions space but sampled from
 /// more than one parameter distribution with support of masking out illegal actions.
 pub struct PolicyMaskingMultiDiscreteA2C<
+    
     S: Scheme,
     InfoSet: InformationSet<S> + Debug + ContextEncodeTensor<InfoSetConversionContext> + MaskingInformationSetActionMultiParameter<S, ActionBuildContext>,
     InfoSetConversionContext: TensorEncoding,
     ActionBuildContext: MultiTensorDecoding + MultiTensorIndexI64Encoding,
 >{
-    pub base: PolicyMultiDiscreteA2C<S, InfoSet, InfoSetConversionContext, ActionBuildContext>
+    pub base: PolicyMultiDiscreteA2C< S, InfoSet, InfoSetConversionContext, ActionBuildContext>
 }
 
 impl<
+    
     S: Scheme,
     InfoSet: InformationSet<S> + Debug + ContextEncodeTensor<InfoSetConversionContext> + MaskingInformationSetActionMultiParameter<S, ActionBuildContext>,
     InfoSetConversionContext: TensorEncoding,
     ActionBuildContext: MultiTensorDecoding + MultiTensorIndexI64Encoding
     + tensor_data::ActionTensorFormat<Vec<Tensor>>,
-> PolicyMaskingMultiDiscreteA2C<S, InfoSet, InfoSetConversionContext, ActionBuildContext>
+> PolicyMaskingMultiDiscreteA2C< S, InfoSet, InfoSetConversionContext, ActionBuildContext>
 where <S as Scheme>::ActionType: ContextDecodeMultiIndexI64<ActionBuildContext> + ContextEncodeMultiIndexI64<ActionBuildContext>{
     pub fn new(
         config: ConfigA2C,
@@ -331,6 +345,7 @@ where <S as Scheme>::ActionType: ContextDecodeMultiIndexI64<ActionBuildContext> 
         self.base.add_tboard_directory(directory_path)
     }
 
+    /*
     pub fn var_store(&self) -> &VarStore {
         self.base.var_store()
     }
@@ -339,15 +354,18 @@ where <S as Scheme>::ActionType: ContextDecodeMultiIndexI64<ActionBuildContext> 
         self.base.var_store_mut()
     }
 
+     */
+
 }
 
 impl<
+    
     S: Scheme,
     InfoSet: InformationSet<S> + Debug + ContextEncodeTensor<InfoSetConversionContext> + MaskingInformationSetActionMultiParameter<S, ActionBuildContext>,
     InfoSetConversionContext: TensorEncoding,
     ActionBuildContext: MultiTensorDecoding + MultiTensorIndexI64Encoding
     + tensor_data::ActionTensorFormat<Vec<Tensor>>,
-> TensorboardSupport<S> for PolicyMaskingMultiDiscreteA2C<S, InfoSet, InfoSetConversionContext, ActionBuildContext>
+> TensorboardSupport<S> for PolicyMaskingMultiDiscreteA2C< S, InfoSet, InfoSetConversionContext, ActionBuildContext>
 {
     /// Creates [`tboard::EventWriter`]. Initially policy does not use `tensorboard` directory to store epoch
     /// training results (like entropy, policy loss, value loss). However, you cen provide it with directory
@@ -360,13 +378,14 @@ impl<
     }
 }
 impl<
+    
     S: Scheme,
     InfoSet: InformationSet<S> + Debug + ContextEncodeTensor<InfoSetConversionContext>
     + MaskingInformationSetActionMultiParameter<S, ActionBuildContext>,
     InfoSetConversionContext: TensorEncoding,
     ActionBuildContext: MultiTensorDecoding + MultiTensorIndexI64Encoding
     + tensor_data::ActionTensorFormat<Vec<Tensor>>,
-> PolicyHelperA2C<S> for PolicyMaskingMultiDiscreteA2C<S, InfoSet, InfoSetConversionContext, ActionBuildContext>
+> PolicyHelperA2C<S> for PolicyMaskingMultiDiscreteA2C< S, InfoSet, InfoSetConversionContext, ActionBuildContext>
 where
     <S as Scheme>::ActionType: ContextDecodeMultiIndexI64<ActionBuildContext>
     + ContextEncodeMultiIndexI64<ActionBuildContext>
@@ -450,13 +469,14 @@ where
 }
 
 impl<
+    
     S: Scheme,
     InfoSet: InformationSet<S> + Debug + ContextEncodeTensor<InfoSetConversionContext>
     + MaskingInformationSetActionMultiParameter<S, ActionBuildContext>,
     InfoSetConversionContext: TensorEncoding,
     ActionBuildContext: MultiTensorDecoding + MultiTensorIndexI64Encoding + tensor_data::ActionTensorFormat<Vec<Tensor>>,
 >
-Policy<S> for PolicyMaskingMultiDiscreteA2C<S, InfoSet, InfoSetConversionContext, ActionBuildContext>
+Policy<S> for PolicyMaskingMultiDiscreteA2C< S, InfoSet, InfoSetConversionContext, ActionBuildContext>
 where
     <S as Scheme>::ActionType:
     ContextDecodeMultiIndexI64<ActionBuildContext, > + ContextEncodeMultiIndexI64<ActionBuildContext>,
@@ -471,13 +491,14 @@ where
 }
 
 impl<
+    
     S: Scheme,
     InfoSet: InformationSet<S> + Debug + ContextEncodeTensor<InfoSetConversionContext>
     + MaskingInformationSetActionMultiParameter<S, ActionBuildContext>,
     InfoSetConversionContext: TensorEncoding,
     ActionBuildContext: MultiTensorDecoding + MultiTensorIndexI64Encoding
     + tensor_data::ActionTensorFormat<Vec<Tensor>>,
-> LearningNetworkPolicyGeneric<S> for PolicyMaskingMultiDiscreteA2C<S, InfoSet, InfoSetConversionContext, ActionBuildContext>
+> LearningNetworkPolicyGeneric<S> for PolicyMaskingMultiDiscreteA2C< S, InfoSet, InfoSetConversionContext, ActionBuildContext>
 where
     <S as Scheme>::ActionType: ContextDecodeMultiIndexI64<ActionBuildContext>
     + ContextEncodeMultiIndexI64<ActionBuildContext>
@@ -495,8 +516,11 @@ where
         Ok(self.a2c_train_on_trajectories(trajectories, reward_f)?)
     }
 
+    /*
     fn set_gradient_tracing(&mut self, enabled: bool) {
         self.base.set_gradient_tracing(enabled)
 
     }
+
+     */
 }

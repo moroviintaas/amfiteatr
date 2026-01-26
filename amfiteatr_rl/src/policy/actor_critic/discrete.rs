@@ -18,6 +18,7 @@ use crate::torch_net::{ActorCriticOutput, NeuralNet, NeuralNetActorCritic, Tenso
 /// Policy A2C for discrete action space with single distribution using [`tch`] crate for `torch` backed
 /// [`Tensors`](tch::Tensor).
 pub struct PolicyDiscreteA2C<
+    
     S: Scheme,
     InfoSet: InformationSet<S> + Debug + ContextEncodeTensor<InfoSetConversionContext>,
     InfoSetConversionContext: TensorEncoding,
@@ -38,11 +39,12 @@ pub struct PolicyDiscreteA2C<
 }
 
 impl<
+    
     S: Scheme,
     InfoSet: InformationSet<S> + Debug + ContextEncodeTensor<InfoSetConversionContext>,
     InfoSetConversionContext: TensorEncoding,
     ActionBuildContext: TensorDecoding,
-> PolicyDiscreteA2C<S, InfoSet, InfoSetConversionContext, ActionBuildContext>{
+> PolicyDiscreteA2C< S, InfoSet, InfoSetConversionContext, ActionBuildContext>{
     pub fn new(
         config: ConfigA2C,
         network: NeuralNetActorCritic,
@@ -74,6 +76,7 @@ impl<
         Ok(())
     }
 
+    /*
     pub fn var_store(&self) -> &VarStore {
         self.network.var_store()
     }
@@ -82,15 +85,18 @@ impl<
         self.network.var_store_mut()
     }
 
+     */
+
 
 }
 
 impl<
+    
     S: Scheme,
     InfoSet: InformationSet<S> + Debug + ContextEncodeTensor<InfoSetConversionContext>,
     InfoSetConversionContext: TensorEncoding,
     ActionBuildContext: TensorDecoding,
-> TensorboardSupport<S> for PolicyDiscreteA2C<S, InfoSet, InfoSetConversionContext, ActionBuildContext>
+> TensorboardSupport<S> for PolicyDiscreteA2C< S, InfoSet, InfoSetConversionContext, ActionBuildContext>
 {
     /// Creates [`tboard::EventWriter`]. Initially policy does not use `tensorboard` directory to store epoch
     /// training results (like entropy, policy loss, value loss). However, you cen provide it with directory
@@ -117,12 +123,13 @@ impl<
     }
 }
 impl<
+    
     S: Scheme,
     InfoSet: InformationSet<S> + Debug + ContextEncodeTensor<InfoSetEncoding>,
     InfoSetEncoding: TensorEncoding,
     ActionEncoding: TensorDecoding + TensorIndexI64Encoding
     + tensor_data::ActionTensorFormat<Tensor>,
-> PolicyHelperA2C<S> for PolicyDiscreteA2C<S, InfoSet, InfoSetEncoding, ActionEncoding>
+> PolicyHelperA2C<S> for PolicyDiscreteA2C< S, InfoSet, InfoSetEncoding, ActionEncoding>
 where <S as Scheme>::ActionType:
 ContextDecodeIndexI64<ActionEncoding> + ContextEncodeIndexI64<ActionEncoding>{
     type InfoSet = InfoSet;
@@ -210,7 +217,7 @@ ContextDecodeIndexI64<ActionEncoding> + ContextEncodeIndexI64<ActionEncoding>{
         Ok((log_prob, entropy, a2c_net.critic))
 
          */
-        let critic_actor= self.network.operator()(self.network.var_store(), info_set_batch);
+        let critic_actor= self.network.net()(info_set_batch);
 
         let batch_logprob = critic_actor.batch_log_probability_of_action::<S>(
             action_param_batches,
@@ -236,12 +243,13 @@ ContextDecodeIndexI64<ActionEncoding> + ContextEncodeIndexI64<ActionEncoding>{
 }
 
 impl<
+    
     S: Scheme,
     InfoSet: InformationSet<S> + Debug + ContextEncodeTensor<InfoSetEncoding>,
     InfoSetEncoding: TensorEncoding,
     ActionEncoding: TensorDecoding + TensorIndexI64Encoding
     + tensor_data::ActionTensorFormat<Tensor>,
-> Policy<S> for PolicyDiscreteA2C<S, InfoSet, InfoSetEncoding, ActionEncoding>
+> Policy<S> for PolicyDiscreteA2C< S, InfoSet, InfoSetEncoding, ActionEncoding>
     where <S as Scheme>::ActionType:
     ContextDecodeIndexI64<ActionEncoding> + ContextEncodeIndexI64<ActionEncoding>{
     type InfoSetType = InfoSet;
@@ -252,12 +260,13 @@ impl<
 }
 
 impl<
+    
     S: Scheme,
     InfoSet: InformationSet<S> + Debug + ContextEncodeTensor<InfoSetEncoding>,
     InfoSetEncoding: TensorEncoding,
     ActionEncoding: TensorDecoding + TensorIndexI64Encoding
     + tensor_data::ActionTensorFormat<Tensor>,
-> LearningNetworkPolicyGeneric<S> for PolicyDiscreteA2C<S, InfoSet, InfoSetEncoding, ActionEncoding>
+> LearningNetworkPolicyGeneric<S> for PolicyDiscreteA2C< S, InfoSet, InfoSetEncoding, ActionEncoding>
     where <S as Scheme>::ActionType:
     ContextDecodeIndexI64<ActionEncoding> + ContextEncodeIndexI64<ActionEncoding>{
     type Summary = LearnSummary;
@@ -282,6 +291,7 @@ impl<
         Ok(self.a2c_train_on_trajectories(trajectories, reward_f)?)
     }
 
+    /*
     fn set_gradient_tracing(&mut self, enabled: bool) {
         match enabled{
             true => self.network.var_store_mut().unfreeze(),
@@ -289,27 +299,31 @@ impl<
         }
 
     }
+
+     */
 }
 
 
 /// Policy PPO structure for discrete action space with support of masking.
 pub struct PolicyMaskingDiscreteA2C<
+    
     S: Scheme,
     InfoSet: InformationSet<S> + Debug + ContextEncodeTensor<InfoSetConversionContext> + MaskingInformationSetAction<S, ActionBuildContext>,
     InfoSetConversionContext: TensorEncoding,
     ActionBuildContext: TensorDecoding + TensorIndexI64Encoding,
 >{
     /// It wraps around 'normal' PPO policy, but with more traits enforced.
-    pub base: PolicyDiscreteA2C<S, InfoSet, InfoSetConversionContext, ActionBuildContext>,
+    pub base: PolicyDiscreteA2C< S, InfoSet, InfoSetConversionContext, ActionBuildContext>,
 
 }
 
 impl <
+    
     S: Scheme,
     InfoSet: InformationSet<S> + Debug + ContextEncodeTensor<InfoSetConversionContext> + MaskingInformationSetAction<S, ActionBuildContext>,
     InfoSetConversionContext: TensorEncoding,
     ActionBuildContext: TensorDecoding + TensorIndexI64Encoding,
-> PolicyMaskingDiscreteA2C<S, InfoSet, InfoSetConversionContext, ActionBuildContext>{
+> PolicyMaskingDiscreteA2C< S, InfoSet, InfoSetConversionContext, ActionBuildContext>{
 
     pub fn new(
         config: ConfigA2C,
@@ -326,11 +340,12 @@ impl <
 }
 
 impl <
+    
     S: Scheme,
     InfoSet: InformationSet<S> + Debug + ContextEncodeTensor<InfoSetConversionContext> + MaskingInformationSetAction<S, ActionBuildContext>,
     InfoSetConversionContext: TensorEncoding,
     ActionBuildContext: TensorDecoding + TensorIndexI64Encoding,
-> TensorboardSupport<S> for PolicyMaskingDiscreteA2C<S, InfoSet, InfoSetConversionContext, ActionBuildContext, >
+> TensorboardSupport<S> for PolicyMaskingDiscreteA2C< S, InfoSet, InfoSetConversionContext, ActionBuildContext, >
 {
     /// Creates [`tboard::EventWriter`]. Initially policy does not use `tensorboard` directory to store epoch
     /// training results (like entropy, policy loss, value loss). However, you cen provide it with directory
@@ -343,11 +358,12 @@ impl <
     }
 }
 impl <
+    
     S: Scheme,
     InfoSet: InformationSet<S> + Debug + ContextEncodeTensor<InfoSetEncoding> + MaskingInformationSetAction<S, ActionEncoding>,
     InfoSetEncoding: TensorEncoding,
     ActionEncoding: TensorDecoding + TensorIndexI64Encoding,
-> PolicyHelperA2C<S> for PolicyMaskingDiscreteA2C<S, InfoSet, InfoSetEncoding, ActionEncoding>
+> PolicyHelperA2C<S> for PolicyMaskingDiscreteA2C< S, InfoSet, InfoSetEncoding, ActionEncoding>
     where <S as Scheme>::ActionType:
     ContextDecodeIndexI64<ActionEncoding> + ContextEncodeIndexI64<ActionEncoding>{
     type InfoSet = InfoSet;
@@ -444,11 +460,12 @@ impl <
 }
 
 impl <
+    
     S: Scheme,
     InfoSet: InformationSet<S> + Debug + ContextEncodeTensor<InfoSetEncoding> + MaskingInformationSetAction<S, ActionEncoding>,
     InfoSetEncoding: TensorEncoding,
     ActionEncoding: TensorDecoding + TensorIndexI64Encoding,
-> Policy<S> for PolicyMaskingDiscreteA2C<S, InfoSet, InfoSetEncoding, ActionEncoding>
+> Policy<S> for PolicyMaskingDiscreteA2C< S, InfoSet, InfoSetEncoding, ActionEncoding>
     where <S as Scheme>::ActionType:
     ContextDecodeIndexI64<ActionEncoding> + ContextEncodeIndexI64<ActionEncoding>{
     type InfoSetType = InfoSet;
@@ -459,11 +476,12 @@ impl <
 }
 
 impl <
+    
     S: Scheme,
     InfoSet: InformationSet<S> + Debug + ContextEncodeTensor<InfoSetEncoding> + MaskingInformationSetAction<S, ActionEncoding>,
     InfoSetEncoding: TensorEncoding,
     ActionEncoding: TensorDecoding + TensorIndexI64Encoding,
-> LearningNetworkPolicyGeneric<S> for PolicyMaskingDiscreteA2C<S, InfoSet, InfoSetEncoding, ActionEncoding>
+> LearningNetworkPolicyGeneric<S> for PolicyMaskingDiscreteA2C< S, InfoSet, InfoSetEncoding, ActionEncoding>
     where <S as Scheme>::ActionType:
     ContextDecodeIndexI64<ActionEncoding> + ContextEncodeIndexI64<ActionEncoding>{
     type Summary = LearnSummary;
@@ -481,8 +499,11 @@ impl <
         Ok(self.a2c_train_on_trajectories(trajectories, reward_f)?)
     }
 
+    /*
     fn set_gradient_tracing(&mut self, enabled: bool) {
         self.base.switch_explore(enabled)
 
     }
+
+     */
 }
