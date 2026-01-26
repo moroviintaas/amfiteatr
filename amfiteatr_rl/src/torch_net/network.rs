@@ -9,6 +9,8 @@ use crate::torch_net::{
 };
 use serde::{Serialize, Deserialize};
 use std::default::Default;
+use std::sync::{Arc, Mutex};
+
 /// Structure wrapping [`VarStore`] and network closure used to build neural network based function.
 /// Examples in [`tch`](https://github.com/LaurentMazare/tch-rs) show how neural networks are used.
 /// This structure shortens some steps of setting and provides some helpful functions - especially
@@ -25,9 +27,10 @@ pub struct NeuralNet<Output: NetOutput>{
 */
 pub struct NeuralNet<Output: NetOutput>{
     net: NetworkModel<Output>,
+    device: Device,
 
     //device: tch::Device,
-    var_store: VarStore,
+    var_store: Arc<Mutex<VarStore>>,
 }
 
 
@@ -83,56 +86,14 @@ pub type MultiDiscreteNet = NeuralNet< MultiDiscreteTensor>;
 impl< Output: NetOutput> NeuralNet< Output>{
 
 
-    /*
-    pub fn new(var_store: VarStore, operator: Box<dyn Fn(&VarStore, &Tensor) -> Output + Send>) -> Self{
-        NeuralNet { operator, var_store }
-    }
-
-     */
-    //_input: Default::default()
 
 
-
-    /*
-    pub fn new( net_model: NetworkModel<Output>, var_store: VarStore) -> Self{
-        NeuralNet {
-            net: net_model
-
-        }
-    }
-
-     */
-
-    /*
-    pub fn new_concept_1(ref_var_store: &VarStore, net_model: impl Fn(&tch::nn::Path) -> NetworkModel<Output>, ) -> Self{
-        NeuralNet {
-            net: net_model(&ref_var_store.root()),
-            device: ref_var_store.device()
-
-        }
-    }
-
-    pub fn new_concept_2(net_model: NetworkModel<Output>, device: &tch::Device) -> Self{
-        NeuralNet{
-            net: net_model,
-            device: *device
-        }
-    }
-
-     */
-
-    /*
-    pub fn new_concept_3(var_store: VarStore, net_model: impl Fn(&tch::nn::Path) -> NetworkModel< Output>) -> Self{
-        let net = net_model(&var_store.root());
-        Self{
-            net, var_store
-        }
-    }
-
-     */
-
-    pub fn new_concept_4(var_store: VarStore, model: NetworkModel<Output>) -> Self{
-        Self{var_store, net:model}
+    pub fn new(var_store: Arc<Mutex<VarStore>>, model: NetworkModel<Output>) -> Self{
+        let device = {
+            let vs = var_store.as_ref().lock().unwrap();
+            vs.device()
+        };
+        Self{var_store, net:model, device}
     }
 
 
@@ -177,22 +138,13 @@ impl< Output: NetOutput> NeuralNet< Output>{
 
 
     pub fn device(&self) -> Device{
-        self.var_store.device()
-    }
-    /*
-
-    pub fn device(&self) -> Device{
-        self.var_store.device()
+        self.device
     }
 
-    pub fn var_store(&self) -> &VarStore{
+    pub fn var_store(&self) -> &Arc<Mutex<VarStore>>{
         &self.var_store
     }
-    pub fn var_store_mut(&mut self) -> &mut VarStore{
-        &mut self.var_store
-    }
 
-     */
 }
 
 
@@ -208,6 +160,8 @@ pub type NetworkModel< Output: NetOutput> = Box<dyn Fn(&Tensor) -> Output + Send
 /// structured neural networks you have to clone defined closure and use these cloned closures to
 /// construct two networks. This helper structure allows declaring closure and then using it to
 /// build many neural networks
+#[deprecated(since = "0.13.0", note = "Network model is now maintained as [`NetworkModel`] which can be
+ constructed in dynamic way. For example Actor Critic network can be built with function [`build_network_model_ac`]")]
 pub struct NeuralNetTemplate<
     Output: NetOutput,
     N: 'static + Send + Fn(&Tensor) -> Output,
@@ -222,9 +176,7 @@ pub struct NeuralNetTemplate<
 
 
 
-#[deprecated(since = "0.13.0", note = "Please build `NeuralNetTemplate` with function `new` using operator Box.\
-The whole structure does not make sense anymore since NuralNet use `Box<dyn Fn(&VarStore, &Tensor) -> Output>` \
-and not `Box<dyn Fn(&Tensor) -> Output + Send >` which led to problems with constructing dynamic network shape without templating them in closures.")]
+
 impl<
     O: NetOutput,
     N: 'static + Send + Fn(&Tensor) -> O,
@@ -373,7 +325,25 @@ impl NeuralNetActorCritic{
 
 */
 
-
+/// If you want to create network model for actor critic that has input shape 5x4 (to be flattened),
+/// and hidden layers: Linear(32), ReLu, Linear(32), Relu and output in 4 possible actions you would do something like that:
+///
+/// ```
+///
+/// use tch::Device;
+/// use tch::nn::VarStore;
+/// use amfiteatr_rl::torch_net::{build_network_model_ac, Layer, NeuralNet};
+/// let var_store = VarStore::new(Device::Cpu);
+///
+/// let input_shape = vec![5,4];
+/// let actor_shape = 4;
+/// let layers = vec![Layer::Linear(32), Layer::Relu, Layer::Linear(32)];
+///
+/// let model = build_network_model_ac(layers, input_shape, actor_shape, &var_store.root());
+/// // Then we could build network that is used in policy:
+/// //let net = NeuralNet::new(var_store, model);
+///
+/// ```
 pub fn build_network_model_ac(layers: Vec<Layer>, input_shape:  Vec<i64>, actor_shape: i64, path: &nn::Path)
     -> NetworkModel< TensorActorCritic>{
 
@@ -426,7 +396,7 @@ pub fn build_network_model_ac(layers: Vec<Layer>, input_shape:  Vec<i64>, actor_
 
 
 }
-
+/*
 pub fn build_network_operator_ac(layers: Vec<Layer>, input_shape:  Vec<i64>, actor_shape: i64)
                                  ->  Box<dyn Fn(&VarStore, &Tensor) -> TensorActorCritic + Send>
 {
@@ -489,215 +459,5 @@ pub fn build_network_operator_ac(layers: Vec<Layer>, input_shape:  Vec<i64>, act
 
 }
 
-/*
-pub fn create_net_model_discrete_ac<'a>(vs: &'a VarStore, layers: &[Layer], input_shape: &[i64], actor_shape: i64)
-    ->  Box<dyn Fn(&Tensor) -> TensorActorCritic + Send + 'a>
-{
-
-    let mut seq = nn::seq();
-    let mut current_dim = input_shape[0];
-    let mut next_dim = input_shape[0];
-    let mut last_dim = None;
-    if !layers.is_empty() {
-        let mut layer = layers[0].clone();
-        last_dim = Some(layer.clone());
-        seq = match layer {
-            Layer::Relu => { seq.add_fn(|x| x.relu()) },
-            Layer::Tanh => { seq.add_fn(|x| x.tanh()) },
-            Layer::Linear(output) => {
-                next_dim = output;
-                seq.add(
-                    nn::linear(vs.root() / "0", current_dim, output, Default::default())
-                )
-            }
-        };
-        current_dim = next_dim;
-        for (i, new_layer) in layers.iter().enumerate().skip(1) {
-            seq = match new_layer {
-                Layer::Relu => { seq.add_fn(|x| x.relu()) },
-                Layer::Tanh => { seq.add_fn(|x| x.tanh()) },
-                Layer::Linear(output) => {
-                    next_dim = *output;
-                    seq.add(
-                        nn::linear(vs.root() / &format!("lin_{}", i), current_dim, *output, Default::default()))
-                }
-            };
-            current_dim = next_dim;
-        }
-        let (actor, critic) = (
-            nn::linear(vs.root() / "actor", current_dim, actor_shape, Default::default()),
-            nn::linear(vs.root() / "critic", current_dim, 1, Default::default())
-        );
-        //{
-        Box::new(
-            move |xs: &Tensor| {
-                let device = vs.device();
-                let xs = xs.to_device(device).apply(&seq);
-                TensorActorCritic {
-                    critic: xs.apply(&critic),
-                    actor: xs.apply(&actor),
-                }
-            }
-            //}
-        )
-
-
-    } else{
-        panic!("Empty layer sequence")
-    }
-
-}
 
  */
-
-/*
-pub fn create_net_template_discrete_ac<'a>(layers: &[Layer], input_shape: &[i64], actor_shape: i64)
-                                        ->  Box<dyn Fn(nn::Path) -> Box<dyn Fn(&Tensor) -> TensorActorCritic + 'a + Send>>
-{
-
-
-
-    if !layers.is_empty() {
-
-        //{
-        Box::new(|p: nn::Path|{
-            let mut next_dim = input_shape[0];
-            let mut last_dim = None;
-            let mut seq = nn::seq();
-            let mut current_dim = input_shape[0];
-            let mut layer = layers[0].clone();
-            last_dim = Some(layer.clone());
-            seq = match layer {
-                Layer::Relu => { seq.add_fn(|x| x.relu()) },
-                Layer::Tanh => { seq.add_fn(|x| x.tanh()) },
-                Layer::Linear(output) => {
-                    next_dim = output;
-                    seq.add(
-                        nn::linear(p.clone() / "0", current_dim, output, Default::default())
-                    )
-                }
-            };
-            current_dim = next_dim;
-            for (i, new_layer) in layers.iter().enumerate().skip(1) {
-                seq = match new_layer {
-                    Layer::Relu => { seq.add_fn(|x| x.relu()) },
-                    Layer::Tanh => { seq.add_fn(|x| x.tanh()) },
-                    Layer::Linear(output) => {
-                        next_dim = *output;
-                        seq.add(
-                            nn::linear(p.clone() / &format!("lin_{}", i), current_dim, *output, Default::default()))
-                    }
-                };
-                current_dim = next_dim;
-            }
-            let (actor, critic) = (
-                nn::linear(p.clone() / "actor", current_dim, actor_shape, Default::default()),
-                nn::linear(p.clone() / "critic", current_dim, 1, Default::default())
-            );
-            Box::new(
-                move |xs: &Tensor| {
-                    let device = p.device();
-                    let xs = xs.to_device(device).apply(&seq);
-                    TensorActorCritic {
-                        critic: xs.apply(&critic),
-                        actor: xs.apply(&actor),
-                    }
-                }
-                //}
-            )
-        })
-
-
-
-    } else{
-        panic!("Empty layer sequence")
-    }
-
-}
-
-
-
- */
-/*
-impl NeuralNetTemplateDiscreteAC {
-    pub fn new(layer_description: Vec<Layer>, input_shape: Vec<i64>, actor_shape: i64) -> Self{
-        Self{
-            layers: layer_description, input_shape,
-            actor_shape,
-        }
-    }
-
-    //pub fn get_closure<N: 'static + Send + Fn(&Tensor) -> TensorActorCritic>(&self)
-    //    -> Box<dyn Fn(&tch::nn::Path) -> N>{
-
-    pub fn get_model(&self, path: &nn::Path)
-        ->  Box<dyn Fn(&Tensor) -> TensorActorCritic+ '_>
-    {
-
-        //! TODO non 1-d input (require flatten before linear
-        //let network_pattern = Box::new(|path: &tch::nn::Path|{
-            //Box::new(|t: tch::Tensor|{
-
-
-
-
-            let mut seq = nn::seq();
-            let mut current_dim = self.input_shape[0];
-            let mut next_dim = self.input_shape[0];
-            let mut last_dim = None;
-            if !self.layers.is_empty() {
-                let mut layer = self.layers[0];
-                last_dim = Some(layer);
-                seq = match layer {
-                    Layer::Relu => { seq.add_fn(|x| x.relu()) },
-                    Layer::Tanh => { seq.add_fn(|x| x.tanh()) },
-                    Layer::Linear(output) => {
-                        next_dim = output;
-                        seq.add(
-                            nn::linear(path / "0", current_dim, output, Default::default())
-                        )
-                    }
-                };
-                current_dim = next_dim;
-                for (i, new_layer) in self.layers.iter().enumerate().skip(1) {
-                    seq = match new_layer {
-                        Layer::Relu => { seq.add_fn(|x| x.relu()) },
-                        Layer::Tanh => { seq.add_fn(|x| x.tanh()) },
-                        Layer::Linear(output) => {
-                            next_dim = *output;
-                            seq.add(
-                                nn::linear(path / &format!("lin_{}", i), current_dim, *output, Default::default()))
-                        }
-                    };
-                    current_dim = next_dim;
-                }
-                let (actor, critic) = (
-                    nn::linear(path / "actor", current_dim, self.actor_shape, Default::default()),
-                    nn::linear(path / "critic", current_dim, 1, Default::default())
-                );
-                //{
-                Box::new(
-                move |xs: &Tensor| {
-                    let device = path.device();
-                    let xs = xs.to_device(device).apply(&seq);
-                    TensorActorCritic {
-                        critic: xs.apply(&critic),
-                        actor: xs.apply(&actor),
-                    }
-                }
-                //}
-            )
-
-
-        } else{
-                panic!("Empty layer sequence")
-            }
-
-        //});
-
-        //})
-
-        //network_pattern
-    }
-}
-*/

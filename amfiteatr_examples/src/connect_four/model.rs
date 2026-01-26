@@ -311,7 +311,7 @@ pub fn build_a2c_policy(layer_sizes: &[i64], device: Device, config: ConfigA2C, 
     //let net = network_pattern.get_net_closure();
     let optimiser = Adam::default().build(&var_store, learning_rate)?;
 
-    let net = NeuralNet::new_concept_4(var_store, model);
+    let net = NeuralNet::new(Arc::new(Mutex::new(var_store)), model);
 
 
     //let mut config = ConfigA2C::default();
@@ -380,7 +380,7 @@ pub fn build_a2c_policy_masking(layer_sizes: &[i64], device: Device, config: Con
     //let net = network_pattern.get_net_closure();
     let optimiser = Adam::default().build(&var_store, learning_rate)?;
 
-    let net = NeuralNet::new_concept_4(var_store, model);
+    let net = NeuralNet::new(Arc::new(Mutex::new(var_store)), model);
 
     //let mut config = ConfigA2C::default();
     // config.gae_lambda = gae_lambda;
@@ -489,7 +489,7 @@ pub fn build_ppo_policy_masking(layer_sizes: &[i64], device: Device, config: Con
     //let net = network_pattern.get_net_closure();
     let optimiser = Adam::default().build(&var_store, learning_rate)?;
 
-    let net = NeuralNet::new_concept_4(var_store, model);
+    let net = NeuralNet::new(Arc::new(Mutex::new(var_store)), model);
 
     Ok(PolicyMaskingDiscretePPO::new(
         config,

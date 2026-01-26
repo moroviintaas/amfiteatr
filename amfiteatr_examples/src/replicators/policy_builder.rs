@@ -1,4 +1,5 @@
 use std::path::PathBuf;
+use std::sync::{Arc, Mutex};
 use log::debug;
 use amfiteatr_classic::agent::{LocalHistoryConversionToTensor, LocalHistoryInfoSetNumbered};
 use amfiteatr_classic::ClassicActionTensorRepresentation;
@@ -131,7 +132,7 @@ pub fn create_ppo_policy(layer_sizes: Vec<i64>, var_store: VarStore, options: &R
         .map_err(|origin|AmfiteatrError::Tensor {error: TensorError::Torch {origin: format!("{origin}"), context: "Creating optimser".to_string() } })?;
     //let net = A2CNet::new_concept_3(var_store, |_| operator);
 
-    let net = NeuralNet::new_concept_4(var_store, model);
+    let net = NeuralNet::new(Arc::new(Mutex::new(var_store)), model);
 
     let mut policy = ReplPPO::new(config, net, optimiser, info_set_repr, ClassicActionTensorRepresentation{});
     if let Some(tboard_path_base) = &options.agent_tboard{
