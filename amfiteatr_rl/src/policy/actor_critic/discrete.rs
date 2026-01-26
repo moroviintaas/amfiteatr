@@ -291,16 +291,13 @@ impl<
         Ok(self.a2c_train_on_trajectories(trajectories, reward_f)?)
     }
 
-    /*
+
     fn set_gradient_tracing(&mut self, enabled: bool) {
-        match enabled{
-            true => self.network.var_store_mut().unfreeze(),
-            false => self.network.var_store_mut().freeze(),
-        }
+        self.network.set_gradient_tracing(enabled)
 
     }
 
-     */
+
 }
 
 
@@ -499,11 +496,8 @@ impl <
         Ok(self.a2c_train_on_trajectories(trajectories, reward_f)?)
     }
 
-    /*
     fn set_gradient_tracing(&mut self, enabled: bool) {
-        self.base.switch_explore(enabled)
+        self.base.set_gradient_tracing(enabled)
 
     }
-
-     */
 }

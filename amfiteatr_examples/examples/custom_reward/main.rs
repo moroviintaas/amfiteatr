@@ -6,7 +6,7 @@ use log::{debug, info};
 use amfiteatr_rl::tch::{Device, nn, Tensor};
 use amfiteatr_rl::tch::nn::{Adam, VarStore};
 use amfiteatr_rl::tensor_data::{TensorEncoding};
-use amfiteatr_rl::torch_net::{A2CNet, TensorActorCritic};
+use amfiteatr_rl::torch_net::{build_network_model_ac, A2CNet, TensorActorCritic, VariableStorage};
 use clap::{Parser};
 use plotters::style::colors;
 use amfiteatr_core::agent::*;
@@ -23,8 +23,8 @@ use crate::options::EducatorOptions;
 use crate::options::SecondPolicy;
 use amfiteatr_examples::plots::{plot_many_series, PlotSeries};
 use amfiteatr_examples::series::{MultiAgentPayoffSeries, PayoffSeries};
-
-
+use amfiteatr_rl::torch_net::Layer::{Linear, Relu, Tanh};
+use amfiteatr_rl::tch::nn::OptimizerConfig;
 
 pub fn setup_logger(options: &EducatorOptions) -> Result<(), fern::InitError> {
     let dispatch  = fern::Dispatch::new()
@@ -102,7 +102,9 @@ fn main() -> Result<(), AmfiteatrError<ClassicScheme<AgentNum>>>{
 
     let tensor_repr = LocalHistoryConversionToTensor::new(args.number_of_rounds);
 
-    let input_size = tensor_repr.desired_shape().iter().product();
+    //let input_size = tensor_repr.desired_shape().iter().product();
+
+    let input_size = tensor_repr.desired_shape().to_vec();
 
     let mut payoffs_0 = Vec::with_capacity(args.epochs + 1);
     let mut payoffs_1 = Vec::with_capacity(args.epochs + 1);
@@ -125,6 +127,7 @@ fn main() -> Result<(), AmfiteatrError<ClassicScheme<AgentNum>>>{
 
 
 
+    /*
     let operator = Box::new(move |vs: &VarStore, tensor: &Tensor|{
         let seq = nn::seq()
             .add(nn::linear(vs.root() / "input", input_size, 512, Default::default()))
@@ -140,6 +143,10 @@ fn main() -> Result<(), AmfiteatrError<ClassicScheme<AgentNum>>>{
         let xs = tensor.to_device(vs.device()).apply(&seq);
         TensorActorCritic {critic: xs.apply(&critic), actor: xs.apply(&actor)}
     });
+    */
+    let var_store = VarStore::new(device);
+    let layers = vec![Linear(512), Tanh, Linear(256), Tanh, Relu];
+    let model = build_network_model_ac(layers.clone(), input_size.clone(), 2, &var_store.root());
 
 
 
@@ -151,19 +158,24 @@ fn main() -> Result<(), AmfiteatrError<ClassicScheme<AgentNum>>>{
     let mut environment = TracingBasicEnvironment::new(env_state_template.clone(), env_adapter);
 
 
-    let net0 = A2CNet::new_concept_1(VarStore::new(device), operator.clone());
-    let opt0 = net0.build_optimizer(Adam::default(), 1e-4).unwrap();
+    let opt0 = Adam::default().build(&var_store, 1e-4).unwrap();
+    let net0 = A2CNet::new(VariableStorage::Owned(var_store), model);
+    //let opt0 = net0.build_optimizer(Adam::default(), 1e-4).unwrap();
     let normal_policy = PolicyDiscreteA2C::new(ConfigA2C::default(), net0, opt0,
                                                tensor_repr, ClassicActionTensorRepresentation{});
     let state0 = LocalHistoryInfoSet::new(0, reward_table.into());
     let mut agent_0 = TracingAgentGen::new(state0, comm0, normal_policy);
 
+    let var_store = VarStore::new(device);
+    let model = build_network_model_ac(layers, input_size, 2, &var_store.root());
+
 
     let state1 = LocalHistoryInfoSet::new(1, reward_table.into());
     //let test_policy = ClassicPureStrategy::new(ClassicAction::Defect);
+    let opt1 = Adam::default().build(&var_store, 1e-4).unwrap();
+    let net1 = A2CNet::new(VariableStorage::Owned(var_store), model);
 
-    let net1 = A2CNet::new_concept_1(VarStore::new(device), operator);
-    let opt1 = net1.build_optimizer(Adam::default(), 1e-4).unwrap();
+    //let opt1 = net1.build_optimizer(Adam::default(), 1e-4).unwrap();
     let policy1 = PolicyDiscreteA2C::new(ConfigA2C::default(), net1, opt1, tensor_repr, ClassicActionTensorRepresentation{});
     //let mut agent_1 = AgentGenT::new(state1, comm1, Arc::new(Mutex::new(policy1)));
     let mut agent_1 = TracingAgentGen::new(state1, comm1, policy1);

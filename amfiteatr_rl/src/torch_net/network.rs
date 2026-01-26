@@ -25,12 +25,17 @@ pub struct NeuralNet<Output: NetOutput>{
     //_input: PhantomData<Input>,
 }
 */
+
+pub enum VariableStorage{
+    Owned(VarStore),
+    Shared(Arc<Mutex<VarStore>>)
+}
 pub struct NeuralNet<Output: NetOutput>{
     net: NetworkModel<Output>,
     device: Device,
 
     //device: tch::Device,
-    var_store: Arc<Mutex<VarStore>>,
+    var_store: VariableStorage,
 }
 
 
@@ -88,12 +93,34 @@ impl< Output: NetOutput> NeuralNet< Output>{
 
 
 
-    pub fn new(var_store: Arc<Mutex<VarStore>>, model: NetworkModel<Output>) -> Self{
-        let device = {
-            let vs = var_store.as_ref().lock().unwrap();
-            vs.device()
+    pub fn new(variable_store: VariableStorage, model: NetworkModel<Output>) -> Self{
+        let device = match &variable_store{
+            VariableStorage::Shared( s) => {
+                let vs = s.as_ref().lock().unwrap();
+                vs.device()
+            },
+            VariableStorage::Owned(vs) => vs.device(),
+
+
         };
-        Self{var_store, net:model, device}
+        Self{var_store: variable_store, net:model, device}
+    }
+
+    pub fn set_gradient_tracing(&mut self, set_tracing: bool){
+        match &mut self.var_store{
+            VariableStorage::Owned(v) => match set_tracing{
+                true => v.unfreeze(),
+                false => v.freeze()
+            }
+            VariableStorage::Shared(s) => {
+                if let Ok(mut vs) = s.as_ref().lock(){
+                    match set_tracing{
+                        true => vs.unfreeze(),
+                        false => vs.freeze()
+                    }
+                }
+            }
+        }
     }
 
 
@@ -141,7 +168,7 @@ impl< Output: NetOutput> NeuralNet< Output>{
         self.device
     }
 
-    pub fn var_store(&self) -> &Arc<Mutex<VarStore>>{
+    pub fn variable_store(&self) -> &VariableStorage{
         &self.var_store
     }
 

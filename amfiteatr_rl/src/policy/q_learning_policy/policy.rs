@@ -291,16 +291,12 @@ where <<InfoSet as PresentPossibleActions<S>>::ActionIteratorType as IntoIterato
         Ok(Default::default())
     }
 
-    /*
+
     fn set_gradient_tracing(&mut self, enabled: bool) {
-        match enabled{
-            true => self.network.var_store_mut().unfreeze(),
-            false => self.network.var_store_mut().freeze(),
-        }
+        self.network.set_gradient_tracing(enabled)
 
     }
 
-     */
 }
 
 

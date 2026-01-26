@@ -234,6 +234,11 @@ where <S as Scheme>::ActionType: ContextDecodeMultiIndexI64<ActionBuildContext>
 
     }
 
+    fn set_gradient_tracing(&mut self, enabled: bool) {
+        self.network.set_gradient_tracing(enabled)
+
+    }
+
 }
 
 
@@ -761,6 +766,11 @@ impl<
     {
 
         Ok(self.ppo_train_on_trajectories(trajectories, reward_f)?)
+    }
+
+    fn set_gradient_tracing(&mut self, enabled: bool) {
+        self.base.set_gradient_tracing(enabled)
+
     }
 
 }

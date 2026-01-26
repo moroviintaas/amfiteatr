@@ -78,7 +78,7 @@ where <Self as Policy<S>>::InfoSetType: InformationSet<S>
         self.train_generic(trajectories, |step| step.reward().to_tensor())
     }
 
-    //fn set_gradient_tracing(&mut self, enabled: bool);
+    fn set_gradient_tracing(&mut self, enabled: bool);
 
 
 
@@ -110,7 +110,7 @@ impl<S: Scheme, T: LearningNetworkPolicyGeneric<S>> LearningNetworkPolicyGeneric
         }
     }
 
-    /*
+
     fn set_gradient_tracing(&mut self, enabled: bool) {
         if let Ok(mut internal_policy) = self.as_ref().lock(){
                 internal_policy.set_gradient_tracing(enabled)
@@ -118,7 +118,7 @@ impl<S: Scheme, T: LearningNetworkPolicyGeneric<S>> LearningNetworkPolicyGeneric
 
     }
 
-     */
+
 }
 
 impl<S: Scheme, T: LearningNetworkPolicyGeneric<S>> LearningNetworkPolicyGeneric<S> for Mutex<T>{
@@ -144,14 +144,13 @@ impl<S: Scheme, T: LearningNetworkPolicyGeneric<S>> LearningNetworkPolicyGeneric
         }
     }
 
-    /*
+
     fn set_gradient_tracing(&mut self, enabled: bool) {
         if let Ok(internal_policy) = self.get_mut(){
             internal_policy.set_gradient_tracing(enabled)
         }
     }
 
-     */
 }
 
 impl<S: Scheme, T: LearningNetworkPolicyGeneric<S>> LearningNetworkPolicyGeneric<S> for RwLock<T>{
@@ -177,14 +176,14 @@ impl<S: Scheme, T: LearningNetworkPolicyGeneric<S>> LearningNetworkPolicyGeneric
         }
     }
 
-    /*
+
     fn set_gradient_tracing(&mut self, enabled: bool) {
         if let Ok(mut internal_policy) = self.write(){
             internal_policy.set_gradient_tracing(enabled)
         }
     }
 
-     */
+
 }
 
 pub trait LearningNetworkPolicy<S: Scheme> : LearningNetworkPolicyGeneric<S, Summary=LearnSummary>{

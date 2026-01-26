@@ -13,7 +13,8 @@ use amfiteatr_rl::error::AmfiteatrRlError;
 use amfiteatr_rl::policy::{ActorCriticPolicy, LearningNetworkPolicyGeneric, TrainConfig};
 use amfiteatr_rl::tch::{Device, nn, Tensor};
 use amfiteatr_rl::tch::nn::{Adam, VarStore};
-use amfiteatr_rl::torch_net::{A2CNet, TensorActorCritic};
+use amfiteatr_rl::torch_net::{build_network_model_ac, A2CNet, TensorActorCritic, VariableStorage};
+use amfiteatr_rl::torch_net::Layer::{Linear, Relu, Tanh};
 use crate::agent::{CART_POLE_TENSOR_REPR, PythonGymnasiumCartPoleInformationSet};
 use crate::common::{CartPoleScheme, CartPoleObservation, SINGLE_PLAYER_ID};
 use crate::env::PythonGymnasiumCartPoleState;
@@ -107,6 +108,7 @@ fn main() {
 
      */
 
+    /*
     let operator = Box::new(move |vs: &VarStore, tensor: &Tensor|{
         let seq = nn::seq()
             .add(nn::linear(vs.root() / "input", 4, 128, Default::default()))
@@ -120,8 +122,15 @@ fn main() {
 
     });
 
-    let net =  A2CNet::new_concept_1(var_store, operator);
-    let optimizer = net.build_optimizer(Adam::default(), 1e-4).unwrap();
+
+     */
+    /*
+    let var_store = VarStore::new(device);
+    let layers = vec![Linear(128)];
+    let model = build_network_model_ac(layers.clone(), input_size.clone(), 2, &var_store.root());
+    let net =  A2CNet::new(VariableStorage::Owned(var_store), model);
+    //let optimizer = net.build_optimizer(Adam::default(), 1e-4).unwrap();
+    let optimizer = Adam::default().build(&var_store, 1e-4)?;
 
     #[allow(deprecated)]
     let policy = ActorCriticPolicy::new(net,
@@ -138,5 +147,7 @@ fn main() {
         let avg = test(&mut environment, &mut agent, 100).unwrap();
         println!("Average result after epoch {}: {}.", epoch+1, avg);
     }
+
+     */
 
 }

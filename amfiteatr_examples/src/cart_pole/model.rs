@@ -17,7 +17,7 @@ use amfiteatr_rl::error::AmfiteatrRlError;
 use amfiteatr_rl::policy::PolicyDiscretePPO;
 use amfiteatr_rl::tch;
 use amfiteatr_rl::tch::nn::{AdamW, VarStore};
-use amfiteatr_rl::torch_net::{Layer, NeuralNetActorCritic};
+use amfiteatr_rl::torch_net::{Layer, NeuralNetActorCritic, VariableStorage};
 use crate::cart_pole::agent::CartPoleObservationEncoding;
 use crate::cart_pole::common::{CartPoleActionEncoding, CartPoleObservation, CartPoleScheme, SINGLE_PLAYER_ID};
 use crate::cart_pole::env::CartPoleEnvStateRust;
@@ -150,7 +150,7 @@ impl CartPoleModelRust{
                                                  vec![4], 2, &vs.root());
 
         let optimizer = AdamW::default().build(&vs, 0.0003)?;
-        let network = NeuralNetActorCritic::new(Arc::new(Mutex::new(vs)), model);
+        let network = NeuralNetActorCritic::new(VariableStorage::Owned(vs), model);
 
         let mut config_ppo = ConfigPPO::default();
         config_ppo.vf_coef = options.vf_coef;

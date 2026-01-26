@@ -59,22 +59,15 @@ ActorCriticPolicy<
     /// use tch::nn::{Adam, VarStore};
     /// use amfiteatr_core::demo::{DemoScheme, DemoInfoSet};
     /// use amfiteatr_rl::demo::{DemoActionConversionContext, DemoConversionToTensor};
-    /// use amfiteatr_rl::torch_net::{A2CNet, TensorActorCritic};
+    /// use amfiteatr_rl::torch_net::{build_network_model_ac, A2CNet, TensorActorCritic, VariableStorage};
     /// use amfiteatr_rl::policy::{ConfigA2C, PolicyDiscreteA2C, TrainConfig};
+    /// use amfiteatr_rl::torch_net::Layer::Linear;
+    /// use tch::nn::OptimizerConfig;
     /// let var_store = VarStore::new(Device::Cpu);
-    /// let neural_net = A2CNet::new_concept_1(var_store, Box::new(|vs: &VarStore, tensor: &Tensor|{
-    ///     let seq = nn::seq()
-    ///         .add(nn::linear(vs.root() / "input", 1, 128, Default::default()))
-    ///         .add(nn::linear(vs.root() / "hidden", 128, 128, Default::default()));
-    ///     let actor = nn::linear(vs.root() / "al", 128, 2, Default::default());
-    ///     let critic = nn::linear(vs.root() / "cl", 128, 1, Default::default());
-    ///     let device = vs.device();
-    ///         let xs = tensor.to_device(device).apply(&seq);
-    ///         TensorActorCritic{critic: xs.apply(&critic), actor: xs.apply(&actor)}
+    /// let optimizer = Adam::default().build(&var_store, 1e-4).unwrap();
+    /// let model = build_network_model_ac(vec![Linear(128), Linear(128)], vec![1], 2, &var_store.root());
+    /// let neural_net = A2CNet::new(VariableStorage::Owned(var_store), model);
     ///
-    ///
-    /// }));
-    /// let optimizer = neural_net.build_optimizer(Adam::default(), 0.01).unwrap();
     ///
     /// let policy: PolicyDiscreteA2C<DemoScheme, DemoInfoSet, DemoConversionToTensor,DemoActionConversionContext>
     ///     = PolicyDiscreteA2C::new(ConfigA2C::default(), neural_net, optimizer, DemoConversionToTensor{}, DemoActionConversionContext{});
