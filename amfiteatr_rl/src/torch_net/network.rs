@@ -129,14 +129,23 @@ impl< Output: NetOutput> NeuralNet< Output>{
 
 
 
-    /*
+
     /// Build optimiser for network, given `OptimizerConfig`. Uses [`VarStore`] stored in [`NeuralNet`] struct;
     pub fn build_optimizer<OptC: OptimizerConfig>
         (&self, optimiser_config: OptC, learning_rate: f64) -> Result<Optimizer, TchError>{
 
-        optimiser_config.build(&self.var_store, learning_rate)
+        match &self.var_store{
+            VariableStorage::Owned(vs) => optimiser_config.build(vs, learning_rate),
+
+            VariableStorage::Shared(vsa) => {
+                let vs = vsa.lock().unwrap();
+                optimiser_config.build(&vs, learning_rate)
+            }
+        }
+        //optimiser_config.build(&self.var_store, learning_rate)
     }
 
+    /*
 
     /// Returns reference to internal network offering `Tensor -> Output` application.
     /// # Example:
@@ -156,9 +165,10 @@ impl< Output: NetOutput> NeuralNet< Output>{
     /// let output_tensor = (neural_net.operator())(neural_net.var_store(),  &input_tensor);
     /// assert_eq!(output_tensor.size(), vec![4]);
     /// ```
-    pub fn operator(&self) -> &(dyn Fn(&VarStore, &Tensor) -> Output + Send){&self.operator}
 
+    pub fn operator(&self) -> &(dyn Fn(&VarStore, &Tensor) -> Output + Send){&self.operator}
     */
+
     pub fn net(&self) -> &NetworkModel<Output>{
         &self.net
     }
@@ -279,78 +289,7 @@ pub enum Layer{
     Linear(i64),
 }
 
-/*
-pub struct NeuralNetTemplateDiscreteAC{
-    //func: Box<dyn Fn(Tensor) -> TensorActorCritic>
-    layers: Vec<Layer>,
-    input_shape: Vec<i64>,
-    actor_shape: i64,
 
-
-
-}
-
-
-impl NeuralNetActorCritic{
-
-    pub fn new_from_layers(vs: VarStore, layers: &[Layer], input_shape: &[i64], actor_shape: i64) -> Self{
-        let mut seq = nn::seq();
-        let mut current_dim = input_shape[0];
-        let mut next_dim = input_shape[0];
-        let mut last_dim = None;
-        if !layers.is_empty() {
-            let mut layer = layers[0].clone();
-            last_dim = Some(layer.clone());
-            seq = match layer {
-                Layer::Relu => { seq.add_fn(|x| x.relu()) },
-                Layer::Tanh => { seq.add_fn(|x| x.tanh()) },
-                Layer::Linear(output) => {
-                    next_dim = output;
-                    seq.add(
-                        nn::linear(vs.root() / "0", current_dim, output, Default::default())
-                    )
-                }
-            };
-            current_dim = next_dim;
-            for (i, new_layer) in layers.iter().enumerate().skip(1) {
-                seq = match new_layer {
-                    Layer::Relu => { seq.add_fn(|x| x.relu()) },
-                    Layer::Tanh => { seq.add_fn(|x| x.tanh()) },
-                    Layer::Linear(output) => {
-                        next_dim = *output;
-                        seq.add(
-                            nn::linear(vs.root() / &format!("lin_{}", i), current_dim, *output, Default::default()))
-                    }
-                };
-                current_dim = next_dim;
-            }
-            let (actor, critic) = (
-                nn::linear(vs.root() / "actor", current_dim, actor_shape, Default::default()),
-                nn::linear(vs.root() / "critic", current_dim, 1, Default::default())
-            );
-            //{
-            let p = vs.root();
-            let device = vs.device();
-            let operation = Box::new(
-                |xs: &Tensor| { ;
-                    let xs = xs.to_device(device).apply(&seq);
-                    TensorActorCritic {
-                        critic: xs.apply(&critic),
-                        actor: xs.apply(&actor),
-                    }
-                }
-                //}
-            );
-            Self{var_store: vs, net: operation }
-
-
-        } else{
-            panic!("Empty layer sequence")
-        }
-    }
-}
-
-*/
 
 /// If you want to create network model for actor critic that has input shape 5x4 (to be flattened),
 /// and hidden layers: Linear(32), ReLu, Linear(32), Relu and output in 4 possible actions you would do something like that:
@@ -423,68 +362,3 @@ pub fn build_network_model_ac(layers: Vec<Layer>, input_shape:  Vec<i64>, actor_
 
 
 }
-/*
-pub fn build_network_operator_ac(layers: Vec<Layer>, input_shape:  Vec<i64>, actor_shape: i64)
-                                 ->  Box<dyn Fn(&VarStore, &Tensor) -> TensorActorCritic + Send>
-{
-
-
-
-    if !layers.is_empty() {
-        Box::new(move |vs, tensor|{
-            let mut seq = nn::seq();
-            let mut current_dim = input_shape[0];
-            let mut next_dim = input_shape[0];
-            //let mut last_dim = None;
-            let layer = layers[0].clone();
-            //last_dim = Some(layer.clone());
-            seq = match layer {
-                Layer::Relu => { seq.add_fn(|x| x.relu()) },
-                Layer::Tanh => { seq.add_fn(|x| x.tanh()) },
-                Layer::Linear(output) => {
-                    next_dim = output;
-                    seq.add(
-                        nn::linear(vs.root() / "0", current_dim, output, Default::default())
-                    )
-                }
-            };
-            current_dim = next_dim;
-            for (i, new_layer) in layers.iter().enumerate().skip(1) {
-                seq = match new_layer {
-                    Layer::Relu => { seq.add_fn(|x| x.relu()) },
-                    Layer::Tanh => { seq.add_fn(|x| x.tanh()) },
-                    Layer::Linear(output) => {
-                        next_dim = *output;
-                        seq.add(
-                            nn::linear(vs.root() / &format!("lin_{}", i), current_dim, *output, Default::default()))
-                    }
-                };
-                current_dim = next_dim;
-            }
-            let (actor, critic) = (
-                nn::linear(vs.root() / "actor", current_dim, actor_shape, Default::default()),
-                nn::linear(vs.root() / "critic", current_dim, 1, Default::default())
-            );
-
-
-
-            let device = vs.device();
-            let xs = tensor.to_device(device).apply(&seq);
-            TensorActorCritic {
-                critic: xs.apply(&critic),
-                actor: xs.apply(&actor),
-            }
-
-
-        })
-
-
-
-    } else{
-        panic!("Empty layer sequence")
-    }
-
-}
-
-
- */
