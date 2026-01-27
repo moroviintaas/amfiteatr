@@ -2,4 +2,5 @@ pub mod env;
 pub mod agent;
 pub mod common;
 pub mod model;
-mod env_wrapped;
+pub mod env_wrapped;
+pub mod model_wrapped;

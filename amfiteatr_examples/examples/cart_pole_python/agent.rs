@@ -1,6 +1,7 @@
 use amfiteatr_core::agent::{InformationSet, PresentPossibleActions};
 use amfiteatr_core::scheme::{Scheme, Renew};
 use amfiteatr_core::error::{AmfiteatrError, ConvertError};
+use amfiteatr_examples::cart_pole::agent::CartPoleObservationEncoding;
 use amfiteatr_proc_macro::no_assessment_info_set;
 use amfiteatr_rl::tch::Tensor;
 use amfiteatr_rl::tensor_data::{TensorEncoding, ContextEncodeTensor};
@@ -86,6 +87,17 @@ impl EvaluatedInformationSet<CartPoleScheme> for PythonGymnasiumCartPoleInformat
 
     fn penalty_for_illegal(&self) -> Self::RewardType {
         NoneReward{}
+    }
+}
+
+ */
+
+/*
+impl ContextEncodeTensor<CartPoleObservationEncoding> for PythonGymnasiumCartPoleInformationSet{
+    fn try_to_tensor(&self, _way: &CartPoleObservationEncoding) -> Result<Tensor, ConvertError> {
+        let obs = self.lat
+        let data = [self.position, self.velocity, self.angle, self.angular_velocity];
+        Ok(Tensor::from_slice(&data))
     }
 }
 

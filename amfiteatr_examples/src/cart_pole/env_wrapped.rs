@@ -1,3 +1,4 @@
+use pyo3::types::PyTuple;
 use pyo3::{intern, pyclass, pymethods, Bound, PyObject, PyResult, Python};
 use pyo3::prelude::PyDictMethods;
 use pyo3::types::PyDict;
@@ -13,7 +14,7 @@ use pyo3::IntoPyObject;
 
 #[derive(Debug, Clone)]
 #[pyclass]
-pub struct PythonGymnasiumWrap {
+pub struct PythonGymnasiumWrapCartPole {
     internal: PyObject,
     #[allow(unused_variables)]
     terminated: bool,
@@ -24,15 +25,17 @@ pub struct PythonGymnasiumWrap {
 }
 
 #[pymethods]
-impl PythonGymnasiumWrap{
+impl PythonGymnasiumWrapCartPole{
     #[new]
     pub fn new() -> PyResult<Self>{
         Python::with_gil(|py|{
-            let pettingzoo = py.import("pettingzoo.classic")?;
-            let fn_env = pettingzoo.getattr("CartPole-v1")?.getattr("env")?;
+            let gymnasium = py.import("gymnasium")?;
+            let fn_env = gymnasium.getattr("make")?;
+            //getattr("CartPole-v1")?
             let kwargs = PyDict::new(py);
             kwargs.set_item(intern!(py, "render_mode"), "None")?;
-            let env_obj = fn_env.call((), Some(&kwargs))?;
+            let args = PyTuple::new(py, &["CartPole-v1"])?;
+            let env_obj = fn_env.call(args, Some(&kwargs))?;
             env_obj.call_method0("reset")?;
 
             let internal_obj: PyObject = env_obj.into_pyobject(py)?.into();
@@ -106,7 +109,7 @@ impl PythonGymnasiumWrap{
     }
 }
 
-impl SequentialGameState<CartPoleScheme> for PythonGymnasiumWrap{
+impl SequentialGameState<CartPoleScheme> for PythonGymnasiumWrapCartPole{
     type Updates = [(<CartPoleScheme as Scheme>::AgentId, <CartPoleScheme as Scheme>::UpdateType );1];
 
 
@@ -167,8 +170,10 @@ impl SequentialGameState<CartPoleScheme> for PythonGymnasiumWrap{
     }
 
 }
-/*
-impl Renew<CartPoleScheme, (), > for PythonGymnasiumWrap {
+
+
+
+impl Renew<CartPoleScheme, (), > for PythonGymnasiumWrapCartPole {
     fn renew_from(&mut self, _base: ()) -> Result<(), AmfiteatrError<CartPoleScheme>> {
 
         let d = rand::distr::Uniform::new(-0.05, 0.05).unwrap();
@@ -183,7 +188,6 @@ impl Renew<CartPoleScheme, (), > for PythonGymnasiumWrap {
         self.terminated = false;
         self.truncated = false;
         self.steps_made = 0;
-        self.state = Some(state);
         self.reward = 0.0;
 
 
@@ -191,10 +195,9 @@ impl Renew<CartPoleScheme, (), > for PythonGymnasiumWrap {
     }
 }
 
-impl GameStateWithPayoffs<CartPoleScheme> for PythonGymnasiumWrap {
+impl GameStateWithPayoffs<CartPoleScheme> for PythonGymnasiumWrapCartPole {
     fn state_payoff_of_player(&self, _agent: &<CartPoleScheme as Scheme>::AgentId) -> <CartPoleScheme as Scheme>::UniversalReward {
         self.reward
     }
 }
 
- */
