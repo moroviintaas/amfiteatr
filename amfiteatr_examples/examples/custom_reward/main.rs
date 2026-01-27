@@ -6,7 +6,7 @@ use log::{debug, info};
 use amfiteatr_rl::tch::{Device, nn, Tensor};
 use amfiteatr_rl::tch::nn::{Adam, VarStore};
 use amfiteatr_rl::tensor_data::{TensorEncoding};
-use amfiteatr_rl::torch_net::{build_network_model_ac, A2CNet, TensorActorCritic, VariableStorage};
+use amfiteatr_rl::torch_net::{build_network_model_ac_discrete, A2CNet, TensorActorCritic, VariableStorage};
 use clap::{Parser};
 use plotters::style::colors;
 use amfiteatr_core::agent::*;
@@ -146,7 +146,7 @@ fn main() -> Result<(), AmfiteatrError<ClassicScheme<AgentNum>>>{
     */
     let var_store = VarStore::new(device);
     let layers = vec![Linear(512), Tanh, Linear(256), Tanh, Relu];
-    let model = build_network_model_ac(layers.clone(), input_size.clone(), 2, &var_store.root());
+    let model = build_network_model_ac_discrete(layers.clone(), input_size.clone(), 2, &var_store.root());
 
 
 
@@ -167,7 +167,7 @@ fn main() -> Result<(), AmfiteatrError<ClassicScheme<AgentNum>>>{
     let mut agent_0 = TracingAgentGen::new(state0, comm0, normal_policy);
 
     let var_store = VarStore::new(device);
-    let model = build_network_model_ac(layers, input_size, 2, &var_store.root());
+    let model = build_network_model_ac_discrete(layers, input_size, 2, &var_store.root());
 
 
     let state1 = LocalHistoryInfoSet::new(1, reward_table.into());

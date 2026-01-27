@@ -13,7 +13,7 @@ use amfiteatr_rl::error::AmfiteatrRlError;
 use amfiteatr_rl::policy::{ActorCriticPolicy, LearningNetworkPolicyGeneric, TrainConfig};
 use amfiteatr_rl::tch::{Device, nn, Tensor};
 use amfiteatr_rl::tch::nn::{Adam, VarStore};
-use amfiteatr_rl::torch_net::{build_network_model_ac, A2CNet, TensorActorCritic, VariableStorage};
+use amfiteatr_rl::torch_net::{build_network_model_ac_discrete, A2CNet, TensorActorCritic, VariableStorage};
 use amfiteatr_rl::torch_net::Layer::{Linear, Relu, Tanh};
 use crate::agent::{CART_POLE_TENSOR_REPR, PythonGymnasiumCartPoleInformationSet};
 use crate::common::{CartPoleScheme, CartPoleObservation, SINGLE_PLAYER_ID};

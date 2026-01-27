@@ -11,10 +11,8 @@ use serde::{Serialize, Deserialize};
 use std::default::Default;
 use std::sync::{Arc, Mutex};
 
-/// Structure wrapping [`VarStore`] and network closure used to build neural network based function.
-/// Examples in [`tch`](https://github.com/LaurentMazare/tch-rs) show how neural networks are used.
-/// This structure shortens some steps of setting and provides some helpful functions - especially
-/// [`build_optimiser`](NeuralNet::build_optimizer).
+// /// Structure wrapping [`VarStore`] and network closure used to build neural network based function.
+// /// Examples in [`tch`](https://github.com/LaurentMazare/tch-rs) show how neural networks are used.
 
 /*
 pub struct NeuralNet<Output: NetOutput>{
@@ -26,10 +24,13 @@ pub struct NeuralNet<Output: NetOutput>{
 }
 */
 
+/// Struct holding exclusively owned [`VarStore`] or shared with [`Arc`]`<`[`Mutex`]`<`[`VarStore`]`>>`.
+/// /// Examples in [`tch`](https://github.com/LaurentMazare/tch-rs) show how neural networks are used.
 pub enum VariableStorage{
     Owned(VarStore),
     Shared(Arc<Mutex<VarStore>>)
 }
+/// Struct for storing [`NetworkModel`] (shape of network) and related data like [`VarStore`] or [`Device`].
 pub struct NeuralNet<Output: NetOutput>{
     net: NetworkModel<Output>,
     device: Device,
@@ -67,24 +68,14 @@ pub type MultiDiscreteNet = NeuralNet< MultiDiscreteTensor>;
 /// ```
 /// use tch::{Device, nn, Tensor};
 /// use tch::nn::{Adam, VarStore};
-/// use amfiteatr_rl::torch_net::{A2CNet, NeuralNet2, TensorActorCritic};
+/// use amfiteatr_rl::torch_net::{build_network_model_ac_discrete, A2CNet, NetworkModel, NeuralNet2, TensorActorCritic, VariableStorage};
+/// use amfiteatr_rl::torch_net::Layer::Linear;
 /// let device = Device::cuda_if_available();
 /// let var_store = VarStore::new(device);
 /// let number_of_actions = 33_i64;
-/// let neural_net = A2CNet::new_concept_1(var_store, Box::new(
-///     move |vs: &VarStore, tensor: &Tensor| {
-///         let seq = nn::seq()
-///         .add(nn::linear(vs.root() / "input", 16, 128, Default::default()))
-///         .add(nn::linear(vs.root() / "hidden", 128, 128, Default::default()));
-///     let actor = nn::linear(vs.root() / "al", 128, number_of_actions, Default::default());
-///     let critic = nn::linear(vs.root() / "cl", 128, 1, Default::default());
-///     let device = vs.device();
-///     let xs = tensor.to_device(device).apply(&seq);
-///         //(xs.apply(&critic), xs.apply(&actor))
-///     TensorActorCritic{critic: xs.apply(&critic), actor: xs.apply(&actor)}
+/// let model = build_network_model_ac_discrete(vec![Linear(128), Linear(128)], vec![16], 128, &var_store.root());
 ///
-///     }
-/// ));
+/// let neural_net = A2CNet::new(VariableStorage::Owned(var_store), model);
 ///
 /// let optimizer = neural_net.build_optimizer(Adam::default(), 0.01);
 /// ```
@@ -193,11 +184,11 @@ pub type NetworkModel< Output: NetOutput> = Box<dyn Fn(&Tensor) -> Output + Send
 
 
 /// This is wrapper for closure representing neural network. In [`NeuralNet`]
-/// network is pinned with local [`VarStore`], so when you want to construct two identically
+/// network was paired with local [`VarStore`], so when you want to construct two identically
 /// structured neural networks you have to clone defined closure and use these cloned closures to
 /// construct two networks. This helper structure allows declaring closure and then using it to
 /// build many neural networks
-#[deprecated(since = "0.13.0", note = "Network model is now maintained as [`NetworkModel`] which can be
+#[deprecated(since = "0.13.0", note = "Network shape is now maintained as [`NetworkModel`] which can be
  constructed in dynamic way. For example Actor Critic network can be built with function [`build_network_model_ac`]")]
 pub struct NeuralNetTemplate<
     Output: NetOutput,
@@ -232,40 +223,28 @@ NeuralNetTemplate<O, N, F>{
     //pub fn with_layers(layers: &[Layer]) ->
 
 
-    /// When you  do something like this it will fail to compile
-    /// ```compile_fail
-    /// use tch::{Device, nn, Tensor};
-    /// use tch::nn::VarStore;
-    /// use amfiteatr_rl::torch_net::{NeuralNet, NeuralNetTemplate};
-    /// let closure = |path|{
-    ///     let seq = nn::seq()
-    ///         .add(nn::linear(path / "input", 32, 4, Default::default()));
-    ///     move |tensor| {tensor.apply(&seq)}
-    /// };
-    /// let (vs1, vs2) = (VarStore::new(Device::Cpu), VarStore::new(Device::Cpu));
-    /// let net1 = NeuralNet::new(vs1, closure.clone());
-    /// let net2 = NeuralNet::new(vs2, closure);
-    ///
-    ///
-    /// ```
-    /// Use template to make it work (it allows compiler to derive `tensor` type and you do not have
+
+
+    /// Use template to  work with network shapes (it allows compiler to derive `tensor` type and you do not have
     /// to do this yourself).
     /// ```
-    /// use tch::{Device, nn};
+    /// use tch::{Device, nn, Tensor};
     /// use tch::nn::VarStore;
-    /// use amfiteatr_rl::torch_net::{NeuralNet, NeuralNetTemplate};
+    /// use amfiteatr_rl::torch_net::{NeuralNet, NeuralNetTemplate, VariableStorage};
     ///
     /// let nc = NeuralNetTemplate::new(|path|{
     ///     let seq = nn::seq()
     ///         .add(nn::linear(path / "input", 32, 4, Default::default()));
-    ///     move |tensor| {tensor.apply(&seq)}
+    ///     move |tensor: &Tensor| {tensor.apply(&seq)}
     /// });
     /// let closure = nc.get_net_closure();
     ///
     ///
-    /// let (vs1, vs2) = (VarStore::new(Device::Cpu), VarStore::new(Device::Cpu));
     ///
-    /// // let net1 = NeuralNet::new(vs1, closure);
+    /// let (vs1, vs2) = (VarStore::new(Device::Cpu), VarStore::new(Device::Cpu));
+    /// let model = Box::new(closure(&vs1.root()));
+    ///
+    /// let net1 = NeuralNet::new(VariableStorage::Owned(vs1), model);
     /// // let net2 = NeuralNet::new(vs2, closure);
     ///
     ///
@@ -298,28 +277,25 @@ pub enum Layer{
 ///
 /// use tch::Device;
 /// use tch::nn::VarStore;
-/// use amfiteatr_rl::torch_net::{build_network_model_ac, Layer, NeuralNet};
+/// use amfiteatr_rl::torch_net::{build_network_model_ac_discrete, Layer, NeuralNet};
 /// let var_store = VarStore::new(Device::Cpu);
 ///
 /// let input_shape = vec![5,4];
 /// let actor_shape = 4;
 /// let layers = vec![Layer::Linear(32), Layer::Relu, Layer::Linear(32)];
 ///
-/// let model = build_network_model_ac(layers, input_shape, actor_shape, &var_store.root());
+/// let model = build_network_model_ac_discrete(layers, input_shape, actor_shape, &var_store.root());
 /// // Then we could build network that is used in policy:
 /// //let net = NeuralNet::new(var_store, model);
 ///
 /// ```
-pub fn build_network_model_ac(layers: Vec<Layer>, input_shape:  Vec<i64>, actor_shape: i64, path: &nn::Path)
-    -> NetworkModel< TensorActorCritic>{
+pub fn build_network_model_ac_discrete(layers: Vec<Layer>, input_shape:  Vec<i64>, actor_shape: i64, path: &nn::Path)
+                                       -> NetworkModel< TensorActorCritic>{
 
-    //Box::new(move |tensor: &Tensor| {
         let mut seq = nn::seq();
         let mut current_dim = input_shape[0];
         let mut next_dim = input_shape[0];
-        //let mut last_dim = None;
         let layer = layers[0].clone();
-        //last_dim = Some(layer.clone());
         seq = match layer {
             Layer::Relu => { seq.add_fn(|x| x.relu()) },
             Layer::Tanh => { seq.add_fn(|x| x.tanh()) },
@@ -359,6 +335,61 @@ pub fn build_network_model_ac(layers: Vec<Layer>, input_shape:  Vec<i64>, actor_
             actor: xs.apply(&actor),
         }
     })
-
-
 }
+
+pub fn build_network_model_ac_multidiscrete(layers: Vec<Layer>, input_shape:  Vec<i64>, actor_shapes: Vec<i64>, path: &nn::Path)
+                                            -> NetworkModel<TensorMultiParamActorCritic>{
+
+    let mut seq = nn::seq();
+    let mut current_dim = input_shape[0];
+    let mut next_dim = input_shape[0];
+    let layer = layers[0].clone();
+    seq = match layer {
+        Layer::Relu => { seq.add_fn(|x| x.relu()) },
+        Layer::Tanh => { seq.add_fn(|x| x.tanh()) },
+        Layer::Linear(output) => {
+            next_dim = output;
+            seq.add(
+                nn::linear(path / "0", current_dim, output, Default::default())
+            )
+        }
+    };
+    current_dim = next_dim;
+    for (i, new_layer) in layers.iter().enumerate().skip(1) {
+        seq = match new_layer {
+            Layer::Relu => { seq.add_fn(|x| x.relu()) },
+            Layer::Tanh => { seq.add_fn(|x| x.tanh()) },
+            Layer::Linear(output) => {
+                next_dim = *output;
+                seq.add(
+                    nn::linear(path / &format!("lin_{}", i), current_dim, *output, Default::default()))
+            }
+        };
+        current_dim = next_dim;
+    }
+    let (actor_params, critic) = (
+        actor_shapes.iter().map(|a|
+            nn::linear(path/ "actor", current_dim, *a, Default::default())
+        ).collect::<Vec<_>>(),
+
+
+        nn::linear(path / "critic", current_dim, 1, Default::default())
+    );
+
+
+
+    let device = path.device();
+    Box::new(move |tensor: &Tensor| {
+        let xs = tensor.to_device(device).apply(&seq);
+
+        TensorMultiParamActorCritic {
+            critic: xs.apply(&critic),
+            actor: actor_params.iter().map(|a| xs.apply(a)).collect(),
+        }
+    })
+}
+
+
+
+
+

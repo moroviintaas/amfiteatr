@@ -65,11 +65,11 @@ impl<
     /// use amfiteatr_core::demo::{DemoScheme, DemoInfoSet};
     /// use amfiteatr_rl::demo::{DemoActionConversionContext, DemoConversionToTensor};
     /// use amfiteatr_rl::policy::{ConfigPPO, PolicyDiscretePPO};
-    /// use amfiteatr_rl::torch_net::{build_network_model_ac, NeuralNetActorCritic, TensorActorCritic, VariableStorage};
+    /// use amfiteatr_rl::torch_net::{build_network_model_ac_discrete, NeuralNetActorCritic, TensorActorCritic, VariableStorage};
     /// use amfiteatr_rl::torch_net::Layer::Linear;
     /// use tch::nn::OptimizerConfig;
     /// let var_store = VarStore::new(Device::Cpu);
-    /// let model = build_network_model_ac(vec![Linear(128), Linear(128)], vec![1], 2, &var_store.root());
+    /// let model = build_network_model_ac_discrete(vec![Linear(128), Linear(128)], vec![1], 2, &var_store.root());
     /// let optimizer = Adam::default().build(&var_store, 0.01).unwrap();
     /// let net = NeuralNetActorCritic::new(VariableStorage::Owned(var_store), model);
     /// let config = ConfigPPO::default();

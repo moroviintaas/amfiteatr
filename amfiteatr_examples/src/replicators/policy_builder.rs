@@ -11,7 +11,7 @@ use amfiteatr_rl::tch;
 use amfiteatr_rl::tch::{nn, Tensor};
 use amfiteatr_rl::tch::nn::{Adam, OptimizerConfig, VarStore};
 use amfiteatr_rl::tensor_data::TensorEncoding;
-use amfiteatr_rl::torch_net::{build_network_model_ac, A2CNet, Layer, NeuralNet, TensorActorCritic, VariableStorage};
+use amfiteatr_rl::torch_net::{build_network_model_ac_discrete, A2CNet, Layer, NeuralNet, TensorActorCritic, VariableStorage};
 use crate::common::ComputeDevice;
 use crate::replicators::aliases::ReplPPO;
 use crate::replicators::error::ReplError;
@@ -127,7 +127,7 @@ pub fn create_ppo_policy(layer_sizes: Vec<i64>, var_store: VarStore, options: &R
 
      */
     //let network = network_pattern.get_net_closure();
-    let model = build_network_model_ac(layers, input_shape, 1, &var_store.root());
+    let model = build_network_model_ac_discrete(layers, input_shape, 1, &var_store.root());
     let optimiser = Adam::default().build(&var_store, options.learning_rate)
         .map_err(|origin|AmfiteatrError::Tensor {error: TensorError::Torch {origin: format!("{origin}"), context: "Creating optimser".to_string() } })?;
     //let net = A2CNet::new_concept_3(var_store, |_| operator);

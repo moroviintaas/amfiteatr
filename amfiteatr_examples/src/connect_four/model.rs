@@ -40,7 +40,7 @@ use amfiteatr_rl::policy::{
 use amfiteatr_rl::tch::{Device, nn, Tensor};
 use amfiteatr_rl::tch::nn::{Adam, OptimizerConfig, VarStore};
 use amfiteatr_rl::tensor_data::TensorEncoding;
-use amfiteatr_rl::torch_net::{build_network_model_ac, A2CNet, Layer, NeuralNet, TensorActorCritic, VariableStorage};
+use amfiteatr_rl::torch_net::{build_network_model_ac_discrete, A2CNet, Layer, NeuralNet, TensorActorCritic, VariableStorage};
 use crate::connect_four::common::{ConnectFourScheme, ConnectFourPlayer, ErrorRL};
 use crate::connect_four::agent::{ConnectFourActionTensorRepresentation, ConnectFourInfoSet, ConnectFourTensorReprD1};
 
@@ -307,7 +307,7 @@ pub fn build_a2c_policy(layer_sizes: &[i64], device: Device, config: ConfigA2C, 
     });
 
          */
-    let model = build_network_model_ac(layers, input_shape.to_vec(), 7, &var_store.root());
+    let model = build_network_model_ac_discrete(layers, input_shape.to_vec(), 7, &var_store.root());
     //let net = network_pattern.get_net_closure();
     let optimiser = Adam::default().build(&var_store, learning_rate)?;
 
@@ -376,7 +376,7 @@ pub fn build_a2c_policy_masking(layer_sizes: &[i64], device: Device, config: Con
     });
 
      */
-    let model = build_network_model_ac(layers, input_shape.to_vec(), 7, &var_store.root());
+    let model = build_network_model_ac_discrete(layers, input_shape.to_vec(), 7, &var_store.root());
     //let net = network_pattern.get_net_closure();
     let optimiser = Adam::default().build(&var_store, learning_rate)?;
 
@@ -485,7 +485,7 @@ pub fn build_ppo_policy_masking(layer_sizes: &[i64], device: Device, config: Con
 
      */
 
-    let model = build_network_model_ac(layers, input_shape.to_vec(), 7, &var_store.root());
+    let model = build_network_model_ac_discrete(layers, input_shape.to_vec(), 7, &var_store.root());
     //let net = network_pattern.get_net_closure();
     let optimiser = Adam::default().build(&var_store, learning_rate)?;
 

@@ -25,7 +25,7 @@ use amfiteatr_rl::tch::nn::OptimizerConfig;
 use crate::connect_four::common::{ConnectFourPlayer, ConnectFourScheme, ErrorRL};
 use amfiteatr_core::env::GameStateWithPayoffs;
 use amfiteatr_rl::policy::LearningNetworkPolicyGeneric;
-use amfiteatr_rl::torch_net::build_network_model_ac;
+use amfiteatr_rl::torch_net::build_network_model_ac_discrete;
 pub type CartPolePolicy = PolicyDiscretePPO<CartPoleScheme, CartPoleObservation, CartPoleObservationEncoding, CartPoleActionEncoding>;
 
 #[derive(Clone, Debug, Default)]
@@ -141,13 +141,13 @@ impl CartPoleModelRust{
         let agent_comm = env_communicator.register_agent(SINGLE_PLAYER_ID)?;
         let env = BasicEnvironment::new(initial_state, env_communicator);
         let vs = VarStore::new(tch::Device::Cpu);
-        let model = build_network_model_ac(vec![
+        let model = build_network_model_ac_discrete(vec![
             Layer::Linear(64),
             Layer::Tanh,
             Layer::Linear(64),
             Layer::Tanh,
         ],
-                                                 vec![4], 2, &vs.root());
+                                                    vec![4], 2, &vs.root());
 
         let optimizer = AdamW::default().build(&vs, 0.0003)?;
         let network = NeuralNetActorCritic::new(VariableStorage::Owned(vs), model);

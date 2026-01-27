@@ -59,13 +59,13 @@ ActorCriticPolicy<
     /// use tch::nn::{Adam, VarStore};
     /// use amfiteatr_core::demo::{DemoScheme, DemoInfoSet};
     /// use amfiteatr_rl::demo::{DemoActionConversionContext, DemoConversionToTensor};
-    /// use amfiteatr_rl::torch_net::{build_network_model_ac, A2CNet, TensorActorCritic, VariableStorage};
+    /// use amfiteatr_rl::torch_net::{build_network_model_ac_discrete, A2CNet, TensorActorCritic, VariableStorage};
     /// use amfiteatr_rl::policy::{ConfigA2C, PolicyDiscreteA2C, TrainConfig};
     /// use amfiteatr_rl::torch_net::Layer::Linear;
     /// use tch::nn::OptimizerConfig;
     /// let var_store = VarStore::new(Device::Cpu);
     /// let optimizer = Adam::default().build(&var_store, 1e-4).unwrap();
-    /// let model = build_network_model_ac(vec![Linear(128), Linear(128)], vec![1], 2, &var_store.root());
+    /// let model = build_network_model_ac_discrete(vec![Linear(128), Linear(128)], vec![1], 2, &var_store.root());
     /// let neural_net = A2CNet::new(VariableStorage::Owned(var_store), model);
     ///
     ///
