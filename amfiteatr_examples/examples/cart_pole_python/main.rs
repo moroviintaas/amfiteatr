@@ -123,52 +123,7 @@ pub fn setup_logger(options: &cart_pole::model::CartPoleModelOptions) -> Result<
     Ok(())
 }
 fn main() -> anyhow::Result<()>{
-    /*
-    let device = Device::Cpu;
-    let var_store = VarStore::new(device);
-    let env_state = PythonGymnasiumCartPoleState::new().unwrap();
-    let agent_state = CartPoleObservation::new(0.0, 0.0, 0.0, 0.0);
 
-    let mut env_comm = EnvironmentMpscPort::new();
-    let agent_comm = env_comm.register_agent(SINGLE_PLAYER_ID).unwrap();
-
-    let mut environment = BasicEnvironment::new(env_state, env_comm);
-
-    let info_set = environment.state().first_observations().unwrap()[1].1;
-
-
-
-    let var_store = VarStore::new(device);
-    let layers = vec![Linear(128)];
-    let model = build_network_model_ac_discrete(layers.clone(), vec![4], 2, &var_store.root());
-    let net =  A2CNet::new(VariableStorage::Owned(var_store), model);
-    //let optimizer = net.build_optimizer(Adam::default(), 1e-4).unwrap();
-    let optimizer = Adam::default().build(&var_store, 1e-4)?;
-
-    #[allow(deprecated)]
-    let policy = PolicyDiscretePPO::new(
-        ConfigPPO::default(),
-        net,
-        optimizer,
-        CartPoleObservationEncoding{},
-        CartPoleActionEncoding{}
-    );
-
-    //let mut agent = TracingAgentGen::new(info_set, agent_comm, policy);
-
-    let avg = test(&mut environment, &mut agent, 100).unwrap();
-    println!("Average result before learning: {}.", avg);
-    for epoch in 0..100{
-        train_epoch(&mut environment, &mut agent, 10).unwrap();
-        let avg = test(&mut environment, &mut agent, 100).unwrap();
-        println!("Average result after epoch {}: {}.", epoch+1, avg);
-    }
-
-
-
-    Ok(())
-
-     */
 
     let options = cart_pole::model::CartPoleModelOptions::parse();
     setup_logger(&options)?;

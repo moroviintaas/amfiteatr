@@ -11,6 +11,7 @@ use crate::cart_pole::env::CartPoleEnvStateRust;
 use crate::cart_pole::model::CartPoleModelOptions;
 use pyo3::types::PyAnyMethods;
 use pyo3::IntoPyObject;
+use amfiteatr_core::reexport::nom::sequence::terminated;
 
 #[derive(Debug, Clone)]
 #[pyclass]
@@ -33,7 +34,7 @@ impl PythonGymnasiumWrapCartPole{
             let fn_env = gymnasium.getattr("make")?;
             //getattr("CartPole-v1")?
             let kwargs = PyDict::new(py);
-            kwargs.set_item(intern!(py, "render_mode"), "None")?;
+            kwargs.set_item(intern!(py, "render_mode"), "rgb_array")?;
             let args = PyTuple::new(py, &["CartPole-v1"])?;
             let env_obj = fn_env.call(args, Some(&kwargs))?;
             env_obj.call_method0("reset")?;
@@ -55,16 +56,14 @@ impl PythonGymnasiumWrapCartPole{
 
     pub fn __reset(&mut self) -> PyResult<()>{
         Python::with_gil(|py|{
-            let pettingzoo = py.import("pettingzoo.classic")?;
-            let fn_env = pettingzoo.getattr("CartPole-v1")?.getattr("env")?;
-            let kwargs = PyDict::new(py);
-            kwargs.set_item(intern!(py, "render_mode"), "None")?;
-            let env_obj = fn_env.call((), Some(&kwargs))?;
-            env_obj.call_method0("reset")?;
 
+            log::trace!("Resetting environment (internal)");
+            self.internal.call_method0(py, "reset")?;
+            self.reward = 0.0;
+            self.steps_made = 0;
+            self.terminated = false;
+            self.truncated = false;
 
-            let internal_obj: PyObject = env_obj.into_pyobject(py)?.into();
-            self.internal = internal_obj;
 
             Ok(())
 
@@ -73,21 +72,31 @@ impl PythonGymnasiumWrapCartPole{
 
     pub fn __forward(&self, action: u8) -> PyResult<(Vec<f32>, f32, bool, bool)>{
         Python::with_gil(|py| {
-            let result = self.internal.call_method1(py, "step", (action,))?;
-            let result_tuple: &Bound<'_, pyo3::types::PyTuple> = result.downcast_bound(py)?;
+            let result = self.internal.call_method1(py, "step", (action,))
+                .inspect_err(|e|{
+                    log::error!("Error while calling python's step of action ({action})")
+                })?;
+            let result_tuple: &Bound<'_, pyo3::types::PyTuple> = result.downcast_bound(py)
+                .inspect_err(|e|{
+                    log::error!("Error while downcasting to tuple)")
+                })?;
 
-            let observation = result_tuple.get_item(0)?
-                .get_item("observation")?
-                .call_method0("flatten")?
-                .call_method0("tolist")?;
-            let reward = result_tuple.get_item(1)?;
-            let truncated = result_tuple.get_item(3)?;
-            let terminated = result_tuple.get_item(2)?;
+            //println!("{:?}", result_tuple);
+            let observation = result_tuple.get_item(0)
 
-            let o: Vec<f32> = observation.extract()?;
-            let r = reward.extract()?;
-            let term = terminated.extract()?;
-            let trunc = truncated.extract()?;
+                .inspect_err(|e|{
+                    log::error!("Error while getting observation for getting item")
+                })?
+                .call_method0("flatten").unwrap()
+                .call_method0("tolist").unwrap();
+            let reward = result_tuple.get_item(1).unwrap();
+            let truncated = result_tuple.get_item(3).unwrap();
+            let terminated = result_tuple.get_item(2).unwrap();
+
+            let o: Vec<f32> = observation.extract().unwrap();
+            let r = reward.extract().unwrap();
+            let term = terminated.extract().unwrap();
+            let trunc = truncated.extract().unwrap();
             
 
             Ok((o, r, trunc, term))
@@ -99,7 +108,7 @@ impl PythonGymnasiumWrapCartPole{
 
     pub fn __observation(&self) -> PyResult<Vec<f32>> {
         Python::with_gil(|py| {
-            let result = self.internal.getattr(py, "state")?;
+            let result = self.internal.getattr(py, "unwrapped")?.getattr(py, "state")?;
             let v: &Bound<'_, pyo3::types::PyAny> = &result.downcast_bound(py)?
                 .call_method0("flatten")?
                 .call_method0("tolist")?;
@@ -137,7 +146,7 @@ impl SequentialGameState<CartPoleScheme> for PythonGymnasiumWrapCartPole{
             return Err(CartPoleRustError::Custom("Violated order".to_string()))
         }
         let (obs, reward, terminated, truncated) = self.__forward(action.index() as u8)
-            .map_err(|e| CartPoleRustError::Custom("Py error {e}".to_string()))?;
+            .map_err(|e| CartPoleRustError::Custom(format!("Py error {e}")))?;
 
         self.reward += reward;
         self.terminated = terminated;
@@ -176,14 +185,7 @@ impl SequentialGameState<CartPoleScheme> for PythonGymnasiumWrapCartPole{
 impl Renew<CartPoleScheme, (), > for PythonGymnasiumWrapCartPole {
     fn renew_from(&mut self, _base: ()) -> Result<(), AmfiteatrError<CartPoleScheme>> {
 
-        let d = rand::distr::Uniform::new(-0.05, 0.05).unwrap();
-        let mut rng = rand::rng();
-        let state = CartPoleObservation{
-            position: rng.sample(d),
-            velocity: rng.sample(d),
-            angle: rng.sample(d),
-            angular_velocity: rng.sample(d),
-        };
+        self.__reset();
 
         self.terminated = false;
         self.truncated = false;

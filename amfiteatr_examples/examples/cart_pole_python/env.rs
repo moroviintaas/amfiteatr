@@ -77,6 +77,7 @@ impl PythonGymnasiumCartPoleState {
             //let result_tuple: &pyo3::types::PyTuple = result.downcast(py)?.into();
             let result_tuple: &Bound<'_, pyo3::types::PyTuple> = result.downcast_bound(py)?;
 
+            println!("{result_tuple:?}");
             let observation = result_tuple.get_item(0)?;
             let reward = result_tuple.get_item(1)?;
             let truncated = result_tuple.get_item(3)?;
@@ -95,13 +96,14 @@ impl PythonGymnasiumCartPoleState {
     }
 
     pub fn __reset(&mut self) -> PyResult<Vec<f32>>{
+        self.truncated = false;
+        self.terminated = false;
         Python::with_gil(|py|{
             let result = self.internal.call_method0(py, "reset")?;
             let result_tuple: &Bound<'_, pyo3::types::PyTuple> = result.downcast_bound(py)?;
             //let result_tuple: &pyo3::types::PyTuple = result.downcast(py)?;
             let observation = result_tuple.get_item(0)?;
-            self.truncated = false;
-            self.terminated = false;
+
             self.player_reward = 0.0;
             let v = observation.extract()?;
             Ok(v)
@@ -134,6 +136,7 @@ impl SequentialGameState<CartPoleScheme> for PythonGymnasiumCartPoleState{
     fn forward(&mut self, _agent: <CartPoleScheme as Scheme>::AgentId, action: CartPoleAction) -> Result<Self::Updates, <CartPoleScheme as Scheme>::GameErrorType> {
 
 
+        log::debug!("Step forward, action: {action:?}");
         match self.__forward(action.into()){
             Err(e) => Err(e.into()),
             Ok(observation_vec) => {

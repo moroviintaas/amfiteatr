@@ -96,6 +96,7 @@ pub struct CartPoleModelPython{
 impl CartPoleModelPython{
     pub fn new_simple(options: &CartPoleModelOptions) -> anyhow::Result<Self>{
         let initial_state = PythonGymnasiumWrapCartPole::new()?;
+
         let mut env_communicator = EnvironmentMpscPort::new();
         let obs = initial_state.first_observations().unwrap()[0].1.clone();
         let agent_comm = env_communicator.register_agent(SINGLE_PLAYER_ID)?;
