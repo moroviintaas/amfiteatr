@@ -3,7 +3,7 @@ use std::marker::PhantomData;
 
 use rand::distr::uniform::{UniformFloat, UniformSampler};
 use tch::Kind::Float;
-use tch::nn::{Optimizer, VarStore};
+use tch::nn::Optimizer;
 use tch::{Kind, Reduction, Tensor};
 use amfiteatr_core::agent::{
     InformationSet,

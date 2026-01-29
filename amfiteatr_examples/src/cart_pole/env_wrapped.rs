@@ -2,16 +2,12 @@ use pyo3::types::PyTuple;
 use pyo3::{intern, pyclass, pymethods, Bound, PyObject, PyResult, Python};
 use pyo3::prelude::PyDictMethods;
 use pyo3::types::PyDict;
-use rand::Rng;
 use amfiteatr_core::env::{GameStateWithPayoffs, SequentialGameState};
 use amfiteatr_core::error::AmfiteatrError;
 use amfiteatr_core::scheme::{Renew, Scheme};
 use crate::cart_pole::common::{CartPoleObservation, CartPoleRustError, CartPoleScheme, SINGLE_PLAYER_ID};
-use crate::cart_pole::env::CartPoleEnvStateRust;
-use crate::cart_pole::model::CartPoleModelOptions;
 use pyo3::types::PyAnyMethods;
 use pyo3::IntoPyObject;
-use amfiteatr_core::reexport::nom::sequence::terminated;
 
 #[derive(Debug, Clone)]
 #[pyclass]
@@ -74,29 +70,29 @@ impl PythonGymnasiumWrapCartPole{
         Python::with_gil(|py| {
             let result = self.internal.call_method1(py, "step", (action,))
                 .inspect_err(|e|{
-                    log::error!("Error while calling python's step of action ({action})")
+                    log::error!("Error while calling python's step of action ({action}): {e}")
                 })?;
             let result_tuple: &Bound<'_, pyo3::types::PyTuple> = result.downcast_bound(py)
                 .inspect_err(|e|{
-                    log::error!("Error while downcasting to tuple)")
+                    log::error!("Error while downcasting to tuple): {e}")
                 })?;
 
             //println!("{:?}", result_tuple);
             let observation = result_tuple.get_item(0)
 
                 .inspect_err(|e|{
-                    log::error!("Error while getting observation for getting item")
+                    log::error!("Error while getting observation for getting item: {e}")
                 })?
-                .call_method0("flatten").unwrap()
-                .call_method0("tolist").unwrap();
-            let reward = result_tuple.get_item(1).unwrap();
-            let truncated = result_tuple.get_item(3).unwrap();
-            let terminated = result_tuple.get_item(2).unwrap();
+                .call_method0("flatten")?
+                .call_method0("tolist")?;
+            let reward = result_tuple.get_item(1)?;
+            let truncated = result_tuple.get_item(3)?;
+            let terminated = result_tuple.get_item(2)?;
 
-            let o: Vec<f32> = observation.extract().unwrap();
-            let r = reward.extract().unwrap();
-            let term = terminated.extract().unwrap();
-            let trunc = truncated.extract().unwrap();
+            let o: Vec<f32> = observation.extract()?;
+            let r = reward.extract()?;
+            let term = terminated.extract()?;
+            let trunc = truncated.extract()?;
             
 
             Ok((o, r, trunc, term))
@@ -185,7 +181,7 @@ impl SequentialGameState<CartPoleScheme> for PythonGymnasiumWrapCartPole{
 impl Renew<CartPoleScheme, (), > for PythonGymnasiumWrapCartPole {
     fn renew_from(&mut self, _base: ()) -> Result<(), AmfiteatrError<CartPoleScheme>> {
 
-        self.__reset();
+        let _ = self.__reset();
 
         self.terminated = false;
         self.truncated = false;

@@ -326,7 +326,7 @@ pub trait PolicyHelperPPO<S: Scheme>
 
             }
             Ok(())
-        });
+        })?;
 
 
 

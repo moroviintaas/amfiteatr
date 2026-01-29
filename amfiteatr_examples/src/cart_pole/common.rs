@@ -4,7 +4,6 @@ use amfiteatr_core::scheme::{Action, Renew, Scheme};
 use amfiteatr_rl::error::TensorRepresentationError;
 use amfiteatr_rl::tch::Tensor;
 use amfiteatr_rl::tensor_data::{ContextDecodeIndexI64, ContextEncodeIndexI64, TensorDecoding, TensorIndexI64Encoding, TryIntoTensor};
-use crate::connect_four::agent::ConnectFourActionTensorRepresentation;
 
 pub const SINGLE_PLAYER_ID: u64 = 0;
 #[derive(Debug, Clone)]

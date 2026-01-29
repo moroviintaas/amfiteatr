@@ -2,15 +2,13 @@ use std::ops::Div;
 use std::ops::Add;
 use std::fs::File;
 use std::path::PathBuf;
-use std::sync::{Arc, Mutex};
 use clap::Parser;
 use log::{info, LevelFilter};
 use tboard::EventWriter;
-use tboard::tensorboard::WorkerShutdownMode::Default;
 use amfiteatr_rl::policy::{ConfigPPO, LearnSummary};
 use amfiteatr_core::agent::{AutomaticAgent, MultiEpisodeAutoAgent, PolicyAgent, ReseedAgent, TracingAgentGen};
 use amfiteatr_core::comm::{AgentMpscAdapter, EnvironmentMpscPort};
-use amfiteatr_core::env::{AutoEnvironment, AutoEnvironmentWithScores, BasicEnvironment, ReseedEnvironment, SequentialGameState, StatefulEnvironment};
+use amfiteatr_core::env::{AutoEnvironmentWithScores, BasicEnvironment, ReseedEnvironment, SequentialGameState, StatefulEnvironment};
 use amfiteatr_core::error::AmfiteatrError;
 use amfiteatr_core::util::TensorboardSupport;
 use amfiteatr_rl::error::AmfiteatrRlError;
@@ -22,7 +20,6 @@ use crate::cart_pole::agent::CartPoleObservationEncoding;
 use crate::cart_pole::common::{CartPoleActionEncoding, CartPoleObservation, CartPoleScheme, SINGLE_PLAYER_ID};
 use crate::cart_pole::env::CartPoleEnvStateRust;
 use amfiteatr_rl::tch::nn::OptimizerConfig;
-use crate::connect_four::common::{ConnectFourPlayer, ConnectFourScheme, ErrorRL};
 use amfiteatr_core::env::GameStateWithPayoffs;
 use amfiteatr_rl::policy::LearningNetworkPolicyGeneric;
 use amfiteatr_rl::torch_net::build_network_model_ac_discrete;
@@ -229,7 +226,7 @@ impl CartPoleModelRust{
             false => vec![]
         };
 
-        for i in 0..number_of_games{
+        for _i in 0..number_of_games{
             let summary = self.play_one_game(training_epoch, steps_left)?;
             if summarize{
                 summaries.push(summary);

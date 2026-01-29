@@ -4,7 +4,6 @@ use std::fs::File;
 use std::marker::PhantomData;
 use tboard::EventWriter;
 use tch::{Kind, TchError};
-use tch::nn::VarStore;
 use amfiteatr_core::agent::{AgentStepView, AgentTrajectory, InformationSet, Policy};
 use amfiteatr_core::scheme::Scheme;
 use amfiteatr_core::error::{AmfiteatrError,TensorError};

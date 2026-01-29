@@ -176,7 +176,7 @@ impl< Output: NetOutput> NeuralNet< Output>{
 }
 
 
-pub type NetworkModel< Output: NetOutput> = Box<dyn Fn(&Tensor) -> Output + Send>;
+pub type NetworkModel< Output> = Box<dyn Fn(&Tensor) -> Output + Send>;
 
 
 
@@ -204,7 +204,7 @@ pub struct NeuralNetTemplate<
 
 
 
-
+#[allow(deprecated)]
 impl<
     O: NetOutput,
     N: 'static + Send + Fn(&Tensor) -> O,
@@ -214,8 +214,11 @@ NeuralNetTemplate<O, N, F>{
 
     pub fn new(net_closure: F) -> Self{
         Self{
+            #[allow(deprecated)]
             _output: PhantomData,
+            #[allow(deprecated)]
             _net_closure: PhantomData,
+            #[allow(deprecated)]
             net_closure
         }
     }
@@ -249,7 +252,9 @@ NeuralNetTemplate<O, N, F>{
     ///
     ///
     /// ```
+
     pub fn get_net_closure(&self) -> F{
+        #[allow(deprecated)]
         self.net_closure.clone()
     }
 

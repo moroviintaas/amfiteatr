@@ -1,21 +1,11 @@
 use std::fmt::Debug;
 use std::marker::PhantomData;
-use tch::Kind::{Float};
 use tch::nn::Optimizer;
-use tch::{Kind, kind, Tensor};
-use amfiteatr_core::agent::{
-    InformationSet,
-    Policy,
-    AgentStepView,
-    AgentTrajectory
-};
+use amfiteatr_core::agent::InformationSet;
 use amfiteatr_core::scheme::Scheme;
-use amfiteatr_core::error::AmfiteatrError;
-use crate::error::{AmfiteatrRlError, TensorRepresentationError};
-use crate::policy::common::categorical_dist_entropy;
-use crate::policy::{LearnSummary, LearningNetworkPolicyGeneric};
-use crate::tensor_data::{ContextEncodeTensor, TensorEncoding, TryIntoTensor, TryFromTensor};
-use crate::torch_net::{A2CNet, TensorActorCritic};
+
+use crate::tensor_data::{ContextEncodeTensor, TensorEncoding};
+use crate::torch_net::A2CNet;
 use crate::policy::TrainConfig;
 
 #[deprecated(since = "0.12.0", note = "Please use [`PolicyDiscreteA2C`](PolicyDiscreteA2C) instead")]
@@ -26,15 +16,20 @@ pub struct ActorCriticPolicy<
     InfoSetConversionContext: TensorEncoding,
    // ActionConversionContext: ConversionFromTensor,
 > {
+    #[allow(dead_code)]
     network: A2CNet,
     //#[allow(dead_code)]
+    #[allow(dead_code)]
     optimizer: Optimizer,
     _dp: PhantomData<S>,
     _is: PhantomData<InfoSet>,
     //state_converter: StateConverter,
+    #[allow(dead_code)]
     info_set_conversion_context: InfoSetConversionContext,
     //action_conversion_context: ActionConversionContext,
+    #[allow(dead_code)]
     training_config: TrainConfig,
+    #[allow(dead_code)]
     exploration: bool
     //action_interpreter: ActInterpreter
 

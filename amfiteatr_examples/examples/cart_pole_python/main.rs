@@ -4,94 +4,10 @@ pub mod common;
 pub mod agent;
 
 use amfiteatr_examples::cart_pole::model_wrapped::CartPoleModelPython;
-use std::thread;
-use amfiteatr_core::agent::{PolicyAgent, TracingAgentGen};
-use amfiteatr_core::comm::EnvironmentMpscPort;
-use amfiteatr_core::env::{AutoEnvironmentWithScores, BasicEnvironment, ReseedEnvironmentWithObservation, StatefulEnvironment};
-use amfiteatr_core::error::AmfiteatrError;
-use amfiteatr_examples::cart_pole::agent::CartPoleObservationEncoding;
-use amfiteatr_examples::cart_pole::common::CartPoleActionEncoding;
-use amfiteatr_rl::agent::RlModelAgent;
-use amfiteatr_rl::error::AmfiteatrRlError;
-#[allow(deprecated)]
-use amfiteatr_rl::policy::{ActorCriticPolicy, LearningNetworkPolicyGeneric, TrainConfig};
-use amfiteatr_rl::policy::{ConfigPPO, PolicyDiscretePPO};
-use amfiteatr_rl::tch::{Device, nn, Tensor};
-use amfiteatr_rl::tch::nn::{Adam, VarStore};
-use amfiteatr_rl::torch_net::{build_network_model_ac_discrete, A2CNet, TensorActorCritic, VariableStorage};
-use amfiteatr_rl::torch_net::Layer::{Linear, Relu, Tanh};
-use crate::agent::{CART_POLE_TENSOR_REPR, PythonGymnasiumCartPoleInformationSet};
-use crate::common::{CartPoleScheme, CartPoleObservation, SINGLE_PLAYER_ID};
-use crate::env::PythonGymnasiumCartPoleState;
-use amfiteatr_rl::tch::nn::OptimizerConfig;
-use amfiteatr_core::env::SequentialGameState;
+
 use amfiteatr_examples::cart_pole;
 use clap::Parser;
-/*
-fn test<R: RlModelAgent<CartPoleScheme, CartPoleObservation, PythonGymnasiumCartPoleInformationSet>>(
-    env: &mut BasicEnvironment<CartPoleScheme, PythonGymnasiumCartPoleState, EnvironmentMpscPort<CartPoleScheme>>,
-    agent: &mut R,
-    number_of_tests: usize)
-    -> Result<f32, AmfiteatrRlError<CartPoleScheme>>
-where <R as PolicyAgent<CartPoleScheme>>::Policy: LearningNetworkPolicyGeneric<CartPoleScheme>
-{
-    let mut result_sum = 0.0f64;
-    for _ in 0..number_of_tests {
-        let mut observation = env.reseed_with_observation(())?;
-        let observation = observation.remove(&SINGLE_PLAYER_ID)
-            .ok_or(AmfiteatrRlError::Amfiteatr {
-                source: AmfiteatrError::Custom(
-                    String::from("No observation for only player in resetting game")
-                )
-            })?;
 
-        thread::scope(|s| {
-            s.spawn(|| {
-                env.run_with_scores()
-            });
-            s.spawn(|| {
-                agent.run_episode(observation).unwrap()
-            });
-        });
-        result_sum += agent.current_universal_score() as f64;
-    }
-
-    Ok((result_sum / (number_of_tests as f64)) as f32)
-}
-
-fn train_epoch<R: RlModelAgent<CartPoleScheme, CartPoleObservation, PythonGymnasiumCartPoleInformationSet>>(
-    env: &mut BasicEnvironment<CartPoleScheme, PythonGymnasiumCartPoleState, EnvironmentMpscPort<CartPoleScheme>>,
-    agent: &mut R,
-    number_of_games: usize)
-    -> Result<(), AmfiteatrRlError<CartPoleScheme>>
-where <R as PolicyAgent<CartPoleScheme>>::Policy: LearningNetworkPolicyGeneric<CartPoleScheme>{
-
-    agent.clear_episodes()?;
-    for _ in 0..number_of_games{
-        let mut observation = env.reseed_with_observation(())?;
-        let observation = observation.remove(&SINGLE_PLAYER_ID)
-            .ok_or(AmfiteatrRlError::Amfiteatr{source: AmfiteatrError::Custom(
-                String::from("No observation for only player in resetting game")
-            )})?;
-
-        thread::scope(|s|{
-            s.spawn(||{
-                env.run_with_scores()
-            });
-            s.spawn(||{
-                agent.run_episode(observation).unwrap()
-            });
-        });
-    }
-    let trajectories = agent.take_episodes();
-
-    agent.policy_mut().train(&trajectories)?;
-
-    Ok(())
-}
-
-
- */
 
 pub fn setup_logger(options: &cart_pole::model::CartPoleModelOptions) -> Result<(), fern::InitError> {
     println!("Options: {:?}", options);

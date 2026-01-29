@@ -9,9 +9,9 @@ use amfiteatr_core::error::AmfiteatrError;
 use crate::cart_pole::common::{CartPoleAction, CartPoleScheme, CartPoleObservation, CartPoleRustError, SINGLE_PLAYER_ID};
 #[derive(Debug, Clone)]
 enum KinematicsIntegrator{
-    #[warn(dead_code)]
+    #[allow(dead_code)]
     Euler,
-    #[warn(dead_code)]
+    #[allow(dead_code)]
     SemiImplicitEuler
 }
 #[derive(Debug, Clone)]
@@ -59,7 +59,7 @@ impl CartPoleEnvStateRust {
             angle: (theta_threshold_radians  * 2.0) as f32,
             angular_velocity: f32::MAX,
         };
-        let low = CartPoleObservation{
+        let _low = CartPoleObservation{
             position: - high.position,
             velocity: - high.velocity,
             angle: - high.angle,

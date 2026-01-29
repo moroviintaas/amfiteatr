@@ -10,7 +10,7 @@ impl InformationSet<CartPoleScheme> for CartPoleObservation{
         &SINGLE_PLAYER_ID
     }
 
-    fn is_action_valid(&self, action: &<CartPoleScheme as Scheme>::ActionType) -> bool {
+    fn is_action_valid(&self, _action: &<CartPoleScheme as Scheme>::ActionType) -> bool {
         true
     }
 

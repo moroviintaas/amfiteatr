@@ -2,7 +2,7 @@ use std::fmt::Debug;
 use std::fs::File;
 use std::marker::PhantomData;
 use tboard::EventWriter;
-use tch::nn::{Optimizer,VarStore};
+use tch::nn::Optimizer;
 use tch::Tensor;
 use amfiteatr_core::agent::{AgentStepView, AgentTrajectory, InformationSet, Policy};
 use amfiteatr_core::scheme::Scheme;
