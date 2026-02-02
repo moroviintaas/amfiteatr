@@ -270,11 +270,10 @@ impl<
                     break;
                 }
             }
-            if let Some(t) = truncate_at_step{
-                if current_step >= t{
+            if let Some(t) = truncate_at_step
+                && current_step >= t{
                     break
                 }
-            }
 
 
         }

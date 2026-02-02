@@ -196,8 +196,8 @@ pub(crate) fn code_for_parse_input_data_from_slice(data: &Data,  token_type: &To
                 let fields = &v.fields;
                 //let found_attribute = None;
                 for a in  attributes{
-                    if let Meta::List(ml) = &a.meta{
-                        if ml.path.is_ident("token"){
+                    if let Meta::List(ml) = &a.meta
+                        && ml.path.is_ident("token"){
                             //let keywords = ml.tokens.clone();
                             let token_type_variant = &ml.tokens;
                             let variant_stream_parser = build_parse_variant_stream(token_type, token_type_variant, parsed_variant_ident, fields);
@@ -207,7 +207,6 @@ pub(crate) fn code_for_parse_input_data_from_slice(data: &Data,  token_type: &To
 
 
                         }
-                    }
                 }
             }
             variant_codes.push(quote!{
@@ -247,12 +246,11 @@ pub(crate) fn derive_code_token_parsed(input: DeriveInput) -> proc_macro::TokenS
     let mut token_type_option = None;
     for attribute in attrs{
         let meta = attribute.meta;
-        if let Meta::List(attr) = meta{
-            if attr.path.is_ident("token_type"){
+        if let Meta::List(attr) = meta
+            && attr.path.is_ident("token_type"){
                 token_type_option = Some(attr.tokens)
 
             }
-        }
     }
 
     if let Some(token_type) = token_type_option{

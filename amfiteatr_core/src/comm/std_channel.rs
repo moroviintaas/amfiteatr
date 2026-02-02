@@ -414,11 +414,10 @@ impl <S: Scheme, T: EnvironmentEndpoint<S>> BroadcastingEnvironmentAdapter<S> fo
         let mut result = Ok(());
         for (_agent, endpoint) in self.endpoints.iter_mut(){
             let r = endpoint.send(message.clone());
-            if let Err(e) = r{
-                if result.is_ok(){
+            if let Err(e) = r
+                && result.is_ok(){
                     result = Err(e);
                 }
-            }
                
         }
         result

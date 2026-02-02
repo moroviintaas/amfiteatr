@@ -274,14 +274,13 @@ impl <
                                 return Ok(());
 
                             }
-                            if let Some(truncation_limit) = truncate_steps{
-                                if current_step >= truncation_limit{
+                            if let Some(truncation_limit) = truncate_steps
+                                && current_step >= truncation_limit{
                                     #[cfg(feature = "log_info")]
                                     log::info!("Game reached truncation boundary");
                                     self.send_all(EnvironmentMessage::GameTruncated)?;
                                     return Ok(());
                                 }
-                            }
 
                             if let Some(next_player) = self.current_player(){
                                 self.send_message(&next_player, EnvironmentMessage::YourMove)
@@ -407,14 +406,13 @@ impl <
                                 return Ok(());
 
                             }
-                            if let Some(truncation_limit) = truncate_steps{
-                                if current_step >= truncation_limit{
+                            if let Some(truncation_limit) = truncate_steps
+                                && current_step >= truncation_limit{
                                     #[cfg(feature = "log_info")]
                                     log::info!("Game reached truncation boundary");
                                     self.send_all(EnvironmentMessage::GameTruncated)?;
                                     return Ok(());
                                 }
-                            }
 
                             if let Some(next_player) = self.current_player(){
                                 self.send_message(&next_player, EnvironmentMessage::YourMove)
@@ -547,14 +545,13 @@ impl <
                                 return Ok(());
 
                             }
-                            if let Some(truncation_limit) = truncate_steps{
-                                if current_step >= truncation_limit{
+                            if let Some(truncation_limit) = truncate_steps
+                                && current_step >= truncation_limit{
                                     #[cfg(feature = "log_info")]
                                     log::info!("Game reached truncation boundary");
                                     self.send_all(EnvironmentMessage::GameTruncated)?;
                                     return Ok(());
                                 }
-                            }
 
                             if let Some(next_player) = self.current_player(){
                                 self.send_message(&next_player, EnvironmentMessage::YourMove)

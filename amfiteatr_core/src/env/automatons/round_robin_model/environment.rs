@@ -169,14 +169,13 @@ where Env: CommunicatingEndpointEnvironment<S, CommunicationError=CommunicationE
 
                             }
 
-                            if let Some(truncation_limit) = truncate_steps{
-                                if current_step >= truncation_limit{
+                            if let Some(truncation_limit) = truncate_steps
+                                && current_step >= truncation_limit{
                                     #[cfg(feature = "log_info")]
                                     log::info!("Game reached truncation boundary");
                                     self.send_to_all(EnvironmentMessage::GameTruncated)?;
                                     return Ok(());
                                 }
-                            }
 
                             if let Some(next_player) = self.current_player(){
                                 self.send_message(&next_player, EnvironmentMessage::YourMove)
@@ -300,14 +299,13 @@ where Env: CommunicatingEndpointEnvironment<S, CommunicationError=CommunicationE
 
                             }
 
-                            if let Some(truncation_limit) = truncate_steps{
-                                if current_step >= truncation_limit{
+                            if let Some(truncation_limit) = truncate_steps
+                                && current_step >= truncation_limit{
                                     #[cfg(feature = "log_info")]
                                     log::info!("Game reached truncation boundary");
                                     self.send_to_all(EnvironmentMessage::GameTruncated)?;
                                     return Ok(());
                                 }
-                            }
 
                             if let Some(next_player) = self.current_player(){
                                 self.send_message(&next_player, EnvironmentMessage::YourMove)
@@ -388,7 +386,7 @@ P: Fn(&<Self as StatefulEnvironment<S>>::State, &S::AgentId) -> S::UniversalRewa
                         AgentMessage::TakeAction(action) => {
                             #[cfg(feature = "log_info")]
                             log::info!("Player {} performs action: {:#}", &player, &action);
-                            let potential_penalty = penalty_fn(&self.state(), &player);
+                            let potential_penalty = penalty_fn(self.state(), &player);
                             match self.process_action_penalise_illegal(&player, &action, potential_penalty){
                                 Ok(updates) => {
                                     current_step += 1;
@@ -431,14 +429,13 @@ P: Fn(&<Self as StatefulEnvironment<S>>::State, &S::AgentId) -> S::UniversalRewa
 
                             }
 
-                            if let Some(truncation_limit) = truncate_steps{
-                                if current_step >= truncation_limit{
+                            if let Some(truncation_limit) = truncate_steps
+                                && current_step >= truncation_limit{
                                     #[cfg(feature = "log_info")]
                                     log::info!("Game reached truncation boundary");
                                     self.send_to_all(EnvironmentMessage::GameTruncated)?;
                                     return Ok(());
                                 }
-                            }
 
                             if let Some(next_player) = self.current_player(){
                                 self.send_message(&next_player, EnvironmentMessage::YourMove)

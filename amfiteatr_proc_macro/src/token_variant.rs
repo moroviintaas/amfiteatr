@@ -18,8 +18,8 @@ pub(crate) fn derive_code_token_variant(input: DeriveInput) -> proc_macro::Token
 
             let attrs = v.attrs;
             for a in attrs{
-                if let Meta::Path(ml) = a.meta{
-                    if ml.is_ident("primitive"){
+                if let Meta::Path(ml) = a.meta
+                    && ml.is_ident("primitive"){
                         let fields = v.fields.clone();
 
                         if let Fields::Unnamed(fs) = fields{
@@ -85,7 +85,6 @@ pub(crate) fn derive_code_token_variant(input: DeriveInput) -> proc_macro::Token
                         }
 
                     }
-                }
             }
         }
         let mut ts: TokenStream = TokenStream::new();

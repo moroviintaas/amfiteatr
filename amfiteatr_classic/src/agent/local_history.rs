@@ -70,21 +70,19 @@ impl<ID: UsizeAgentId> LocalHistoryInfoSet<ID>{
                     if report.own_action == Up{
                         // we punish
                         counts.count_i_punish_immediately += 1.0;
-                        if let (_, Some(pp2)) = past_previous{
-                            if pp2 == Up{
+                        if let (_, Some(pp2)) = past_previous
+                            && pp2 == Up{
                                 counts.count_i_punish_after2 += 1.0;
                             }
-                        }
                     }
 
                 }
                 if p1 == Up && report.other_player_action == Up {
                     counts.count_im_punished_immediately += 1.0;
-                    if let (Some(pp1), _) = past_previous{
-                        if pp1 == Up{
+                    if let (Some(pp1), _) = past_previous
+                        && pp1 == Up{
                             counts.count_im_punished_after2 += 1.0;
                         }
-                    }
                 }
 
                 if p1 == Down && report.other_player_action == Down{
@@ -365,13 +363,12 @@ impl<ID: UsizeAgentId> EvaluatedInformationSet<ClassicScheme<ID>, AgentAssessmen
             }
         }
 
-        if let Some(prev) = self.previous_encounters.last(){
-            if prev.own_action == Down && prev.other_player_action == Down {
+        if let Some(prev) = self.previous_encounters.last()
+            && prev.own_action == Down && prev.other_player_action == Down {
                  edu_asses += 1.0 +
                         (self.reward_table.reward_for_side(Left, Up, Down)
                             - self.reward_table.reward_for_side(Left, Down, Down)) as f32;
             }
-        }
 
 
         AgentAssessmentClassic::new(self.cache_table_payoff, self.count_actions, edu_asses)

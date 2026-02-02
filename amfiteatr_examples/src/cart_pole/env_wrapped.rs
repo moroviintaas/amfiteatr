@@ -31,7 +31,7 @@ impl PythonGymnasiumWrapCartPole{
             //getattr("CartPole-v1")?
             let kwargs = PyDict::new(py);
             kwargs.set_item(intern!(py, "render_mode"), "rgb_array")?;
-            let args = PyTuple::new(py, &["CartPole-v1"])?;
+            let args = PyTuple::new(py, ["CartPole-v1"])?;
             let env_obj = fn_env.call(args, Some(&kwargs))?;
             env_obj.call_method0("reset")?;
 

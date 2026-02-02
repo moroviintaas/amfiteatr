@@ -153,7 +153,7 @@ impl <LP: ReplicatorNetworkPolicy>ReplicatorModelBuilder<LP>
     //pub fn build(self) -> Result<ReplicatorModel, ReplError>{
         let number_of_agents = self.network_learning_agents.len() + self.mixed_agents.len()
             +self.pure_doves.len() + self.pure_hawks.len();
-        if number_of_agents %2 != 0{
+        if !number_of_agents.is_multiple_of(2){
             return Err(OddAgentNumber(number_of_agents))
         }
 
@@ -408,27 +408,23 @@ impl<LP: ReplicatorNetworkPolicy> ReplicatorModel<LP> {
             }
 
             //debug!("Agent {} actions : {:?}", guard.id(), guard.trajectory().iter().map(|t|*t.action()).collect::<Vec<_>>());
-            if let Some(a) = description.network_learning_dove_moves.get_mut(guard.id()){
+            if let Some(a) = description.network_learning_dove_moves.get_mut(guard.id())
 
-                if let Some(trajectory) = guard.episodes().last(){
+                && let Some(trajectory) = guard.episodes().last(){
                     let dove_actions = trajectory.iter()
                         .filter(|s| *s.action() == ClassicAction::Down)
                         .count();
                     a.push(dove_actions);
                 }
+            if let Some(a) = description.network_learning_hawk_moves.get_mut(guard.id())
 
 
-            }
-            if let Some(a) = description.network_learning_hawk_moves.get_mut(guard.id()){
-
-
-                if let Some(trajectory) = guard.episodes().last(){
+                && let Some(trajectory) = guard.episodes().last(){
                     let hawk_actions = trajectory.iter()
                         .filter(|s| *s.action() == ClassicAction::Up)
                         .count();
                     a.push(hawk_actions);
                 }
-            }
 
 
         }
@@ -551,8 +547,8 @@ impl<LP: ReplicatorNetworkPolicy> ReplicatorModel<LP> {
                 }
             }
 
-            if let Some(twriter) = &mut self.tboard_writer_learners{
-                if !self.network_learning_agents.is_empty(){
+            if let Some(twriter) = &mut self.tboard_writer_learners
+                && !self.network_learning_agents.is_empty(){
                     twriter.write_scalar(e, "mean_score", network_learning_score_sum / self.network_learning_agents.len() as f32)
                         .map_err(|e|AmfiteatrError::TboardFlattened { context: "Reporting Learners".to_string(), error: e.to_string() })?;
                     twriter.write_scalar(e, "mean_hawk_moves", network_learning_mean_hawk_moves_sum / self.network_learning_agents.len() as f32)
@@ -560,7 +556,6 @@ impl<LP: ReplicatorNetworkPolicy> ReplicatorModel<LP> {
                     twriter.write_scalar(e, "mean_dove_moves", network_learning_mean_dove_moves_sum / self.network_learning_agents.len() as f32)
                         .map_err(|e|AmfiteatrError::TboardFlattened { context: "Reporting Learners".to_string(), error: e.to_string() })?;
                 }
-            }
 
             for dove in &self.pure_doves{
                 let guard = dove.lock();
@@ -569,13 +564,11 @@ impl<LP: ReplicatorNetworkPolicy> ReplicatorModel<LP> {
                     dove_score_sum += *mean_score as f32;
                 }
             }
-            if let Some(twriter) = &mut self.tboard_writer_doves{
-                if !self.pure_doves.is_empty(){
+            if let Some(twriter) = &mut self.tboard_writer_doves
+                && !self.pure_doves.is_empty(){
                     twriter.write_scalar(e, "mean_score", dove_score_sum / self.pure_doves.len() as f32)
                         .map_err(|e|AmfiteatrError::TboardFlattened { context: "Reporting Doves".to_string(), error: e.to_string() })?;
                 }
-
-            }
 
             for hawk in &self.pure_hawks{
                 let guard = hawk.lock();
@@ -585,13 +578,11 @@ impl<LP: ReplicatorNetworkPolicy> ReplicatorModel<LP> {
                 }
             }
 
-            if let Some(twriter) = &mut self.tboard_writer_hawks{
-                if !self.pure_hawks.is_empty(){
+            if let Some(twriter) = &mut self.tboard_writer_hawks
+                && !self.pure_hawks.is_empty(){
                     twriter.write_scalar(e, "mean_score", hawk_score_sum / self.pure_hawks.len() as f32)
                         .map_err(|e|AmfiteatrError::TboardFlattened { context: "Reporting Hawks".to_string(), error: e.to_string() })?;
                 }
-
-            }
             for mixed in &self.mixed_agents{
                 let guard = mixed.lock();
 
@@ -600,13 +591,11 @@ impl<LP: ReplicatorNetworkPolicy> ReplicatorModel<LP> {
                 }
             }
 
-            if let Some(twriter) = &mut self.tboard_writer_mixes{
-                if !self.mixed_agents.is_empty(){
+            if let Some(twriter) = &mut self.tboard_writer_mixes
+                && !self.mixed_agents.is_empty(){
                     twriter.write_scalar(e, "mean_score", mixes_score_sum / self.mixed_agents.len() as f32)
                         .map_err(|e|AmfiteatrError::TboardFlattened { context: "Reporting Mixes".to_string(), error: e.to_string() })?;
                 }
-
-            }
 
 
             let learn_summary = self.train_network_agents_parallel()?;

@@ -78,7 +78,7 @@ impl<S: Scheme> EpochSummaryGen<S>{
             .fold(<<S as Scheme>::UniversalReward as Reward>::neutral(), |acc, x|{
                 x.scores().get(agent_id)
                     .map_or_else(
-                        || <<S as Scheme>::UniversalReward as Reward>::neutral(),
+                        <<S as Scheme>::UniversalReward as Reward>::neutral,
                         |s| { participated = true; acc+s}
                     )
             });

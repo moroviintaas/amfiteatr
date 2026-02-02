@@ -825,14 +825,13 @@ pub trait PolicyTrainHelperPPO<S: Scheme> : PolicyHelperA2C<S, Config=ConfigPPO>
                 self.optimizer_mut().backward_step(&loss);
                 drop(loss);
 
-                if let Some(tkl) = self.config().target_kl{
-                    if approx_kl.detach().double_value(&[0]) > 1.5 * tkl{
+                if let Some(tkl) = self.config().target_kl
+                    && approx_kl.detach().double_value(&[0]) > 1.5 * tkl{
                         #[cfg(feature = "log_info")]
                         log::info!("Early leaving learning at step due to reached kl_target");
                         continue_training = false;
 
                     }
-                }
 
                 summary_vec_vf_loss.push(v_loss.detach());
                 summary_vec_pg_loss.push(pg_loss.detach());

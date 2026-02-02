@@ -604,12 +604,10 @@ where <P as Policy<ConnectFourScheme>>::InfoSetType: Renew<ConnectFourScheme, ()
                 std::thread::scope(|s|{
                     s.spawn(|| {
                         let r = self.env.run_round_robin_with_rewards_penalise_truncating(|_,_| -10.0, truncate_at_step);
-                        if let Err(AmfiteatrError::Game {source: game_error}) = r{
-                            if let Some(fauler) = game_error.fault_of_player(){
+                        if let Err(AmfiteatrError::Game {source: game_error}) = r
+                            && let Some(fauler) = game_error.fault_of_player(){
                                 summary.invalid_actions[fauler.index()] = 1.0;
                             }
-
-                        }
                     });
                     s.spawn(||{
                         self.agent0.run().unwrap()
@@ -623,12 +621,10 @@ where <P as Policy<ConnectFourScheme>>::InfoSetType: Renew<ConnectFourScheme, ()
                 pool.scope(|s|{
                     s.spawn(|_| {
                         let r = self.env.run_round_robin_with_rewards_penalise_truncating(|_,_| -10.0, truncate_at_step);
-                        if let Err(AmfiteatrError::Game {source: game_error}) = r{
-                            if let Some(fauler) = game_error.fault_of_player(){
+                        if let Err(AmfiteatrError::Game {source: game_error}) = r
+                            && let Some(fauler) = game_error.fault_of_player(){
                                 summary.invalid_actions[fauler.index()] = 1.0;
                             }
-
-                        }
                     });
                     s.spawn(|_|{
                         self.agent0.run().unwrap()

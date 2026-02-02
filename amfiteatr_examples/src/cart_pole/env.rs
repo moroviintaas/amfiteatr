@@ -54,7 +54,7 @@ impl CartPoleEnvStateRust {
 
 
         let high = CartPoleObservation{
-            position: x_threshold as f32* 2.0,
+            position: x_threshold* 2.0,
             velocity: f32::MAX,
             angle: (theta_threshold_radians  * 2.0) as f32,
             angular_velocity: f32::MAX,
@@ -141,16 +141,16 @@ impl SequentialGameState<CartPoleScheme> for CartPoleEnvStateRust{
 
         match self.kinematics_integrator{
             KinematicsIntegrator::Euler => {
-                x = x + (self.tau * x_dot);
-                x_dot = x_dot + (self.tau * xacc);
-                theta = theta + (self.tau * theta_dot);
-                theta_dot = theta_dot + (self.tau * thetaacc);
+                x += (self.tau * x_dot);
+                x_dot += (self.tau * xacc);
+                theta += (self.tau * theta_dot);
+                theta_dot += (self.tau * thetaacc);
             },
             KinematicsIntegrator::SemiImplicitEuler => {
-                x_dot = x_dot + self.tau * xacc;
-                x = x+(self.tau * x_dot);
-                theta_dot = theta_dot + (self.tau * thetaacc);
-                theta = theta + (self.tau * theta_dot);
+                x_dot += self.tau * xacc;
+                x += (self.tau * x_dot);
+                theta_dot += (self.tau * thetaacc);
+                theta += (self.tau * theta_dot);
             }
 
 
@@ -206,7 +206,7 @@ impl SequentialGameState<CartPoleScheme> for CartPoleEnvStateRust{
 
     fn first_observations(&self) -> Option<Self::Updates> {
         log::trace!("First observation: {:?}", self.state);
-        self.state.clone().and_then(|s| Some([(SINGLE_PLAYER_ID, s)]))
+        self.state.clone().map(|s| [(SINGLE_PLAYER_ID, s)])
     }
 }
 

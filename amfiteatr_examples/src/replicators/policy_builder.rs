@@ -117,7 +117,7 @@ impl LearningPolicyBuilder for ReplPolicyBuilderPPO<'_>{
 
         });
 
-        Ok(create_ppo_policy((&self.options.layer_sizes[..]).to_vec(), var_store, self.options, self.agent_id)?)
+        Ok(create_ppo_policy(self.options.layer_sizes[..].to_vec(), var_store, self.options, self.agent_id)?)
 
 
     }

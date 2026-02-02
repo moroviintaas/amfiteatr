@@ -9,16 +9,13 @@ use crate::scheme::{ClassicAction, IntReward};
 /// Enum for representing on which side of encounter is player.
 /// This is important for [`AsymmetricRewardTable`]
 #[derive(Debug, Copy, Clone, Enum, Serialize, Deserialize, speedy::Writable, speedy::Readable)]
+#[derive(Default)]
 pub enum Side{
+    #[default]
     Left,
     Right
 }
 
-impl Default for Side{
-    fn default() -> Self {
-        Self::Left
-    }
-}
 
 /// This is reward table for games where it is not important on what side the player is.
 /// > The reward table would look like this:
