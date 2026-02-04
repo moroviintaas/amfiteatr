@@ -3,12 +3,15 @@
 ## Version 0.13.0
 + Previously used `LearningNetworkPolicy` is not Dyn compatible. Introducing `LearningNetworkPolicyDynamic` and `LearningNetworkPolicyDynamicCustomSummary` that use boxed target function instead of generic.
 **The names can change**
-+ Changing `NeuralNet<T>` struct. Previously it aggregated  `Box<dyn Fn(&Tensor) -> Output + Send >` 
-and now `Box<dyn Fn(&VarStore, &Tensor) -> Output + Send>`. Previously it was constructed
++ Changing `NeuralNet<T>` struct.  Previously it was constructed with `NeuralNetTemplate` and that needed 
+static template closure. Now it can be constructed with dynamic shapes (e.g. deserialized from file), e.g. with functions:
+`build_network_model_ac_discrete` and `build_network_model_ac_multidiscrete`.
+
 the function on `Tensor` needed to embed `Path` from `VarStore` which prevented from 
 constructing networks in dynamic way. Usually I have been constructing network using template helper like:
+Previously it was like that:
 ```rust
-let nc = NeuralNetTemplate::new(|path|{
+let nc = NeuralNetTemplate::new(|tensor|{
     let seq = nn::seq()
         .add(nn::linear(path / "input", 32, 8, Default::default()))
         .add(nn::linear(path / "h1", 8, 4, Default::default()));
@@ -30,23 +33,30 @@ reference of `VarStore` to be `'static`.
 With new approach the closure step can be omitted and a new (possibly more convenient) method is possible.
 Now one could do something like this to create actor-critic network:
 ```rust
-let operator = NeuralNetTemplate::new(Box::new(|vs: &VarStore, tensor: &Tensor|{
+let vs = VarStore::new(Device::Cpu);
+let net_box = Box::new(|tensor|{
     let seq = nn::seq()
-        .add(nn::linear(path / "input", 32, 4, Default::default()))
-        .add(nn::linear(path / "h1", 4, 2, Default::default()));
+    .add(nn::linear(path / "input", 32, 8, Default::default()))
+    .add(nn::linear(path / "h1", 8, 4, Default::default()));
     let actor = nn::linear(vs.root() / "al", 4, 2, Default::default());
     let critic = nn::linear(vs.root() / "cl", 4, 1, Default::default());
-    let xs = tensor.apply(&seq);
-    TensorActorCritic{critic: xs.apply(&critic), actor: xs.apply(&actor)}
+
+    move |tensor| {
+        let xs = tensor.apply(&seq);
+        TensorActorCritic{critic: xs.apply(&critic), actor: xs.apply(&actor)}
+    }
 });
-let vs = VarStore::new(Device::Cpu);
-let net = NeuralNet::new(vs, operator);
+let net = NeuralNet::new(VariableStorage::Owned(vs), model);
+
 ```
 or:
 ```rust
+let layers = vec![Layer::Linear(4), Layer::Tanh];
+let model = build_network_model_ac_discrete(layers, vec![32]);
+let var_store = VarStore::new(device);
+let vs = VarStore::new(Device::Cpu);
+let net = NeuralNet::new(VariableStorage::Owned(vs), model);
 
-let operator = build_network_operator_ac(vec![Layer::Linear(8), Layer::Linear(4)], 4, 2);
-let net = NeuralNet::new(vs, operator);
 ```
 Due to said problems with lifetimes I failed to implement latter method without changing the `NeuralNet` construction.
 This obviously breaks builds, and I am sorry.

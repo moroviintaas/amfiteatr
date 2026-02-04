@@ -543,9 +543,6 @@ impl<
         let agent_0 = Agent::new(ConnectFourInfoSet::new(ConnectFourPlayer::One), c_a1, agent_policy_0);
         let agent_1 = Agent::new(ConnectFourInfoSet::new(ConnectFourPlayer::Two), c_a2, agent_policy_1);
 
-        //let model_tboard = options.tboard.as_ref()
-        //    .and_then(|p| Some(EventWriter::create(p).unwrap()));
-
         let tboard_writer = match &options.tboard{
             Some(b) => {
                 let event_writer = EventWriter::create(b).unwrap();
@@ -578,17 +575,6 @@ impl<
 where <P as Policy<ConnectFourScheme>>::InfoSetType: Renew<ConnectFourScheme, ()> + Clone{
 
 
-    /*
-    pub fn add_tboard_directory<B: AsRef<std::path::Path>>(&mut self, directory_path: B) -> Result<(), AmfiteatrError<ConnectFourDomain>>{
-        let tboard = EventWriter::create(directory_path).map_err(|e|{
-            AmfiteatrError::TboardFlattened {context: "Creating tboard EventWriter".into(), error: format!("{e}")}
-        })?;
-        self.tboard_writer = Some(tboard);
-        Ok(())
-    }
-
-
-     */
 
 
 
@@ -708,10 +694,10 @@ where <P as Policy<ConnectFourScheme>>::InfoSetType: Renew<ConnectFourScheme, ()
 
     pub fn train_agents_on_experience(&mut self) -> Result<(LearnSummary,LearnSummary), ErrorRL>{
         let t1 = self.agent0.take_episodes();
-        //info!("Episodes: {}: [{:?}]", t1.len(), t1.iter().map(|x| x.number_of_steps()).collect::<Vec<usize>>());
+
         let s1 = self.agent0.policy_mut().train(&t1)?;
         let t2 = self.agent1.take_episodes();
-        //info!("Episodes: {}: [{:?}]", t2.len(), t2.iter().map(|x| x.number_of_steps()).collect::<Vec<usize>>());
+
         let s2 = self.agent1.policy_mut().train(&t2)?;
 
         Ok((s1, s2))
@@ -732,7 +718,6 @@ where <P as Policy<ConnectFourScheme>>::InfoSetType: Renew<ConnectFourScheme, ()
         let t1 = self.agent0.take_episodes();
         let s1 = self.agent0.policy_mut().train(&t1)?;
         let _t2 = self.agent1.take_episodes();
-        //self.agent2.policy_mut().train_on_trajectories_env_reward(&t2)?;
 
         Ok(s1)
     }
@@ -741,7 +726,6 @@ where <P as Policy<ConnectFourScheme>>::InfoSetType: Renew<ConnectFourScheme, ()
         let t1 = self.agent1.take_episodes();
         let s1 = self.agent1.policy_mut().train(&t1)?;
         let _t2 = self.agent0.take_episodes();
-        //self.agent2.policy_mut().train_on_trajectories_env_reward(&t2)?;
 
         Ok(s1)
     }
@@ -749,11 +733,9 @@ where <P as Policy<ConnectFourScheme>>::InfoSetType: Renew<ConnectFourScheme, ()
     pub fn train_agent0_on_both_experiences(&mut self) -> Result<(LearnSummary,LearnSummary), ErrorRL>{
         let mut t1 = self.agent0.take_episodes();
         let mut t2 = self.agent1.take_episodes();
-        //let chain = t1.iter().chain(t2);
         t1.append(&mut t2);
         let s1 = self.agent0.policy_mut().train(&t1)?;
 
-        //self.agent2.policy_mut().train_on_trajectories_env_reward(&t2)?;
 
         Ok((s1.clone(), s1))
     }
@@ -766,30 +748,9 @@ where <P as Policy<ConnectFourScheme>>::InfoSetType: Renew<ConnectFourScheme, ()
         let pre_training_summary = self.play_epoch(options.num_test_episodes, true, false, options.limit_steps_in_epochs)?;
         info!("Summary before training: {}", pre_training_summary.describe_as_collected());
 
-        //let mut results_learn = Vec::with_capacity(options.epochs);
-        //let mut results_test = Vec::with_capacity(options.epochs);
-        //let mut l_summaries_1 = Vec::with_capacity(options.epochs);
-        //let mut l_summaries_2 = Vec::with_capacity(options.epochs);
-
         for e in 0..options.epochs{
             let s = self.play_epoch(options.num_episodes, true, true, options.limit_steps_in_epochs)?;
-            /*
-            if let Some(tboard) = self.agent0.policy_mut().tboard_writer(){
-                tboard.write_scalar(e as i64, "train_epoch/score", s.scores[0] as f32)
-                    .map_err(|e| AmfiteatrError::TboardFlattened {context: "Saving Agent0 scores".into(), error: format!("{e}")})?;
-                tboard.write_scalar(e as i64, "train_epoch/illegal_moves", s.invalid_actions[0] as f32)
-                    .map_err(|e| AmfiteatrError::TboardFlattened {context: "Saving Agent0 bad action count".into(), error: format!("{e}")})?;
 
-            }
-            if let Some(tboard) = self.agent1.policy_mut().tboard_writer(){
-
-                tboard.write_scalar(e as i64, "train_epoch/score", s.scores[1] as f32)
-                    .map_err(|e| AmfiteatrError::TboardFlattened {context: "Saving Agent1 scores".into(), error: format!("{e}")})?;
-                tboard.write_scalar(e as i64, "train_epoch/illegal_moves", s.invalid_actions[1] as f32)
-                    .map_err(|e| AmfiteatrError::TboardFlattened {context: "Saving Agent1 bad action count".into(), error: format!("{e}")})?;
-            }
-
-             */
             self.agent0.policy_mut().t_write_scalar(e as i64, "train_epoch/score", s.scores[0] as f32)?;
             self.agent0.policy_mut().t_write_scalar( e as i64, "train_epoch/illegal_moves", s.invalid_actions[0] as f32)?;
 
@@ -803,7 +764,6 @@ where <P as Policy<ConnectFourScheme>>::InfoSetType: Renew<ConnectFourScheme, ()
                     .map_err(|e| AmfiteatrError::TboardFlattened {context: "Saving average game steps in epoch (train)".into(), error: format!("{e}")})?;
 
             }
-            //results_learn.push(s);
 
 
             let (s1,s2) = match self.shared_policy{
@@ -825,9 +785,7 @@ where <P as Policy<ConnectFourScheme>>::InfoSetType: Renew<ConnectFourScheme, ()
 
             if options.num_test_episodes > 0{
                 let s =self.play_epoch(options.num_test_episodes, true, false, options.limit_steps_in_epochs)?;
-                //results_test.push(s);
-                //l_summaries_1.push(s1);
-                //l_summaries_2.push(s2);
+
 
 
 
@@ -843,47 +801,11 @@ where <P as Policy<ConnectFourScheme>>::InfoSetType: Renew<ConnectFourScheme, ()
             }
 
         }
-        /*
-        if let Some(result_file) = &options.save_path_train_param_summary{
-            let yaml = serde_yaml::to_string(&(l_summaries_1, l_summaries_2)).unwrap();
-            let mut file = File::create(result_file).map_err(|e| AmfiteatrError::IO { explanation: format!("{e}") })?;
-            write!(file, "{}", &yaml).map_err(|e| AmfiteatrError::IO { explanation: format!("{e}") })?;
-        }
 
-        if let Some(result_file) = &options.save_path_test_epoch{
-            let yaml = serde_yaml::to_string(&results_test).unwrap();
-            let mut file = File::create(result_file).map_err(|e| AmfiteatrError::IO { explanation: format!("{e}") })?;
-            write!(file, "{}", &yaml).map_err(|e| AmfiteatrError::IO { explanation: format!("{e}") })?;
-        }
-
-        if let Some(result_file) = &options.save_path_train_epoch{
-            let yaml = serde_yaml::to_string(&results_learn).unwrap();
-            let mut file = File::create(result_file).map_err(|e| AmfiteatrError::IO { explanation: format!("{e}") })?;
-            write!(file, "{}", &yaml).map_err(|e| AmfiteatrError::IO { explanation: format!("{e}") })?;
-        }
-
-         */
 
         for e in 0..options.extended_epochs{
             let s = self.play_epoch(options.num_episodes, true, true, options.limit_steps_in_epochs)?;
-            /*
-            if let Some(tboard) = self.agent0.policy_mut().tboard_writer(){
-                tboard.write_scalar((options.epochs + e) as i64, "train_epoch/score", s.scores[0] as f32)
-                    .map_err(|e| AmfiteatrError::TboardFlattened {context: "Saving Agent0 scores".into(), error: format!("{e}")})?;
-                tboard.write_scalar((options.epochs + e) as i64, "train_epoch/illegal_moves", s.invalid_actions[0] as f32)
-                    .map_err(|e| AmfiteatrError::TboardFlattened {context: "Saving Agent0 bad action count".into(), error: format!("{e}")})?;
 
-            }
-            if let Some(tboard) = self.agent1.policy_mut().tboard_writer(){
-
-                tboard.write_scalar((options.epochs + e) as i64, "train_epoch/score", s.scores[1] as f32)
-                    .map_err(|e| AmfiteatrError::TboardFlattened {context: "Saving Agent1 scores".into(), error: format!("{e}")})?;
-                tboard.write_scalar((options.epochs + e) as i64, "train_epoch/illegal_moves", s.invalid_actions[1] as f32)
-                    .map_err(|e| AmfiteatrError::TboardFlattened {context: "Saving Agent1 bad action count".into(), error: format!("{e}")})?;
-            }
-
-
-            */
             self.agent0.policy_mut().t_write_scalar((options.epochs + e) as i64, "train_epoch/score", s.scores[0] as f32)?;
             self.agent0.policy_mut().t_write_scalar((options.epochs + e) as i64, "train_epoch/illegal_moves", s.invalid_actions[0] as f32)?;
 
@@ -919,10 +841,6 @@ where <P as Policy<ConnectFourScheme>>::InfoSetType: Renew<ConnectFourScheme, ()
             }
 
         }
-
-
-
-
         Ok(())
     }
 
