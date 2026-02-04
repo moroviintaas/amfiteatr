@@ -141,16 +141,16 @@ impl SequentialGameState<CartPoleScheme> for CartPoleEnvStateRust{
 
         match self.kinematics_integrator{
             KinematicsIntegrator::Euler => {
-                x += (self.tau * x_dot);
-                x_dot += (self.tau * xacc);
-                theta += (self.tau * theta_dot);
-                theta_dot += (self.tau * thetaacc);
+                x += self.tau * x_dot;
+                x_dot += self.tau * xacc;
+                theta += self.tau * theta_dot;
+                theta_dot += self.tau * thetaacc;
             },
             KinematicsIntegrator::SemiImplicitEuler => {
                 x_dot += self.tau * xacc;
-                x += (self.tau * x_dot);
-                theta_dot += (self.tau * thetaacc);
-                theta += (self.tau * theta_dot);
+                x += self.tau * x_dot;
+                theta_dot += self.tau * thetaacc;
+                theta += self.tau * theta_dot;
             }
 
 

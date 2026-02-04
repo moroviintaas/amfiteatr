@@ -4,10 +4,10 @@ use std::{thread};
 use std::fs::File;
 use std::path::{Path};
 use log::{debug, info};
-use amfiteatr_rl::tch::{Device, nn, Tensor};
+use amfiteatr_rl::tch::Device;
 use amfiteatr_rl::tch::nn::{Adam, VarStore};
 use amfiteatr_rl::tensor_data::{TensorEncoding};
-use amfiteatr_rl::torch_net::{build_network_model_ac_discrete, A2CNet, TensorActorCritic, VariableStorage};
+use amfiteatr_rl::torch_net::{build_network_model_ac_discrete, A2CNet, VariableStorage};
 use clap::{Parser};
 use plotters::style::colors;
 use amfiteatr_core::agent::*;
@@ -190,8 +190,6 @@ fn main() -> Result<(), AmfiteatrError<ClassicScheme<AgentNum>>>{
     let state0 = LocalHistoryInfoSet::new(0, reward_table.into());
     let mut agent_0 = TracingAgentGen::new(state0, comm0, normal_policy);
 
-    let var_store = VarStore::new(device);
-    let model = build_network_model_ac_discrete(layers, input_size, 2, &var_store.root());
 
     let state1 = LocalHistoryInfoSet::new(1, reward_table.into());
 
