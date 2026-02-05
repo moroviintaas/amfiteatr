@@ -11,7 +11,7 @@
 //! Agents send [`AgentMessage`][crate::scheme::AgentMessage] that is guaranteed to
 //! reach environment, similarly environment send [`EnvironmentMessage`](crate::scheme::EnvironmentMessage),
 //! using previously selected endpoint.
-//! ```notrust
+//! ```ignore
 //!  -------------------------------------------
 //! |                Environment                |
 //! |                 ---------------------     |    ---------
@@ -29,15 +29,15 @@
 //!
 //! The keynote is: To receive on environment select endpoint and then receive message
 //! (wrapped as Result) from this endpoint:
-//! ```no_run
-//! // let selected_player = your_method_to_select();
-//! // let mut endpoint = endpoints.get_mut(&selected_player);
-//! // //receiving
-//! // if let Some(message) = endpoint.receive_non_blocking().unwrap(){
-//! //     //do something
-//! // }
-//! // //sending
-//! // endpoint.send(some_message).unwrap();
+//! ```ignore
+//! let selected_player = your_method_to_select();
+//! let mut endpoint = endpoints.get_mut(&selected_player);
+//! //receiving
+//! if let Some(message) = endpoint.receive_non_blocking().unwrap(){
+//!     //do something
+//! }
+//! //sending
+//! endpoint.send(some_message).unwrap();
 //! ```
 //!
 //! Choice of api objects to use this model:
@@ -81,7 +81,7 @@
 //! [`mpsc::channel`](std::sync::mpsc::channel).
 //! Sending from environment to agents in this case is made with _N_ mpsc channels.
 //!
-//! ```notrust
+//! ```ignore
 //!  -------------------------------------------
 //! |                Environment                |
 //! |                ----------------------     |    ---------
@@ -102,7 +102,7 @@
 //! 3. [`BasicEnvironment`](crate::env::HashMapEnvironment) or [`TracingEnvironment`](crate::env::TracingHashMapEnvironment)
 //! 4. [`AgentGen`](crate::agent::AgentGen) or [`TracingAgentGen`](crate::agent::TracingAgentGen)
 //!
-//! ``` no_run, compile_fail
+//! ``` ignore
 //! // we do not specify agent
 //! let mut endpoint = borrow_some_endpoint();
 //! //receiving

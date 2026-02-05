@@ -35,7 +35,7 @@ pub trait RewardedAgent<S: Scheme>{
     /// So lets say that score commited before taking action is 11.0, and since action was taken
     /// the score reduced to 8.0 (commited value is still 11.0, partial rewards are summed to -3.0).
     /// Now for some reason you don't want to add new partial reward 1.0, but want to arbitrarily
-    /// set score to 9.0. Then call [`current_universal_score_set_without_commit(9.0)`].
+    /// set score to 9.0. Then call [`current_universal_score_set_without_commit(9.0)`](RewardedAgent::current_universal_score_set_without_commit).
     /// After that the commited score is still 11.0, however uncommited is `-3.0 + ((9.0 - 11.0) - (-3.0))`.
     /// Uncommited partial rewards are -2.0
     /// Implementation is provided.

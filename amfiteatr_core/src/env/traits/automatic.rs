@@ -23,7 +23,7 @@ pub trait AutoEnvironment<S: Scheme>{
     ///
     /// Returns the number of all game steps made.
     fn run_truncating(&mut self, truncate_steps: Option<usize>) -> Result<(), AmfiteatrError<S>>;
-    /// Just like [`run_truncating`]`(None`), left for compatibility reasons.
+    /// Just like [`run_truncating(None)`](AutoEnvironment::run_truncating), left for compatibility reasons.
     fn run(&mut self) -> Result<(), AmfiteatrError<S>>{
         self.run_truncating(None)
     }
@@ -40,7 +40,7 @@ pub trait AutoEnvironmentWithScores<S: Scheme>{
     /// Returns the number of all game steps made.
     fn run_with_scores_truncating(&mut self, truncate_steps: Option<usize>) -> Result<(), AmfiteatrError<S>>;
 
-    /// Just like [`run_with_scores_truncating`]`(None)`, left for compatibility reasons.
+    /// Just like [`run_with_scores_truncating(None)`](AutoEnvironmentWithScores::run_with_scores_truncating), left for compatibility reasons.
     fn run_with_scores(&mut self) -> Result<(), AmfiteatrError<S>>{
         self.run_with_scores_truncating(None)
     }
@@ -55,7 +55,7 @@ pub trait AutoEnvironmentWithScoresAndPenalties<S: Scheme>: StatefulEnvironment<
 
     /// Returns the number of all game steps made.
     ///
-    /// Just like [`run_with_scores_and_penalties_truncating`]`(None)`, left for compatibility reasons.
+    /// Just like [`run_with_scores_and_penalties_truncating(None)`](AutoEnvironmentWithScoresAndPenalties::run_with_scores_and_penalties_truncating), left for compatibility reasons.
     fn run_with_scores_and_penalties<P: Fn(&<Self as StatefulEnvironment<S>>::State, &S::AgentId)
         -> S::UniversalReward>(&mut self, penalty: P) -> Result<(), AmfiteatrError<S>>{
         self.run_with_scores_and_penalties_truncating(penalty, None)

@@ -35,7 +35,7 @@ pub trait StatefulEnvironment<S: Scheme>{
     /// Implement this method to enable setting agent that violated rules in the game.
     /// Default implementation does not do anything.
     /// This method will be used by automatic agents to set this information if
-    /// method [`forward`] returns an error. If it is not implemented.
+    /// method [`forward`](SequentialGameState::forward) returns an error. If it is not implemented.
     fn set_game_violator(&mut self, game_violator: Option<S::AgentId>);
     /*
     {

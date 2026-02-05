@@ -51,14 +51,16 @@ pub type A2CNet = NeuralNet< TensorActorCritic>;
 /// [`NeuralNet`] with single `Tensor` as output. Same as [`NeuralNet1`].
 pub type QValueNet = NeuralNet< Tensor>;
 
+/// [`NeuralNet`] with [`TensorActorCritic`] as output, just like [`A2CNet`].
 pub type NeuralNetActorCritic= NeuralNet< TensorActorCritic>;
+/// /// [`NeuralNet`] with [`TensorMultiParamActorCritic`] as output (for multiple actor params).
 pub type NeuralNetMultiActorCritic = NeuralNet< TensorMultiParamActorCritic>;
 
 impl NeuralNetMultiActorCritic{
 
 
 }
-
+/// [`NeuralNet`] with multiple tensor output (first version used for actor critic networks, now they have dedicated structure of [`TensorActorCritic`].
 pub type MultiDiscreteNet = NeuralNet< MultiDiscreteTensor>;
 
 /// To construct network you need `VarStore` and function (closure) taking `nn::Path` as argument
@@ -242,8 +244,6 @@ NeuralNetTemplate<O, N, F>{
     /// });
     /// let closure = nc.get_net_closure();
     ///
-    ///
-    ///
     /// let (vs1, vs2) = (VarStore::new(Device::Cpu), VarStore::new(Device::Cpu));
     /// let model = Box::new(closure(&vs1.root()));
     ///
@@ -263,13 +263,18 @@ NeuralNetTemplate<O, N, F>{
 
 
 
-//To be added in 0.13, I hope
+/// This is enumeration type to help constructing sequential neural network models.
+/// The idea is to describe hidden network layers as a sequence.
+/// The [`Sequential`](tch::nn::Sequential)  has disadvantage because it's implementation of [`forward`](tch::nn::Module)
+/// returns single tensor which may be problem in multi output networks e.g. Actor-Critic.
+/// The list will be expanded in the future.
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub enum Layer{
-    //Reshape(Vec<i64>),
+    /// ReLu layer
     Relu,
-
+    /// Hyperbolic tangens layer
     Tanh,
+    /// Fully connected linear layer with *N* nodes
     Linear(i64),
 }
 
@@ -341,6 +346,27 @@ pub fn build_network_model_ac_discrete(layers: Vec<Layer>, input_shape:  Vec<i64
         }
     })
 }
+
+/// Similar to [`build_network_model_ac_discrete`] but for multi actor networks:
+/// ```
+///
+/// use tch::Device;
+/// use tch::nn::VarStore;
+/// use amfiteatr_rl::torch_net::{build_network_model_ac_multidiscrete, Layer, NeuralNet};
+/// let var_store = VarStore::new(Device::Cpu);
+///
+/// let input_shape = vec![5,4];
+/// let actor_shapes = vec![4, 6, 2];
+/// let layers = vec![Layer::Linear(32), Layer::Relu, Layer::Linear(32)];
+///
+/// let model = build_network_model_ac_multidiscrete(layers, input_shape, actor_shapes, &var_store.root());
+/// // This produces network that accepts 5x4 tensor, then applies layers Linear(32), Relu, and Linear(32).
+/// // Then there are 3 parallel (not sequential layers) to create 3 actor distributions of respectively 4, 6 and 2 classes.
+/// // The critic output is traditionally single (float) value.
+/// // Then we could build network that is used in policy:
+/// //let net = NeuralNet::new(var_store, model);
+///
+/// ```
 
 pub fn build_network_model_ac_multidiscrete(layers: Vec<Layer>, input_shape:  Vec<i64>, actor_shapes: Vec<i64>, path: &nn::Path)
                                             -> NetworkModel<TensorMultiParamActorCritic>{

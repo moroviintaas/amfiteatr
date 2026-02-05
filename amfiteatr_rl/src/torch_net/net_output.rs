@@ -791,7 +791,7 @@ impl ActorCriticOutput for TensorMultiParamActorCritic {
     }
 
 
-    /// TODO refactor it so it does not call [`batch_log_probability_of_action`] and [`batch_entropy_masked`],
+    /// TODO refactor it so it does not call `batch_log_probability_of_action` and `batch_entropy_masked`,
     /// similarly to single parameter version.
     fn batch_get_logprob_and_entropy<S: Scheme>(&self, action_param_batches: &Self::ActionTensorType, action_category_mask_batches: Option<&Self::ActionTensorType>, action_forward_mask_batches: Option<&Self::ActionTensorType>) -> Result<(Tensor, Tensor), AmfiteatrError<S>> {
 
@@ -1125,6 +1125,7 @@ impl TensorCriticMultiActor{
 
  */
 
+/// Multiple tensors, for network that produces several tensors in different shapes (that cant be stacked in additional dimension, due to incompatible shapes).
 pub type MultiDiscreteTensor = Vec<Tensor>;
 
 impl NetOutput for MultiDiscreteTensor{}

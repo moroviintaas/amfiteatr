@@ -27,19 +27,19 @@ pub trait RoundRobinUniversalEnvironment<S: Scheme> : RoundRobinEnvironment<S>{
     fn run_round_robin_with_rewards_truncating(&mut self, truncate_steps: Option<usize>)
         -> Result<(), AmfiteatrError<S>>;
 
-    /// Alias to [`run_round_robin_with_rewards_truncating`]
+    /// Alias to [`run_round_robin_with_rewards_truncating`](RoundRobinUniversalEnvironment::run_round_robin_with_rewards_truncating)
     fn run_round_robin_truncating(&mut self, truncate_steps: Option<usize>)
                                                -> Result<(), AmfiteatrError<S>>{
         self.run_round_robin_with_rewards_truncating(truncate_steps)
     }
     /// Runs environment without truncation, default implementation calls
-    /// [`run_round_robin_with_rewards_truncating(None)`](`run_round_robin_with_rewards_truncating`)
-    /// Exactly the same default behaviour as [`run_round_robin`] just more explicit in naming.
+    /// [`run_round_robin_with_rewards_truncating(None)`](RoundRobinUniversalEnvironment::run_round_robin_with_rewards_truncating)
+    /// Exactly the same default behaviour as [`run_round_robin`](RoundRobinUniversalEnvironment::run_round_robin) just more explicit in naming.
     fn run_round_robin_with_rewards(&mut self) -> Result<(), AmfiteatrError<S>>{
         self.run_round_robin_with_rewards_truncating(None)
     }
     /// Runs environment without truncation, default implementation calls
-    /// [`run_round_robin_with_rewards_truncating(None)`](`run_round_robin_with_rewards_truncating`)
+    /// [`run_round_robin_with_rewards_truncating(None)`](RoundRobinUniversalEnvironment::run_round_robin_with_rewards_truncating)
     fn run_round_robin(&mut self) -> Result<(), AmfiteatrError<S>>{
         self.run_round_robin_with_rewards_truncating(None)
     }
