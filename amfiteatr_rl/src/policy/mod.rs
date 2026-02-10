@@ -5,6 +5,7 @@ mod learning_policy;
 mod train_config;
 mod ppo;
 mod common;
+mod replay;
 //mod genetic;
 
 
@@ -15,4 +16,6 @@ pub use learning_policy::*;
 pub use train_config::*;
 pub use ppo::*;
 pub use common::*;
+
+pub use replay::*;
 //pub use genetic::*;
