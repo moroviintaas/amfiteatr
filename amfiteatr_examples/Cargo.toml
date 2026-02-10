@@ -1,6 +1,6 @@
 [package]
 name = "amfiteatr_examples"
-version = "0.13.1"
+version = "0.14.0-rc"
 edition = "2024"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
@@ -98,11 +98,11 @@ rayon = "1.10.0"
 parking_lot = "0.12.3"
 sha2 = "0.10.9"
 
-amfiteatr_core = {version = "0.13.1", features = ["serde", "tboard"] }
-amfiteatr_proc_macro = {version = "0.13.1"}
-amfiteatr_rl = {version = "0.13.1", path = "../amfiteatr_rl",  features = []}
-amfiteatr_classic = { version = "0.13.1" }
-amfiteatr_net_ext = {version = "0.13.1"}
+amfiteatr_core = {version = "0.14.0-rc", features = ["serde", "tboard"] }
+amfiteatr_proc_macro = {version = "0.14.0-rc"}
+amfiteatr_rl = {version = "0.14.0-rc", path = "../amfiteatr_rl",  features = []}
+amfiteatr_classic = { version = "0.14.0-rc" }
+amfiteatr_net_ext = {version = "0.14.0-rc"}
 
 [features]
 rl-python = ["pyo3"]
