@@ -10,8 +10,9 @@ use tch::nn::Optimizer;
 use amfiteatr_core::agent::{AgentStepView, AgentTrajectory, InformationSet};
 use amfiteatr_core::scheme::Scheme;
 use amfiteatr_core::error::{AmfiteatrError, TensorError};
+use amfiteatr_core::util::MaybeContainsOne;
 use crate::error::AmfiteatrRlError;
-use crate::policy::{LearnSummary, PolicyHelperA2C, RlPolicyConfigBasic};
+use crate::policy::{ActorCriticReplayBuffer, LearnSummary, PolicyHelperA2C, RlPolicyConfigBasic};
 use crate::tensor_data::{ActionTensorFormat, ContextEncodeTensor, TensorEncoding};
 use crate::torch_net::{ActorCriticOutput, DeviceTransfer, NeuralNet};
 
@@ -913,6 +914,72 @@ pub trait PolicyTrainHelperPPO<S: Scheme> : PolicyHelperA2C<S, Config=ConfigPPO>
 
 
         //Ok()
+    }
+
+    fn ppo_train_on_trajectories_with_replay_buffer<
+        R: Fn(&AgentStepView<S, Self::InfoSet>) -> Tensor,
+        B: ActorCriticReplayBuffer<S>
+    >(
+        &mut self, trajectories: &[AgentTrajectory<S, Self::InfoSet>],
+        reward_f: R
+    ) -> Result<LearnSummary, AmfiteatrError<S>>
+    where Self: MaybeContainsOne<B>{
+
+
+        let mut replay_buffer = self.get_mut().ok_or_else(|| AmfiteatrError::ReplayBuffer {
+            context: "Buffer not initialised".to_string()
+        })?;
+
+        let capacity_estimate = AgentTrajectory::sum_trajectories_steps(trajectories);
+        let device = self.network().device();
+        let step_example = trajectories.iter().find(|&trajectory|{
+            trajectory.view_step(0).is_some()
+        }).and_then(|trajectory| trajectory.view_step(0))
+            .ok_or(AmfiteatrRlError::NoTrainingData)?;
+
+        /*if step_example.is_err() && replay_buffer.size == 0{
+            return step_example
+        }*/
+
+        let mut rng = rand::rng();
+
+        let sample_info_set = step_example.information_set();
+
+        let sample_info_set_t = sample_info_set.try_to_tensor(self.info_set_encoding())?;
+        let sample_net_output = tch::no_grad(|| self.network().net()(&sample_info_set_t));
+        let action_params = sample_net_output.param_dimension_size() as usize;
+        let tmp_capacity_estimate = AgentTrajectory::find_max_trajectory_len(trajectories);
+        /*
+        let mut action_masks_vec = Self::NetworkOutput::new_batch_with_capacity(action_params ,capacity_estimate);
+        let mut multi_action_tensor_vec = Self::NetworkOutput::new_batch_with_capacity(action_params, capacity_estimate);
+        let mut multi_action_cat_mask_tensor_vec = Self::NetworkOutput::new_batch_with_capacity(action_params, capacity_estimate);
+
+
+        let mut tmp_trajectory_state_tensor_vec = Vec::with_capacity(tmp_capacity_estimate);
+
+        let mut tmp_trajectory_action_tensor_vecs = Self::NetworkOutput::new_batch_with_capacity(action_params, capacity_estimate);
+        let mut tmp_trajectory_action_category_mask_vecs = Self::NetworkOutput::new_batch_with_capacity(action_params, capacity_estimate);
+
+        let mut tmp_trajectory_reward_vec = Vec::with_capacity(tmp_capacity_estimate);
+
+        let mut returns_vec = Vec::new();
+
+
+        #[cfg(feature = "log_debug")]
+        log::debug!("Starting operations on trajectories.",);
+        for t in trajectories{
+            tmp_trajectory_state_tensor_vec.clear();
+            Self::NetworkOutput::clear_batch_dim_in_batch(&mut tmp_trajectory_action_tensor_vecs);
+            Self::NetworkOutput::clear_batch_dim_in_batch(&mut tmp_trajectory_action_category_mask_vecs);
+            tmp_trajectory_reward_vec.clear();
+            for step in t.iter(){
+
+            }
+        }
+
+         */
+
+        todo!()
     }
 }
 

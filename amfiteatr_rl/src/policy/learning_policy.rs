@@ -250,3 +250,4 @@ pub trait LearningNetworkPolicyDynamic<S: Scheme>: LearningNetworkPolicyDynamicC
 impl<S: Scheme, T: LearningNetworkPolicyDynamicCustomSummary<S, Summary=LearnSummary>> LearningNetworkPolicyDynamic<S> for T{
 
 }
+

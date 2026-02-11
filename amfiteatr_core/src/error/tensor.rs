@@ -11,6 +11,10 @@ pub enum TensorError{
     Torch{
         origin: String,
         context: String,
+    },
+    #[error("Tensor length are not equal: {context}")]
+    BadTensorLength{
+        context: String,
     }
 }
 

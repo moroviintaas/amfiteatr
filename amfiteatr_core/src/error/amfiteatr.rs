@@ -101,6 +101,10 @@ pub enum AmfiteatrError<S: Scheme>{
     TboardFlattened{
         context: String,
         error: String,
+    },
+    #[error("Problem with ReplayBuffer: {context}")]
+    ReplayBuffer{
+        context: String,
     }
     //#[error("External: {0}")]
     //External(String)
