@@ -1,15 +1,24 @@
-use std::default::Default;
 use std::marker::PhantomData;
 use tch::{Kind, Tensor};
 use amfiteatr_core::error::{AmfiteatrError, TensorError};
 use amfiteatr_core::scheme::Scheme;
-use crate::torch_net::ActorCriticOutput;
+use crate::torch_net::{ActorCriticOutput, TensorActorCritic};
 
 pub trait ActorCriticReplayBuffer<S: Scheme>{
-    // /// Mainly do define actor shape (it can be single tensor for one parameter actions like [`TensorActorCritic`](TensorActorCritic),
-    // /// or multi parameter like [`TensorMultiParamActorCritic`](TensorMultiParamActorCritic)
-    //type ActorCriticType: ActorCriticOutput;
+    /// Mainly do define actor shape (it can be single tensor for one parameter actions like [`TensorActorCritic`](TensorActorCritic),
+    /// or multi parameter like [`TensorMultiParamActorCritic`](TensorMultiParamActorCritic)
+    type ActionTensor: ActorCriticOutput;
 
+    fn push_tensors(
+        &mut self,
+        info_set: &Tensor,
+        action: &<Self::ActionTensor as ActorCriticOutput>::ActionTensorType ,
+        action_mask: Option<&<Self::ActionTensor as ActorCriticOutput>::ActionTensorType>,
+        advantage: &Tensor,
+        reward: &Tensor,)
+        -> Result<(), AmfiteatrError<S>>;
+
+    /*
     fn push(
         &mut self,
         info_set: &Tensor,
@@ -18,7 +27,7 @@ pub trait ActorCriticReplayBuffer<S: Scheme>{
         advantage: &Tensor,
         reward: &Tensor,)
         -> Result<(), AmfiteatrError<S>>;
-
+    */
     /*
     fn push_more(
         &mut self,
@@ -46,6 +55,10 @@ pub trait ActorCriticReplayBuffer<S: Scheme>{
 }
 
 impl<S: Scheme, T: ActorCriticReplayBuffer<S>> ActorCriticReplayBuffer<S> for Box<T>{
+    type ActionTensor = T::ActionTensor;
+
+
+    /*
     /// ```
     /// use tch::Tensor;
     /// use tch::Kind;
@@ -73,10 +86,16 @@ impl<S: Scheme, T: ActorCriticReplayBuffer<S>> ActorCriticReplayBuffer<S> for Bo
     /// buffer.push(&info_set, &action_mask, Some(&action_mask), &advantage, &reward).unwrap();
     /// assert_eq!(buffer.info_set_buffer().size(), &[4,2,4]);
     /// ```
+
     fn push(&mut self, info_set: &Tensor, action: &Tensor, action_mask: Option<&Tensor>, advantage: &Tensor, reward: &Tensor) -> Result<(), AmfiteatrError<S>> {
         self.as_mut().push(info_set, action, action_mask, advantage, reward)
     }
 
+     */
+
+    fn push_tensors(&mut self, info_set: &Tensor, action: &<Self::ActionTensor as ActorCriticOutput>::ActionTensorType, action_mask: Option<&<Self::ActionTensor as ActorCriticOutput>::ActionTensorType>, advantage: &Tensor, reward: &Tensor) -> Result<(), AmfiteatrError<S>> {
+        self.as_mut().push_tensors(info_set, action, action_mask, advantage, reward)
+    }
     fn info_set_buffer(&self) -> Tensor {
         self.as_ref().info_set_buffer()
     }
@@ -121,6 +140,181 @@ pub struct CyclicReplayBufferActorCritic<S: Scheme>{
 }
 
 impl<S: Scheme> ActorCriticReplayBuffer<S> for CyclicReplayBufferActorCritic<S>{
+    type ActionTensor = TensorActorCritic;
+
+    /// ```
+    ///
+    /// // Let's say we have information set in form of Tensor 2 x 4:
+    /// use tch::{Device, Kind, Tensor};
+    /// use amfiteatr_core::demo::DemoScheme;
+    /// use amfiteatr_rl::policy::{ActorCriticReplayBuffer, CyclicReplayBufferActorCritic};
+    /// let info_set_1 = Tensor::from_slice(&[1.0f32, 2.0, 0.0, 0.0, 3.0, 2.0, 4.0, -1.0]).reshape(&[2,4]);
+    /// let info_set_2 = Tensor::from_slice(&[1.0f32, -1.0, 3.0, 2.0, 3.0, 1.0, 1.0, 0.0]).reshape(&[2,4]);
+    /// // Now let's stack them to one tensor:
+    /// let info_sets = Tensor::stack(&[info_set_1, info_set_2],0);
+    /// assert_eq!(&info_sets.size(), &[2,2,4]);
+    /// // Now simlarly with action logits:
+    /// let actions_1 = Tensor::from_slice(&[1.0f32, 2.0]);
+    /// let actions_2 = Tensor::from_slice(&[1.5f32, 1.0]);
+    /// let actions_logits = Tensor::stack(&[actions_1, actions_2], 0);
+    /// // and masks:
+    /// let masks_1 = Tensor::from_slice(&[true, true]);
+    /// let masks_2 = Tensor::from_slice(&[false, true]);
+    /// let masks = Tensor::stack(&[masks_1, masks_2], 0);
+    /// // now advantages and rewards:
+    /// let advantage_1 = Tensor::from_slice(&[2.0f32]);
+    /// let advantage_2 = Tensor::from_slice(&[-1.0f32]);
+    /// let advantages = Tensor::stack(&[advantage_1, advantage_2], 0);
+    /// assert_eq!(&[2,1], &advantages.size()[..]);
+    /// let reward_1 = Tensor::from_slice(&[3.0f32]);
+    /// let reward_2 = Tensor::from_slice(&[0.0f32]);
+    /// let rewards = Tensor::stack(&[reward_1, reward_2], 0);
+    /// // Note that every  batch hash [0] dim the same length (2)
+    /// //  - this corresponds that these represent two transitions.
+    /// // Now let's say we want replay buffer for 3:
+    /// let mut replay_buffer = CyclicReplayBufferActorCritic::<DemoScheme>::new(
+    ///     3, //capacity
+    ///     &[2, 4], // shape of basic information set
+    ///     &[2], // shape of action categories
+    ///     Some(&[2]), // shape of action categories
+    ///     Kind::Float,
+    ///     Device::Cpu
+    /// ).unwrap();
+    /// assert_eq!(0, replay_buffer.position());
+    /// assert_eq!(0, replay_buffer.size());
+    /// replay_buffer.push_tensors(&info_sets, &actions_logits, Some(&masks), &advantages, &rewards).unwrap();
+    /// // Now let's check if size is 2 and position is 2:
+    /// assert_eq!(2, replay_buffer.position());
+    /// assert_eq!(2, replay_buffer.size());
+    ///
+    /// replay_buffer.push_tensors(&info_sets, &actions_logits, Some(&masks), &advantages, &rewards).unwrap();
+    /// assert_eq!(1, replay_buffer.position());
+    /// assert_eq!(3, replay_buffer.size());
+    /// // Now we expect that first tensor in stack is the third in replay buffer ...
+    /// assert_eq!(&info_sets.slice(0, 0, 1, 1), &replay_buffer.info_set_buffer().slice(0, 2, None, 1));
+    /// // and the second is again first in cyclic buffer...
+    /// assert_eq!(&info_sets.slice(0, 1, None, 1), &replay_buffer.info_set_buffer().slice(0, 0, 1, 1));
+    /// //panic!("Crash it")
+    /// ```
+    fn push_tensors(&mut self, info_set: &Tensor, action: &Tensor, action_mask: Option<&Tensor>, advantage: &Tensor, reward: &Tensor) -> Result<(), AmfiteatrError<S>> {
+
+        let positions_added = info_set.size()[0];
+
+        if action.size()[0] != positions_added{
+            return Err(AmfiteatrError::Tensor{ error: TensorError::BadTensorLength {
+                context: format!("Action batch tensor has bad 0 dim (action number): {}, expected: {positions_added}", action.size()[0])
+            }});
+        }
+
+        if let (Some(action_mask), Some(action_mask_buffer)) = (action_mask, self.action_mask_buffer.as_mut()) {
+            if action_mask.size()[0] != positions_added{
+                return Err(AmfiteatrError::Tensor{ error: TensorError::BadTensorLength {
+                    context: format!("ActionMask batch tensor has bad 0 dim (action number): {}, expected: {positions_added}", action_mask.size()[0])
+                }});
+            }
+
+        }
+
+        if advantage.size()[0] != positions_added{
+            return Err(AmfiteatrError::Tensor{ error: TensorError::BadTensorLength {
+                context: format!("Advantage batch tensor has bad 0 dim (action number): {}, expected: {positions_added}", advantage.size()[0])
+            }});
+        }
+
+        if reward.size()[0] != positions_added{
+            return Err(AmfiteatrError::Tensor{ error: TensorError::BadTensorLength {
+                context: format!("Reward batch tensor has bad 0 dim (action number): {}, expected: {positions_added}", advantage.size()[0])
+            }});
+        }
+
+
+        if positions_added <= self.capacity {
+            //let len_exceeding = ((self.size + positions_added) as usize).saturating_sub(self.capacity as usize) as i64;
+            //let len_added_at_end = (positions_added as usize).saturating_sub(len_exceeding as usize) as i64;
+
+            let size_proposition = self.position + positions_added;
+            if size_proposition <= self.capacity{
+                // We can push everything at the end
+
+                self.info_set_buffer.slice(0, self.position, self.position + positions_added, 1)
+                    .f_copy_(&info_set).expect(&format!("Info set: {} and {}", self.info_set_buffer.slice(0, self.position, self.position + positions_added, 1),  info_set));
+
+
+                self.action_buffer.slice(0, self.position, self.position + positions_added, 1)
+                    .f_copy_(&action).expect(&format!("Action: {} and {}", self.info_set_buffer.slice(0, self.position, self.position + positions_added, 1),  info_set));
+                if let (Some(action_mask), Some(action_mask_buffer)) = (action_mask, self.action_mask_buffer.as_mut()) {
+                    action_mask_buffer.slice(0, self.position, self.position + positions_added, 1)
+                        .f_copy_(&action_mask).expect(&format!("Mask: {} and {}", action_mask_buffer.slice(0, self.position, self.position + positions_added, 1),  action_mask));;
+                }
+
+                self.advantages_buffer.slice(0, self.position, self.position + positions_added, 1)
+                    .f_copy_(&advantage).expect(&format!("Advantages: {} and {}", self.advantages_buffer.slice(0, self.position, self.position + positions_added, 1),  advantage));
+
+
+                self.returns_buffer.slice(0, self.position, self.position + positions_added, 1)
+                    .f_copy_(&reward).expect(&format!("Reward: {} and {}", self.returns_buffer.slice(0, self.position, self.position + positions_added, 1),  reward));
+
+                if self.size < self.capacity{
+                    self.size += positions_added
+                }
+                self.position += positions_added;
+
+            } else {
+                let added_at_end = self.capacity - self.position;
+
+                let added_at_begin = positions_added - added_at_end;
+
+                self.info_set_buffer.slice(0, self.position, None, 1)
+                    .f_copy_(&info_set.slice(0, 0, added_at_end, 1))
+                    .expect(&format!("(Rolling over) Info set: {} and {}", self.info_set_buffer.slice(0, self.position, None, 1),  info_set));
+                self.info_set_buffer.slice(0, 0, added_at_begin, 1)
+                    .f_copy_(&info_set.slice(0, added_at_end, None, 1))
+                    .expect(&format!("(Rolling over) Info set: {} and {}", self.info_set_buffer.slice(0, 0, added_at_begin, 1),  info_set));
+
+
+                self.action_buffer.slice(0, self.position, None, 1)
+                    .f_copy_(&action.slice(0, 0, added_at_end, 1))
+                    .expect(&format!("(Rolling over) Action: {} and {}", self.action_buffer.slice(0, self.position, None, 1),  action));
+                self.action_buffer.slice(0, 0, added_at_begin, 1)
+                    .f_copy_(&action.slice(0, added_at_end, None, 1))
+                    .expect(&format!("(Rolling over) Action: {} and {}", self.action_buffer.slice(0, 0, added_at_begin, 1),  action));
+
+
+                if let (Some(action_mask), Some(action_mask_buffer)) = (action_mask, self.action_mask_buffer.as_mut()) {
+                    action_mask_buffer.slice(0, self.position, None, 1)
+                        .f_copy_(&action_mask.slice(0, 0, added_at_end, 1))
+                        .expect(&format!("(Rolling over) action_mask: {} and {}", action_mask_buffer.slice(0, self.position, None, 1),  action_mask));
+                    action_mask_buffer.slice(0, 0, added_at_begin, 1)
+                        .f_copy_(&action_mask.slice(0, added_at_end, None, 1))
+                        .expect(&format!("(Rolling over) action_mask: {} and {}", action_mask_buffer.slice(0, 0, added_at_begin, 1),  action_mask));
+
+
+                }
+
+                self.advantages_buffer.slice(0, self.position, None, 1)
+                    .f_copy_(&advantage.slice(0, 0, added_at_end, 1))
+                    .expect(&format!("(Rolling over) advantages_buffer: {} and {}", self.advantages_buffer.slice(0, self.position, None, 1),  advantage));
+                self.advantages_buffer.slice(0, 0, added_at_begin, 1)
+                    .f_copy_(&advantage.slice(0, added_at_end, None, 1))
+                    .expect(&format!("(Rolling over) advantages_buffer: {} and {}", self.advantages_buffer.slice(0, 0, added_at_begin, 1),  advantage));
+
+
+                self.position = added_at_begin;
+                self.size = self.capacity;
+            }
+            Ok(())
+
+
+        } else {
+            // the replay buffer is lesser than tranistions added, simply store last transitions
+
+
+            todo!()
+        }
+
+    }
+
+    /*
     fn push(
         &mut self,
         info_set: &Tensor,
@@ -150,6 +344,8 @@ impl<S: Scheme> ActorCriticReplayBuffer<S> for CyclicReplayBufferActorCritic<S>{
 
         Ok(())
     }
+
+     */
 
     /*
     fn push_more(&mut self, info_sets: &Tensor, actions: &Tensor, action_masks: Option<&Tensor>, advantages: &Tensor, rewards: &Tensor) -> Result<(), AmfiteatrError<S>> {
@@ -230,8 +426,8 @@ impl<S: Scheme> CyclicReplayBufferActorCritic<S> {
         let info_set_buffer = Tensor::zeros(&info_set_shape, (kind, device));
         let action_buffer = Tensor::zeros(&action_shape, (kind, device));
         //let action_mask_buffer = Tensor::zeros(&action_mask_shape, (kind, device));
-        let advantages_buffer = Tensor::zeros(&[capacity as i64], (kind, device));
-        let returns_buffer = Tensor::zeros(&[capacity as i64], (kind, device));
+        let advantages_buffer = Tensor::zeros(&[capacity as i64, 1], (kind, device));
+        let returns_buffer = Tensor::zeros(&[capacity as i64, 1], (kind, device));
 
         let action_mask_buffer =action_mask_shape.and_then(|m| Some(Tensor::ones(m, (Kind::Bool ,device))));
 
@@ -246,6 +442,18 @@ impl<S: Scheme> CyclicReplayBufferActorCritic<S> {
 
 
 
+    }
+
+    pub fn position(&self) -> usize {
+        self.position as usize
+    }
+
+    pub fn size(&self) -> usize {
+        self.size as usize
+    }
+
+    pub fn capacity(&self) -> usize {
+        self.capacity as usize
     }
 
 
@@ -288,6 +496,7 @@ impl<S: Scheme> CyclicReplayBufferActorCritic<S> {
      */
 }
 
+/*
 #[cfg(test)]
 mod tests{
     use crate::policy::replay::actor_critic_buffer::ActorCriticReplayBuffer;
@@ -321,3 +530,5 @@ use tch::{Device, Kind, Tensor};
         assert_eq!(buffer.info_set_buffer().size(), &[4,2,4]);
     }
 }
+
+ */

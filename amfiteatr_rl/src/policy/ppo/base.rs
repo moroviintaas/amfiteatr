@@ -941,6 +941,7 @@ pub trait PolicyTrainHelperPPO<S: Scheme> : PolicyHelperA2C<S, Config=ConfigPPO>
             return step_example
         }*/
 
+        /*
         let mut rng = rand::rng();
 
         let sample_info_set = step_example.information_set();
@@ -949,7 +950,7 @@ pub trait PolicyTrainHelperPPO<S: Scheme> : PolicyHelperA2C<S, Config=ConfigPPO>
         let sample_net_output = tch::no_grad(|| self.network().net()(&sample_info_set_t));
         let action_params = sample_net_output.param_dimension_size() as usize;
         let tmp_capacity_estimate = AgentTrajectory::find_max_trajectory_len(trajectories);
-        /*
+
         let mut action_masks_vec = Self::NetworkOutput::new_batch_with_capacity(action_params ,capacity_estimate);
         let mut multi_action_tensor_vec = Self::NetworkOutput::new_batch_with_capacity(action_params, capacity_estimate);
         let mut multi_action_cat_mask_tensor_vec = Self::NetworkOutput::new_batch_with_capacity(action_params, capacity_estimate);
@@ -962,6 +963,7 @@ pub trait PolicyTrainHelperPPO<S: Scheme> : PolicyHelperA2C<S, Config=ConfigPPO>
 
         let mut tmp_trajectory_reward_vec = Vec::with_capacity(tmp_capacity_estimate);
 
+
         let mut returns_vec = Vec::new();
 
 
@@ -973,11 +975,36 @@ pub trait PolicyTrainHelperPPO<S: Scheme> : PolicyHelperA2C<S, Config=ConfigPPO>
             Self::NetworkOutput::clear_batch_dim_in_batch(&mut tmp_trajectory_action_category_mask_vecs);
             tmp_trajectory_reward_vec.clear();
             for step in t.iter(){
+                tmp_trajectory_state_tensor_vec.push(step.information_set().try_to_tensor(self.info_set_encoding())?);
+                let (act_t, cat_mask_t) = self.vectorize_action_and_create_category_mask(step.action())?;
+                Self::NetworkOutput::push_to_vec_batch(&mut tmp_trajectory_action_tensor_vecs, act_t);
+                Self::NetworkOutput::push_to_vec_batch(&mut tmp_trajectory_action_category_mask_vecs, cat_mask_t);
+                tmp_trajectory_reward_vec.push(reward_f(&step));
+                if self.is_action_masking_supported(){
+                    Self::NetworkOutput::push_to_vec_batch(&mut action_masks_vec, self.generate_action_masks(step.information_set())?);
+                }
+            }
+            let information_set_t = Tensor::f_stack(&tmp_trajectory_state_tensor_vec[..], 0)
+                .map_err(|e| TensorError::from_tch_with_context(e, "Stacking information sets tensors (from trajectory tensors to batch tensors).".into()))?
+                .to_device(device);
+            let net_out = tch::no_grad(|| (self.network().net())( &information_set_t));
+            let critic_t = net_out.critic();
 
+            let (advantages_t, returns_t) = match self.config().gae_lambda {
+                Some(gae_lambda) => tch::no_grad(||self.calculate_gae_advantages_and_returns(t, critic_t, &reward_f, gae_lambda))?,
+                None => tch::no_grad(||self.calculate_advantages_and_returns(t, critic_t, &reward_f))?
+            };
+            for i in 0..information_set_t.size()[0]{
+                replay_buffer.push(
+                    &information_set_t.slice(-1, i, i+1, 1).detach(),
+                    &information_set_t.slice(-1, i, i+1, 1).detach(),
+                )
             }
         }
 
          */
+
+
 
         todo!()
     }
