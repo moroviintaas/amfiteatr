@@ -5,15 +5,15 @@ use amfiteatr_core::scheme::Scheme;
 use crate::torch_net::{ActorCriticOutput, TensorActorCritic};
 
 pub trait ActorCriticReplayBuffer<S: Scheme>{
-    /// Mainly do define actor shape (it can be single tensor for one parameter actions like [`TensorActorCritic`](TensorActorCritic),
-    /// or multi parameter like [`TensorMultiParamActorCritic`](TensorMultiParamActorCritic)
-    type ActionTensor: ActorCriticOutput;
+    /// Mainly do define actor shape (it can be single `Tensor` for one parameter actions like [`TensorActorCritic`](TensorActorCritic),
+    /// or `Vec<Tensor> for multi parameter like [`TensorMultiParamActorCritic`](TensorMultiParamActorCritic))
+    type ActionData;
 
     fn push_tensors(
         &mut self,
         info_set: &Tensor,
-        action: &<Self::ActionTensor as ActorCriticOutput>::ActionTensorType ,
-        action_mask: Option<&<Self::ActionTensor as ActorCriticOutput>::ActionTensorType>,
+        action: &Self::ActionData,
+        action_mask: Option<&Self::ActionData>,
         advantage: &Tensor,
         reward: &Tensor,)
         -> Result<(), AmfiteatrError<S>>;
@@ -55,7 +55,7 @@ pub trait ActorCriticReplayBuffer<S: Scheme>{
 }
 
 impl<S: Scheme, T: ActorCriticReplayBuffer<S>> ActorCriticReplayBuffer<S> for Box<T>{
-    type ActionTensor = T::ActionTensor;
+    type ActionData = T::ActionData;
 
 
     /*
@@ -93,7 +93,8 @@ impl<S: Scheme, T: ActorCriticReplayBuffer<S>> ActorCriticReplayBuffer<S> for Bo
 
      */
 
-    fn push_tensors(&mut self, info_set: &Tensor, action: &<Self::ActionTensor as ActorCriticOutput>::ActionTensorType, action_mask: Option<&<Self::ActionTensor as ActorCriticOutput>::ActionTensorType>, advantage: &Tensor, reward: &Tensor) -> Result<(), AmfiteatrError<S>> {
+    fn push_tensors(&mut self, info_set: &Tensor, action: &Self::ActionData, action_mask: Option<&T::ActionData>, advantage: &Tensor, reward: &Tensor) -> Result<(), AmfiteatrError<S>>
+    {
         self.as_mut().push_tensors(info_set, action, action_mask, advantage, reward)
     }
     fn info_set_buffer(&self) -> Tensor {
@@ -140,7 +141,7 @@ pub struct CyclicReplayBufferActorCritic<S: Scheme>{
 }
 
 impl<S: Scheme> ActorCriticReplayBuffer<S> for CyclicReplayBufferActorCritic<S>{
-    type ActionTensor = TensorActorCritic;
+    type ActionData = Tensor;
 
     /// ```
     ///
@@ -206,10 +207,10 @@ impl<S: Scheme> ActorCriticReplayBuffer<S> for CyclicReplayBufferActorCritic<S>{
             }});
         }
 
-        if let (Some(action_mask), Some(action_mask_buffer)) = (action_mask, self.action_mask_buffer.as_mut()) {
-            if action_mask.size()[0] != positions_added{
+        if let (Some(action_mask_t), Some(action_mask_buffer)) = (action_mask, self.action_mask_buffer.as_mut()) {
+            if action_mask_t.size()[0] != positions_added{
                 return Err(AmfiteatrError::Tensor{ error: TensorError::BadTensorLength {
-                    context: format!("ActionMask batch tensor has bad 0 dim (action number): {}, expected: {positions_added}", action_mask.size()[0])
+                    context: format!("ActionMask batch tensor has bad 0 dim (action number): {}, expected: {positions_added}", action_mask_t.size()[0])
                 }});
             }
 
@@ -306,10 +307,21 @@ impl<S: Scheme> ActorCriticReplayBuffer<S> for CyclicReplayBufferActorCritic<S>{
 
 
         } else {
-            // the replay buffer is lesser than tranistions added, simply store last transitions
+            // the replay buffer is lesser than transitions added, simply store last transitions
 
+            self.info_set_buffer.copy_(&info_set.slice(0, positions_added - self.capacity, None, 1));
+            self.action_buffer.copy_(&action.slice(0, positions_added - self.capacity, None, 1));
+            self.advantages_buffer.copy_(&advantage.slice(0, positions_added - self.capacity, None, 1));
+            self.returns_buffer.copy_(&reward.slice(0, positions_added - self.capacity, None, 1));
 
-            todo!()
+            if let (Some(action_mask), Some(action_mask_buffer)) = (action_mask, self.action_mask_buffer.as_mut()) {
+                action_mask_buffer.copy_(&action_mask.slice(0, positions_added - self.capacity, None, 1));
+            }
+
+            self.position = 0;
+            self.size = self.capacity;
+
+            Ok(())
         }
 
     }

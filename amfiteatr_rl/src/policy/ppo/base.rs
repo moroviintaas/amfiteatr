@@ -918,7 +918,7 @@ pub trait PolicyTrainHelperPPO<S: Scheme> : PolicyHelperA2C<S, Config=ConfigPPO>
 
     fn ppo_train_on_trajectories_with_replay_buffer<
         R: Fn(&AgentStepView<S, Self::InfoSet>) -> Tensor,
-        B: ActorCriticReplayBuffer<S>
+        B: ActorCriticReplayBuffer<S, ActionData=<<Self as PolicyHelperA2C<S>>::NetworkOutput as ActorCriticOutput>::ActionTensorType >
     >(
         &mut self, trajectories: &[AgentTrajectory<S, Self::InfoSet>],
         reward_f: R
