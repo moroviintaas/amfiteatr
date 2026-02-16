@@ -41,9 +41,9 @@ pub trait ActorCriticReplayBuffer<S: Scheme>{
      */
 
     fn info_set_buffer(&self) -> Tensor;
-    fn action_buffer(&self) -> Tensor;
+    fn action_buffer(&self) -> Self::ActionData;
 
-    fn action_mask_buffer(&self) -> Option<Tensor>;
+    fn action_mask_buffer(&self) -> Option<Self::ActionData>;
 
     fn advantage_buffer(&self) -> Tensor;
 
@@ -101,11 +101,11 @@ impl<S: Scheme, T: ActorCriticReplayBuffer<S>> ActorCriticReplayBuffer<S> for Bo
         self.as_ref().info_set_buffer()
     }
 
-    fn action_buffer(&self) -> Tensor {
+    fn action_buffer(&self) -> Self::ActionData {
         self.as_ref().action_buffer()
     }
 
-    fn action_mask_buffer(&self) -> Option<Tensor> {
+    fn action_mask_buffer(&self) -> Option<Self::ActionData> {
         self.as_ref().action_mask_buffer()
     }
 
@@ -152,24 +152,24 @@ impl<S: Scheme> ActorCriticReplayBuffer<S> for CyclicReplayBufferActorCritic<S>{
     /// let info_set_1 = Tensor::from_slice(&[1.0f32, 2.0, 0.0, 0.0, 3.0, 2.0, 4.0, -1.0]).reshape(&[2,4]);
     /// let info_set_2 = Tensor::from_slice(&[1.0f32, -1.0, 3.0, 2.0, 3.0, 1.0, 1.0, 0.0]).reshape(&[2,4]);
     /// // Now let's stack them to one tensor:
-    /// let info_sets = Tensor::stack(&[info_set_1, info_set_2],0);
+    /// let info_sets = Tensor::stack(&[&info_set_1, &info_set_2],0);
     /// assert_eq!(&info_sets.size(), &[2,2,4]);
     /// // Now simlarly with action logits:
     /// let actions_1 = Tensor::from_slice(&[1.0f32, 2.0]);
     /// let actions_2 = Tensor::from_slice(&[1.5f32, 1.0]);
-    /// let actions_logits = Tensor::stack(&[actions_1, actions_2], 0);
+    /// let actions_logits = Tensor::stack(&[&actions_1, &actions_2], 0);
     /// // and masks:
     /// let masks_1 = Tensor::from_slice(&[true, true]);
     /// let masks_2 = Tensor::from_slice(&[false, true]);
-    /// let masks = Tensor::stack(&[masks_1, masks_2], 0);
+    /// let masks = Tensor::stack(&[&masks_1, &masks_2], 0);
     /// // now advantages and rewards:
     /// let advantage_1 = Tensor::from_slice(&[2.0f32]);
     /// let advantage_2 = Tensor::from_slice(&[-1.0f32]);
-    /// let advantages = Tensor::stack(&[advantage_1, advantage_2], 0);
+    /// let advantages = Tensor::stack(&[&advantage_1, &advantage_2], 0);
     /// assert_eq!(&[2,1], &advantages.size()[..]);
     /// let reward_1 = Tensor::from_slice(&[3.0f32]);
     /// let reward_2 = Tensor::from_slice(&[0.0f32]);
-    /// let rewards = Tensor::stack(&[reward_1, reward_2], 0);
+    /// let rewards = Tensor::stack(&[&reward_1, &reward_2], 0);
     /// // Note that every  batch hash [0] dim the same length (2)
     /// //  - this corresponds that these represent two transitions.
     /// // Now let's say we want replay buffer for 3:
@@ -195,7 +195,17 @@ impl<S: Scheme> ActorCriticReplayBuffer<S> for CyclicReplayBufferActorCritic<S>{
     /// assert_eq!(&info_sets.slice(0, 0, 1, 1), &replay_buffer.info_set_buffer().slice(0, 2, None, 1));
     /// // and the second is again first in cyclic buffer...
     /// assert_eq!(&info_sets.slice(0, 1, None, 1), &replay_buffer.info_set_buffer().slice(0, 0, 1, 1));
-    /// //panic!("Crash it")
+    /// // Now let's have more transitions than the buffer can load:
+    ///
+    /// let info_sets = Tensor::stack(&[&info_set_1, &info_set_2, &info_set_1, &info_set_1,],0);
+    /// let actions_logits = Tensor::stack(&[&actions_1, &actions_2, &actions_1, &actions_1], 0);
+    /// let advantages = Tensor::stack(&[&advantage_1, &advantage_2, &advantage_1, &advantage_1], 0);
+    /// let masks = Tensor::stack(&[&masks_1, &masks_2, &masks_1, &masks_1, ], 0);
+    /// let rewards = Tensor::stack(&[&reward_1, &reward_2,&reward_1, &reward_1], 0);
+    ///
+    /// replay_buffer.push_tensors(&info_sets, &actions_logits, Some(&masks), &advantages, &rewards).unwrap();
+    /// assert_eq!(0, replay_buffer.position());
+    /// assert_eq!(3, replay_buffer.size());
     /// ```
     fn push_tensors(&mut self, info_set: &Tensor, action: &Tensor, action_mask: Option<&Tensor>, advantage: &Tensor, reward: &Tensor) -> Result<(), AmfiteatrError<S>> {
 

@@ -657,7 +657,7 @@ pub trait PolicyTrainHelperPPO<S: Scheme> : PolicyHelperA2C<S, Config=ConfigPPO>
         log::trace!("Batch advantage shape = {:?}", batch_advantage_t.size());
         let batch_actions_t = Self::NetworkOutput::stack_tensor_batch(&multi_action_tensor_vec)?
             .move_to_device(device);
-        let batch_action_masks_t = Self::NetworkOutput::stack_tensor_batch(&multi_action_cat_mask_tensor_vec)?
+        let batch_action_cat_masks_t = Self::NetworkOutput::stack_tensor_batch(&multi_action_cat_mask_tensor_vec)?
             .move_to_device(device);
 
 
@@ -672,7 +672,7 @@ pub trait PolicyTrainHelperPPO<S: Scheme> : PolicyHelperA2C<S, Config=ConfigPPO>
             self.batch_get_logprob_entropy_critic(
                 &batch_info_sets_t,
                 &batch_actions_t,
-                Some(&batch_action_masks_t),
+                Some(&batch_action_cat_masks_t),
                 action_forward_masks.as_ref(),
             )
 
@@ -694,7 +694,7 @@ pub trait PolicyTrainHelperPPO<S: Scheme> : PolicyHelperA2C<S, Config=ConfigPPO>
 
                 let mini_batch_action = Self::NetworkOutput::index_select(&batch_actions_t, &minibatch_indices)
                     .map_err(|e| TensorError::from_tch_with_context(e, "Selecting actions to mini-batch".into()))?;
-                let mini_batch_action_cat_mask = Self::NetworkOutput::index_select(&batch_action_masks_t, &minibatch_indices)
+                let mini_batch_action_cat_mask = Self::NetworkOutput::index_select(&batch_action_cat_masks_t, &minibatch_indices)
                     .map_err(|e| TensorError::from_tch_with_context(e, "Selecting action categories to mini-batch".into()))?;
 
 
@@ -923,15 +923,18 @@ pub trait PolicyTrainHelperPPO<S: Scheme> : PolicyHelperA2C<S, Config=ConfigPPO>
         &mut self, trajectories: &[AgentTrajectory<S, Self::InfoSet>],
         reward_f: R
     ) -> Result<LearnSummary, AmfiteatrError<S>>
-    where Self: MaybeContainsOne<B>{
+    where Self: MaybeContainsOne<B>,
+    <Self as PolicyHelperA2C<S>>::InfoSetConversionContext : Clone,
+    {
 
 
-        let mut replay_buffer = self.get_mut().ok_or_else(|| AmfiteatrError::ReplayBuffer {
-            context: "Buffer not initialised".to_string()
-        })?;
+
 
         let capacity_estimate = AgentTrajectory::sum_trajectories_steps(trajectories);
         let device = self.network().device();
+        let replay_buffer = self.get().ok_or_else(|| AmfiteatrError::ReplayBuffer {
+            context: "Buffer not initialised".to_string()
+        })?;
         let step_example = trajectories.iter().find(|&trajectory|{
             trajectory.view_step(0).is_some()
         }).and_then(|trajectory| trajectory.view_step(0))
@@ -941,7 +944,15 @@ pub trait PolicyTrainHelperPPO<S: Scheme> : PolicyHelperA2C<S, Config=ConfigPPO>
             return step_example
         }*/
 
-        /*
+        let estimated_summary_capacity = (replay_buffer.capacity()/self.config().mini_batch_size+1) * self.config().update_epochs;
+
+        let mut summary_vec_vf_loss = Vec::with_capacity(estimated_summary_capacity);
+        let mut summary_vec_pg_loss = Vec::with_capacity(estimated_summary_capacity);
+        let mut summary_vec_entropy_mean = Vec::with_capacity(estimated_summary_capacity);
+        let mut summary_kl_aprox = Vec::with_capacity(estimated_summary_capacity);
+
+
+
         let mut rng = rand::rng();
 
         let sample_info_set = step_example.information_set();
@@ -963,8 +974,8 @@ pub trait PolicyTrainHelperPPO<S: Scheme> : PolicyHelperA2C<S, Config=ConfigPPO>
 
         let mut tmp_trajectory_reward_vec = Vec::with_capacity(tmp_capacity_estimate);
 
-
-        let mut returns_vec = Vec::new();
+        let encoding = self.info_set_encoding().clone();
+        //let mut returns_vec = Vec::new();
 
 
         #[cfg(feature = "log_debug")]
@@ -975,7 +986,7 @@ pub trait PolicyTrainHelperPPO<S: Scheme> : PolicyHelperA2C<S, Config=ConfigPPO>
             Self::NetworkOutput::clear_batch_dim_in_batch(&mut tmp_trajectory_action_category_mask_vecs);
             tmp_trajectory_reward_vec.clear();
             for step in t.iter(){
-                tmp_trajectory_state_tensor_vec.push(step.information_set().try_to_tensor(self.info_set_encoding())?);
+                tmp_trajectory_state_tensor_vec.push(step.information_set().try_to_tensor(&encoding)?);
                 let (act_t, cat_mask_t) = self.vectorize_action_and_create_category_mask(step.action())?;
                 Self::NetworkOutput::push_to_vec_batch(&mut tmp_trajectory_action_tensor_vecs, act_t);
                 Self::NetworkOutput::push_to_vec_batch(&mut tmp_trajectory_action_category_mask_vecs, cat_mask_t);
@@ -994,19 +1005,283 @@ pub trait PolicyTrainHelperPPO<S: Scheme> : PolicyHelperA2C<S, Config=ConfigPPO>
                 Some(gae_lambda) => tch::no_grad(||self.calculate_gae_advantages_and_returns(t, critic_t, &reward_f, gae_lambda))?,
                 None => tch::no_grad(||self.calculate_advantages_and_returns(t, critic_t, &reward_f))?
             };
+            /*
             for i in 0..information_set_t.size()[0]{
                 replay_buffer.push(
                     &information_set_t.slice(-1, i, i+1, 1).detach(),
                     &information_set_t.slice(-1, i, i+1, 1).detach(),
                 )
             }
+
+             */
+            let action_forward_masks = match self.is_action_masking_supported(){
+                true => Some(Self::NetworkOutput::stack_tensor_batch(&action_masks_vec)?.move_to_device(device)),
+                false => None
+            };
+            let mut replay_buffer = self.get_mut().ok_or_else(|| AmfiteatrError::ReplayBuffer {
+                context: "Buffer not initialised".to_string()
+            })?;
+            replay_buffer.push_tensors(
+                &information_set_t.detach(),
+                &net_out.actor(),
+                action_forward_masks.as_ref(),
+                &advantages_t.detach(),
+                &returns_t.detach()
+
+            )?;
+
+
+
         }
 
-         */
+        let replay_buffer = self.get().ok_or_else(|| AmfiteatrError::ReplayBuffer {
+            context: "Buffer not initialised".to_string()
+        })?;
+
+        let mut continue_training = true;
+
+        let batch_size = replay_buffer.size() as i64;
+        let mut indices: Vec<i64> = (0..batch_size as i64).collect();
+
+        let batch_info_sets_t = replay_buffer.info_set_buffer();
+        let batch_actions_t = replay_buffer.action_buffer();
+        let batch_action_masks_t = replay_buffer.action_mask_buffer();
+        let batch_advantage_t = replay_buffer.advantage_buffer();
+        let batch_rewards_t = replay_buffer.reward_buffer();
+
+        let (batch_logprob_t, _entropy, batch_values_t) = tch::no_grad(||{
+            self.batch_get_logprob_entropy_critic(
+                &batch_info_sets_t,
+                &batch_actions_t,
+                None, //Some(&batch_action_cat_masks_t),
+                batch_action_masks_t.as_ref(),
+            )
+
+        })?;
+
+        for epoch in 0..self.config().update_epochs{
+            #[cfg(feature = "log_debug")]
+            log::debug!("PPO Update Epoch: {epoch}");
+
+            indices.shuffle(&mut rng);
 
 
 
-        todo!()
+            for minibatch_start in (0..batch_size).step_by(self.config().mini_batch_size){
+                let minibatch_end = min(minibatch_start + self.config().mini_batch_size as i64, batch_size);
+                let minibatch_indices = Tensor::from(&indices[minibatch_start as usize..minibatch_end as usize]).to_device(device);
+
+
+                let mini_batch_action = Self::NetworkOutput::index_select(&batch_actions_t, &minibatch_indices)
+                    .map_err(|e| TensorError::from_tch_with_context(e, "Selecting actions to mini-batch".into()))?;
+                //let mini_batch_action_cat_mask = Self::NetworkOutput::index_select(&batch_action_masks_t, &minibatch_indices)
+                //    .map_err(|e| TensorError::from_tch_with_context(e, "Selecting action categories to mini-batch".into()))?;
+
+
+                let mini_batch_action_forward_mask = match batch_action_masks_t{
+                    None => None,
+                    Some(ref m) => Some(Self::NetworkOutput::index_select(m, &minibatch_indices)
+                        .map_err(|e| TensorError::from_tch_with_context(e, "Error creating action mask mini-batch".into()))?)
+                };
+
+                let mini_batch_base_logprobs = batch_logprob_t.f_index_select(0, &minibatch_indices)
+                    .map_err(|e| TensorError::from_tch_with_context(e, "Creating mini-batch pf log probabilities".into()))?;
+                #[cfg(feature = "log_trace")]
+                log::trace!("Selected minibatch logprobs");
+                let (new_logprob, entropy, newvalue) = self.batch_get_logprob_entropy_critic(
+                    &batch_info_sets_t.f_index_select(0, &minibatch_indices).map_err(|e| TensorError::from_tch_with_context(e, "Selecting information set mini-batch".into()))?,
+                    &mini_batch_action,
+                    None, //Some(&mini_batch_action_cat_mask),
+                    mini_batch_action_forward_mask.as_ref(),
+                )?;
+                #[cfg(feature = "log_debug")]
+                log::debug!("Advantages: {:?}", batch_advantage_t.f_index_select(0, &minibatch_indices));
+                #[cfg(feature = "log_debug")]
+                log::debug!("Entropy: {:}", entropy);
+
+                #[cfg(feature = "log_debug")]
+                log::debug!("Base logbprob: {:}", mini_batch_base_logprobs);
+
+                #[cfg(feature = "log_debug")]
+                log::debug!("New logprob: {:}", new_logprob);
+
+                let logratio = new_logprob - &mini_batch_base_logprobs ;
+                let ratio  = logratio.exp();
+
+                #[cfg(feature = "log_debug")]
+                log::debug!("Log ratio: {:}", logratio);
+
+                let (r_old_approx_kl, r_approx_kl) = tch::no_grad(|| {
+                    let old_approx_kl = (-&logratio).f_mean(Float);
+                    let approx_kl = ((&ratio -1.0) - &logratio).f_mean(Float);
+                    //let clip_frac = ((&ratio -1.0).abs().f_is_g)
+
+                    (old_approx_kl, approx_kl)
+
+                });
+
+                let old_approx_kl = r_old_approx_kl
+                    .map_err(|e| TensorError::from_tch_with_context(e, "Calculating old KL approximation ".into()))?;
+                let approx_kl = r_approx_kl
+                    .map_err(|e| TensorError::from_tch_with_context(e, "Calculating KL approximation".into()))?;
+
+                #[cfg(feature = "log_trace")]
+                log::trace!("Minibatch indices: {:}", minibatch_indices);
+                #[cfg(feature = "log_trace")]
+                log::trace!("Batch advantage t: {:?}", batch_advantage_t);
+
+                let minibatch_advantages_t = batch_advantage_t.f_index_select(0, &minibatch_indices)
+                    .map_err(|e| TensorError::from_tch_with_context(e, "Mini-batching advantages".into()))?;
+                #[cfg(feature = "log_trace")]
+                log::trace!("Batch returns: {:?}", batch_rewards_t);
+                let minibatch_returns_t = batch_rewards_t.f_index_select(0, &minibatch_indices)
+                    .map_err(|e| TensorError::from_tch_with_context(e, "Mini-batching returns".into()))?;
+                #[cfg(feature = "log_trace")]
+                log::trace!("Batch values: {:?}", batch_values_t);
+                let minibatch_values_t = batch_values_t.f_index_select(0, &minibatch_indices)
+                    .map_err(|e| TensorError::from_tch_with_context(e, "Mini-batching critic values".into()))?;
+                #[cfg(feature = "log_debug")]
+                log::debug!("Old Approximate KL: {:}", old_approx_kl);
+
+                #[cfg(feature = "log_debug")]
+                log::debug!("Approximate KL: {:}", approx_kl);
+
+                #[cfg(feature = "log_trace")]
+                log::trace!("ratio: {:}, minibatch_advantages_t: {:}", ratio, minibatch_advantages_t);
+
+                let pg_loss1 = -&minibatch_advantages_t.f_mul(&ratio)
+                    .map_err(|e| TensorError::from_tch_with_context(e, "Multiplying advantages and ratio (pg_loss 1)".into()))?;
+                let pg_loss2 = -&minibatch_advantages_t * (&ratio.f_clamp(1.0 - self.config().clip_coef, 1.0 + self.config().clip_coef)
+                    .map_err(|e| TensorError::from_tch_with_context(e, "Clamping ratio (pg_loss 2)".into()))?);
+                let pg_loss = pg_loss1.max_other(&pg_loss2).mean(self.config().tensor_kind);
+
+                #[cfg(feature = "log_trace")]
+                log::trace!("Not clamped loss: {:}, clamped_loss: {:}", pg_loss, pg_loss2);
+
+                #[cfg(feature = "log_trace")]
+                log::trace!("Minibatch critic: {newvalue}");
+
+                #[cfg(feature = "log_trace")]
+                log::trace!("Minibatch returns: {minibatch_returns_t}");
+
+                #[cfg(feature = "log_debug")]
+                log::debug!("PG loss : {}", pg_loss);
+
+
+
+                let v_loss = if self.config().clip_vloss{
+                    let v_loss_unclipped = (&newvalue - &minibatch_returns_t).square();
+                    let v_clipped = &minibatch_values_t + (
+                        (&newvalue - &minibatch_values_t)
+                            .f_clamp(
+                                - self.config().clip_coef,
+                                self.config().clip_coef
+                            ).map_err(|e| TensorError::from_tch_with_context(e, "Clamping vloss".into()))?
+                    );
+                    let v_loss_clipped = (v_clipped - &minibatch_returns_t).square();
+                    let v_loss_max = v_loss_unclipped.max_other(&v_loss_clipped);
+                    v_loss_max.mean(tch::Kind::Float) * 0.5
+                } else {
+                    (newvalue -&minibatch_returns_t).square().mean(Float) * 0.5
+                };
+
+                #[cfg(feature = "log_debug")]
+                log::debug!("Value loss : {}", v_loss);
+
+                let mean_entropy = entropy.mean(Float);
+                #[cfg(feature = "log_debug")]
+                log::debug!("Entropy loss : {}", mean_entropy);
+
+                let loss = &pg_loss
+                    - &(&mean_entropy * self.config().ent_coef)
+                    + &(&v_loss * self.config().vf_coef);
+
+                self.optimizer_mut().zero_grad();
+
+                self.optimizer_mut().backward_step(&loss);
+                drop(loss);
+
+                if let Some(tkl) = self.config().target_kl
+                    && approx_kl.detach().double_value(&[0]) > 1.5 * tkl{
+                    #[cfg(feature = "log_info")]
+                    log::info!("Early leaving learning at step due to reached kl_target");
+                    continue_training = false;
+
+                }
+
+                summary_vec_vf_loss.push(v_loss.detach());
+                summary_vec_pg_loss.push(pg_loss.detach());
+                summary_vec_entropy_mean.push(mean_entropy.detach());
+                summary_kl_aprox.push(approx_kl.detach())
+
+
+
+            }
+
+
+
+            if !continue_training{
+                break;
+            }
+
+
+
+
+        }
+
+        let value_loss_avg = Tensor::vstack(&summary_vec_vf_loss).mean(Kind::Double).detach();
+        let pg_loss_mean = Tensor::vstack(&summary_vec_pg_loss).mean(Kind::Double).detach();
+        let entropy_mean = Tensor::vstack(&summary_vec_entropy_mean).mean(Kind::Double).detach();
+        let kl_approx_mean = Tensor::vstack(&summary_kl_aprox).mean(Kind::Double).detach();
+        #[cfg(feature = "log_debug")]
+        log::debug!("Mean Critic loss tensor after training: {value_loss_avg}");
+        #[cfg(feature = "log_debug")]
+        log::debug!("Mean Actor loss tensor after training: {pg_loss_mean}");
+        #[cfg(feature = "log_debug")]
+        log::debug!("Mean Value loss tensor after training: {entropy_mean}");
+        #[cfg(feature = "log_debug")]
+        log::debug!("Mean KL approximation tensor after training: {kl_approx_mean}");
+
+
+        tch::no_grad(||{
+            let learning_step = self.global_learning_step();
+            //let learning_rate = self.optimizer_mut().ra
+            if let Some(writer) = self.tboard_writer(){
+                //writer.write_scalar(learning_step, "charts/learning_rate", self.optimizer_mut()..double_value(&[]) as f32)
+                //    .map_err(|e| AmfiteatrError::TboardFlattened {context: "Write policy loss".into(), error: format!("{e}")})?;
+                writer.write_scalar(learning_step, "losses/policy_loss", pg_loss_mean.double_value(&[]) as f32)
+                    .map_err(|e| AmfiteatrError::TboardFlattened {context: "Write policy loss".into(), error: format!("{e}")})?;
+                writer.write_scalar(learning_step, "losses/value_loss", value_loss_avg.double_value(&[]) as f32)
+                    .map_err(|e| AmfiteatrError::TboardFlattened {context: "Write value loss".into(), error: format!("{e}")})?;
+                writer.write_scalar(learning_step, "losses/entropy", entropy_mean.double_value(&[]) as f32)
+                    .map_err(|e| AmfiteatrError::TboardFlattened {context: "Write entropy".into(), error: format!("{e}")})?;
+                writer.write_scalar(learning_step, "losses/kl_approximation", kl_approx_mean.double_value(&[]) as f32)
+                    .map_err(|e| AmfiteatrError::TboardFlattened {context: "Write KL approximation".into(), error: format!("{e}")})?;
+            }
+
+            self.set_global_learning_step(self.global_learning_step()+1);
+            Result::<(), AmfiteatrError<S>>::Ok(())
+        })?;
+
+
+        let summary = LearnSummary{
+            value_loss: Some(value_loss_avg.double_value(&[])),
+            policy_gradient_loss: Some(pg_loss_mean.double_value(&[])),
+            entropy_loss: Some(entropy_mean.double_value(&[])),
+            approx_kl: Some(kl_approx_mean.double_value(&[])),
+
+
+        };
+
+        self.optimizer_mut().zero_grad();
+
+        drop(value_loss_avg);
+        drop(pg_loss_mean);
+        drop(entropy_mean);
+        drop(kl_approx_mean);
+
+        Ok(summary)
+
     }
 }
 

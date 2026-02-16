@@ -73,6 +73,8 @@ pub trait ActorCriticOutput : NetOutput + Debug{
 
     fn critic(&self) -> &Tensor;
 
+    fn actor(&self) -> &Self::ActionTensorType;
+
 
     /// Pushes to every category vector new entry
     /// For example look at [`TensorMultiParamActorCritic::push_to_vec_batch`].
@@ -206,6 +208,10 @@ impl ActorCriticOutput for TensorActorCritic{
 
     fn critic(&self) -> &Tensor {
         &self.critic
+    }
+
+    fn actor(&self) -> &Self::ActionTensorType {
+        &self.actor
     }
 
     fn push_to_vec_batch(vec_batch: &mut Self::ActionBatchTensorType, data: Self::ActionTensorType) {
@@ -666,6 +672,9 @@ impl ActorCriticOutput for TensorMultiParamActorCritic {
         &self.critic
     }
 
+    fn actor(&self) -> &Self::ActionTensorType {
+        &self.actor
+    }
 
 
     /// ```
