@@ -25,6 +25,7 @@ impl InformationSet<CartPoleScheme> for CartPoleObservation{
 }
 
 
+#[derive(Clone)]
 pub struct CartPoleObservationEncoding{
 
 }

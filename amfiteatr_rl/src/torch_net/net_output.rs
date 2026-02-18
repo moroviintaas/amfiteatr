@@ -185,6 +185,9 @@ impl ActorCriticOutput for TensorActorCritic{
             }
         }?;
 
+        #[cfg(feature = "log_trace")]
+        log::trace!("Gathering log probs (with dim 1), log_probs: {log_probs}, param_indices: {param_indices}");
+
         let choice = log_probs.f_gather(1, param_indices, false)
             .and_then(|t| t.f_flatten(0, -1))
             .map_err(|e| AmfiteatrError::Tensor {
@@ -298,7 +301,7 @@ impl ActorCriticOutput for TensorActorCritic{
             .map_err(|e| AmfiteatrError::Tensor {
                 error: TensorError::Torch {
                     origin: format!("{e}"),
-                    context: "batch_log_probability_of_action (gathering)".into()
+                    context: "batch_log_probability_and_entropy (gathering)".into()
                 }
             })?;
 

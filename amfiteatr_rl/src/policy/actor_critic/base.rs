@@ -195,7 +195,7 @@ pub trait PolicyHelperA2C<S: Scheme>{
             let mut last_gae_lambda = Tensor::from(0.0);
             let advantages_t = Tensor::zeros(critic_t.size(), (Kind::Float, device));
             #[cfg(feature = "log_trace")]
-            log::trace!("Crirtic tensor: {critic_t}");
+            log::trace!("Critic tensor: {critic_t}");
             for index in (0..trajectory.number_of_steps()).rev()
                 .map(|i, | i as i64,){
                 //chgeck if last step

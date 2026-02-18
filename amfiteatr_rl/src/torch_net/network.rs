@@ -329,6 +329,8 @@ pub fn build_network_model_ac_discrete(layers: Vec<Layer>, input_shape:  Vec<i64
             };
             current_dim = next_dim;
         }
+        #[cfg(feature = "log_trace")]
+        log::trace!("Building actor critic network with actor shape: {actor_shape}, critic shape: 1");
         let (actor, critic) = (
             nn::linear(path/ "actor", current_dim, actor_shape, Default::default()),
             nn::linear(path / "critic", current_dim, 1, Default::default())

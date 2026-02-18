@@ -38,6 +38,9 @@ pub struct ConnectFourOptions{
     #[arg(short = 'm', long = "minibatch-size", default_value = "16")]
     pub mini_batch_size: usize,
 
+    #[arg(long = "replay-buffer-size",)]
+    pub replay_buffer_size: Option<usize>,
+
     /*
     #[arg(short = 's', long = "save")]
     pub save_file: Option<PathBuf>,

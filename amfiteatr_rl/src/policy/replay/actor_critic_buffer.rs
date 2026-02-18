@@ -1,5 +1,6 @@
 use std::marker::PhantomData;
 use tch::{Kind, Tensor};
+use tch::Kind::Int64;
 use amfiteatr_core::error::{AmfiteatrError, TensorError};
 use amfiteatr_core::scheme::Scheme;
 use crate::torch_net::{ActorCriticOutput, TensorActorCritic};
@@ -15,7 +16,8 @@ pub trait ActorCriticReplayBuffer<S: Scheme>{
         action: &Self::ActionData,
         action_mask: Option<&Self::ActionData>,
         advantage: &Tensor,
-        reward: &Tensor,)
+        value: &Tensor,
+    )
         -> Result<(), AmfiteatrError<S>>;
 
     /*
@@ -47,7 +49,7 @@ pub trait ActorCriticReplayBuffer<S: Scheme>{
 
     fn advantage_buffer(&self) -> Tensor;
 
-    fn reward_buffer(&self) -> Tensor;
+    fn return_payoff_buffer(&self) -> Tensor;
 
     fn capacity(&self) -> usize;
 
@@ -113,8 +115,8 @@ impl<S: Scheme, T: ActorCriticReplayBuffer<S>> ActorCriticReplayBuffer<S> for Bo
         self.as_ref().advantage_buffer()
     }
 
-    fn reward_buffer(&self) -> Tensor {
-        self.as_ref().reward_buffer()
+    fn return_payoff_buffer(&self) -> Tensor {
+        self.as_ref().return_payoff_buffer()
     }
 
     fn capacity(&self) -> usize {
@@ -136,7 +138,7 @@ pub struct CyclicReplayBufferActorCritic<S: Scheme>{
     action_buffer: Tensor,
     action_mask_buffer: Option<Tensor>,
     advantages_buffer: Tensor,
-    returns_buffer: Tensor,
+    return_payoff_buffer: Tensor,
     _scheme: PhantomData<S>,
 }
 
@@ -250,9 +252,10 @@ impl<S: Scheme> ActorCriticReplayBuffer<S> for CyclicReplayBufferActorCritic<S>{
                 self.info_set_buffer.slice(0, self.position, self.position + positions_added, 1)
                     .f_copy_(&info_set).expect(&format!("Info set: {} and {}", self.info_set_buffer.slice(0, self.position, self.position + positions_added, 1),  info_set));
 
-
+                #[cfg(feature = "log_trace")]
+                log::trace!("Pushing action slice: {} on buffer: {}", action, self.action_buffer);
                 self.action_buffer.slice(0, self.position, self.position + positions_added, 1)
-                    .f_copy_(&action).expect(&format!("Action: {} and {}", self.info_set_buffer.slice(0, self.position, self.position + positions_added, 1),  info_set));
+                    .f_copy_(&action).expect(&format!("Action: {} and {}", self.action_buffer.slice(0, self.position, self.position + positions_added, 1),  action));
                 if let (Some(action_mask), Some(action_mask_buffer)) = (action_mask, self.action_mask_buffer.as_mut()) {
                     action_mask_buffer.slice(0, self.position, self.position + positions_added, 1)
                         .f_copy_(&action_mask).expect(&format!("Mask: {} and {}", action_mask_buffer.slice(0, self.position, self.position + positions_added, 1),  action_mask));;
@@ -262,8 +265,8 @@ impl<S: Scheme> ActorCriticReplayBuffer<S> for CyclicReplayBufferActorCritic<S>{
                     .f_copy_(&advantage).expect(&format!("Advantages: {} and {}", self.advantages_buffer.slice(0, self.position, self.position + positions_added, 1),  advantage));
 
 
-                self.returns_buffer.slice(0, self.position, self.position + positions_added, 1)
-                    .f_copy_(&reward).expect(&format!("Reward: {} and {}", self.returns_buffer.slice(0, self.position, self.position + positions_added, 1),  reward));
+                self.return_payoff_buffer.slice(0, self.position, self.position + positions_added, 1)
+                    .f_copy_(&reward).expect(&format!("Reward: {} and {}", self.return_payoff_buffer.slice(0, self.position, self.position + positions_added, 1), reward));
 
                 if self.size < self.capacity{
                     self.size += positions_added
@@ -322,7 +325,7 @@ impl<S: Scheme> ActorCriticReplayBuffer<S> for CyclicReplayBufferActorCritic<S>{
             self.info_set_buffer.copy_(&info_set.slice(0, positions_added - self.capacity, None, 1));
             self.action_buffer.copy_(&action.slice(0, positions_added - self.capacity, None, 1));
             self.advantages_buffer.copy_(&advantage.slice(0, positions_added - self.capacity, None, 1));
-            self.returns_buffer.copy_(&reward.slice(0, positions_added - self.capacity, None, 1));
+            self.return_payoff_buffer.copy_(&reward.slice(0, positions_added - self.capacity, None, 1));
 
             if let (Some(action_mask), Some(action_mask_buffer)) = (action_mask, self.action_mask_buffer.as_mut()) {
                 action_mask_buffer.copy_(&action_mask.slice(0, positions_added - self.capacity, None, 1));
@@ -413,8 +416,8 @@ impl<S: Scheme> ActorCriticReplayBuffer<S> for CyclicReplayBufferActorCritic<S>{
         self.advantages_buffer.slice(0, 0, self.size, 1)
     }
 
-    fn reward_buffer(&self) -> Tensor {
-        self.returns_buffer.slice(0, 0, self.size, 1)
+    fn return_payoff_buffer(&self) -> Tensor {
+        self.return_payoff_buffer.slice(0, 0, self.size, 1)
     }
 
     fn capacity(&self) -> usize {
@@ -446,7 +449,7 @@ impl<S: Scheme> CyclicReplayBufferActorCritic<S> {
 
 
         let info_set_buffer = Tensor::zeros(&info_set_shape, (kind, device));
-        let action_buffer = Tensor::zeros(&action_shape, (kind, device));
+        let action_buffer = Tensor::zeros(&action_shape, (Int64, device));
         //let action_mask_buffer = Tensor::zeros(&action_mask_shape, (kind, device));
         let advantages_buffer = Tensor::zeros(&[capacity as i64, 1], (kind, device));
         let returns_buffer = Tensor::zeros(&[capacity as i64, 1], (kind, device));
@@ -456,7 +459,8 @@ impl<S: Scheme> CyclicReplayBufferActorCritic<S> {
         Ok(Self{capacity: capacity as i64,
             size: 0,
             position: 0,
-            info_set_buffer, action_buffer, action_mask_buffer, advantages_buffer, returns_buffer,
+            info_set_buffer, action_buffer, action_mask_buffer, advantages_buffer,
+            return_payoff_buffer: returns_buffer,
             _scheme: Default::default(),
         })
 

@@ -21,7 +21,7 @@ pub trait SimpleConvertToTensor<T>: Send + TensorEncoding {
 
 /// Trait representing structs (maybe 0-sized) that tell what is desired shape of tensor produced
 /// by conversion to tensor when using [`ContextEncodeTensor`].
-pub trait TensorEncoding: Send{
+pub trait TensorEncoding: Send + Clone{
     /// Returns shape (slice of i64 numbers) of shape that must be produced for network
     fn desired_shape(&self) -> &[i64];
 
@@ -86,7 +86,7 @@ pub trait ContextEncodeTensor<Ctx: TensorEncoding> : Debug{
 }
 
 /// Represents format for converting element to set of Tensors. Currently not used in this crate.
-pub trait MultiTensorEncoding: Send{
+pub trait MultiTensorEncoding: Send + Clone{
     /// Returns expected shape of output in this format.
     /// Vector is indexed with category, and i64 is length of [`Tensor`] representing parameter.
     fn expected_outputs_shape(&self) -> &[Vec<i64>];
@@ -289,6 +289,8 @@ impl<W: TensorEncoding, T: ContextEncodeTensor<W>> ContextEncodeTensor<W> for Bo
 /// used to create data struct using [`ContextDecodeTensor`].
 pub trait TensorDecoding: Send{
     /// Expected tensor shape that is decoded into value.
+    ///
+    ///
     fn expected_input_shape(&self) -> &[i64];
 }
 

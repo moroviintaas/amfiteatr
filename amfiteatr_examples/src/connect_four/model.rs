@@ -263,7 +263,8 @@ pub struct ConnectFourModelRust<ST: GameStateWithPayoffs<ConnectFourScheme>, P: 
     agent1: Agent<P>,
     tboard_writer: Option<tboard::EventWriter<File>>,
     shared_policy: bool,
-    thread_pool: Option<rayon::ThreadPool>
+    thread_pool: Option<rayon::ThreadPool>,
+    use_replay_buffer: bool,
 
 
 }
@@ -317,8 +318,9 @@ impl<
             agent1: agent_1,
             tboard_writer,
             shared_policy,
-            thread_pool
+            thread_pool,
             //model_tboard,
+            use_replay_buffer: false,
         }
     }
 
@@ -377,7 +379,8 @@ impl<
             tboard_writer,
             //model_tboard,
             shared_policy: false,
-            thread_pool
+            thread_pool,
+            use_replay_buffer: false,
         }
     }
 }
@@ -437,7 +440,8 @@ impl<
             tboard_writer,
             //model_tboard,
             shared_policy: false,
-            thread_pool
+            thread_pool,
+            use_replay_buffer: false,
         }
     }
 }
@@ -477,6 +481,13 @@ impl<
         if let Some(t1) = &options.tboard_agent1{
             agent_policy_1.add_tboard_directory(t1).unwrap()
         }
+
+        let mut use_replay_buffer = false;
+        if let Some(size) = options.replay_buffer_size{
+            agent_policy_0.initialize_cyclic_replay_buffer(size).unwrap();
+            agent_policy_1.initialize_cyclic_replay_buffer(size).unwrap();
+            use_replay_buffer = true;
+        }
         let agent_0 = Agent::new(ConnectFourInfoSet::new(ConnectFourPlayer::One), c_a1, agent_policy_0);
         let agent_1 = Agent::new(ConnectFourInfoSet::new(ConnectFourPlayer::Two), c_a2, agent_policy_1);
 
@@ -499,7 +510,8 @@ impl<
             tboard_writer,
             //model_tboard,
             shared_policy: false,
-            thread_pool
+            thread_pool,
+            use_replay_buffer
         }
     }
 }
@@ -537,9 +549,18 @@ impl<
         if let Some(t0) = &options.tboard_agent0{
             agent_policy_0.add_tboard_directory(t0).unwrap()
         }
+
         if let Some(t1) = &options.tboard_agent1{
             agent_policy_1.add_tboard_directory(t1).unwrap()
         }
+
+        let mut use_replay_buffer = false;
+        if let Some(size) = options.replay_buffer_size{
+            agent_policy_0.initialize_cyclic_replay_buffer(size).unwrap();
+            agent_policy_1.initialize_cyclic_replay_buffer(size).unwrap();
+            use_replay_buffer = true;
+        }
+
         let agent_0 = Agent::new(ConnectFourInfoSet::new(ConnectFourPlayer::One), c_a1, agent_policy_0);
         let agent_1 = Agent::new(ConnectFourInfoSet::new(ConnectFourPlayer::Two), c_a2, agent_policy_1);
 
@@ -563,7 +584,9 @@ impl<
             tboard_writer,
             //model_tboard,
             shared_policy: false,
-            thread_pool
+            thread_pool,
+            use_replay_buffer,
+            //use_replay_buffer: false,
         }
     }
 }
@@ -695,6 +718,12 @@ where <P as Policy<ConnectFourScheme>>::InfoSetType: Renew<ConnectFourScheme, ()
     pub fn train_agents_on_experience(&mut self) -> Result<(LearnSummary,LearnSummary), ErrorRL>{
         let t1 = self.agent0.take_episodes();
 
+        /*
+        if self.use_replay_buffer{
+            self.agent0.policy_mut().tr
+        }
+
+         */
         let s1 = self.agent0.policy_mut().train(&t1)?;
         let t2 = self.agent1.take_episodes();
 

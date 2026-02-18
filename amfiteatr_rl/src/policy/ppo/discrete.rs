@@ -7,15 +7,9 @@ use tch::Tensor;
 use amfiteatr_core::agent::{AgentStepView, AgentTrajectory, InformationSet, Policy};
 use amfiteatr_core::scheme::Scheme;
 use amfiteatr_core::error::{AmfiteatrError, TensorError};
-use amfiteatr_core::util::TensorboardSupport;
+use amfiteatr_core::util::{MaybeContainsOne, TensorboardSupport};
 use crate::error::AmfiteatrRlError;
-use crate::policy::{
-    ConfigPPO,
-    LearnSummary,
-    LearningNetworkPolicyGeneric,
-    PolicyHelperA2C,
-    PolicyTrainHelperPPO
-};
+use crate::policy::{ConfigPPO, CyclicReplayBufferActorCritic, LearnSummary, LearningNetworkPolicyGeneric, PolicyHelperA2C, PolicyTrainHelperPPO};
 use crate::{tensor_data, MaskingInformationSetAction};
 use crate::tensor_data::{
     ContextEncodeIndexI64,
@@ -47,6 +41,7 @@ pub struct PolicyDiscretePPO<
     exploration: bool,
     tboard_writer: Option<tboard::EventWriter<File>>,
     global_step: i64,
+    cyclic_replay_buffer: Option<CyclicReplayBufferActorCritic<S>>,
 
 }
 
@@ -96,8 +91,30 @@ impl<
             action_encoding: action_build_context,
             exploration: true,
             tboard_writer: None,
-            global_step: 0
+            global_step: 0,
+            cyclic_replay_buffer: None
         }
+    }
+
+    pub fn initialize_cyclic_replay_buffer(&mut self, capacity: usize) -> Result<(), AmfiteatrError<S>>
+    where <S as Scheme>::ActionType: ContextDecodeIndexI64<ActionBuildContext> + ContextEncodeIndexI64<ActionBuildContext>{
+
+        let mask_shape = match self.is_action_masking_supported(){
+            true => Some(self.action_encoding.expected_input_shape()),
+            false => None,
+        };
+
+        let replay_buffer = CyclicReplayBufferActorCritic::new(
+            capacity,
+            self.info_set_encoding.desired_shape(),
+            &[1],
+            mask_shape,
+            tch::Kind::Float, // possibly change one time, when policy will hold information about it,
+            self.network.device()
+        )?;
+        self.cyclic_replay_buffer = Some(replay_buffer);
+
+        Ok(())
     }
 
 
@@ -151,6 +168,22 @@ impl<
     }
 
      */
+}
+
+impl<
+    S: Scheme,
+    InfoSet: InformationSet<S> + Debug + ContextEncodeTensor<InfoSetConversionContext>,
+    InfoSetConversionContext: TensorEncoding,
+    ActionBuildContext: TensorDecoding + TensorIndexI64Encoding
+    + tensor_data::ActionTensorFormat<Tensor>,
+> MaybeContainsOne<CyclicReplayBufferActorCritic<S>> for PolicyDiscretePPO<S, InfoSet, InfoSetConversionContext, ActionBuildContext>{
+    fn get(&self) -> Option<&CyclicReplayBufferActorCritic<S>> {
+        self.cyclic_replay_buffer.as_ref()
+    }
+
+    fn get_mut(&mut self) -> Option<&mut CyclicReplayBufferActorCritic<S>> {
+        self.cyclic_replay_buffer.as_mut()
+    }
 }
 
 impl <
@@ -317,7 +350,7 @@ where
 impl<
     S: Scheme,
     InfoSet: InformationSet<S> + Debug + ContextEncodeTensor<InfoSetConversionContext>,
-    InfoSetConversionContext: TensorEncoding,
+    InfoSetConversionContext: TensorEncoding + Clone,
     ActionBuildContext: TensorDecoding + TensorIndexI64Encoding
     + tensor_data::ActionTensorFormat<Tensor>,
 > LearningNetworkPolicyGeneric<S> for PolicyDiscretePPO<S, InfoSet, InfoSetConversionContext, ActionBuildContext>
@@ -343,7 +376,11 @@ where
         reward_f: R
     ) -> Result<Self::Summary, AmfiteatrRlError<S>> {
 
-        Ok(self.ppo_train_on_trajectories(trajectories, reward_f)?)
+        if self.cyclic_replay_buffer.is_some(){
+            Ok(self.ppo_train_on_trajectories_with_replay_buffer(trajectories, reward_f)?)
+        } else {
+            Ok(self.ppo_train_on_trajectories(trajectories, reward_f)?)
+        }
 
     }
 
@@ -387,6 +424,11 @@ impl<
             base: PolicyDiscretePPO::new(config, network, optimizer, info_set_conversion_context, action_build_context),
         }
     }
+
+    pub fn initialize_cyclic_replay_buffer(&mut self, capacity: usize) -> Result<(), AmfiteatrError<S>>
+    where <S as Scheme>::ActionType: ContextDecodeIndexI64<ActionBuildContext> + ContextEncodeIndexI64<ActionBuildContext>{
+        self.base.initialize_cyclic_replay_buffer(capacity)
+    }
     /*
     /// Creates [`tboard::EventWriter`]. Initialy policy does not use `tensorboard` directory to store epoch
     /// training results (like entropy, policy loss, value loss). However, you cen provide it with directory
@@ -409,6 +451,22 @@ impl<
      */
 
 }
+impl<
+    S: Scheme,
+    InfoSet: InformationSet<S> + Debug + ContextEncodeTensor<InfoSetConversionContext> + MaskingInformationSetAction<S, ActionBuildContext>,
+    InfoSetConversionContext: TensorEncoding,
+    ActionBuildContext: TensorDecoding + TensorIndexI64Encoding
+    + tensor_data::ActionTensorFormat<Tensor>,
+> MaybeContainsOne<CyclicReplayBufferActorCritic<S>> for PolicyMaskingDiscretePPO<S, InfoSet, InfoSetConversionContext, ActionBuildContext>{
+    fn get(&self) -> Option<&CyclicReplayBufferActorCritic<S>> {
+        self.base.get()
+    }
+
+    fn get_mut(&mut self) -> Option<&mut CyclicReplayBufferActorCritic<S>> {
+        self.base.get_mut()
+    }
+}
+
 impl <
     S: Scheme,
     InfoSet: InformationSet<S> + Debug + ContextEncodeTensor<InfoSetConversionContext> + MaskingInformationSetAction<S, ActionBuildContext>,
@@ -590,7 +648,7 @@ where
 impl<
     S: Scheme,
     InfoSet: InformationSet<S> + Debug + ContextEncodeTensor<InfoSetConversionContext> + MaskingInformationSetAction<S, ActionBuildContext>,
-    InfoSetConversionContext: TensorEncoding,
+    InfoSetConversionContext: TensorEncoding + Clone,
     ActionBuildContext: TensorDecoding + TensorIndexI64Encoding
     + tensor_data::ActionTensorFormat<Tensor>,
 > LearningNetworkPolicyGeneric<S> for PolicyMaskingDiscretePPO<S, InfoSet, InfoSetConversionContext, ActionBuildContext>
@@ -612,7 +670,12 @@ where
         reward_f: R
     ) -> Result<Self::Summary, AmfiteatrRlError<S>> {
 
-        Ok(self.ppo_train_on_trajectories(trajectories, reward_f)?)
+        if self.base.cyclic_replay_buffer.is_some(){
+            Ok(self.ppo_train_on_trajectories_with_replay_buffer(trajectories, reward_f)?)
+        } else {
+            Ok(self.ppo_train_on_trajectories(trajectories, reward_f)?)
+        }
+
     }
 
     fn set_gradient_tracing(&mut self, enabled: bool) {

@@ -30,7 +30,7 @@ pub struct DemoActionConversionContext{
 
 impl TensorDecoding for DemoActionConversionContext{
     fn expected_input_shape(&self) -> &[i64] {
-        &[1]
+        &[3]
     }
 }
 

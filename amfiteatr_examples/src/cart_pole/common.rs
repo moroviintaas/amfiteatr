@@ -90,7 +90,7 @@ impl TensorIndexI64Encoding for CartPoleActionEncoding{
 
 impl TensorDecoding for CartPoleActionEncoding{
     fn expected_input_shape(&self) -> &[i64] {
-        &[1]
+        &[2]
     }
 }
 

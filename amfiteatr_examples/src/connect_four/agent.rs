@@ -77,7 +77,7 @@ pub struct ConnectFourActionTensorRepresentation{}
 
 impl TensorDecoding for ConnectFourActionTensorRepresentation{
     fn expected_input_shape(&self) -> &[i64] {
-        &[1]
+        &[7]
     }
 }
 

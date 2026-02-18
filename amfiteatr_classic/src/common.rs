@@ -165,7 +165,7 @@ pub struct ClassicActionTensorRepresentation{}
 
 impl TensorDecoding for ClassicActionTensorRepresentation{
     fn expected_input_shape(&self) -> &[i64] {
-        &[1]
+        &[2]
     }
 }
 
