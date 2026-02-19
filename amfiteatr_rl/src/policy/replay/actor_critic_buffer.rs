@@ -15,6 +15,7 @@ pub trait ActorCriticReplayBuffer<S: Scheme>{
         info_set: &Tensor,
         action: &Self::ActionData,
         action_mask: Option<&Self::ActionData>,
+        category_mask: &Self::ActionData,
         advantage: &Tensor,
         value: &Tensor,
     )
@@ -46,6 +47,8 @@ pub trait ActorCriticReplayBuffer<S: Scheme>{
     fn action_buffer(&self) -> Self::ActionData;
 
     fn action_mask_buffer(&self) -> Option<Self::ActionData>;
+
+    fn category_mask_buffer(&self) -> Self::ActionData;
 
     fn advantage_buffer(&self) -> Tensor;
 
@@ -95,9 +98,9 @@ impl<S: Scheme, T: ActorCriticReplayBuffer<S>> ActorCriticReplayBuffer<S> for Bo
 
      */
 
-    fn push_tensors(&mut self, info_set: &Tensor, action: &Self::ActionData, action_mask: Option<&T::ActionData>, advantage: &Tensor, reward: &Tensor) -> Result<(), AmfiteatrError<S>>
+    fn push_tensors(&mut self, info_set: &Tensor, action: &Self::ActionData, action_mask: Option<&T::ActionData>, category_mask: &T::ActionData,  advantage: &Tensor, reward: &Tensor) -> Result<(), AmfiteatrError<S>>
     {
-        self.as_mut().push_tensors(info_set, action, action_mask, advantage, reward)
+        self.as_mut().push_tensors(info_set, action, action_mask, category_mask, advantage, reward)
     }
     fn info_set_buffer(&self) -> Tensor {
         self.as_ref().info_set_buffer()
@@ -109,6 +112,10 @@ impl<S: Scheme, T: ActorCriticReplayBuffer<S>> ActorCriticReplayBuffer<S> for Bo
 
     fn action_mask_buffer(&self) -> Option<Self::ActionData> {
         self.as_ref().action_mask_buffer()
+    }
+
+    fn category_mask_buffer(&self) -> Self::ActionData {
+        self.as_ref().category_mask_buffer()
     }
 
     fn advantage_buffer(&self) -> Tensor {
@@ -137,6 +144,7 @@ pub struct CyclicReplayBufferActorCritic<S: Scheme>{
     info_set_buffer: Tensor,
     action_buffer: Tensor,
     action_mask_buffer: Option<Tensor>,
+    category_mask_buffer: Tensor,
     advantages_buffer: Tensor,
     return_payoff_buffer: Tensor,
     _scheme: PhantomData<S>,
@@ -209,7 +217,7 @@ impl<S: Scheme> ActorCriticReplayBuffer<S> for CyclicReplayBufferActorCritic<S>{
     /// assert_eq!(0, replay_buffer.position());
     /// assert_eq!(3, replay_buffer.size());
     /// ```
-    fn push_tensors(&mut self, info_set: &Tensor, action: &Tensor, action_mask: Option<&Tensor>, advantage: &Tensor, reward: &Tensor) -> Result<(), AmfiteatrError<S>> {
+    fn push_tensors(&mut self, info_set: &Tensor, action: &Tensor, action_mask: Option<&Tensor>, category_mask: &Tensor, advantage: &Tensor, reward: &Tensor) -> Result<(), AmfiteatrError<S>> {
 
         let positions_added = info_set.size()[0];
 
@@ -412,6 +420,10 @@ impl<S: Scheme> ActorCriticReplayBuffer<S> for CyclicReplayBufferActorCritic<S>{
 
     }
 
+    fn category_mask_buffer(&self) -> Self::ActionData {
+        self.category_mask_buffer.slice(0,0,self.size, 1)
+    }
+
     fn advantage_buffer(&self) -> Tensor {
         self.advantages_buffer.slice(0, 0, self.size, 1)
     }
@@ -455,11 +467,13 @@ impl<S: Scheme> CyclicReplayBufferActorCritic<S> {
         let returns_buffer = Tensor::zeros(&[capacity as i64, 1], (kind, device));
 
         let action_mask_buffer =action_mask_shape.and_then(|m| Some(Tensor::ones(m, (Kind::Bool ,device))));
+        let category_mask_buffer = Tensor::ones(&[capacity as i64, 1], (Kind::Bool, device));
 
         Ok(Self{capacity: capacity as i64,
             size: 0,
             position: 0,
             info_set_buffer, action_buffer, action_mask_buffer, advantages_buffer,
+            category_mask_buffer,
             return_payoff_buffer: returns_buffer,
             _scheme: Default::default(),
         })

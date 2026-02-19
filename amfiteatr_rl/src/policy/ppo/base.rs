@@ -1003,6 +1003,7 @@ pub trait PolicyTrainHelperPPO<S: Scheme> : PolicyHelperA2C<S, Config=ConfigPPO>
                 .map_err(|e| TensorError::from_tch_with_context(e, "Stacking information sets tensors (from trajectory tensors to batch tensors).".into()))?
                 .to_device(device);
             let action_selection_t = Self::NetworkOutput::stack_tensor_batch(&tmp_trajectory_action_tensor_vecs)?;
+            let category_t = Self::NetworkOutput::stack_tensor_batch(&tmp_trajectory_action_category_mask_vecs)?;
                 /*Tensor::f_vstack(&tmp_trajectory_action_tensor_vecs[..])
                 .map_err(|e| TensorError::from_tch_with_context(e, "Stacking action selection tensors (from trajectory tensors to batch tensors).".into()))?
                 .to_device(device);*/
@@ -1038,7 +1039,9 @@ pub trait PolicyTrainHelperPPO<S: Scheme> : PolicyHelperA2C<S, Config=ConfigPPO>
             replay_buffer.push_tensors(
                 &information_set_t.detach(),
                 &action_selection_t,
+
                 action_forward_masks.as_ref(),
+                &category_t,
                 &advantages_t.detach(),
                 &returns_t.detach()
 
@@ -1062,6 +1065,7 @@ pub trait PolicyTrainHelperPPO<S: Scheme> : PolicyHelperA2C<S, Config=ConfigPPO>
         let batch_action_masks_t = replay_buffer.action_mask_buffer();
         let batch_advantage_t = replay_buffer.advantage_buffer();
         let batch_rewards_t = replay_buffer.return_payoff_buffer();
+        let batch_categories_mask_t = replay_buffer.category_mask_buffer();
 
         let (batch_logprob_t, _entropy, batch_values_t) = tch::no_grad(||{
             self.batch_get_logprob_entropy_critic(
@@ -1089,8 +1093,8 @@ pub trait PolicyTrainHelperPPO<S: Scheme> : PolicyHelperA2C<S, Config=ConfigPPO>
                 log::trace!("Minibatch indices: {}", minibatch_indices);
                 let mini_batch_action = Self::NetworkOutput::index_select(&batch_actions_t, &minibatch_indices)
                     .map_err(|e| TensorError::from_tch_with_context(e, "Selecting actions to mini-batch".into()))?;
-                //let mini_batch_action_cat_mask = Self::NetworkOutput::index_select(&batch_action_masks_t, &minibatch_indices)
-                //    .map_err(|e| TensorError::from_tch_with_context(e, "Selecting action categories to mini-batch".into()))?;
+                let mini_batch_action_cat_mask = Self::NetworkOutput::index_select(&batch_categories_mask_t, &minibatch_indices)
+                    .map_err(|e| TensorError::from_tch_with_context(e, "Selecting action categories to mini-batch".into()))?;
 
 
                 let mini_batch_action_forward_mask = match batch_action_masks_t{
@@ -1106,7 +1110,7 @@ pub trait PolicyTrainHelperPPO<S: Scheme> : PolicyHelperA2C<S, Config=ConfigPPO>
                 let (new_logprob, entropy, newvalue) = self.batch_get_logprob_entropy_critic(
                     &batch_info_sets_t.f_index_select(0, &minibatch_indices).map_err(|e| TensorError::from_tch_with_context(e, "Selecting information set mini-batch".into()))?,
                     &mini_batch_action,
-                    None, //Some(&mini_batch_action_cat_mask),
+                    Some(&mini_batch_action_cat_mask),
                     mini_batch_action_forward_mask.as_ref(),
                 )?;
                 #[cfg(feature = "log_debug")]
