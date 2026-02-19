@@ -165,13 +165,19 @@ impl<S: Scheme> ActorCriticReplayBuffer<S> for CyclicReplayBufferActorCritic<S>{
     /// let info_sets = Tensor::stack(&[&info_set_1, &info_set_2],0);
     /// assert_eq!(&info_sets.size(), &[2,2,4]);
     /// // Now simlarly with action logits:
-    /// let actions_1 = Tensor::from_slice(&[1.0f32, 2.0]);
-    /// let actions_2 = Tensor::from_slice(&[1.5f32, 1.0]);
-    /// let actions_logits = Tensor::stack(&[&actions_1, &actions_2], 0);
+    /// //let actions_1 = Tensor::from_slice(&[1.0f32, 2.0]);
+    /// //let actions_2 = Tensor::from_slice(&[1.5f32, 1.0]);
+    /// //let actions_logits = Tensor::stack(&[&actions_1, &actions_2], 0);
+    /// let actions_selected = Tensor::from_slice(&[1, 4]).unsqueeze(1);
     /// // and masks:
     /// let masks_1 = Tensor::from_slice(&[true, true]);
     /// let masks_2 = Tensor::from_slice(&[false, true]);
     /// let masks = Tensor::stack(&[&masks_1, &masks_2], 0);
+    ///
+    /// let category_mask_1 = Tensor::from_slice(&[true]);
+    /// let category_mask_2 = Tensor::from_slice(&[true]);
+    /// let categories = Tensor::stack(&[&category_mask_1, &category_mask_2], 0);
+    ///
     /// // now advantages and rewards:
     /// let advantage_1 = Tensor::from_slice(&[2.0f32]);
     /// let advantage_2 = Tensor::from_slice(&[-1.0f32]);
@@ -193,12 +199,12 @@ impl<S: Scheme> ActorCriticReplayBuffer<S> for CyclicReplayBufferActorCritic<S>{
     /// ).unwrap();
     /// assert_eq!(0, replay_buffer.position());
     /// assert_eq!(0, replay_buffer.size());
-    /// replay_buffer.push_tensors(&info_sets, &actions_logits, Some(&masks), &advantages, &rewards).unwrap();
+    /// replay_buffer.push_tensors(&info_sets, &actions_selected, Some(&masks), &categories, &advantages, &rewards).unwrap();
     /// // Now let's check if size is 2 and position is 2:
     /// assert_eq!(2, replay_buffer.position());
     /// assert_eq!(2, replay_buffer.size());
     ///
-    /// replay_buffer.push_tensors(&info_sets, &actions_logits, Some(&masks), &advantages, &rewards).unwrap();
+    /// replay_buffer.push_tensors(&info_sets, &actions_selected, Some(&masks), &categories, &advantages, &rewards).unwrap();
     /// assert_eq!(1, replay_buffer.position());
     /// assert_eq!(3, replay_buffer.size());
     /// // Now we expect that first tensor in stack is the third in replay buffer ...
@@ -208,12 +214,12 @@ impl<S: Scheme> ActorCriticReplayBuffer<S> for CyclicReplayBufferActorCritic<S>{
     /// // Now let's have more transitions than the buffer can load:
     ///
     /// let info_sets = Tensor::stack(&[&info_set_1, &info_set_2, &info_set_1, &info_set_1,],0);
-    /// let actions_logits = Tensor::stack(&[&actions_1, &actions_2, &actions_1, &actions_1], 0);
+    /// let actions_logits = Tensor::from_slice(&[1, 2, 0, 1]).unsqueeze(1);
     /// let advantages = Tensor::stack(&[&advantage_1, &advantage_2, &advantage_1, &advantage_1], 0);
     /// let masks = Tensor::stack(&[&masks_1, &masks_2, &masks_1, &masks_1, ], 0);
     /// let rewards = Tensor::stack(&[&reward_1, &reward_2,&reward_1, &reward_1], 0);
-    ///
-    /// replay_buffer.push_tensors(&info_sets, &actions_logits, Some(&masks), &advantages, &rewards).unwrap();
+    /// let categories = Tensor::from_slice(&[true; 4]).unsqueeze(1);
+    /// replay_buffer.push_tensors(&info_sets, &actions_logits, Some(&masks), &categories, &advantages, &rewards).unwrap();
     /// assert_eq!(0, replay_buffer.position());
     /// assert_eq!(3, replay_buffer.size());
     /// ```
@@ -239,6 +245,12 @@ impl<S: Scheme> ActorCriticReplayBuffer<S> for CyclicReplayBufferActorCritic<S>{
         if advantage.size()[0] != positions_added{
             return Err(AmfiteatrError::Tensor{ error: TensorError::BadTensorLength {
                 context: format!("Advantage batch tensor has bad 0 dim (action number): {}, expected: {positions_added}", advantage.size()[0])
+            }});
+        }
+
+        if category_mask.size()[0] != positions_added{
+            return Err(AmfiteatrError::Tensor{ error: TensorError::BadTensorLength {
+                context: format!("Category mask batch tensor has bad 0 dim (action number): {}, expected: {positions_added}", category_mask.size()[0])
             }});
         }
 
@@ -454,7 +466,7 @@ impl<S: Scheme> CyclicReplayBufferActorCritic<S> {
     ) -> Result<CyclicReplayBufferActorCritic<S>, AmfiteatrError<S>> {
 
         let info_set_shape = [&[capacity as i64], info_set_shape].concat();
-        let action_shape = [&[capacity as i64], action_shape].concat();
+        let action_shape = [capacity as i64, 1];
         let action_mask_shape = action_mask_shape.and_then(|m| {
             Some([&[capacity as i64], m].concat())
         });
@@ -572,3 +584,370 @@ use tch::{Device, Kind, Tensor};
 }
 
  */
+
+pub struct CyclicReplayBufferMultiActorCritic<S: Scheme>{
+
+    capacity: i64,
+    size: i64,
+    position: i64,
+
+    info_set_buffer: Tensor,
+    action_buffer: Vec<Tensor>,
+    action_mask_buffer: Option<Vec<Tensor>>,
+    category_mask_buffer: Vec<Tensor>,
+    advantages_buffer: Tensor,
+    return_payoff_buffer: Tensor,
+    _scheme: PhantomData<S>,
+}
+
+
+impl<S: Scheme> CyclicReplayBufferMultiActorCritic<S> {
+    pub fn new(
+        capacity: usize,
+        info_set_shape: &[i64],
+        action_categories_shapes: &[i64],
+        //action_mask_shape: Option<&[i64]>,
+        //number_of_action_categories: usize,
+        kind: tch::Kind,
+        device: tch::Device,
+
+    ) -> Result<CyclicReplayBufferMultiActorCritic<S>, AmfiteatrError<S>> {
+
+        let info_set_shape = [&[capacity as i64], info_set_shape].concat();
+        let action_shape = [capacity as i64, 1];
+
+
+        let info_set_buffer = Tensor::zeros(&info_set_shape, (kind, device));
+        let action_buffer = (0..action_categories_shapes.len()).map(|s|{
+            Tensor::zeros(&[s as i64], (Int64, device))
+        }).collect();
+
+
+        //let action_mask_buffer = Tensor::zeros(&action_mask_shape, (kind, device));
+        let advantages_buffer = Tensor::zeros(&[capacity as i64, 1], (kind, device));
+        let returns_buffer = Tensor::zeros(&[capacity as i64, 1], (kind, device));
+
+        let action_mask_buffer = Some(action_shape.iter().map(|s| Tensor::ones(*s, (kind, device))).collect());
+        let category_mask_buffer = (0..action_categories_shapes.len()).map(|_|{
+            Tensor::ones(&[capacity as i64, 1], (Kind::Bool, device))
+        }).collect();
+
+        Ok(Self{capacity: capacity as i64,
+            size: 0,
+            position: 0,
+            info_set_buffer, action_buffer, action_mask_buffer, advantages_buffer,
+            category_mask_buffer,
+            return_payoff_buffer: returns_buffer,
+            _scheme: Default::default(),
+        })
+
+    }
+}
+impl<S: Scheme> ActorCriticReplayBuffer<S> for CyclicReplayBufferMultiActorCritic<S>{
+    type ActionData = Vec<Tensor>;
+
+    /// ```
+    ///
+    /// // Let's say we have information set in form of Tensor 2 x 4:
+    /// use tch::{Device, Kind, Tensor};
+    /// use amfiteatr_core::demo::DemoScheme;
+    /// use amfiteatr_rl::policy::{ActorCriticReplayBuffer, CyclicReplayBufferMultiActorCritic};
+    /// let info_set_1 = Tensor::from_slice(&[1.0f32, 2.0, 0.0, 0.0, 3.0, 2.0, 4.0, -1.0]).reshape(&[2,4]);
+    /// let info_set_2 = Tensor::from_slice(&[1.0f32, -1.0, 3.0, 2.0, 3.0, 1.0, 1.0, 0.0]).reshape(&[2,4]);
+    /// // Now let's stack them to one tensor:
+    /// let info_sets = Tensor::stack(&[&info_set_1, &info_set_2],0);
+    /// assert_eq!(&info_sets.size(), &[2,2,4]);
+    /// // Now simlarly with action logits:
+    /// let actions_cat_1 = Tensor::from_slice(&[1, 4]);
+    /// let actions_2 = Tensor::from_slice(&[1.5f32, 1.0]);
+    /// let actions_logits = Tensor::stack(&[&actions_1, &actions_2], 0);
+    /// // and masks:
+    /// let masks_1 = Tensor::from_slice(&[true, true]);
+    /// let masks_2 = Tensor::from_slice(&[false, true]);
+    /// let masks = Tensor::stack(&[&masks_1, &masks_2], 0);
+    ///
+    /// let category_mask_1 = Tensor::from_slice(&[true, true]);
+    /// let category_mask_2 = Tensor::from_slice(&[true, false]);
+    /// let categories = Tensor::stack(&[&category_mask_1, &category_mask_2], 0);
+    /// // now advantages and rewards:
+    /// let advantage_1 = Tensor::from_slice(&[2.0f32]);
+    /// let advantage_2 = Tensor::from_slice(&[-1.0f32]);
+    /// let advantages = Tensor::stack(&[&advantage_1, &advantage_2], 0);
+    /// assert_eq!(&[2,1], &advantages.size()[..]);
+    /// let reward_1 = Tensor::from_slice(&[3.0f32]);
+    /// let reward_2 = Tensor::from_slice(&[0.0f32]);
+    /// let rewards = Tensor::stack(&[&reward_1, &reward_2], 0);
+    /// // Note that every  batch hash [0] dim the same length (2)
+    /// //  - this corresponds that these represent two transitions.
+    /// // Now let's say we want replay buffer for 3:
+    /// let mut replay_buffer = CyclicReplayBufferMultiActorCritic::<DemoScheme>::new(
+    ///     3, //capacity
+    ///     &[2, 4], // shape of basic information set
+    ///     &[2], // shape of action categories
+    ///     Some(&[2]), // shape of action categories
+    ///     Kind::Float,
+    ///     Device::Cpu
+    /// ).unwrap();
+    /// assert_eq!(0, replay_buffer.position());
+    /// assert_eq!(0, replay_buffer.size());
+    /// replay_buffer.push_tensors(&info_sets, &actions_logits, Some(&masks), &advantages, &rewards).unwrap();
+    /// // Now let's check if size is 2 and position is 2:
+    /// assert_eq!(2, replay_buffer.position());
+    /// assert_eq!(2, replay_buffer.size());
+    ///
+    /// replay_buffer.push_tensors(&info_sets, &actions_logits, Some(&masks), &advantages, &rewards).unwrap();
+    /// assert_eq!(1, replay_buffer.position());
+    /// assert_eq!(3, replay_buffer.size());
+    /// // Now we expect that first tensor in stack is the third in replay buffer ...
+    /// assert_eq!(&info_sets.slice(0, 0, 1, 1), &replay_buffer.info_set_buffer().slice(0, 2, None, 1));
+    /// // and the second is again first in cyclic buffer...
+    /// assert_eq!(&info_sets.slice(0, 1, None, 1), &replay_buffer.info_set_buffer().slice(0, 0, 1, 1));
+    /// // Now let's have more transitions than the buffer can load:
+    ///
+    /// let info_sets = Tensor::stack(&[&info_set_1, &info_set_2, &info_set_1, &info_set_1,],0);
+    /// let actions_logits = Tensor::stack(&[&actions_1, &actions_2, &actions_1, &actions_1], 0);
+    /// let advantages = Tensor::stack(&[&advantage_1, &advantage_2, &advantage_1, &advantage_1], 0);
+    /// let masks = Tensor::stack(&[&masks_1, &masks_2, &masks_1, &masks_1, ], 0);
+    /// let rewards = Tensor::stack(&[&reward_1, &reward_2,&reward_1, &reward_1], 0);
+    ///
+    /// replay_buffer.push_tensors(&info_sets, &actions_logits, Some(&masks), &advantages, &rewards).unwrap();
+    /// assert_eq!(0, replay_buffer.position());
+    /// assert_eq!(3, replay_buffer.size());
+    /// ```
+    fn push_tensors(&mut self, info_set: &Tensor, action: &Self::ActionData, action_mask: Option<&Self::ActionData>, category_mask: &Self::ActionData, advantage: &Tensor, reward: &Tensor) -> Result<(), AmfiteatrError<S>> {
+
+        let positions_added = info_set.size()[0];
+
+
+        for (param, tensor) in action.iter().enumerate(){
+            if tensor.size()[0] != positions_added{
+                return Err(AmfiteatrError::Tensor{ error: TensorError::BadTensorLength {
+                    context: format!("Action batch tensor has bad 0 dim (action number) for action parameter {param} : {}, expected: {positions_added}", tensor.size()[0])
+                }});
+            }
+        }
+
+
+        if let (Some(action_mask_vt), Some(_action_mask_buffer)) = (&action_mask, self.action_mask_buffer.as_mut()) {
+
+            for (param, tensor) in action_mask_vt.iter().enumerate(){
+                if tensor.size()[0] != positions_added{
+                    return Err(AmfiteatrError::Tensor{ error: TensorError::BadTensorLength {
+                        context: format!("ActionMask batch tensor has bad 0 dim for action category {param}: {}, expected: {positions_added}", tensor.size()[0])
+                    }});
+                }
+            }
+
+        }
+
+        if advantage.size()[0] != positions_added{
+            return Err(AmfiteatrError::Tensor{ error: TensorError::BadTensorLength {
+                context: format!("Advantage batch tensor has bad 0 dim (action number): {}, expected: {positions_added}", advantage.size()[0])
+            }});
+        }
+
+        if reward.size()[0] != positions_added{
+            return Err(AmfiteatrError::Tensor{ error: TensorError::BadTensorLength {
+                context: format!("Reward batch tensor has bad 0 dim (action number): {}, expected: {positions_added}", advantage.size()[0])
+            }});
+        }
+
+
+        if positions_added <= self.capacity {
+            //let len_exceeding = ((self.size + positions_added) as usize).saturating_sub(self.capacity as usize) as i64;
+            //let len_added_at_end = (positions_added as usize).saturating_sub(len_exceeding as usize) as i64;
+
+            let size_proposition = self.position + positions_added;
+            if size_proposition <= self.capacity{
+                // We can push everything at the end
+
+                self.info_set_buffer.slice(0, self.position, self.position + positions_added, 1)
+                    .f_copy_(&info_set).expect(&format!("Info set: {} and {}", self.info_set_buffer.slice(0, self.position, self.position + positions_added, 1),  info_set));
+
+                //#[cfg(feature = "log_trace")]
+                //log::trace!("Pushing action slice: {} on buffer: {}", action, self.action_buffer);
+
+
+                for (param, (param_tensor, buffer)) in action.iter().zip(self.action_buffer.iter_mut()).enumerate(){
+                    buffer.slice(0, self.position, self.position + positions_added, 1)
+                        .f_copy_(&param_tensor).expect(&format!("Error copying action param ({param}): {} and {}", buffer.slice(0, self.position, self.position + positions_added, 1),  param_tensor));
+
+                }
+
+                if let (Some(action_masks_buffer), Some(action_masks)) = (&mut self.action_mask_buffer, &action_mask){
+                    for (param, (param_tensor, buffer)) in action_masks.iter().zip(action_masks_buffer.iter_mut()).enumerate(){
+                        buffer.slice(0, self.position, self.position + positions_added, 1)
+                            .f_copy_(&param_tensor).expect(&format!("Error copying action mask param ({param}): {} and {}", buffer.slice(0, self.position, self.position + positions_added, 1),  param_tensor));
+
+                    }
+                }
+
+                for (param, (param_tensor, buffer)) in category_mask.iter().zip(self.category_mask_buffer.iter_mut()).enumerate(){
+                    buffer.slice(0, self.position, self.position + positions_added, 1)
+                        .f_copy_(&param_tensor).expect(&format!("Error copying category mask ({param}): {} and {}", buffer.slice(0, self.position, self.position + positions_added, 1),  param_tensor));
+
+                }
+
+
+
+
+
+                self.advantages_buffer.slice(0, self.position, self.position + positions_added, 1)
+                    .f_copy_(&advantage).expect(&format!("Advantages: {} and {}", self.advantages_buffer.slice(0, self.position, self.position + positions_added, 1),  advantage));
+
+
+                self.return_payoff_buffer.slice(0, self.position, self.position + positions_added, 1)
+                    .f_copy_(&reward).expect(&format!("Reward: {} and {}", self.return_payoff_buffer.slice(0, self.position, self.position + positions_added, 1), reward));
+
+                if self.size < self.capacity{
+                    self.size += positions_added
+                }
+                self.position += positions_added;
+
+            } else {
+                let added_at_end = self.capacity - self.position;
+
+                let added_at_begin = positions_added - added_at_end;
+
+                self.info_set_buffer.slice(0, self.position, None, 1)
+                    .f_copy_(&info_set.slice(0, 0, added_at_end, 1))
+                    .expect(&format!("(Rolling over) Info set: {} and {}", self.info_set_buffer.slice(0, self.position, None, 1),  info_set));
+                self.info_set_buffer.slice(0, 0, added_at_begin, 1)
+                    .f_copy_(&info_set.slice(0, added_at_end, None, 1))
+                    .expect(&format!("(Rolling over) Info set: {} and {}", self.info_set_buffer.slice(0, 0, added_at_begin, 1),  info_set));
+
+
+
+                for (param, (param_tensor, buffer)) in action.iter().zip(self.action_buffer.iter_mut()).enumerate(){
+                    buffer.slice(0, self.position, None, 1)
+                        .f_copy_(&param_tensor.slice(0, 0, added_at_end, 1)).expect(&format!("Error (at end of the buffer) copying action param ({param}): {} and {}", buffer.slice(0, self.position, None, 1),  param_tensor.slice(0, 0, added_at_begin, 1)));
+                    buffer.slice(0, 0, added_at_begin, 1)
+                        .f_copy_(&param_tensor.slice(0, added_at_end, None, 1)).expect(&format!("Error (at beginning of the buffer) copying action param ({param}): {} and {}", buffer.slice(0, 0, added_at_end, 1),  param_tensor.slice(0, added_at_end, None, 1)));
+
+                }
+
+
+                if let (Some(action_mask), Some(action_mask_buffer)) = (action_mask, self.action_mask_buffer.as_mut()) {
+
+                    for (param, (param_tensor, buffer)) in action_mask.iter().zip(action_mask_buffer.iter_mut()).enumerate(){
+                        buffer.slice(0, self.position, None, 1)
+                            .f_copy_(&param_tensor.slice(0, 0, added_at_end, 1)).expect(&format!("Error (at end of the buffer) copying action mask (param {param}): {} and {}", buffer.slice(0, self.position, None, 1),  param_tensor.slice(0, 0, added_at_begin, 1)));
+                        buffer.slice(0, 0, added_at_begin, 1)
+                            .f_copy_(&param_tensor.slice(0, added_at_end, None, 1)).expect(&format!("Error (at beginning of the buffer) copying action mask (param {param}): {} and {}", buffer.slice(0, 0, added_at_end, 1),  param_tensor.slice(0, added_at_end, None, 1)));
+
+                    }
+                    /*
+                    action_mask_buffer.slice(0, self.position, None, 1)
+                        .f_copy_(&action_mask.slice(0, 0, added_at_end, 1))
+                        .expect(&format!("(Rolling over) action_mask: {} and {}", action_mask_buffer.slice(0, self.position, None, 1),  action_mask));
+                    action_mask_buffer.slice(0, 0, added_at_begin, 1)
+                        .f_copy_(&action_mask.slice(0, added_at_end, None, 1))
+                        .expect(&format!("(Rolling over) action_mask: {} and {}", action_mask_buffer.slice(0, 0, added_at_begin, 1),  action_mask));
+                    */
+
+                }
+
+                for (param, (param_tensor, buffer)) in category_mask.iter().zip(self.category_mask_buffer.iter_mut()).enumerate(){
+                    buffer.slice(0, self.position, None, 1)
+                        .f_copy_(&param_tensor.slice(0, 0, added_at_end, 1)).expect(&format!("Error (at end of the buffer) copying category mask param ({param}): {} and {}", buffer.slice(0, self.position, None, 1),  param_tensor.slice(0, 0, added_at_begin, 1)));
+                    buffer.slice(0, 0, added_at_begin, 1)
+                        .f_copy_(&param_tensor.slice(0, added_at_end, None, 1)).expect(&format!("Error (at beginning of the buffer) copying category mask param ({param}): {} and {}", buffer.slice(0, 0, added_at_end, 1),  param_tensor.slice(0, added_at_end, None, 1)));
+
+                }
+
+                self.advantages_buffer.slice(0, self.position, None, 1)
+                    .f_copy_(&advantage.slice(0, 0, added_at_end, 1))
+                    .expect(&format!("(Rolling over) advantages_buffer: {} and {}", self.advantages_buffer.slice(0, self.position, None, 1),  advantage));
+                self.advantages_buffer.slice(0, 0, added_at_begin, 1)
+                    .f_copy_(&advantage.slice(0, added_at_end, None, 1))
+                    .expect(&format!("(Rolling over) advantages_buffer: {} and {}", self.advantages_buffer.slice(0, 0, added_at_begin, 1),  advantage));
+
+
+                self.position = added_at_begin;
+                self.size = self.capacity;
+            }
+            Ok(())
+
+
+        } else {
+            // the replay buffer is lesser than transitions added, simply store last transitions
+
+            self.info_set_buffer.copy_(&info_set.slice(0, positions_added - self.capacity, None, 1));
+            //self.action_buffer.copy_(&action.slice(0, positions_added - self.capacity, None, 1));
+
+            for (param, (param_tensor, buffer)) in action.iter().zip(self.action_buffer.iter_mut()).enumerate(){
+                buffer.slice(0, 0, None, 1)
+                    .f_copy_(&param_tensor.slice(0, positions_added - self.capacity, None, 1)).expect(&format!("Error copying action param ({param}): {} and {}", buffer.slice(0, self.position, self.position + positions_added, 1),  param_tensor));
+
+            }
+
+            self.advantages_buffer.copy_(&advantage.slice(0, positions_added - self.capacity, None, 1));
+            self.return_payoff_buffer.copy_(&reward.slice(0, positions_added - self.capacity, None, 1));
+
+            if let (Some(action_mask), Some(action_mask_buffer)) = (action_mask, self.action_mask_buffer.as_mut()) {
+                //action_mask_buffer.copy_(&action_mask.slice(0, positions_added - self.capacity, None, 1));
+                for (param, (param_tensor, buffer)) in action_mask.iter().zip(action_mask_buffer.iter_mut()).enumerate(){
+                    buffer.slice(0, 0, None, 1)
+                        .f_copy_(&param_tensor.slice(0, positions_added - self.capacity, None, 1)).expect(&format!("Error copying action mask (param {param}): {} and {}", buffer.slice(0, self.position, self.position + positions_added, 1),  param_tensor));
+
+                }
+            }
+
+            for (param, (param_tensor, buffer)) in category_mask.iter().zip(self.category_mask_buffer.iter_mut()).enumerate(){
+                buffer.slice(0, 0, None, 1)
+                    .f_copy_(&param_tensor.slice(0, positions_added - self.capacity, None, 1)).expect(&format!("Error copying category mask (param {param}): {} and {}", buffer.slice(0, self.position, self.position + positions_added, 1),  param_tensor));
+
+            }
+
+            self.position = 0;
+            self.size = self.capacity;
+
+            Ok(())
+        }
+
+    }
+
+
+
+    fn info_set_buffer(&self) -> Tensor {
+        self.info_set_buffer.slice(0, 0, self.size, 1)
+    }
+
+    fn action_buffer(&self) -> Self::ActionData {
+        //self.action_buffer.slice(0, 0, self.size, 1)
+        self.action_buffer.iter().map(|t|{
+            t.slice(0,0, self.size, 1)
+        }).collect()
+    }
+
+    fn action_mask_buffer(&self) -> Option<Self::ActionData> {
+        self.action_mask_buffer.as_ref().and_then(|vm|{
+            Some(vm.iter().map(|t|{
+                t.slice(0,0, self.size, 1)
+            }).collect())
+        })
+
+    }
+
+    fn category_mask_buffer(&self) -> Self::ActionData {
+        self.category_mask_buffer.iter().map(|t|{
+            t.slice(0,0,self.size, 1)
+        }).collect()
+    }
+
+    fn advantage_buffer(&self) -> Tensor {
+        self.advantages_buffer.slice(0, 0, self.size, 1)
+    }
+
+    fn return_payoff_buffer(&self) -> Tensor {
+        self.return_payoff_buffer.slice(0, 0, self.size, 1)
+    }
+
+    fn capacity(&self) -> usize {
+        self.capacity as usize
+    }
+
+    fn size(&self) -> usize {
+        self.size as usize
+    }
+}
