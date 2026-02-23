@@ -117,57 +117,6 @@ impl<
         Ok(())
     }
 
-
-    /*
-    /// Returns three tensors for respectively log probability of each action, entropy of this distribution
-    /// and critic value.
-    /// Tensor sizes:
-    /// 1. BATCH_SIZE x ACTION_SPACE..
-    /// 2. BATCH_SIZE x 1
-    /// 3. BATCH_SIZE x1
-    fn batch_get_logprob_entropy_critic(
-        &self,
-        info_set_batch: &Tensor,
-        action_param_batches: &Tensor,
-        action_category_mask_batches: Option<&Tensor>,
-        action_forward_mask_batches: Option<&Tensor>,
-    ) -> Result<(Tensor, Tensor, Tensor), AmfiteatrError<S>>{
-
-        let critic_actor= self.network.net()(info_set_batch);
-
-        let batch_logprob = critic_actor.batch_log_probability_of_action::<S>(
-            action_param_batches,
-            action_forward_mask_batches,
-            action_category_mask_batches
-        )?;
-        let batch_entropy = critic_actor.batch_entropy_masked(
-            action_forward_mask_batches,
-            action_category_mask_batches
-
-        ).map_err(|e|AmfiteatrError::Tensor {
-            error: TensorError::Torch {
-                context: "batch_get_actor_critic_with_logprob_and_entropy".into(),
-                origin: format!("{e}")
-            }
-        })?;
-
-
-
-        Ok((batch_logprob, batch_entropy, critic_actor.critic))
-    }
-    
-     */
-    /*
-
-    pub fn var_store(&self) -> &VarStore {
-        self.network.var_store()
-    }
-
-    pub fn var_store_mut(&mut self) -> &mut VarStore {
-        self.network.var_store_mut()
-    }
-
-     */
 }
 
 impl<

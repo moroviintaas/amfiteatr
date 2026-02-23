@@ -7,20 +7,13 @@ use tch::{Kind, TchError};
 use amfiteatr_core::agent::{AgentStepView, AgentTrajectory, InformationSet, Policy};
 use amfiteatr_core::scheme::Scheme;
 use amfiteatr_core::error::{AmfiteatrError,TensorError};
-use amfiteatr_core::util::TensorboardSupport;
+use amfiteatr_core::util::{MaybeContainsOne, TensorboardSupport};
 use crate::error::AmfiteatrRlError;
-use crate::policy::{ConfigPPO, LearnSummary, LearningNetworkPolicyGeneric, PolicyHelperA2C, PolicyTrainHelperPPO};
+use crate::policy::{ConfigPPO, CyclicReplayBufferActorCritic, CyclicReplayBufferMultiActorCritic, LearnSummary, LearningNetworkPolicyGeneric, PolicyHelperA2C, PolicyTrainHelperPPO};
 use crate::{tch, MaskingInformationSetActionMultiParameter, tensor_data};
 use crate::tch::nn::Optimizer;
 use crate::tch::Tensor;
-use crate::tensor_data::{
-    MultiTensorDecoding,
-    MultiTensorIndexI64Encoding,
-    TensorEncoding,
-    ContextEncodeMultiIndexI64,
-    ContextEncodeTensor,
-    ContextDecodeMultiIndexI64
-};
+use crate::tensor_data::{MultiTensorDecoding, MultiTensorIndexI64Encoding, TensorEncoding, ContextEncodeMultiIndexI64, ContextEncodeTensor, ContextDecodeMultiIndexI64, ContextDecodeIndexI64, ContextEncodeIndexI64};
 use crate::torch_net::{
     ActorCriticOutput,
     DeviceTransfer,
@@ -58,6 +51,7 @@ pub struct PolicyMultiDiscretePPO<
 
     tboard_writer: Option<tboard::EventWriter<File>>,
     global_step: i64,
+    cyclic_replay_buffer: Option<CyclicReplayBufferMultiActorCritic<S>>,
 
 
 
@@ -129,10 +123,11 @@ impl<
     S: Scheme,
     InfoSet: InformationSet<S> + Debug + ContextEncodeTensor<InfoSetConversionContext>,
     InfoSetConversionContext: TensorEncoding,
-    ActionBuildContext: MultiTensorIndexI64Encoding,
+    ActionBuildContext: MultiTensorIndexI64Encoding + MultiTensorDecoding,
 >
 PolicyMultiDiscretePPO<S, InfoSet, InfoSetConversionContext, ActionBuildContext>
 where <S as Scheme>::ActionType: ContextDecodeMultiIndexI64<ActionBuildContext>
+
 {
     pub fn new(
         config: ConfigPPO,
@@ -152,7 +147,8 @@ where <S as Scheme>::ActionType: ContextDecodeMultiIndexI64<ActionBuildContext>
             action_encoding: action_build_context,
             exploration: true,
             tboard_writer: None,
-            global_step: 0
+            global_step: 0,
+            cyclic_replay_buffer: None,
         }
     }
 
@@ -167,16 +163,44 @@ where <S as Scheme>::ActionType: ContextDecodeMultiIndexI64<ActionBuildContext>
         Ok(())
     }
 
-    /*
-    pub fn var_store(&self) -> &VarStore {
-        self.network.var_store()
+
+    pub fn initialize_cyclic_replay_buffer(&mut self, capacity: usize) -> Result<(), AmfiteatrError<S>>
+    where <S as Scheme>::ActionType: ContextDecodeMultiIndexI64<ActionBuildContext> + ContextEncodeMultiIndexI64<ActionBuildContext>{
+
+        let mask_shape = match self.is_action_masking_supported(){
+            true => Some(self.action_encoding.expected_inputs_shape()),
+            false => None,
+        };
+
+        let action_shapes = self.action_encoding.expected_inputs_shape().iter().map(|param| param[0]).collect::<Vec<_>>();
+        let replay_buffer = CyclicReplayBufferMultiActorCritic::new(
+            capacity,
+            self.info_set_encoding.desired_shape(),
+            &action_shapes[..],
+            tch::Kind::Float, // possibly change one time, when policy will hold information about it,
+            self.network.device(),
+            self.is_action_masking_supported()
+        )?;
+        self.cyclic_replay_buffer = Some(replay_buffer);
+
+        Ok(())
+    }
+}
+
+impl<
+    S: Scheme,
+    InfoSet: InformationSet<S> + Debug + ContextEncodeTensor<InfoSetConversionContext>,
+    InfoSetConversionContext: TensorEncoding,
+    ActionBuildContext: MultiTensorIndexI64Encoding + MultiTensorDecoding,
+> MaybeContainsOne<CyclicReplayBufferMultiActorCritic<S>> for
+PolicyMultiDiscretePPO<S, InfoSet, InfoSetConversionContext, ActionBuildContext> {
+    fn get(&self) -> Option<&CyclicReplayBufferMultiActorCritic<S>> {
+        self.cyclic_replay_buffer.as_ref()
     }
 
-    pub fn var_store_mut(&mut self) -> &mut VarStore {
-        self.network.var_store_mut()
+    fn get_mut(&mut self) -> Option<&mut CyclicReplayBufferMultiActorCritic<S>> {
+        self.cyclic_replay_buffer.as_mut()
     }
-
-     */
 }
 
 impl<
@@ -229,7 +253,12 @@ where <S as Scheme>::ActionType: ContextDecodeMultiIndexI64<ActionBuildContext>
         reward_f: R
     ) -> Result<Self::Summary, AmfiteatrRlError<S>> {
 
-        Ok(self.ppo_train_on_trajectories(trajectories, reward_f)?)
+        if self.cyclic_replay_buffer.is_some(){
+            Ok(self.ppo_train_on_trajectories_with_replay_buffer(trajectories, reward_f)?)
+        } else {
+            Ok(self.ppo_train_on_trajectories(trajectories, reward_f)?)
+        }
+
 
     }
 
@@ -348,105 +377,7 @@ PolicyHelperA2C<S> for PolicyMultiDiscretePPO<S, InfoSet, InfoSetConversionConte
     }
 }
 
-/*
 
-impl<
-    S: DomainParameters,
-    InfoSet: InformationSet<S> + Debug + ContextEncodeTensor<InfoSetConversionContext> ,
-    InfoSetConversionContext: TensorEncoding,
-    ActionBuildContext: MultiTensorDecoding + MultiTensorIndexI64Encoding + tensor_data::ActionTensorFormat<Vec<Tensor>>,
->
-PolicyHelperPPO<S> for PolicyPpoMultiDiscrete<S, InfoSet, InfoSetConversionContext, ActionBuildContext>
-    where
-        <S as DomainParameters>::ActionType:
-        ContextDecodeMultiIndexI64<ActionBuildContext, > + ContextEncodeMultiIndexI64<ActionBuildContext>,
-
-{
-    type InfoSet = InfoSet;
-    type InfoSetConversionContext = InfoSetConversionContext;
-    type ActionConversionContext = ActionBuildContext;
-    type NetworkOutput = TensorMultiParamActorCritic;
-
-    fn config(&self) -> &ConfigPpo {
-        &self.config
-    }
-
-    fn optimizer_mut(&mut self) -> &mut Optimizer {
-        &mut self.optimizer
-    }
-
-    fn ppo_network(&self) -> &NeuralNet<Self::NetworkOutput> {
-        &self.network
-    }
-
-    fn info_set_conversion_context(&self) -> &Self::InfoSetConversionContext {
-        &self.info_set_encoding
-    }
-
-    fn action_conversion_context(&self) -> &Self::ActionConversionContext {
-        &self.action_encoding
-    }
-
-    fn ppo_dist(&self, _info_set: &Self::InfoSet, network_output: &Self::NetworkOutput) -> Result<<Self::NetworkOutput as ActorCriticOutput>::ActionTensorType, AmfiteatrError<S>> {
-            network_output.actor.iter().map(|t|
-
-                t.f_softmax(-1, self.config().tensor_kind)
-            ).collect::<Result<Vec<Tensor>, _>>().map_err(|e|
-            TensorError::Torch {
-                origin: format!("{e}"),
-                context: "Calculating distribution for actions".into()
-            }.into())
-    }
-
-    fn is_action_masking_supported(&self) -> bool {
-        false
-    }
-
-    fn generate_action_masks(&self, _information_sets: &Self::InfoSet) -> Result<Vec<Tensor>, AmfiteatrError<S>> {
-        Err(AmfiteatrError::Custom("Action masking is not supported.".into()))
-    }
-
-
-    fn ppo_exploration(&self) -> bool {
-        self.exploration
-    }
-
-    fn ppo_try_action_from_choice_tensor(&self, choice_tensor: &<Self::NetworkOutput as ActorCriticOutput>::ActionTensorType) -> Result<S::ActionType, AmfiteatrError<S>> {
-        //Ok(<S::ActionType>::try_from_tensors(choice_tensor, &self.action_build_context)?)
-        let choices = choice_tensor.iter().map(|t|
-            t.f_int64_value(&[0])
-        ).collect::<Result<Vec<_>, TchError>>()
-            .map_err(|e| AmfiteatrError::Tensor {
-                error: TensorError::Torch {
-                    origin: format!("{e}"),
-                    context: format!("Choising action from multiple param tensors: {choice_tensor:?}"),
-            }})?;
-
-        Ok(<S::ActionType>::try_from_indices(&choices[..], &self.action_encoding)?)
-    }
-
-    fn ppo_vectorise_action_and_create_category_mask(&self, action: &S::ActionType) -> Result<(<Self::NetworkOutput as ActorCriticOutput>::ActionTensorType, <Self::NetworkOutput as ActorCriticOutput>::ActionTensorType), AmfiteatrError<S>> {
-        let (act_t, cat_mask_t) = action.action_index_and_mask_tensor_vecs(self.action_conversion_context())
-            .map_err(AmfiteatrError::from)?;
-
-        Ok((act_t, cat_mask_t))
-
-    }
-
-    fn ppo_batch_get_logprob_entropy_critic(&self, info_set_batch: &Tensor, action_param_batches: &Vec<Tensor>, action_category_mask_batches: Option<&Vec<Tensor>>, action_forward_mask_batches: Option<&Vec<Tensor>>) -> Result<(Tensor, Tensor, Tensor), AmfiteatrError<S>> {
-        #[cfg(feature = "log_trace")]
-        log::trace!("action_category_mask_batches: {:?}", action_category_mask_batches);
-        self.batch_get_actor_critic_with_logprob_and_entropy(
-            info_set_batch,
-            action_param_batches,
-            action_category_mask_batches,
-            action_forward_mask_batches
-
-        )
-    }
-}
-
- */
 /// Experimental PPO policy for actions from discrete actions space but sampled from
 /// more than one parameter distribution with support of masking out illegal actions.
 pub struct PolicyMaskingMultiDiscretePPO<
@@ -490,6 +421,23 @@ impl<
 
      */
 
+}
+
+impl<
+    S: Scheme,
+    InfoSet: InformationSet<S> + Debug + ContextEncodeTensor<InfoSetConversionContext> + MaskingInformationSetActionMultiParameter<S, ActionBuildContext>,
+    InfoSetConversionContext: TensorEncoding,
+    ActionBuildContext: MultiTensorDecoding + MultiTensorIndexI64Encoding
+    + tensor_data::ActionTensorFormat<Vec<Tensor>>,
+> MaybeContainsOne<CyclicReplayBufferMultiActorCritic<S>> for
+PolicyMaskingMultiDiscretePPO<S, InfoSet, InfoSetConversionContext, ActionBuildContext>{
+    fn get(&self) -> Option<&CyclicReplayBufferMultiActorCritic<S>> {
+        self.base.get()
+    }
+
+    fn get_mut(&mut self) -> Option<&mut CyclicReplayBufferMultiActorCritic<S>> {
+        self.base.get_mut()
+    }
 }
 
 impl<
@@ -632,87 +580,7 @@ impl<
         self.base.batch_get_logprob_entropy_critic(info_set_batch, action_param_batches, action_category_mask_batches, action_forward_mask_batches)
     }
 }
-/*
-impl<
-    S: DomainParameters,
-    InfoSet: InformationSet<S> + Debug + ContextEncodeTensor<InfoSetConversionContext>
-    + MaskingInformationSetActionMultiParameter<S, ActionBuildContext>,
-    InfoSetConversionContext: TensorEncoding,
-    ActionBuildContext: MultiTensorDecoding + MultiTensorIndexI64Encoding
-    + tensor_data::ActionTensorFormat<Vec<Tensor>>,
-> PolicyHelperPPO<S> for PolicyMaskingPpoMultiDiscrete<S, InfoSet, InfoSetConversionContext, ActionBuildContext>
-    where
-        <S as DomainParameters>::ActionType: ContextDecodeMultiIndexI64<ActionBuildContext>
-        + ContextEncodeMultiIndexI64<ActionBuildContext>
-{
-    type InfoSet = InfoSet;
-    type InfoSetConversionContext = InfoSetConversionContext;
-    type ActionConversionContext = ActionBuildContext;
-    type NetworkOutput = TensorMultiParamActorCritic;
 
-    fn config(&self) -> &ConfigPpo {
-        self.base.config()
-    }
-
-    fn optimizer_mut(&mut self) -> &mut Optimizer {
-        self.base.optimizer_mut()
-    }
-
-    fn ppo_network(&self) -> &NeuralNet<Self::NetworkOutput> {
-        self.base.ppo_network()
-    }
-
-    fn info_set_conversion_context(&self) -> &Self::InfoSetConversionContext {
-        self.base.info_set_conversion_context()
-    }
-
-    fn action_conversion_context(&self) -> &Self::ActionConversionContext {
-        self.base.action_conversion_context()
-    }
-
-    fn ppo_dist(&self, info_set: &Self::InfoSet, network_output: &Self::NetworkOutput) -> Result<<Self::NetworkOutput as ActorCriticOutput>::ActionTensorType, AmfiteatrError<S>> {
-        let masks = info_set.try_build_masks(self.action_conversion_context())?.move_to_device(network_output.device());
-        let masked: Vec<_> = network_output.actor.iter().zip(masks).map(|(t,m)|{
-            t.f_softmax(-1, self.config().tensor_kind)?.f_mul(
-                &m
-            )
-        }).collect::<Result<Vec<Tensor>, TchError>>()
-            .map_err(|e| AmfiteatrError::Tensor {
-                error: TensorError::Torch {
-                    origin: format!("{e}"),
-                    context: "Calculating action parameter probabilities".into()
-                }
-            })
-        ?;
-        Ok(masked)
-    }
-
-    fn is_action_masking_supported(&self) -> bool {
-        true
-    }
-
-    fn generate_action_masks(&self, information_set: &Self::InfoSet) -> Result<<Self::NetworkOutput as ActorCriticOutput>::ActionTensorType, AmfiteatrError<S>> {
-        information_set.try_build_masks(self.action_conversion_context())
-    }
-
-    fn ppo_exploration(&self) -> bool {
-        self.base.exploration
-    }
-
-    fn ppo_try_action_from_choice_tensor(&self, choice_tensor: &<Self::NetworkOutput as ActorCriticOutput>::ActionTensorType) -> Result<S::ActionType, AmfiteatrError<S>> {
-        self.base.ppo_try_action_from_choice_tensor(choice_tensor)
-    }
-
-    fn ppo_vectorise_action_and_create_category_mask(&self, action: &S::ActionType) -> Result<(<Self::NetworkOutput as ActorCriticOutput>::ActionTensorType, <Self::NetworkOutput as ActorCriticOutput>::ActionTensorType), AmfiteatrError<S>> {
-        self.base.ppo_vectorise_action_and_create_category_mask(action)
-    }
-
-    fn ppo_batch_get_logprob_entropy_critic(&self, info_set_batch: &Tensor, action_param_batches: &<Self::NetworkOutput as ActorCriticOutput>::ActionTensorType, action_category_mask_batches: Option<&<Self::NetworkOutput as ActorCriticOutput>::ActionTensorType>, action_forward_mask_batches: Option<&<Self::NetworkOutput as ActorCriticOutput>::ActionTensorType>) -> Result<(Tensor, Tensor, Tensor), AmfiteatrError<S>> {
-        self.base.ppo_batch_get_logprob_entropy_critic(info_set_batch, action_param_batches, action_category_mask_batches, action_forward_mask_batches)
-    }
-}
-
-*/
 impl<
     S: Scheme,
     InfoSet: InformationSet<S> + Debug + ContextEncodeTensor<InfoSetConversionContext>
@@ -763,8 +631,12 @@ impl<
     ) -> Result<Self::Summary, AmfiteatrRlError<S>>
 
     {
+        if self.base.cyclic_replay_buffer.is_some(){
+            Ok(self.ppo_train_on_trajectories_with_replay_buffer(trajectories, reward_f)?)
+        } else {
+            Ok(self.ppo_train_on_trajectories(trajectories, reward_f)?)
+        }
 
-        Ok(self.ppo_train_on_trajectories(trajectories, reward_f)?)
     }
 
     fn set_gradient_tracing(&mut self, enabled: bool) {

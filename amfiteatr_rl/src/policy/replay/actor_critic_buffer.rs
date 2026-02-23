@@ -619,6 +619,7 @@ impl<S: Scheme> CyclicReplayBufferMultiActorCritic<S> {
         //number_of_action_categories: usize,
         kind: tch::Kind,
         device: tch::Device,
+        support_masks: bool,
 
     ) -> Result<CyclicReplayBufferMultiActorCritic<S>, AmfiteatrError<S>> {
 
@@ -636,8 +637,11 @@ impl<S: Scheme> CyclicReplayBufferMultiActorCritic<S> {
         let advantages_buffer = Tensor::zeros(&[capacity as i64, 1], (kind, device));
         let returns_buffer = Tensor::zeros(&[capacity as i64, 1], (kind, device));
 
-        let action_mask_buffer = Some(action_categories_shapes.iter().map(|s| Tensor::ones(
-            &[capacity as i64, *s], (Kind::Bool, device))).collect());
+        let action_mask_buffer = match support_masks {
+            true => Some(action_categories_shapes.iter().map(|s| Tensor::ones(
+                &[capacity as i64, *s], (Kind::Bool, device))).collect()),
+            false => None,
+        };
         let category_mask_buffer = (0..action_categories_shapes.len()).map(|_|{
             Tensor::ones(&[capacity as i64], (Kind::Bool, device))
         }).collect();
@@ -716,7 +720,8 @@ impl<S: Scheme> ActorCriticReplayBuffer<S> for CyclicReplayBufferMultiActorCriti
     ///     &[2, 3], // shape of action categories - two categories first with 2 possible values, second with 3
     ///     //Some(&[2]), // shape of action categories
     ///     Kind::Float,
-    ///     Device::Cpu
+    ///     Device::Cpu,
+    ///     true,
     /// ).unwrap();
     /// assert_eq!(0, replay_buffer.position());
     /// assert_eq!(0, replay_buffer.size());
