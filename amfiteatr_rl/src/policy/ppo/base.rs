@@ -332,7 +332,6 @@ pub trait PolicyHelperPPO<S: Scheme>
 
 
 
-
         let batch_info_sets_t = Tensor::f_vstack(&state_tensor_vec)?.move_to_device(device);
         let action_forward_masks = match self.is_action_masking_supported(){
             true => Some(Self::NetworkOutput::stack_tensor_batch(&action_masks_vec)?.move_to_device(device)),
@@ -699,6 +698,8 @@ pub trait PolicyTrainHelperPPO<S: Scheme> : PolicyHelperA2C<S, Config=ConfigPPO>
                     .map_err(|e| TensorError::from_tch_with_context(e, "Selecting action categories to mini-batch".into()))?;
 
 
+
+
                 let mini_batch_action_forward_mask = match action_forward_masks{
                     None => None,
                     Some(ref m) => Some(Self::NetworkOutput::index_select(m, &minibatch_indices)
@@ -720,6 +721,8 @@ pub trait PolicyTrainHelperPPO<S: Scheme> : PolicyHelperA2C<S, Config=ConfigPPO>
                 log::debug!("Advantages: {:?}", batch_advantage_t.f_index_select(0, &minibatch_indices));
                 #[cfg(feature = "log_debug")]
                 log::debug!("Entropy: {:}", entropy);
+
+
 
                 #[cfg(feature = "log_debug")]
                 log::debug!("Base logbprob: {:}", mini_batch_base_logprobs);
@@ -774,6 +777,10 @@ pub trait PolicyTrainHelperPPO<S: Scheme> : PolicyHelperA2C<S, Config=ConfigPPO>
 
                 #[cfg(feature = "log_trace")]
                 log::trace!("ratio: {:}, minibatch_advantages_t: {:}", ratio, minibatch_advantages_t);
+                //panic!();
+
+                #[cfg(feature = "log_trace")]
+                log::trace!("Minibatch actions tensor: {mini_batch_action:?}");
 
                 let pg_loss1 = -&minibatch_advantages_t.f_mul(&ratio)
                     .map_err(|e| TensorError::from_tch_with_context(e, "Multiplying advantages and ratio (pg_loss 1)".into()))?;
@@ -792,6 +799,8 @@ pub trait PolicyTrainHelperPPO<S: Scheme> : PolicyHelperA2C<S, Config=ConfigPPO>
 
                 #[cfg(feature = "log_debug")]
                 log::debug!("PG loss : {}", pg_loss);
+
+
 
 
 

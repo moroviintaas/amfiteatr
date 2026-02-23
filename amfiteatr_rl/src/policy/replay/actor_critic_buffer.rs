@@ -192,10 +192,10 @@ impl<S: Scheme> ActorCriticReplayBuffer<S> for CyclicReplayBufferActorCritic<S>{
     /// let mut replay_buffer = CyclicReplayBufferActorCritic::<DemoScheme>::new(
     ///     3, //capacity
     ///     &[2, 4], // shape of basic information set
-    ///     &[2], // shape of action categories
-    ///     Some(&[2]), // shape of action categories
+    ///     2, // shape of action categories
     ///     Kind::Float,
-    ///     Device::Cpu
+    ///     Device::Cpu,
+    ///     true,
     /// ).unwrap();
     /// assert_eq!(0, replay_buffer.position());
     /// assert_eq!(0, replay_buffer.size());
@@ -458,22 +458,31 @@ impl<S: Scheme> CyclicReplayBufferActorCritic<S> {
     pub fn new(
         capacity: usize,
         info_set_shape: &[i64],
-        action_shape: &[i64],
-        action_mask_shape: Option<&[i64]>,
+        action_shape: i64,
+
+        //action_mask_shape: Option<&[i64]>,
         kind: tch::Kind,
         device: tch::Device,
+        support_masks: bool,
 
     ) -> Result<CyclicReplayBufferActorCritic<S>, AmfiteatrError<S>> {
 
         let info_set_shape = [&[capacity as i64], info_set_shape].concat();
-        let action_shape = [capacity as i64, 1];
-        let action_mask_shape = action_mask_shape.and_then(|m| {
+        let action_tensor_shape = [capacity as i64, 1];
+        /*let action_mask_shape = action_shape.and_then(|m| {
             Some([&[capacity as i64], m].concat())
         });
 
+         */
+        let action_mask_shape = match support_masks{
+            true => Some([capacity as i64, action_shape]),
+            false => None,
+        };
+
+
 
         let info_set_buffer = Tensor::zeros(&info_set_shape, (kind, device));
-        let action_buffer = Tensor::zeros(&action_shape, (Int64, device));
+        let action_buffer = Tensor::zeros(&action_tensor_shape, (Int64, device));
         //let action_mask_buffer = Tensor::zeros(&action_mask_shape, (kind, device));
         let advantages_buffer = Tensor::zeros(&[capacity as i64, 1], (kind, device));
         let returns_buffer = Tensor::zeros(&[capacity as i64, 1], (kind, device));
@@ -619,7 +628,7 @@ impl<S: Scheme> CyclicReplayBufferMultiActorCritic<S> {
 
         let info_set_buffer = Tensor::zeros(&info_set_shape, (kind, device));
         let action_buffer = (0..action_categories_shapes.len()).map(|s|{
-            Tensor::zeros(&[s as i64], (Int64, device))
+            Tensor::zeros(&[capacity as i64, 1], (Int64, device))
         }).collect();
 
 
@@ -627,9 +636,10 @@ impl<S: Scheme> CyclicReplayBufferMultiActorCritic<S> {
         let advantages_buffer = Tensor::zeros(&[capacity as i64, 1], (kind, device));
         let returns_buffer = Tensor::zeros(&[capacity as i64, 1], (kind, device));
 
-        let action_mask_buffer = Some(action_shape.iter().map(|s| Tensor::ones(*s, (kind, device))).collect());
+        let action_mask_buffer = Some(action_categories_shapes.iter().map(|s| Tensor::ones(
+            &[capacity as i64, *s], (Kind::Bool, device))).collect());
         let category_mask_buffer = (0..action_categories_shapes.len()).map(|_|{
-            Tensor::ones(&[capacity as i64, 1], (Kind::Bool, device))
+            Tensor::ones(&[capacity as i64], (Kind::Bool, device))
         }).collect();
 
         Ok(Self{capacity: capacity as i64,
@@ -641,6 +651,18 @@ impl<S: Scheme> CyclicReplayBufferMultiActorCritic<S> {
             _scheme: Default::default(),
         })
 
+    }
+
+    pub fn position(&self) -> usize {
+        self.position as usize
+    }
+
+    pub fn size(&self) -> usize {
+        self.size as usize
+    }
+
+    pub fn capacity(&self) -> usize {
+        self.capacity as usize
     }
 }
 impl<S: Scheme> ActorCriticReplayBuffer<S> for CyclicReplayBufferMultiActorCritic<S>{
@@ -658,17 +680,25 @@ impl<S: Scheme> ActorCriticReplayBuffer<S> for CyclicReplayBufferMultiActorCriti
     /// let info_sets = Tensor::stack(&[&info_set_1, &info_set_2],0);
     /// assert_eq!(&info_sets.size(), &[2,2,4]);
     /// // Now simlarly with action logits:
-    /// let actions_cat_1 = Tensor::from_slice(&[1, 4]);
-    /// let actions_2 = Tensor::from_slice(&[1.5f32, 1.0]);
-    /// let actions_logits = Tensor::stack(&[&actions_1, &actions_2], 0);
+    /// // First category actions 2 possiblities in cat 1 and 3 in cat 2
+    /// //
+    /// let actions_cat_1 = Tensor::from_slice(&[1, 0]).unsqueeze(1); //we want format [transition_dim x 1 (singe action param) ]
+    /// let actions_cat_2 = Tensor::from_slice(&[0, 2]).unsqueeze(1);
+    /// //let actions_logits = Tensor::stack(&[&actions_cat_1, &actions_cat_2], 0);
+    /// let actions = vec![actions_cat_1, actions_cat_2];
     /// // and masks:
-    /// let masks_1 = Tensor::from_slice(&[true, true]);
-    /// let masks_2 = Tensor::from_slice(&[false, true]);
-    /// let masks = Tensor::stack(&[&masks_1, &masks_2], 0);
+    /// // first category 2 possibilities
+    /// //                                           t=0: a=0   a=1 | t=1: a=0   a=1
+    /// let masks_cat_1 = Tensor::from_slice2(&[[        true, true],    [true, false]]);
+    /// //  second category, 3 possibilities          t=0: a=0   a=1   a=2 | t=1:  a=0   a=1    a=2
+    /// let masks_cat_2 = Tensor::from_slice2(&[[        true, true, false],    [true, false, true]]);
+    ///
+    /// let masks = vec![masks_cat_1, masks_cat_2];
     ///
     /// let category_mask_1 = Tensor::from_slice(&[true, true]);
     /// let category_mask_2 = Tensor::from_slice(&[true, false]);
-    /// let categories = Tensor::stack(&[&category_mask_1, &category_mask_2], 0);
+    /// //let categories = Tensor::stack(&[&category_mask_1, &category_mask_2], 0);
+    /// let categories = vec![category_mask_1, category_mask_2];
     /// // now advantages and rewards:
     /// let advantage_1 = Tensor::from_slice(&[2.0f32]);
     /// let advantage_2 = Tensor::from_slice(&[-1.0f32]);
@@ -683,19 +713,19 @@ impl<S: Scheme> ActorCriticReplayBuffer<S> for CyclicReplayBufferMultiActorCriti
     /// let mut replay_buffer = CyclicReplayBufferMultiActorCritic::<DemoScheme>::new(
     ///     3, //capacity
     ///     &[2, 4], // shape of basic information set
-    ///     &[2], // shape of action categories
-    ///     Some(&[2]), // shape of action categories
+    ///     &[2, 3], // shape of action categories - two categories first with 2 possible values, second with 3
+    ///     //Some(&[2]), // shape of action categories
     ///     Kind::Float,
     ///     Device::Cpu
     /// ).unwrap();
     /// assert_eq!(0, replay_buffer.position());
     /// assert_eq!(0, replay_buffer.size());
-    /// replay_buffer.push_tensors(&info_sets, &actions_logits, Some(&masks), &advantages, &rewards).unwrap();
+    /// replay_buffer.push_tensors(&info_sets, &actions, Some(&masks), &categories, &advantages, &rewards).unwrap();
     /// // Now let's check if size is 2 and position is 2:
     /// assert_eq!(2, replay_buffer.position());
     /// assert_eq!(2, replay_buffer.size());
     ///
-    /// replay_buffer.push_tensors(&info_sets, &actions_logits, Some(&masks), &advantages, &rewards).unwrap();
+    /// replay_buffer.push_tensors(&info_sets, &actions, Some(&masks), &categories, &advantages, &rewards).unwrap();
     /// assert_eq!(1, replay_buffer.position());
     /// assert_eq!(3, replay_buffer.size());
     /// // Now we expect that first tensor in stack is the third in replay buffer ...
@@ -705,12 +735,20 @@ impl<S: Scheme> ActorCriticReplayBuffer<S> for CyclicReplayBufferMultiActorCriti
     /// // Now let's have more transitions than the buffer can load:
     ///
     /// let info_sets = Tensor::stack(&[&info_set_1, &info_set_2, &info_set_1, &info_set_1,],0);
-    /// let actions_logits = Tensor::stack(&[&actions_1, &actions_2, &actions_1, &actions_1], 0);
+    /// let actions_selected = vec![Tensor::from_slice(&[1, 0, 0, 0]).unsqueeze(1), Tensor::from_slice(&[0, 2, 0, 2]).unsqueeze(1)];
+    /// let category_mask = vec![Tensor::from_slice(&[true, true, true, true]), Tensor::from_slice(&[true, true, false, false])];
     /// let advantages = Tensor::stack(&[&advantage_1, &advantage_2, &advantage_1, &advantage_1], 0);
-    /// let masks = Tensor::stack(&[&masks_1, &masks_2, &masks_1, &masks_1, ], 0);
+    ///
+    /// // So ... 4 transitions (tensor dimension 0), action space is 2 in first cat and 3 in second cat (dimension 2)
+    /// // then vector dimension is category dimension
+    /// let masks_cat_1 = Tensor::from_slice2(&[[        true, true],    [true, false], [true, false], [true, true]]);
+    /// //  second category, 3 possibilities          t=0: a=0   a=1   a=2 | t=1:  a=0   a=1    a=2
+    /// let masks_cat_2 = Tensor::from_slice2(&[[        true, true, false],    [true, false, true], [true, false, true], [true, true, true]]);
+    ///
+    /// let masks = vec![masks_cat_1, masks_cat_2];
     /// let rewards = Tensor::stack(&[&reward_1, &reward_2,&reward_1, &reward_1], 0);
     ///
-    /// replay_buffer.push_tensors(&info_sets, &actions_logits, Some(&masks), &advantages, &rewards).unwrap();
+    /// replay_buffer.push_tensors(&info_sets, &actions_selected, Some(&masks), &category_mask, &advantages, &rewards).unwrap();
     /// assert_eq!(0, replay_buffer.position());
     /// assert_eq!(3, replay_buffer.size());
     /// ```
@@ -876,8 +914,8 @@ impl<S: Scheme> ActorCriticReplayBuffer<S> for CyclicReplayBufferMultiActorCriti
             //self.action_buffer.copy_(&action.slice(0, positions_added - self.capacity, None, 1));
 
             for (param, (param_tensor, buffer)) in action.iter().zip(self.action_buffer.iter_mut()).enumerate(){
-                buffer.slice(0, 0, None, 1)
-                    .f_copy_(&param_tensor.slice(0, positions_added - self.capacity, None, 1)).expect(&format!("Error copying action param ({param}): {} and {}", buffer.slice(0, self.position, self.position + positions_added, 1),  param_tensor));
+                buffer
+                    .f_copy_(&param_tensor.slice(0, positions_added - self.capacity, None, 1)).expect(&format!("Error copying action param ({param}): {} and {}", buffer,  param_tensor.slice(0, positions_added - self.capacity, None, 1)));
 
             }
 

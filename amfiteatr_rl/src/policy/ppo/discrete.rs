@@ -107,10 +107,10 @@ impl<
         let replay_buffer = CyclicReplayBufferActorCritic::new(
             capacity,
             self.info_set_encoding.desired_shape(),
-            &[1],
-            mask_shape,
+            self.action_encoding.expected_input_shape()[0],
             tch::Kind::Float, // possibly change one time, when policy will hold information about it,
-            self.network.device()
+            self.network.device(),
+            self.is_action_masking_supported()
         )?;
         self.cyclic_replay_buffer = Some(replay_buffer);
 
