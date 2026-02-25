@@ -115,6 +115,10 @@ pub trait ActorCriticOutput : NetOutput + Debug{
         action_category_mask_batches: Option<&Self::ActionTensorType>,
         action_forward_mask_batches: Option<&Self::ActionTensorType>,
     ) -> Result<(Tensor, Tensor), AmfiteatrError<S>>;
+
+    fn verbose_display_actor(&self) -> String{
+        format!("{:?}", self.actor())
+    }
 }
 
 /// Struct to aggregate both actor and critic output tensors from network.
@@ -317,6 +321,10 @@ impl ActorCriticOutput for TensorActorCritic{
 
 
         Ok((batch_logprob, batch_entropy))
+    }
+
+    fn verbose_display_actor(&self) -> String{
+        format!("{}", self.actor())
     }
 }
 
@@ -561,6 +569,7 @@ impl ActorCriticOutput for TensorMultiParamActorCritic {
 
         let choices: Vec<Tensor> = match action_masks{
             None => {
+
                 self.actor.iter().enumerate().map(|(i, a)|{
                     a.f_log_softmax(-1, Kind::Float)?
 
@@ -572,7 +581,16 @@ impl ActorCriticOutput for TensorMultiParamActorCritic {
                 })?
             },
             Some(masks) => {
-
+                #[cfg(feature = "log_trace")]
+                for i in 0..self.actor.len(){
+                    log::trace!("Category {i} / actor: {}", &self.actor[i]);
+                    if let Some(actor_mask) = action_masks{
+                        log::trace!("Category {i} / mask: {}", &actor_mask[i]);
+                    }
+                    if let Some(category_mask) = param_masks{
+                        log::trace!("Category {i} / param mask: {}", &category_mask[i]);
+                    }
+                }
                 if masks.len() != self.actor.len(){
                     return Err(LengthMismatch {
                         left: self.actor.len(),
@@ -582,9 +600,21 @@ impl ActorCriticOutput for TensorMultiParamActorCritic {
                 }
 
                 self.actor.iter().zip(masks).enumerate().map(|(i, (a, m))|{
+
                     //let Tensor::f_einsum("i,i->i", &[a,m], None::<i64>)
                     let log_softmax = a.f_log_softmax(-1, Kind::Float)?;
-                    let masked = log_softmax.f_where_self(&m.ne(0.0), &Tensor::from(f32::NEG_INFINITY))?;
+                    #[cfg(feature = "log_trace")]
+                    {
+                        log::trace!("Category {i} / actor: {}", &a);
+                        log::trace!("Category {i} / mask: {}", &m);
+                        if let Some(category_mask) = param_masks{
+                            log::trace!("Category {i} / category mask: {}", &category_mask[i]);
+                        }
+                        log::trace!("Category {i} / action index: {}", &param_indices[i]);
+                        log::trace!("Category {i} / log_softmax: {}", &log_softmax);
+                        log::trace!("Category {i} / softmax: {}", &log_softmax.exp());
+                    }
+                    let masked = log_softmax.f_where_self(&m.ne(0.0), &Tensor::from(f32::MIN))?;
                     masked.f_gather(1, &param_indices[i].to_device(self.device()).f_unsqueeze(1)?, false)?
                         .f_flatten(0, -1)
 
@@ -776,11 +806,11 @@ impl ActorCriticOutput for TensorMultiParamActorCritic {
     }
 
     fn perform_choice(dist: &Self::ActionTensorType, apply: impl Fn(&Tensor) -> Result<Tensor, TchError>) -> Result<Self::ActionTensorType, TensorError> {
-        dist.iter().map(|d|{
+        dist.iter().enumerate().map(|(index, d)|{
             let is_all_zeros = d.eq_tensor(&Tensor::zeros_like(d)).all().int64_value(&[]);
             if is_all_zeros == 0{
                 #[cfg(feature = "log_trace")]
-                log::trace!("Performing choice on distribution: {d}");
+                log::trace!("Performing choice on [{index}] distribution: {d}");
                 apply(d)
 
 
@@ -840,6 +870,15 @@ impl ActorCriticOutput for TensorMultiParamActorCritic {
 
 
         Ok((batch_logprob, batch_entropy_avg))
+    }
+
+    fn verbose_display_actor(&self) -> String{
+        let mut result = String::new();
+        for (cat, ac) in self.actor().iter().enumerate() {
+            result.push_str(&format!("{cat}: {ac},\t"));
+        }
+        result
+        //format!("{}", self.actor())
     }
 }
 /*

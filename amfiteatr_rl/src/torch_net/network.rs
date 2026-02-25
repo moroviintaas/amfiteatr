@@ -401,8 +401,8 @@ pub fn build_network_model_ac_multidiscrete(layers: Vec<Layer>, input_shape:  Ve
         current_dim = next_dim;
     }
     let (actor_params, critic) = (
-        actor_shapes.iter().map(|a|
-            nn::linear(path/ "actor", current_dim, *a, Default::default())
+        actor_shapes.iter().enumerate().map(|(n,a)|
+            nn::linear(path/ &format!("actor_{n}"), current_dim, *a, Default::default())
         ).collect::<Vec<_>>(),
 
 

@@ -140,6 +140,8 @@ pub trait PolicyHelperA2C<S: Scheme>{
         let state_tensor = info_set.to_tensor(self.info_set_encoding());
         //println!("state tensor: {state_tensor}");
         let out = tch::no_grad(|| (self.network().net())( &state_tensor));
+        #[cfg(feature = "log_trace")]
+        log::trace!("Network actor output: {}", out.verbose_display_actor());
         //println!("out: {out:?}");
         let probs = tch::no_grad(||self.dist(info_set, &out))?;
         let choices = tch::no_grad(|| match self.is_exploration_on(){

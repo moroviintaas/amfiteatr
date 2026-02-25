@@ -66,7 +66,7 @@ impl RlPolicyConfigBasic for ConfigPPO {
         self.gae_lambda
     }
 }
-
+/*
 #[deprecated(since = "0.8.0", note = "Use [PolicyHelperA2C] and [PolicyTrainHelperPPO]")]
 /// The sole purpose of this trait is to provide some function dealing with
 /// information sets and actions using tensors. It is used to create final implementations.
@@ -491,6 +491,8 @@ pub trait PolicyHelperPPO<S: Scheme>
 
 }
 
+ */
+
 /// Helper trait to build create training interface for PPO Policy.
 /// It provides automatic [`ppo_train_on_trajectories`](PolicyTrainHelperPPO::ppo_train_on_trajectories)
 /// implementation for any (policy) type implementing [`PolicyHelperA2C`].
@@ -602,6 +604,10 @@ pub trait PolicyTrainHelperPPO<S: Scheme> : PolicyHelperA2C<S, Config=ConfigPPO>
                 let critic_t = net_out.critic();
                 #[cfg(feature = "log_trace")]
                 log::trace!("Critic: {}", critic_t);
+
+                #[cfg(feature = "log_trace")]
+                log::trace!("Actor: {}", net_out.verbose_display_actor());
+
 
                 let (advantages_t, returns_t) = match self.config().gae_lambda {
                     Some(gae_lambda) => tch::no_grad(||self.calculate_gae_advantages_and_returns(t, critic_t, &reward_f, gae_lambda))?,
@@ -1044,7 +1050,7 @@ pub trait PolicyTrainHelperPPO<S: Scheme> : PolicyHelperA2C<S, Config=ConfigPPO>
                 context: "Buffer not initialised".to_string()
             })?;
             #[cfg(feature = "log_trace")]
-            log::trace!("Action tensor (batch): {:?}", net_out.actor());
+            log::trace!("Action tensor (batch): {}", net_out.verbose_display_actor());
             replay_buffer.push_tensors(
                 &information_set_t.detach(),
                 &action_selection_t,
