@@ -409,6 +409,11 @@ impl<
         }
     }
 
+    pub fn initialize_cyclic_replay_buffer(&mut self, capacity: usize) -> Result<(), AmfiteatrError<S>>
+    where <S as Scheme>::ActionType: ContextDecodeMultiIndexI64<ActionBuildContext> + ContextEncodeMultiIndexI64<ActionBuildContext>{
+        self.base.initialize_cyclic_replay_buffer(capacity)
+    }
+
 
     /*
     pub fn var_store(&self) -> &VarStore {
