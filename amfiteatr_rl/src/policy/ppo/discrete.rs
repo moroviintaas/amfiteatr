@@ -96,6 +96,9 @@ impl<
         }
     }
 
+    /// Initializes cyclic replay buffer with requested capacity.
+    /// Unless the method is invoked policy will not use this buffer and only recent trajectories
+    /// will be used in learning.
     pub fn initialize_cyclic_replay_buffer(&mut self, capacity: usize) -> Result<(), AmfiteatrError<S>>
     where <S as Scheme>::ActionType: ContextDecodeIndexI64<ActionBuildContext> + ContextEncodeIndexI64<ActionBuildContext>{
 
@@ -485,41 +488,13 @@ impl<
 
     fn dist(&self, info_set: &Self::InfoSet, network_output: &Self::NetworkOutput) -> Result<<Self::NetworkOutput as ActorCriticOutput>::ActionTensorType, AmfiteatrError<S>> {
 
-        /*
-        let softmax = network_output.actor.f_softmax(-1, tch::Kind::Float)
-            .map_err(|e| TensorError::from_tch_with_context(e, "PPO distribution (softmax)".into()))?;
 
-        let masks = info_set.try_build_mask(&self.action_encoding())?;
-
-
-        let product = softmax.f_where_self(&masks, &Tensor::from(0.0))
-            .map_err(|e| TensorError::from_tch_with_context(e, "PPO distribution (softmax * mask)".into())
-            )?;
-
-        #[cfg(feature = "log_debug")]
-        {
-            if product.nonzero().size()[0] == 0{
-                warn!("Distribution of action is all zeros!, policy dist: {softmax}, masks: {masks}.");
-            }
-        }
-        Ok(product)
-
-         */
         let masks = info_set.try_build_mask(self.action_encoding())?;
         let masked_actor = network_output.actor.f_where_self(&masks, &Tensor::from(f32::NEG_INFINITY))
             .map_err(|e| TensorError::from_tch_with_context(e, format!("PPO masking actor network output masks: {masks}, actor: {}", &network_output.actor)))?;
         let softmax = masked_actor.f_softmax(-1, tch::Kind::Float)
             .map_err(|e| TensorError::from_tch_with_context(e, "PPO distribution (softmax)".into()))?;
 
-
-
-        /*
-        let product = softmax.f_where_self(&masks, &Tensor::from(0.0))
-            .map_err(|e| TensorError::from_tch_with_context(e, "PPO distribution (softmax * mask)".into())
-            )?;
-
-
-         */
         #[cfg(feature = "log_debug")]
         {
             if softmax.nonzero().size()[0] == 0{
@@ -528,27 +503,6 @@ impl<
         }
         Ok(softmax)
 
-
-        // let masks = info_set.try_build_mask(&self.action_encoding())?.to_kind(Kind::Float);
-        // let logits_masked = masks.f_mul(&network_output.actor).map_err(
-        //     |e| TensorError::from_tch_with_context(e, format!("Multiplying actor logits and mask {} x {masks}", &network_output.actor)
-        // ))?;
-        // let m = (Tensor::ones_like(&masks) - &masks);
-        // warn!("m: {m}");
-        // let shift = (Tensor::ones_like(&masks) - &masks) * Tensor::from(f32::NEG_INFINITY);//* Tensor::from(f32::NEG_INFINITY).to_device(masks.device());
-        //
-        // let dist = &logits_masked + &shift;
-        // warn!("Distribution of action is all zeros!, policy dist: {}, masks: {masks}, logits_masked: {logits_masked}, shift: {shift}.", network_output.actor);
-        // #[cfg(feature = "log_debug")]
-        // {
-        //     if dist.nonzero().size()[0] == 0{
-        //         warn!("Distribution of action is all zeros!, policy dist: {}, masks: {masks}.", network_output.actor);
-        //     }
-        // }
-        // Ok(dist)
-
-
-        //logits =
     }
 
     fn is_action_masking_supported(&self) -> bool {

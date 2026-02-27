@@ -7,9 +7,9 @@ use tch::{TchError, Tensor};
 use amfiteatr_core::agent::{AgentStepView, AgentTrajectory, InformationSet, Policy};
 use amfiteatr_core::scheme::Scheme;
 use amfiteatr_core::error::{AmfiteatrError, TensorError};
-use amfiteatr_core::util::TensorboardSupport;
+use amfiteatr_core::util::{MaybeContainsOne, TensorboardSupport};
 use crate::error::AmfiteatrRlError;
-use crate::policy::{ConfigA2C, LearnSummary, LearningNetworkPolicyGeneric, PolicyHelperA2C, PolicyTrainHelperA2C};
+use crate::policy::{ConfigA2C, CyclicReplayBufferMultiActorCritic, LearnSummary, LearningNetworkPolicyGeneric, PolicyHelperA2C, PolicyTrainHelperA2C, PolicyTrainHelperPPO};
 use crate::{tensor_data, MaskingInformationSetActionMultiParameter};
 use crate::tensor_data::{ContextDecodeMultiIndexI64, ContextEncodeMultiIndexI64, ContextEncodeTensor, MultiTensorDecoding, MultiTensorIndexI64Encoding, TensorEncoding};
 use crate::torch_net::{ActorCriticOutput, DeviceTransfer, NeuralNet, NeuralNetMultiActorCritic, TensorMultiParamActorCritic};
@@ -39,6 +39,7 @@ pub struct PolicyMultiDiscreteA2C<
 
     tboard_writer: Option<tboard::EventWriter<File>>,
     global_step: i64,
+    cyclic_replay_buffer: Option<CyclicReplayBufferMultiActorCritic<S>>,
 
 
 }
@@ -73,7 +74,8 @@ ContextDecodeMultiIndexI64<ActionBuildContext>
             action_encoding: action_build_context,
             exploration: true,
             tboard_writer: None,
-            global_step: 0
+            global_step: 0,
+            cyclic_replay_buffer: None
         }
     }
 
@@ -88,17 +90,49 @@ ContextDecodeMultiIndexI64<ActionBuildContext>
         Ok(())
     }
 
-    /*
-    pub fn var_store(&self) -> &VarStore {
-        self.network.var_store()
+    pub fn initialize_cyclic_replay_buffer(&mut self, capacity: usize) -> Result<(), AmfiteatrError<S>>
+    where <S as Scheme>::ActionType: ContextDecodeMultiIndexI64<ActionBuildContext> + ContextEncodeMultiIndexI64<ActionBuildContext>,
+        ActionBuildContext: MultiTensorDecoding
+    {
+
+        let mask_shape = match self.is_action_masking_supported(){
+            true => Some(self.action_encoding.expected_inputs_shape()),
+            false => None,
+        };
+
+        let action_shapes = self.action_encoding.expected_inputs_shape().iter().map(|param| param[0]).collect::<Vec<_>>();
+        let replay_buffer = CyclicReplayBufferMultiActorCritic::new(
+            capacity,
+            self.info_set_encoding.desired_shape(),
+            &action_shapes[..],
+            tch::Kind::Float, // possibly change one time, when policy will hold information about it,
+            self.network.device(),
+            self.is_action_masking_supported()
+        )?;
+        self.cyclic_replay_buffer = Some(replay_buffer);
+
+        Ok(())
     }
 
-    pub fn var_store_mut(&mut self) -> &mut VarStore {
-        self.network.var_store_mut()
+}
+
+impl<
+    S: Scheme,
+    InfoSet: InformationSet<S> + Debug + ContextEncodeTensor<InfoSetConversionContext>,
+    InfoSetConversionContext: TensorEncoding,
+    ActionBuildContext:  MultiTensorIndexI64Encoding,
+> MaybeContainsOne<CyclicReplayBufferMultiActorCritic<S>> for PolicyMultiDiscreteA2C< S, InfoSet, InfoSetConversionContext, ActionBuildContext>
+where <S as Scheme>::ActionType:
+ContextDecodeMultiIndexI64<ActionBuildContext>
++ ContextEncodeMultiIndexI64<ActionBuildContext>
+{
+    fn get(&self) -> Option<&CyclicReplayBufferMultiActorCritic<S>> {
+        self.cyclic_replay_buffer.as_ref()
     }
 
-     */
-
+    fn get_mut(&mut self) -> Option<&mut CyclicReplayBufferMultiActorCritic<S>> {
+        self.cyclic_replay_buffer.as_mut()
+    }
 }
 
 impl<
@@ -289,7 +323,11 @@ where <S as Scheme>::ActionType: ContextDecodeMultiIndexI64<ActionBuildContext>
         reward_f: R
     ) -> Result<LearnSummary, AmfiteatrRlError<S>> {
 
-        Ok(self.a2c_train_on_trajectories(trajectories, reward_f)?)
+        if self.cyclic_replay_buffer.is_some(){
+            Ok(self.a2c_train_on_trajectories_with_replay_buffer(trajectories, reward_f)?)
+        } else {
+            Ok(self.a2c_train_on_trajectories(trajectories, reward_f)?)
+        }
 
     }
 
@@ -312,7 +350,6 @@ pub struct PolicyMaskingMultiDiscreteA2C<
 }
 
 impl<
-    
     S: Scheme,
     InfoSet: InformationSet<S> + Debug + ContextEncodeTensor<InfoSetConversionContext> + MaskingInformationSetActionMultiParameter<S, ActionBuildContext>,
     InfoSetConversionContext: TensorEncoding,
@@ -339,6 +376,10 @@ where <S as Scheme>::ActionType: ContextDecodeMultiIndexI64<ActionBuildContext> 
         self.base.add_tboard_directory(directory_path)
     }
 
+    pub fn initialize_cyclic_replay_buffer(&mut self, capacity: usize) -> Result<(), AmfiteatrError<S>>
+    where <S as Scheme>::ActionType: ContextDecodeMultiIndexI64<ActionBuildContext> + ContextEncodeMultiIndexI64<ActionBuildContext>{
+        self.base.initialize_cyclic_replay_buffer(capacity)
+    }
     /*
     pub fn var_store(&self) -> &VarStore {
         self.base.var_store()
@@ -353,6 +394,24 @@ where <S as Scheme>::ActionType: ContextDecodeMultiIndexI64<ActionBuildContext> 
 }
 
 impl<
+    S: Scheme,
+    InfoSet: InformationSet<S> + Debug + ContextEncodeTensor<InfoSetConversionContext> + MaskingInformationSetActionMultiParameter<S, ActionBuildContext>,
+    InfoSetConversionContext: TensorEncoding,
+    ActionBuildContext: MultiTensorDecoding + MultiTensorIndexI64Encoding
+    + tensor_data::ActionTensorFormat<Vec<Tensor>>,
+> MaybeContainsOne<CyclicReplayBufferMultiActorCritic<S>> for PolicyMaskingMultiDiscreteA2C< S, InfoSet, InfoSetConversionContext, ActionBuildContext>
+where <S as Scheme>::ActionType: ContextDecodeMultiIndexI64<ActionBuildContext> + ContextEncodeMultiIndexI64<ActionBuildContext>
+{
+    fn get(&self) -> Option<&CyclicReplayBufferMultiActorCritic<S>> {
+        self.base.get()
+    }
+
+    fn get_mut(&mut self) -> Option<&mut CyclicReplayBufferMultiActorCritic<S>> {
+        self.base.get_mut()
+    }
+}
+
+    impl<
     
     S: Scheme,
     InfoSet: InformationSet<S> + Debug + ContextEncodeTensor<InfoSetConversionContext> + MaskingInformationSetActionMultiParameter<S, ActionBuildContext>,
@@ -507,7 +566,11 @@ where
 
     fn train_generic<R: Fn(&AgentStepView<S, <Self as Policy<S>>::InfoSetType>) -> Tensor>(&mut self, trajectories: &[AgentTrajectory<S, <Self as Policy<S>>::InfoSetType>], reward_f: R)
                                                                                              -> Result<Self::Summary, AmfiteatrRlError<S>> {
-        Ok(self.a2c_train_on_trajectories(trajectories, reward_f)?)
+        if self.base.cyclic_replay_buffer.is_some(){
+            Ok(self.a2c_train_on_trajectories_with_replay_buffer(trajectories, reward_f)?)
+        } else {
+            Ok(self.a2c_train_on_trajectories(trajectories, reward_f)?)
+        }
     }
 
 

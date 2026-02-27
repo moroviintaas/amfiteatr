@@ -7,12 +7,12 @@ use tch::Tensor;
 use amfiteatr_core::agent::{AgentStepView, AgentTrajectory, InformationSet, Policy};
 use amfiteatr_core::scheme::Scheme;
 use amfiteatr_core::error::{AmfiteatrError, TensorError};
-use amfiteatr_core::util::TensorboardSupport;
+use amfiteatr_core::util::{MaybeContainsOne, TensorboardSupport};
 use crate::error::AmfiteatrRlError;
 use crate::policy::actor_critic::base::{ConfigA2C, PolicyHelperA2C, PolicyTrainHelperA2C};
-use crate::policy::{LearnSummary, LearningNetworkPolicyGeneric};
+use crate::policy::{CyclicReplayBufferActorCritic, LearnSummary, LearningNetworkPolicyGeneric, PolicyTrainHelperPPO};
 use crate::{MaskingInformationSetAction, tensor_data};
-use crate::tensor_data::{ContextDecodeIndexI64, ContextEncodeIndexI64, ContextEncodeTensor, TensorDecoding, TensorEncoding, TensorIndexI64Encoding};
+use crate::tensor_data::{ContextDecodeIndexI64, ContextEncodeIndexI64, ContextEncodeTensor, MultiTensorIndexI64Encoding, TensorDecoding, TensorEncoding, TensorIndexI64Encoding};
 use crate::torch_net::{ActorCriticOutput, NeuralNet, NeuralNetActorCritic, TensorActorCritic};
 
 /// Policy A2C for discrete action space with single distribution using [`tch`] crate for `torch` backed
@@ -35,6 +35,7 @@ pub struct PolicyDiscreteA2C<
     exploration: bool,
     tboard_writer: Option<tboard::EventWriter<File>>,
     global_step: i64,
+    cyclic_replay_buffer: Option<CyclicReplayBufferActorCritic<S>>,
 
 }
 
@@ -62,9 +63,11 @@ impl<
             action_encoding: action_build_context,
             exploration: true,
             tboard_writer: None,
-            global_step: 0
+            global_step: 0,
+            cyclic_replay_buffer: None,
         }
     }
+    /*
     /// Creates [`tboard::EventWriter`]. Initialy policy does not use `tensorboard` directory to store epoch
     /// training results (like entropy, policy loss, value loss). However, you cen provide it with directory
     /// to create tensorboard files.
@@ -76,16 +79,32 @@ impl<
         Ok(())
     }
 
-    /*
-    pub fn var_store(&self) -> &VarStore {
-        self.network.var_store()
-    }
-
-    pub fn var_store_mut(&mut self) -> &mut VarStore {
-        self.network.var_store_mut()
-    }
-
      */
+
+    /// Initializes cyclic replay buffer with requested capacity.
+    /// Unless the method is invoked policy will not use this buffer and only recent trajectories
+    /// will be used in learning.
+    pub fn initialize_cyclic_replay_buffer(&mut self, capacity: usize) -> Result<(), AmfiteatrError<S>>
+    where <S as Scheme>::ActionType: ContextDecodeIndexI64<ActionBuildContext> + ContextEncodeIndexI64<ActionBuildContext>,
+    ActionBuildContext: TensorIndexI64Encoding{
+
+        let mask_shape = match self.is_action_masking_supported(){
+            true => Some(self.action_encoding.expected_input_shape()),
+            false => None,
+        };
+
+        let replay_buffer = CyclicReplayBufferActorCritic::new(
+            capacity,
+            self.info_set_encoding.desired_shape(),
+            self.action_encoding.expected_input_shape()[0],
+            tch::Kind::Float, // possibly change one time, when policy will hold information about it,
+            self.network.device(),
+            self.is_action_masking_supported()
+        )?;
+        self.cyclic_replay_buffer = Some(replay_buffer);
+
+        Ok(())
+    }
 
 
 }
@@ -123,7 +142,6 @@ impl<
     }
 }
 impl<
-    
     S: Scheme,
     InfoSet: InformationSet<S> + Debug + ContextEncodeTensor<InfoSetEncoding>,
     InfoSetEncoding: TensorEncoding,
@@ -260,6 +278,23 @@ impl<
 }
 
 impl<
+
+    S: Scheme,
+    InfoSet: InformationSet<S> + Debug + ContextEncodeTensor<InfoSetEncoding>,
+    InfoSetEncoding: TensorEncoding,
+    ActionEncoding: TensorDecoding + TensorIndexI64Encoding
+    + tensor_data::ActionTensorFormat<Tensor>,
+> MaybeContainsOne<CyclicReplayBufferActorCritic<S>> for PolicyDiscreteA2C< S, InfoSet, InfoSetEncoding, ActionEncoding>{
+    fn get(&self) -> Option<&CyclicReplayBufferActorCritic<S>> {
+        self.cyclic_replay_buffer.as_ref()
+    }
+
+    fn get_mut(&mut self) -> Option<&mut CyclicReplayBufferActorCritic<S>> {
+        self.cyclic_replay_buffer.as_mut()
+    }
+}
+
+impl<
     
     S: Scheme,
     InfoSet: InformationSet<S> + Debug + ContextEncodeTensor<InfoSetEncoding>,
@@ -288,7 +323,11 @@ impl<
 
     fn train_generic<R: Fn(&AgentStepView<S, <Self as Policy<S>>::InfoSetType>) -> Tensor>(&mut self, trajectories: &[AgentTrajectory<S, <Self as Policy<S>>::InfoSetType>], reward_f: R)
                                                                                              -> Result<Self::Summary, AmfiteatrRlError<S>> {
-        Ok(self.a2c_train_on_trajectories(trajectories, reward_f)?)
+        if self.cyclic_replay_buffer.is_some(){
+            Ok(self.a2c_train_on_trajectories_with_replay_buffer(trajectories, reward_f)?)
+        } else {
+            Ok(self.a2c_train_on_trajectories(trajectories, reward_f)?)
+        }
     }
 
 
@@ -334,6 +373,28 @@ impl <
         }
     }
 
+    pub fn initialize_cyclic_replay_buffer(&mut self, capacity: usize) -> Result<(), AmfiteatrError<S>>
+    where <S as Scheme>::ActionType: ContextDecodeIndexI64<ActionBuildContext> + ContextEncodeIndexI64<ActionBuildContext>{
+        self.base.initialize_cyclic_replay_buffer(capacity)
+    }
+
+}
+
+impl <
+
+    S: Scheme,
+    InfoSet: InformationSet<S> + Debug + ContextEncodeTensor<InfoSetConversionContext> + MaskingInformationSetAction<S, ActionBuildContext>,
+    InfoSetConversionContext: TensorEncoding,
+    ActionBuildContext: TensorDecoding + TensorIndexI64Encoding,
+> MaybeContainsOne<CyclicReplayBufferActorCritic<S>> for PolicyMaskingDiscreteA2C< S, InfoSet, InfoSetConversionContext, ActionBuildContext, >
+{
+    fn get(&self) -> Option<&CyclicReplayBufferActorCritic<S>> {
+        self.base.get()
+    }
+
+    fn get_mut(&mut self) -> Option<&mut CyclicReplayBufferActorCritic<S>> {
+        self.base.get_mut()
+    }
 }
 
 impl <
@@ -491,9 +552,11 @@ impl <
 
     fn train_generic<R: Fn(&AgentStepView<S, <Self as Policy<S>>::InfoSetType>) -> Tensor>(&mut self, trajectories: &[AgentTrajectory<S, <Self as Policy<S>>::InfoSetType>], reward_f: R)
                                                                                              -> Result<Self::Summary, AmfiteatrRlError<S>> {
-        #[cfg(feature = "log_trace")]
-        log::trace!("Train on trajectories start.");
-        Ok(self.a2c_train_on_trajectories(trajectories, reward_f)?)
+        if self.base.cyclic_replay_buffer.is_some(){
+            Ok(self.a2c_train_on_trajectories_with_replay_buffer(trajectories, reward_f)?)
+        } else {
+            Ok(self.a2c_train_on_trajectories(trajectories, reward_f)?)
+        }
     }
 
     fn set_gradient_tracing(&mut self, enabled: bool) {
