@@ -8,8 +8,10 @@ use tch::Kind::Float;
 use amfiteatr_core::agent::{AgentStepView, AgentTrajectory, InformationSet};
 use amfiteatr_core::scheme::Scheme;
 use amfiteatr_core::error::{AmfiteatrError, LearningError, TensorError};
+use amfiteatr_core::reexport::nom::Parser;
+use amfiteatr_core::util::MaybeContainsOne;
 use crate::error::AmfiteatrRlError;
-use crate::policy::{LearnSummary, RlPolicyConfigBasic};
+use crate::policy::{ActorCriticReplayBuffer, LearnSummary, RlPolicyConfigBasic};
 use crate::tensor_data::{ActionTensorFormat, ContextEncodeTensor, TensorEncoding};
 use crate::torch_net::{ActorCriticOutput, DeviceTransfer, NeuralNet};
 
@@ -502,6 +504,305 @@ pub trait PolicyTrainHelperA2C<S: Scheme> : PolicyHelperA2C<S, Config=ConfigA2C>
             )?;
 
             let minibatch_returns_t = batch_returns_t.f_index_select(0, &minibatch_indices)
+                .map_err(|e| TensorError::from_tch_with_context(e, "Mini-batching returns".into()))?;
+            //let minibatch_values_t = batch_values_t.f_index_select(0, &minibatch_indices)?;
+
+            //let dist_entropy = categorical_dist_entropy(&probs, &log_probs, Kind::Float).mean(Float);
+
+            let advantages = minibatch_returns_t.f_sub(&critic)
+                .map_err(|e| AmfiteatrError::Tensor {error: TensorError::Torch {
+                    origin: format!{"{e}"},
+                    context: "Calculating A2C advantages.".into(),
+                }})?;
+
+            let value_loss = (&advantages * &advantages).mean(Float);
+
+            let action_loss = (-advantages.detach() * log_probs).mean(Float);
+            let entropy_mean = entropy.f_mean(Float)
+                .map_err(|e| TensorError::from_tch_with_context(e, "Calculating entropy loss".into()))?;
+            #[cfg(feature = "log_trace")]
+            log::trace!("value_loss: {value_loss}");
+            #[cfg(feature = "log_trace")]
+            log::trace!("action_loss: {action_loss}");
+            #[cfg(feature = "log_trace")]
+            log::trace!("entropy: {entropy_mean}");
+
+            let loss = action_loss
+                .f_add(&(&value_loss * self.config().vf_coef))
+                .map_err(|e| TensorError::from_tch_with_context(e, "Calculating loss (adding value loss)".into()))?
+                .f_sub(&(&entropy_mean * self.config().ent_coef))
+                .map_err(|e| TensorError::from_tch_with_context(e, "Calculating loss (subtracting entropy loss)".into()))?;
+
+            self.optimizer_mut().zero_grad();
+
+            self.optimizer_mut().backward_step(&loss);
+
+            summary_vec_vf_loss.push(value_loss);
+            summary_vec_pg_loss.push(action_loss);
+            summary_vec_entropy.push(entropy_mean);
+
+        }
+
+        let value_loss_avg = Tensor::vstack(&summary_vec_vf_loss).mean(Kind::Double);
+        let pg_loss_mean = Tensor::vstack(&summary_vec_pg_loss).mean(Kind::Double);
+        let entropy_mean = Tensor::vstack(&summary_vec_entropy).mean(Kind::Double);
+        #[cfg(feature = "log_debug")]
+        log::debug!("Mean Critic loss tensor after training: {value_loss_avg}");
+        #[cfg(feature = "log_debug")]
+        log::debug!("Mean Actor loss tensor after training: {pg_loss_mean}");
+        #[cfg(feature = "log_debug")]
+        log::debug!("Mean Value loss tensor after training: {entropy_mean}");
+
+        tch::no_grad(||{
+            let learning_step = self.global_learning_step();
+            if let Some(writer) = self.tboard_writer(){
+                writer.write_scalar(learning_step, "losses/policy_loss", pg_loss_mean.double_value(&[]) as f32)
+                    .map_err(|e| AmfiteatrError::TboardFlattened {context: "Write policy loss".into(), error: format!("{e}")})?;
+                writer.write_scalar(learning_step, "losses/value_loss", value_loss_avg.double_value(&[]) as f32)
+                    .map_err(|e| AmfiteatrError::TboardFlattened {context: "Write value loss".into(), error: format!("{e}")})?;
+                writer.write_scalar(learning_step, "losses/entropy", entropy_mean.double_value(&[]) as f32)
+                    .map_err(|e| AmfiteatrError::TboardFlattened {context: "Write entropy".into(), error: format!("{e}")})?;
+
+            }
+
+            self.set_global_learning_step(self.global_learning_step()+1);
+            Result::<(), AmfiteatrError<S>>::Ok(())
+        })?;
+
+
+        Ok(LearnSummary{
+            value_loss: Some(value_loss_avg.double_value(&[])),
+            policy_gradient_loss: Some(pg_loss_mean.double_value(&[])),
+            entropy_loss: Some(entropy_mean.double_value(&[])),
+            approx_kl: None,
+
+
+        })
+    }
+
+    fn a2c_train_on_trajectories_with_replay_buffer<
+        R: Fn(&AgentStepView<S, Self::InfoSet>) -> Tensor,
+        B: ActorCriticReplayBuffer<S, ActionData=<<Self as PolicyHelperA2C<S>>::NetworkOutput as ActorCriticOutput>::ActionTensorType >
+    >(
+        &mut self, trajectories: &[AgentTrajectory<S, Self::InfoSet>],
+        reward_f: R
+    ) -> Result<LearnSummary, AmfiteatrError<S>>
+    where Self: MaybeContainsOne<B>,
+          <Self as PolicyHelperA2C<S>>::InfoSetConversionContext : Clone,
+    {
+        let mut rng = rand::rng();
+
+        #[cfg(feature = "log_trace")]
+        log::trace!("Starting a2c train session");
+
+        //let summary_len_estimation =
+
+
+
+        let device = self.network().device();
+        let capacity_estimate = trajectories.iter().fold(0, |acc, x|{
+            acc + x.number_of_steps()
+        });
+        let tmp_capacity_estimate = trajectories.iter().map(|x|{
+            x.number_of_steps()
+        }).max().unwrap_or(0);
+
+        let mut summary_vec_vf_loss = Vec::with_capacity(capacity_estimate);
+        let mut summary_vec_pg_loss = Vec::with_capacity(capacity_estimate);
+        let mut summary_vec_entropy = Vec::with_capacity(capacity_estimate);
+
+
+        //println!("trajectories: {:?}", trajectories);
+
+        //println!("a");
+        let step_example = trajectories.iter().find(|&trajectory|{
+            trajectory.view_step(0).is_some()
+        }).and_then(|trajectory| trajectory.view_step(0))
+            .ok_or(AmfiteatrRlError::NoTrainingData)?;
+        //println!("b");
+
+
+        let sample_info_set = step_example.information_set();
+
+        let sample_info_set_t = sample_info_set.try_to_tensor(self.info_set_encoding())?;
+        let sample_net_output = tch::no_grad(|| self.network().net()(&sample_info_set_t));
+        let action_params = sample_net_output.param_dimension_size() as usize;
+
+
+        let mut state_tensor_vec = Vec::<Tensor>::with_capacity(capacity_estimate);
+        let mut advantage_tensor_vec = Vec::<Tensor>::with_capacity(capacity_estimate);
+
+        let mut action_masks_vec = Self::NetworkOutput::new_batch_with_capacity(action_params ,capacity_estimate);
+        let mut multi_action_tensor_vec = Self::NetworkOutput::new_batch_with_capacity(action_params, capacity_estimate);
+        let mut multi_action_cat_mask_tensor_vec = Self::NetworkOutput::new_batch_with_capacity(action_params, capacity_estimate);
+
+
+
+
+        let mut tmp_trajectory_action_tensor_vecs = Self::NetworkOutput::new_batch_with_capacity(action_params, capacity_estimate);
+        let mut tmp_trajectory_action_category_mask_vecs = Self::NetworkOutput::new_batch_with_capacity(action_params, capacity_estimate);
+
+        let mut tmp_trajectory_state_tensor_vec = Vec::with_capacity(tmp_capacity_estimate);
+        let mut tmp_trajectory_reward_vec = Vec::with_capacity(tmp_capacity_estimate);
+
+        //let mut returns_vec = Vec::with_capacity(capacity_estimate);
+        //let mut gae_returns_v = Vec::new();
+        for t in trajectories {
+
+            t.view_step(0).inspect(|_t|{
+                #[cfg(feature = "log_trace")]
+                log::trace!("Training neural-network for agent {} (from first trace step entry).", _t.information_set().agent_id());
+
+            });
+
+            if t.last_view_step().is_none(){
+                #[cfg(feature = "log_debug")]
+                log::debug!("Slipping empty trajectory.");
+                continue;
+            }
+            //let final_score_t =   reward_f(&t.last_view_step().unwrap());
+
+            tmp_trajectory_state_tensor_vec.clear();
+            Self::NetworkOutput::clear_batch_dim_in_batch(&mut tmp_trajectory_action_tensor_vecs);
+            Self::NetworkOutput::clear_batch_dim_in_batch(&mut tmp_trajectory_action_category_mask_vecs);
+            tmp_trajectory_reward_vec.clear();
+            for step in t.iter(){
+                #[cfg(feature = "log_trace")]
+                log::trace!("Adding information set tensor to single trajectory vec.",);
+                tmp_trajectory_state_tensor_vec.push(step.information_set().try_to_tensor(self.info_set_encoding())?);
+                #[cfg(feature = "log_trace")]
+                log::trace!("Added information set tensor to single trajectory vec.",);
+                //let (act_t, cat_mask_t) = step.action().action_index_and_mask_tensor_vecs(&self.action_conversion_context())?;
+                let (act_t, cat_mask_t) = self.vectorize_action_and_create_category_mask(step.action())?;
+                #[cfg(feature = "log_trace")]
+                log::trace!("act_t: {:?}", act_t);
+                Self::NetworkOutput::push_to_vec_batch(&mut tmp_trajectory_action_tensor_vecs, act_t);
+
+                #[cfg(feature = "log_trace")]
+                log::trace!("tmp_trajectory_action_tensor_vecs: {:?}", tmp_trajectory_action_tensor_vecs);
+                Self::NetworkOutput::push_to_vec_batch(&mut tmp_trajectory_action_category_mask_vecs, cat_mask_t);
+
+                tmp_trajectory_reward_vec.push(reward_f(&step));
+                if self.is_action_masking_supported(){
+                    //action_masks_vec.push(self.generate_action_masks(step.information_set())?);
+                    Self::NetworkOutput::push_to_vec_batch(&mut action_masks_vec, self.generate_action_masks(step.information_set())?);
+                }
+            }
+            let information_set_t = Tensor::f_stack(&tmp_trajectory_state_tensor_vec[..],0)
+                .map_err(|e|TensorError::Torch {
+                    origin: format!("{e}"),
+                    context: "Stacking information set - tensors".into(),
+                }) ?.to_device(device);
+            #[cfg(feature = "log_trace")]
+            log::trace!("Tmp infoset shape = {:?}", information_set_t.size());
+            let net_out = tch::no_grad(|| (self.network().net())(&information_set_t));
+            let critic_t = net_out.critic();
+            #[cfg(feature = "log_trace")]
+            log::trace!("Tmp values_t shape = {:?}", critic_t.size());
+
+            let action_selection_t = Self::NetworkOutput::stack_tensor_batch(&tmp_trajectory_action_tensor_vecs)?;
+            let category_t = Self::NetworkOutput::stack_tensor_batch(&tmp_trajectory_action_category_mask_vecs)?;
+            //let mut returns_t = Tensor::from(0.0);
+
+            //let mut advantages_t = Tensor::from(0.0);
+
+            let (advantages_t, returns_t) = if let Some(gae_lambda) = self.config().gae_lambda{
+                tch::no_grad(||self.calculate_gae_advantages_and_returns(t, critic_t, &reward_f, gae_lambda))?
+            } else {
+                tch::no_grad(||self.calculate_advantages_and_returns(t, critic_t, &reward_f))?
+            };
+
+
+            let action_forward_masks = match self.is_action_masking_supported(){
+                true => Some(Self::NetworkOutput::stack_tensor_batch(&action_masks_vec)?.move_to_device(device)),
+                false => None
+            };
+
+            let mut replay_buffer = self.get_mut().ok_or_else(|| AmfiteatrError::ReplayBuffer {
+                context: "Buffer not initialised".to_string()
+            })?;
+
+            #[cfg(feature = "log_trace")]
+            log::trace!("Action tensor (batch): {}", net_out.verbose_display_actor());
+            replay_buffer.push_tensors(
+                &information_set_t.detach(),
+                &action_selection_t,
+
+                action_forward_masks.as_ref(),
+                &category_t,
+                &advantages_t.detach(),
+                &returns_t.detach()
+
+            )?;
+
+
+
+        }
+
+        let replay_buffer = self.get().ok_or_else(|| AmfiteatrError::ReplayBuffer {
+            context: "Buffer not initialised".to_string()
+        })?;
+
+        let mut continue_training = true;
+
+        let batch_size = replay_buffer.size() as i64;
+        let mut indices: Vec<i64> = (0..batch_size as i64).collect();
+
+        let batch_info_sets_t = replay_buffer.info_set_buffer();
+        let batch_actions_t = replay_buffer.action_buffer();
+        let batch_action_masks_t = replay_buffer.action_mask_buffer();
+        let batch_advantage_t = replay_buffer.advantage_buffer();
+        let batch_rewards_t = replay_buffer.return_payoff_buffer();
+        let batch_categories_mask_t = replay_buffer.category_mask_buffer();
+
+        let (batch_logprob_t, _entropy, batch_values_t) = tch::no_grad(||{
+            self.batch_get_logprob_entropy_critic(
+                &batch_info_sets_t,
+                &batch_actions_t,
+                None, //Some(&batch_action_cat_masks_t),
+                batch_action_masks_t.as_ref(),
+            )
+
+        })?;
+
+
+
+
+        let batch_size = batch_info_sets_t.size()[0];
+        let mut indices: Vec<i64> = (0..batch_size).collect();
+        indices.shuffle(&mut rng);
+
+
+
+        let mini_batch_size = self.config().mini_batch_size.unwrap_or(batch_size as usize);
+
+        for minibatch_start in (0..batch_size).step_by(mini_batch_size){
+            let minibatch_end = min(minibatch_start + mini_batch_size as i64, batch_size);
+            let minibatch_indices = Tensor::from(&indices[minibatch_start as usize..minibatch_end as usize]).to_device(device);
+
+            let mini_batch_action = Self::NetworkOutput::index_select(&batch_actions_t, &minibatch_indices)
+                .map_err(|e| TensorError::from_tch_with_context(e, "Mini-batching action".into()))?;
+            let mini_batch_action_cat_mask = Self::NetworkOutput::index_select(&batch_categories_mask_t, &minibatch_indices)
+                .map_err(|e| TensorError::from_tch_with_context(e, "Mini-batching action categories masks".into()))?;
+
+            let mini_batch_action_forward_mask = match batch_action_masks_t{
+                None => None,
+                Some(ref m) => Some(Self::NetworkOutput::index_select(m, &minibatch_indices)
+                    .map_err(|e| TensorError::from_tch_with_context(e, "Mini-batching action masks".into()))?)
+            };
+
+            //let mini_batch_base_logprobs = batch_logprob_t.f_index_select(0, &minibatch_indices)?;
+            #[cfg(feature = "log_trace")]
+            log::trace!("Selected minibatch logprobs");
+            let (log_probs, entropy, critic) = self.batch_get_logprob_entropy_critic(
+                &batch_info_sets_t.f_index_select(0, &minibatch_indices)
+                    .map_err(|e| TensorError::from_tch_with_context(e, "Calculating log_prob, entropy and critic value for mini-batch".into()))?,
+                &mini_batch_action,
+                Some(&mini_batch_action_cat_mask),
+                mini_batch_action_forward_mask.as_ref(), //to add it some day
+            )?;
+
+            let minibatch_returns_t = batch_rewards_t.f_index_select(0, &minibatch_indices)
                 .map_err(|e| TensorError::from_tch_with_context(e, "Mini-batching returns".into()))?;
             //let minibatch_values_t = batch_values_t.f_index_select(0, &minibatch_indices)?;
 
