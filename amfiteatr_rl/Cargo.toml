@@ -14,7 +14,7 @@ name = "multi_actor_entropy"
 
 [dependencies]
 
-tch = "0.22.0"
+tch = "0.23.0"
 log = { version = "0.4.27", optional = true }
 thiserror = "2.0.12"
 rand = "0.9.2"

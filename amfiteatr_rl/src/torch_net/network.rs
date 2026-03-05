@@ -328,7 +328,7 @@ pub enum Layer{
 /// //let net = NeuralNet::new(var_store, model);
 ///
 /// ```
-pub fn build_network_model_ac_discrete(layers: Vec<Layer>, input_shape:  Vec<i64>, actor_shape: i64, path: &nn::Path)
+pub fn build_network_model_ac_discrete(layers: Vec<Layer>, input_shape:  Vec<i64>, actor_shape: i64, path: &nn::Path,)
                                        -> NetworkModel< TensorActorCritic>{
 
         let mut seq = nn::seq();

@@ -46,6 +46,7 @@ use crate::connect_four::agent::{ConnectFourActionTensorRepresentation, ConnectF
 use amfiteatr_rl::policy::LearnSummary;
 
 use amfiteatr_core::util::TensorboardSupport;
+use amfiteatr_rl::tch;
 use crate::common::ComputeDevice;
 use crate::connect_four::options::ConnectFourOptions;
 
