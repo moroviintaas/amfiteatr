@@ -8,6 +8,9 @@ pub fn categorical_dist_entropy(probabilities: &Tensor, log_probabilities: &Tens
     (-log_probabilities * probabilities).sum_dim_intlist(-1, false, kind)
 }
 
+/// Module that can be used to serialize and deserialize [Kind](tch::kind::Kind) which is not serializable
+/// natively. This can be used if we want serializing and deserializing model configs,
+/// where tensor kinds is expected to be customizable.
 pub mod serde_kind{
     use std::fmt::Formatter;
     use serde::de;

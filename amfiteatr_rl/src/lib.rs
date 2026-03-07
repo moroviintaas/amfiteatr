@@ -2,7 +2,7 @@
 //! Framework library for reinforcement learning using data model from [`amfiteatr`](amfiteatr_core).
 //! Crate contains traits and generic implementation.
 //! ## Examples
-//! Examples are presented in separate crate - [`amfiteatr_examples`](https://github.com/moroviintaas/amfiteatr_examples)
+//! Examples are presented in separate crate - [`amfiteatr_examples`](https://github.com/moroviintaas/amfiteatr/tree/master/amfiteatr_examples)
 //! ## Licence: MIT
 
 

@@ -4,11 +4,18 @@ use tch::Kind::Int64;
 use amfiteatr_core::error::{AmfiteatrError, TensorError};
 use amfiteatr_core::scheme::Scheme;
 
+/// Trait for collections working as replay buffer for actor critic policies (A2C, PPO).
 pub trait ActorCriticReplayBuffer<S: Scheme>{
-    /// Mainly do define actor shape (it can be single `Tensor` for one parameter actions like [`TensorActorCritic`](TensorActorCritic),
+    /// Mainly do define actor shape (it can be single `Tensor` for one parameter actions like [`TensorActorCritic`](crate::torch_net::TensorActorCritic),
     /// or `Vec<Tensor> for multi parameter like [`TensorMultiParamActorCritic`](TensorMultiParamActorCritic))
     type ActionData;
 
+    /// Method for pushing tensor data to buffer. All data types should align tensor dimension zero
+    /// with input enumerations.
+    /// For example, if you want to add `3` transitions to replay buffer, and part of it transition is
+    /// tensor representation of information set in shape `4 x 5`, then you should push tensor of
+    /// shape `3 x 4 x 5`, on position `info_set`. Refer to implementation of [`CyclicReplayBufferActorCritic`](CyclicReplayBufferActorCritic::push_tensors)
+    /// or [`CyclicReplayBufferMultiActorCritic`](CyclicReplayBufferMultiActorCritic::push_tensors).
     fn push_tensors(
         &mut self,
         info_set: &Tensor,
@@ -20,41 +27,51 @@ pub trait ActorCriticReplayBuffer<S: Scheme>{
     )
         -> Result<(), AmfiteatrError<S>>;
 
-    /*
-    fn push(
-        &mut self,
-        info_set: &Tensor,
-        action: &Tensor,
-        action_mask: Option<&Tensor>,
-        advantage: &Tensor,
-        reward: &Tensor,)
-        -> Result<(), AmfiteatrError<S>>;
-    */
-    /*
-    fn push_more(
-        &mut self,
-        info_sets: &Tensor,
-        actions: &Tensor,
-        action_masks: Option<&Tensor>,
-        advantages: &Tensor,
-        rewards: &Tensor,)
-        -> Result<(), AmfiteatrError<S>>;
 
-     */
 
+    /// Returns tensor of currently buffered information sets.
+    /// Dimension `0` aligns with consecutive entries.
+    /// Following dimensions are internal to information set representation.
     fn info_set_buffer(&self) -> Tensor;
+    /// Returns tensor(s) of currently buffered action indexes.
+    /// If used with single param action, dimension `0` aligns with consecutive actions,
+    /// and dimension `1` is internal to action (size `1`).
+    /// For actions with multiple parameters `ActionData` is typically a `Vec<Tensor>`,
+    /// where `Vec` dimensions is action param dimension and every `Tensor` in it aligns it's
+    /// `0` dimension with transition number.
     fn action_buffer(&self) -> Self::ActionData;
-
+    /// Returns tensor(s) of currently buffered action masks.
+    /// Similarly to [`action_buffer`](ActorCriticReplayBuffer::action_buffer) it depends on `ActionData` type.
+    /// For single parameter discrete action the result is `bool` `Tensor`, with dimension `0`
+    /// aligned with transition and values along dimension `1` represent masks for parameter variants.
+    /// For multi parameter actions it will be probably wrapped in `Vec`.
+    /// `Vec` dimension aligns with different parameters.
     fn action_mask_buffer(&self) -> Option<Self::ActionData>;
-
+    /// Returns tensor(s) of currently buffered parameter category masks.
+    /// Similarly to [`action_buffer`](ActorCriticReplayBuffer::action_buffer) it depends on `ActionData` type.
+    /// Dimension `0` of tensor, traditionally aligns with transitions.
+    /// For single parameter actions the `Tensor` should always be `true` filled, as
+    /// there is no possibility for category to be ignored (it's the only one).
+    /// For multi parameter actions `Vec` dimension aligns with action category parameter,
+    /// tensor dimension `0` aligns with transitions, dimension `1` is size `1` and value is `true`
+    /// if category is important, and `false` if it should be ignored.
     fn category_mask_buffer(&self) -> Self::ActionData;
 
+    /// Returns tensor of currently buffered advantage.
+    /// Dimension `0` aligns with consecutive entries.
+    /// Dimension `1` probably has size `1`, and stores advantage for this transition.
     fn advantage_buffer(&self) -> Tensor;
 
+    /// Returns tensor of currently buffered payoff (possibly discounted in some way).
+    /// Dimension `0` aligns with consecutive entries.
+    /// Dimension `1` probably has size `1`, and stores payoff for this transition.
     fn return_payoff_buffer(&self) -> Tensor;
+
+    /// Returns capacity of buffer (maximal).
 
     fn capacity(&self) -> usize;
 
+    /// Returns current size of buffer.
     fn size(&self) -> usize;
 }
 
@@ -134,6 +151,8 @@ impl<S: Scheme, T: ActorCriticReplayBuffer<S>> ActorCriticReplayBuffer<S> for Bo
     }
 }
 
+/// Cyclic implementation of replay buffer for actor critic policies.
+/// When the capacity limit is reached the oldest entries are overwritten.
 pub struct CyclicReplayBufferActorCritic<S: Scheme>{
 
     capacity: i64,
@@ -593,6 +612,8 @@ use tch::{Device, Kind, Tensor};
 
  */
 
+/// Cyclic implementation of replay buffer for actor critic policies with multiple parameter actions.
+/// When the capacity limit is reached the oldest entries are overwritten.
 pub struct CyclicReplayBufferMultiActorCritic<S: Scheme>{
 
     capacity: i64,
