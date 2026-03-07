@@ -102,10 +102,12 @@ impl<
     pub fn initialize_cyclic_replay_buffer(&mut self, capacity: usize) -> Result<(), AmfiteatrError<S>>
     where <S as Scheme>::ActionType: ContextDecodeIndexI64<ActionBuildContext> + ContextEncodeIndexI64<ActionBuildContext>{
 
+        /* 
         let mask_shape = match self.is_action_masking_supported(){
             true => Some(self.action_encoding.expected_input_shape()),
             false => None,
         };
+        */
 
         let replay_buffer = CyclicReplayBufferActorCritic::new(
             capacity,

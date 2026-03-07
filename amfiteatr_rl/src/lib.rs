@@ -24,4 +24,3 @@ pub use masking::*;
 
 /// Reexports compatible [`tch`]
 pub use tch;
-use amfiteatr_core::error::AmfiteatrError;

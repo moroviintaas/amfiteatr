@@ -3,7 +3,6 @@ use tch::{Kind, Tensor};
 use tch::Kind::Int64;
 use amfiteatr_core::error::{AmfiteatrError, TensorError};
 use amfiteatr_core::scheme::Scheme;
-use crate::torch_net::{ActorCriticOutput, TensorActorCritic};
 
 pub trait ActorCriticReplayBuffer<S: Scheme>{
     /// Mainly do define actor shape (it can be single `Tensor` for one parameter actions like [`TensorActorCritic`](TensorActorCritic),
@@ -233,7 +232,7 @@ impl<S: Scheme> ActorCriticReplayBuffer<S> for CyclicReplayBufferActorCritic<S>{
             }});
         }
 
-        if let (Some(action_mask_t), Some(action_mask_buffer)) = (action_mask, self.action_mask_buffer.as_mut()) {
+        if let (Some(action_mask_t), Some(_action_mask_buffer)) = (action_mask, self.action_mask_buffer.as_mut()) {
             if action_mask_t.size()[0] != positions_added{
                 return Err(AmfiteatrError::Tensor{ error: TensorError::BadTensorLength {
                     context: format!("ActionMask batch tensor has bad 0 dim (action number): {}, expected: {positions_added}", action_mask_t.size()[0])
@@ -278,7 +277,7 @@ impl<S: Scheme> ActorCriticReplayBuffer<S> for CyclicReplayBufferActorCritic<S>{
                     .f_copy_(&action).expect(&format!("Action: {} and {}", self.action_buffer.slice(0, self.position, self.position + positions_added, 1),  action));
                 if let (Some(action_mask), Some(action_mask_buffer)) = (action_mask, self.action_mask_buffer.as_mut()) {
                     action_mask_buffer.slice(0, self.position, self.position + positions_added, 1)
-                        .f_copy_(&action_mask).expect(&format!("Mask: {} and {}", action_mask_buffer.slice(0, self.position, self.position + positions_added, 1),  action_mask));;
+                        .f_copy_(&action_mask).expect(&format!("Mask: {} and {}", action_mask_buffer.slice(0, self.position, self.position + positions_added, 1),  action_mask));
                 }
 
                 self.advantages_buffer.slice(0, self.position, self.position + positions_added, 1)
@@ -624,11 +623,11 @@ impl<S: Scheme> CyclicReplayBufferMultiActorCritic<S> {
     ) -> Result<CyclicReplayBufferMultiActorCritic<S>, AmfiteatrError<S>> {
 
         let info_set_shape = [&[capacity as i64], info_set_shape].concat();
-        let action_shape = [capacity as i64, 1];
+        //let action_shape = [capacity as i64, 1];
 
 
         let info_set_buffer = Tensor::zeros(&info_set_shape, (kind, device));
-        let action_buffer = (0..action_categories_shapes.len()).map(|s|{
+        let action_buffer = (0..action_categories_shapes.len()).map(|_s|{
             Tensor::zeros(&[capacity as i64, 1], (Int64, device))
         }).collect();
 

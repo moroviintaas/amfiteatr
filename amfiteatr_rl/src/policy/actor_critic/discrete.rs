@@ -10,9 +10,9 @@ use amfiteatr_core::error::{AmfiteatrError, TensorError};
 use amfiteatr_core::util::{MaybeContainsOne, TensorboardSupport};
 use crate::error::AmfiteatrRlError;
 use crate::policy::actor_critic::base::{ConfigA2C, PolicyHelperA2C, PolicyTrainHelperA2C};
-use crate::policy::{CyclicReplayBufferActorCritic, LearnSummary, LearningNetworkPolicyGeneric, PolicyTrainHelperPPO};
+use crate::policy::{CyclicReplayBufferActorCritic, LearnSummary, LearningNetworkPolicyGeneric};
 use crate::{MaskingInformationSetAction, tensor_data};
-use crate::tensor_data::{ContextDecodeIndexI64, ContextEncodeIndexI64, ContextEncodeTensor, MultiTensorIndexI64Encoding, TensorDecoding, TensorEncoding, TensorIndexI64Encoding};
+use crate::tensor_data::{ContextDecodeIndexI64, ContextEncodeIndexI64, ContextEncodeTensor, TensorDecoding, TensorEncoding, TensorIndexI64Encoding};
 use crate::torch_net::{ActorCriticOutput, NeuralNet, NeuralNetActorCritic, TensorActorCritic};
 
 /// Policy A2C for discrete action space with single distribution using [`tch`] crate for `torch` backed
@@ -88,10 +88,7 @@ impl<
     where <S as Scheme>::ActionType: ContextDecodeIndexI64<ActionBuildContext> + ContextEncodeIndexI64<ActionBuildContext>,
     ActionBuildContext: TensorIndexI64Encoding{
 
-        let mask_shape = match self.is_action_masking_supported(){
-            true => Some(self.action_encoding.expected_input_shape()),
-            false => None,
-        };
+
 
         let replay_buffer = CyclicReplayBufferActorCritic::new(
             capacity,

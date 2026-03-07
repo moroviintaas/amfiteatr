@@ -6,16 +6,14 @@ use rand::prelude::SliceRandom;
 use serde::{Deserialize, Serialize};
 use tch::{Kind, Tensor};
 use tch::Kind::Float;
-use tch::nn::Optimizer;
-use amfiteatr_core::agent::{AgentStepView, AgentTrajectory, InformationSet};
+use amfiteatr_core::agent::{AgentStepView, AgentTrajectory};
 use amfiteatr_core::scheme::Scheme;
 use amfiteatr_core::error::{AmfiteatrError, TensorError};
-use amfiteatr_core::reexport::nom::Parser;
 use amfiteatr_core::util::MaybeContainsOne;
 use crate::error::AmfiteatrRlError;
 use crate::policy::{ActorCriticReplayBuffer, LearnSummary, PolicyHelperA2C, RlPolicyConfigBasic};
-use crate::tensor_data::{ActionTensorFormat, ContextEncodeTensor, TensorEncoding};
-use crate::torch_net::{ActorCriticOutput, DeviceTransfer, NeuralNet};
+use crate::tensor_data::{ContextEncodeTensor};
+use crate::torch_net::{ActorCriticOutput, DeviceTransfer};
 
 
 /// Configuration structure for PPO Policy
@@ -1046,7 +1044,7 @@ pub trait PolicyTrainHelperPPO<S: Scheme> : PolicyHelperA2C<S, Config=ConfigPPO>
                 true => Some(Self::NetworkOutput::stack_tensor_batch(&action_masks_vec)?.move_to_device(device)),
                 false => None
             };
-            let mut replay_buffer = self.get_mut().ok_or_else(|| AmfiteatrError::ReplayBuffer {
+            let replay_buffer = self.get_mut().ok_or_else(|| AmfiteatrError::ReplayBuffer {
                 context: "Buffer not initialised".to_string()
             })?;
             #[cfg(feature = "log_trace")]

@@ -9,7 +9,7 @@ use amfiteatr_core::scheme::Scheme;
 use amfiteatr_core::error::{AmfiteatrError, TensorError};
 use amfiteatr_core::util::{MaybeContainsOne, TensorboardSupport};
 use crate::error::AmfiteatrRlError;
-use crate::policy::{ConfigA2C, CyclicReplayBufferMultiActorCritic, LearnSummary, LearningNetworkPolicyGeneric, PolicyHelperA2C, PolicyTrainHelperA2C, PolicyTrainHelperPPO};
+use crate::policy::{ConfigA2C, CyclicReplayBufferMultiActorCritic, LearnSummary, LearningNetworkPolicyGeneric, PolicyHelperA2C, PolicyTrainHelperA2C};
 use crate::{tensor_data, MaskingInformationSetActionMultiParameter};
 use crate::tensor_data::{ContextDecodeMultiIndexI64, ContextEncodeMultiIndexI64, ContextEncodeTensor, MultiTensorDecoding, MultiTensorIndexI64Encoding, TensorEncoding};
 use crate::torch_net::{ActorCriticOutput, DeviceTransfer, NeuralNet, NeuralNetMultiActorCritic, TensorMultiParamActorCritic};
@@ -95,10 +95,6 @@ ContextDecodeMultiIndexI64<ActionBuildContext>
         ActionBuildContext: MultiTensorDecoding
     {
 
-        let mask_shape = match self.is_action_masking_supported(){
-            true => Some(self.action_encoding.expected_inputs_shape()),
-            false => None,
-        };
 
         let action_shapes = self.action_encoding.expected_inputs_shape().iter().map(|param| param[0]).collect::<Vec<_>>();
         let replay_buffer = CyclicReplayBufferMultiActorCritic::new(

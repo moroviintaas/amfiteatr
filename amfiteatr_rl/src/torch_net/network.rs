@@ -9,22 +9,9 @@ use crate::torch_net::{
 };
 use serde::{Serialize, Deserialize};
 use std::default::Default;
-use std::error::Error;
 use std::sync::{Arc, Mutex};
 use amfiteatr_core::error::AmfiteatrError;
 use amfiteatr_core::scheme::Scheme;
-// /// Structure wrapping [`VarStore`] and network closure used to build neural network based function.
-// /// Examples in [`tch`](https://github.com/LaurentMazare/tch-rs) show how neural networks are used.
-
-/*
-pub struct NeuralNet<Output: NetOutput>{
-    //net: NetworkModel<Output>
-    //net: Box<dyn Fn(&Tensor) -> Output + Send >,
-    operator: Box<dyn Fn(&VarStore, &Tensor) -> Output + Send>,
-    var_store: VarStore,
-    //_input: PhantomData<Input>,
-}
-*/
 
 /// Struct holding exclusively owned [`VarStore`] or shared with [`Arc`]`<`[`Mutex`]`<`[`VarStore`]`>>`.
 /// /// Examples in [`tch`](https://github.com/LaurentMazare/tch-rs) show how neural networks are used.

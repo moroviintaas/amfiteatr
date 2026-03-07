@@ -46,7 +46,6 @@ use crate::connect_four::agent::{ConnectFourActionTensorRepresentation, ConnectF
 use amfiteatr_rl::policy::LearnSummary;
 
 use amfiteatr_core::util::TensorboardSupport;
-use amfiteatr_rl::tch;
 use crate::common::ComputeDevice;
 use crate::connect_four::options::ConnectFourOptions;
 
@@ -265,7 +264,7 @@ pub struct ConnectFourModelRust<ST: GameStateWithPayoffs<ConnectFourScheme>, P: 
     tboard_writer: Option<tboard::EventWriter<File>>,
     shared_policy: bool,
     thread_pool: Option<rayon::ThreadPool>,
-    use_replay_buffer: bool,
+    //use_replay_buffer: bool,
 
 
 }
@@ -321,7 +320,7 @@ impl<
             shared_policy,
             thread_pool,
             //model_tboard,
-            use_replay_buffer: false,
+            //use_replay_buffer: false,
         }
     }
 
@@ -357,11 +356,11 @@ impl<
         if let Some(t1) = &options.tboard_agent1{
             agent_policy_1.add_tboard_directory(t1).unwrap()
         }
-        let mut use_replay_buffer = false;
+        //let mut use_replay_buffer = false;
         if let Some(size) = options.replay_buffer_size{
             agent_policy_0.initialize_cyclic_replay_buffer(size).unwrap();
             agent_policy_1.initialize_cyclic_replay_buffer(size).unwrap();
-            use_replay_buffer = true;
+            //use_replay_buffer = true;
         }
         let agent_0 = Agent::new(ConnectFourInfoSet::new(ConnectFourPlayer::One), c_a1, agent_policy_0);
         let agent_1 = Agent::new(ConnectFourInfoSet::new(ConnectFourPlayer::Two), c_a2, agent_policy_1);
@@ -387,7 +386,7 @@ impl<
             //model_tboard,
             shared_policy: false,
             thread_pool,
-            use_replay_buffer,
+            //use_replay_buffer,
         }
     }
 }
@@ -423,11 +422,11 @@ impl<
             agent_policy_1.add_tboard_directory(t1).unwrap()
         }
 
-        let mut use_replay_buffer = false;
+        //let mut use_replay_buffer = false;
         if let Some(size) = options.replay_buffer_size{
             agent_policy_0.initialize_cyclic_replay_buffer(size).unwrap();
             agent_policy_1.initialize_cyclic_replay_buffer(size).unwrap();
-            use_replay_buffer = true;
+            //use_replay_buffer = true;
         }
         let agent_0 = Agent::new(ConnectFourInfoSet::new(ConnectFourPlayer::One), c_a1, agent_policy_0);
         let agent_1 = Agent::new(ConnectFourInfoSet::new(ConnectFourPlayer::Two), c_a2, agent_policy_1);
@@ -455,7 +454,7 @@ impl<
             //model_tboard,
             shared_policy: false,
             thread_pool,
-            use_replay_buffer,
+            //use_replay_buffer,
         }
     }
 }
@@ -496,11 +495,11 @@ impl<
             agent_policy_1.add_tboard_directory(t1).unwrap()
         }
 
-        let mut use_replay_buffer = false;
+        //let mut use_replay_buffer = false;
         if let Some(size) = options.replay_buffer_size{
             agent_policy_0.initialize_cyclic_replay_buffer(size).unwrap();
             agent_policy_1.initialize_cyclic_replay_buffer(size).unwrap();
-            use_replay_buffer = true;
+            //use_replay_buffer = true;
         }
         let agent_0 = Agent::new(ConnectFourInfoSet::new(ConnectFourPlayer::One), c_a1, agent_policy_0);
         let agent_1 = Agent::new(ConnectFourInfoSet::new(ConnectFourPlayer::Two), c_a2, agent_policy_1);
@@ -525,7 +524,7 @@ impl<
             //model_tboard,
             shared_policy: false,
             thread_pool,
-            use_replay_buffer
+            //use_replay_buffer
         }
     }
 }
@@ -568,11 +567,11 @@ impl<
             agent_policy_1.add_tboard_directory(t1).unwrap()
         }
 
-        let mut use_replay_buffer = false;
+        //let mut use_replay_buffer = false;
         if let Some(size) = options.replay_buffer_size{
             agent_policy_0.initialize_cyclic_replay_buffer(size).unwrap();
             agent_policy_1.initialize_cyclic_replay_buffer(size).unwrap();
-            use_replay_buffer = true;
+            //use_replay_buffer = true;
         }
 
         let agent_0 = Agent::new(ConnectFourInfoSet::new(ConnectFourPlayer::One), c_a1, agent_policy_0);
@@ -599,7 +598,7 @@ impl<
             //model_tboard,
             shared_policy: false,
             thread_pool,
-            use_replay_buffer,
+            //use_replay_buffer,
             //use_replay_buffer: false,
         }
     }

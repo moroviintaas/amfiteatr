@@ -9,11 +9,11 @@ use amfiteatr_core::scheme::Scheme;
 use amfiteatr_core::error::{AmfiteatrError,TensorError};
 use amfiteatr_core::util::{MaybeContainsOne, TensorboardSupport};
 use crate::error::AmfiteatrRlError;
-use crate::policy::{ConfigPPO, CyclicReplayBufferActorCritic, CyclicReplayBufferMultiActorCritic, LearnSummary, LearningNetworkPolicyGeneric, PolicyHelperA2C, PolicyTrainHelperPPO};
+use crate::policy::{ConfigPPO, CyclicReplayBufferMultiActorCritic, LearnSummary, LearningNetworkPolicyGeneric, PolicyHelperA2C, PolicyTrainHelperPPO};
 use crate::{tch, MaskingInformationSetActionMultiParameter, tensor_data};
 use crate::tch::nn::Optimizer;
 use crate::tch::Tensor;
-use crate::tensor_data::{MultiTensorDecoding, MultiTensorIndexI64Encoding, TensorEncoding, ContextEncodeMultiIndexI64, ContextEncodeTensor, ContextDecodeMultiIndexI64, ContextDecodeIndexI64, ContextEncodeIndexI64};
+use crate::tensor_data::{MultiTensorDecoding, MultiTensorIndexI64Encoding, TensorEncoding, ContextEncodeMultiIndexI64, ContextEncodeTensor, ContextDecodeMultiIndexI64};
 use crate::torch_net::{
     ActorCriticOutput,
     DeviceTransfer,
@@ -167,10 +167,7 @@ where <S as Scheme>::ActionType: ContextDecodeMultiIndexI64<ActionBuildContext>
     pub fn initialize_cyclic_replay_buffer(&mut self, capacity: usize) -> Result<(), AmfiteatrError<S>>
     where <S as Scheme>::ActionType: ContextDecodeMultiIndexI64<ActionBuildContext> + ContextEncodeMultiIndexI64<ActionBuildContext>{
 
-        let mask_shape = match self.is_action_masking_supported(){
-            true => Some(self.action_encoding.expected_inputs_shape()),
-            false => None,
-        };
+
 
         let action_shapes = self.action_encoding.expected_inputs_shape().iter().map(|param| param[0]).collect::<Vec<_>>();
         let replay_buffer = CyclicReplayBufferMultiActorCritic::new(

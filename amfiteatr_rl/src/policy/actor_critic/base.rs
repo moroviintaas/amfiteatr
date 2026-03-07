@@ -8,7 +8,6 @@ use tch::Kind::Float;
 use amfiteatr_core::agent::{AgentStepView, AgentTrajectory, InformationSet};
 use amfiteatr_core::scheme::Scheme;
 use amfiteatr_core::error::{AmfiteatrError, LearningError, TensorError};
-use amfiteatr_core::reexport::nom::Parser;
 use amfiteatr_core::util::MaybeContainsOne;
 use crate::error::AmfiteatrRlError;
 use crate::policy::{ActorCriticReplayBuffer, LearnSummary, RlPolicyConfigBasic};
@@ -629,12 +628,12 @@ pub trait PolicyTrainHelperA2C<S: Scheme> : PolicyHelperA2C<S, Config=ConfigA2C>
         let action_params = sample_net_output.param_dimension_size() as usize;
 
 
-        let mut state_tensor_vec = Vec::<Tensor>::with_capacity(capacity_estimate);
-        let mut advantage_tensor_vec = Vec::<Tensor>::with_capacity(capacity_estimate);
+        //let mut state_tensor_vec = Vec::<Tensor>::with_capacity(capacity_estimate);
+        //let mut advantage_tensor_vec = Vec::<Tensor>::with_capacity(capacity_estimate);
 
         let mut action_masks_vec = Self::NetworkOutput::new_batch_with_capacity(action_params ,capacity_estimate);
-        let mut multi_action_tensor_vec = Self::NetworkOutput::new_batch_with_capacity(action_params, capacity_estimate);
-        let mut multi_action_cat_mask_tensor_vec = Self::NetworkOutput::new_batch_with_capacity(action_params, capacity_estimate);
+        //let mut multi_action_tensor_vec = Self::NetworkOutput::new_batch_with_capacity(action_params, capacity_estimate);
+        //let mut multi_action_cat_mask_tensor_vec = Self::NetworkOutput::new_batch_with_capacity(action_params, capacity_estimate);
 
 
 
@@ -718,7 +717,7 @@ pub trait PolicyTrainHelperA2C<S: Scheme> : PolicyHelperA2C<S, Config=ConfigA2C>
                 false => None
             };
 
-            let mut replay_buffer = self.get_mut().ok_or_else(|| AmfiteatrError::ReplayBuffer {
+            let replay_buffer = self.get_mut().ok_or_else(|| AmfiteatrError::ReplayBuffer {
                 context: "Buffer not initialised".to_string()
             })?;
 
@@ -743,27 +742,18 @@ pub trait PolicyTrainHelperA2C<S: Scheme> : PolicyHelperA2C<S, Config=ConfigA2C>
             context: "Buffer not initialised".to_string()
         })?;
 
-        let mut continue_training = true;
+        //let mut continue_training = true;
 
-        let batch_size = replay_buffer.size() as i64;
-        let mut indices: Vec<i64> = (0..batch_size as i64).collect();
+        //let batch_size = replay_buffer.size() as i64;
+        //let mut indices: Vec<i64> = (0..batch_size as i64).collect();
 
         let batch_info_sets_t = replay_buffer.info_set_buffer();
         let batch_actions_t = replay_buffer.action_buffer();
         let batch_action_masks_t = replay_buffer.action_mask_buffer();
-        let batch_advantage_t = replay_buffer.advantage_buffer();
+        //let batch_advantage_t = replay_buffer.advantage_buffer();
         let batch_rewards_t = replay_buffer.return_payoff_buffer();
         let batch_categories_mask_t = replay_buffer.category_mask_buffer();
 
-        let (batch_logprob_t, _entropy, batch_values_t) = tch::no_grad(||{
-            self.batch_get_logprob_entropy_critic(
-                &batch_info_sets_t,
-                &batch_actions_t,
-                None, //Some(&batch_action_cat_masks_t),
-                batch_action_masks_t.as_ref(),
-            )
-
-        })?;
 
 
 
