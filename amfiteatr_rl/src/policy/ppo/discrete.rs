@@ -491,9 +491,9 @@ impl<
     fn dist(&self, info_set: &Self::InfoSet, network_output: &Self::NetworkOutput) -> Result<<Self::NetworkOutput as ActorCriticOutput>::ActionTensorType, AmfiteatrError<S>> {
 
 
-        let masks = info_set.try_build_mask(self.action_encoding())?;
-        let masked_actor = network_output.actor.f_where_self(&masks, &Tensor::from(f32::NEG_INFINITY))
-            .map_err(|e| TensorError::from_tch_with_context(e, format!("PPO masking actor network output masks: {masks}, actor: {}", &network_output.actor)))?;
+        let masks = info_set.try_build_mask(self.action_encoding())?.to_device(self.network().device());
+        let masked_actor = network_output.actor.f_where_self(&masks, &Tensor::from(f32::MIN).to_device(self.network().device()))
+            .map_err(|e| TensorError::from_tch_with_context(e, format!("PPO masking actor network output masks: {masks} [on {:?}], actor: {} [on {:?}]", masks.device(), &network_output.actor, &network_output.device())))?;
         let softmax = masked_actor.f_softmax(-1, tch::Kind::Float)
             .map_err(|e| TensorError::from_tch_with_context(e, "PPO distribution (softmax)".into()))?;
 

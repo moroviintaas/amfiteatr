@@ -465,9 +465,9 @@ impl <
             .map_err(|e| TensorError::from_tch_with_context(e, "PPO distribution (softmax)".into()))?;
         */
         //println!("Network output: {}", &network_output.actor);
-        let masks = info_set.try_build_mask(self.action_encoding())?;
+        let masks = info_set.try_build_mask(self.action_encoding())?.to_device(self.network().device());
         //println!("Masks: {}", masks);
-        let masked_actor = network_output.actor.f_where_self(&masks, &Tensor::from(f32::NEG_INFINITY))
+        let masked_actor = network_output.actor.f_where_self(&masks, &Tensor::from(f32::MIN).to_device(self.network().device()))
             .map_err(|e| TensorError::from_tch_with_context(e, format!("A2C masking actor network output masks: {masks}, actor: {}", &network_output.actor)))?;
         //println!("Masked actor: {}", masked_actor);
         let softmax = masked_actor.f_softmax(-1, tch::Kind::Float)
