@@ -186,6 +186,7 @@ impl<S: Scheme, T: LearningNetworkPolicyGeneric<S>> LearningNetworkPolicyGeneric
 
 }
 
+/// Alias for [`LearningNetworkPolicyGeneric`] where `Summary=`[`LearnSummary`].
 pub trait LearningNetworkPolicy<S: Scheme> : LearningNetworkPolicyGeneric<S, Summary=LearnSummary>{
 
 }
@@ -194,8 +195,9 @@ impl<S: Scheme, P: LearningNetworkPolicyGeneric<S, Summary=LearnSummary>> Learni
 
 }
 
-
-pub trait LearningNetworkPolicyDynamicCustomSummary<S: Scheme> : Policy<S>
+/// A `dyn` compatible alternative to [`LearningNetworkPolicyGeneric`].
+/// This trait uses [`Box`]'ed reward function, so methods do not introduce own generics.
+pub trait DynLearningNetworkPolicyGeneric<S: Scheme> : Policy<S>
 where <Self as Policy<S>>::InfoSetType: InformationSet<S>
 {
     type Summary: Send;
@@ -214,16 +216,6 @@ where <Self as Policy<S>>::InfoSetType: InformationSet<S>
 
 
 
-
-    /*
-    /// If supported enable or disable exploration (with disabled exploration policy is expected to always select
-    /// action that seems the best).
-    fn enable_exploration(&mut self, enable: bool);
-
-
-     */
-    ///// Returns reference to current config of policy
-    //fn config(&self) -> &Self::TrainConfig;
     /// This is generic training function. Generic type `R` must produce reward tensor that
     /// agent got in this step. In traditional RL model it will be vectorised reward calculated
     /// by environment. This is in fact implemented by [`train_on_trajectories_env_reward`](LearningNetworkPolicyGeneric::train).
@@ -233,7 +225,7 @@ where <Self as Policy<S>>::InfoSetType: InformationSet<S>
         reward_f: Box<dyn Fn(&AgentStepView<S, <Self as Policy<S>>::InfoSetType>) -> Tensor>,
     ) -> Result<Self::Summary, AmfiteatrRlError<S>>;
 
-    /// Training implementation using environment distributed reward
+    /// Training implementation using environment distributed reward.
     fn train_env_target(&mut self,
              trajectories: &[AgentTrajectory<S, <Self as Policy<S>>::InfoSetType>]) -> Result<Self::Summary, AmfiteatrRlError<S>>
     where <S as Scheme>::UniversalReward: FloatTensorReward{
@@ -245,9 +237,11 @@ where <Self as Policy<S>>::InfoSetType: InformationSet<S>
 
 }
 
-pub trait LearningNetworkPolicyDynamic<S: Scheme>: LearningNetworkPolicyDynamicCustomSummary<S, Summary=LearnSummary>{}
 
-impl<S: Scheme, T: LearningNetworkPolicyDynamicCustomSummary<S, Summary=LearnSummary>> LearningNetworkPolicyDynamic<S> for T{
+/// Alias for [`DynLearningNetworkPolicyGeneric`] where `Summary=`[`LearnSummary`].
+pub trait DynLearningNetworkPolicy<S: Scheme>: DynLearningNetworkPolicyGeneric<S, Summary=LearnSummary>{}
+
+impl<S: Scheme, T: DynLearningNetworkPolicyGeneric<S, Summary=LearnSummary>> DynLearningNetworkPolicy<S> for T{
 
 }
 

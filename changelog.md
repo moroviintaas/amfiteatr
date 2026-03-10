@@ -1,5 +1,8 @@
 # Changelog
-
+## Version 0.14.0
++ Added optional usage of replay buffer in implemented A2C and PPO polcies.
++ Renamed `LearningNetworkPolicyDynamicCustomSummary` to `DynLearningNetworkPolicyGeneric` and
+`LearningNetworkPolicyDynamic` to `DynLearningNetworkPolicy` in RL crate.
 ## Version 0.13.0
 + Previously used `LearningNetworkPolicy` is not Dyn compatible. Introducing `LearningNetworkPolicyDynamic` and `LearningNetworkPolicyDynamicCustomSummary` that use boxed target function instead of generic.
 **The names can change**
