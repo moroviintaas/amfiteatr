@@ -941,7 +941,7 @@ pub trait PolicyTrainHelperPPO<S: Scheme> : PolicyHelperA2C<S, Config=ConfigPPO>
     <Self as PolicyHelperA2C<S>>::InfoSetConversionContext : Clone,
     {
 
-
+        #[cfg(feature = "log_debug")]
         log::debug!("Updating policy using replay buffer procedure.");
 
 
