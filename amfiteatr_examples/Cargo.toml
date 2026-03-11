@@ -63,6 +63,10 @@ required-features = ["rl-python"]
 path = "examples/connect_four/run_model_ppo_masking.rs"
 
 [[example]]
+name = "connect_four_mcp_environment"
+path = "examples/connect_four/mcp_environment.rs"
+
+[[example]]
 name = "communication_choice"
 
 [[bench]]
@@ -96,7 +100,9 @@ tboard = "0.1.1"
 criterion = "0.6.0"
 rayon = "1.10.0"
 parking_lot = "0.12.3"
+schemars = {version = "1.2.1"}
 sha2 = "0.10.9"
+
 
 amfiteatr_core = {version = "0.15.0-rc", features = ["serde", "tboard"] }
 amfiteatr_proc_macro = {version = "0.15.0-rc"}

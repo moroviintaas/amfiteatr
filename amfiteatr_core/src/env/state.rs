@@ -7,6 +7,9 @@ use crate::scheme::{Scheme};
 pub trait SequentialGameState<S: Scheme>: Send + Debug{
     type Updates: IntoIterator<Item = (S::AgentId, S::UpdateType)>;
 
+    fn game_name(&self) -> String{
+        "Unnamed Game".to_string()
+    }
     fn current_player(&self) -> Option<S::AgentId>;
     fn is_finished(&self) -> bool;
 
