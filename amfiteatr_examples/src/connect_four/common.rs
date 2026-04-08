@@ -1,17 +1,21 @@
 use std::fmt::{Display, Formatter};
 use ndarray::{Array2, Array3, Axis};
 use pyo3::PyErr;
+use schemars::JsonSchema;
+use serde::{Deserialize, Serialize};
+use tboard::tensorboard::WorkerShutdownMode;
 use amfiteatr_core::agent::AgentIdentifier;
 use amfiteatr_core::scheme::{Action, Scheme};
 use amfiteatr_core::error::{AmfiteatrError, ConvertError};
 use amfiteatr_rl::error::{AmfiteatrRlError, TensorRepresentationError};
 use amfiteatr_rl::tch::Tensor;
 use amfiteatr_rl::tensor_data::TryIntoTensor;
+use std::default::Default;
 
 pub type ErrorRL = AmfiteatrRlError<ConnectFourScheme>;
 pub type ErrorAmfi = AmfiteatrError<ConnectFourScheme>;
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash, Serialize, Deserialize, JsonSchema)]
 pub enum ConnectFourPlayer{
     One,
     Two
@@ -43,10 +47,10 @@ impl ConnectFourPlayer{
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 pub struct ConnectFourScheme {}
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, Serialize, Deserialize, JsonSchema)]
 pub struct ConnectFourAction{
     id: u8
 }
@@ -106,7 +110,7 @@ impl TryFrom<&Tensor> for ConnectFourAction{
 
     }
 }
-#[derive(Debug, Clone, thiserror::Error)]
+#[derive(Debug, Clone, thiserror::Error, Serialize, Deserialize, JsonSchema)]
 pub enum ConnectFourError {
     #[error("Game not initialized. Use reseed().")]
     GameStateNotInitialized,
@@ -151,16 +155,16 @@ pub type BoardRow = [Option<ConnectFourPlayer>;7];
 pub type Board = [BoardRow;6];
 
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 pub struct ConnectFourBinaryObservation{
-    //pub board: [[[u8;2];7];6]
-    pub board: Array3<u8>
+    pub board: [[[u8;2];7];6]
+    //pub board: Array3<u8>
 }
 
 impl Default for ConnectFourBinaryObservation{
     fn default() -> Self {
         Self{
-            board: Array3::zeros((6,7,2))
+            board: [[[0;2];7];6]//Array3::zeros((6,7,2))
         }
     }
 }
@@ -189,10 +193,12 @@ impl ConnectFourBinaryObservation{
                         //observation.board(row, column, 0)
                     },
                     Some(own) if *own == for_agent => {
-                        observation.board[(row_number, column_number, 0)] = 1
+                        //observation.board[(row_number, column_number, 0)] = 1
+                        observation.board[row_number][column_number][0] = 1
                     },
                     Some(_other) => {
-                        observation.board[(row_number, column_number, 1)] = 1
+                        observation.board[row_number][column_number][1] = 1
+                        //observation.board[(row_number, column_number, 1)] = 1
                     }
                 }
 
@@ -207,11 +213,23 @@ impl ConnectFourBinaryObservation{
     pub fn build_from_nd(board: &Array2<u8>, for_agent: ConnectFourPlayer) -> Self{
         let agent_val = for_agent as u8 + 1;
         let other_val = for_agent.other() as u8 + 1;
-        let a = board.mapv(|v| if v== agent_val {1} else {0});
-        let b = board.mapv(|v| if v == other_val { 1} else {0});
+        //let a = board.mapv(|v| if v== agent_val {1} else {0});
+        //let b = board.mapv(|v| if v == other_val { 1} else {0});
 
-        let sta = ndarray::stack(Axis(2), &[a.view(), b.view()]).unwrap();
+        //let sta = ndarray::stack(Axis(2), &[a.view(), b.view()]).unwrap();
 
+        let mut sta: [[[u8;2];7];6] = Default::default();
+        for row in 0..sta.len(){
+            for column in 0..sta[row].len(){
+                if board[(row, column)] == agent_val{
+                    sta[row][column][0] = 1;
+                }
+                if board[(row, column)] == other_val{
+                    sta[row][column][1] = 1;
+                }
+
+            }
+        }
         Self{
             board: sta,
         }

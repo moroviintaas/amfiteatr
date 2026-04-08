@@ -2,7 +2,7 @@
 
 
 use std::fmt::Debug;
-use rand::Rng;
+use rand::RngExt;
 use amfiteatr_core::scheme::{Renew, Scheme};
 use amfiteatr_core::env::{GameStateWithPayoffs, SequentialGameState};
 use amfiteatr_core::error::AmfiteatrError;

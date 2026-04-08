@@ -5,20 +5,43 @@ use crate::scheme::Renew;
 use std::collections::HashMap;
 use std::marker::PhantomData;
 use std::sync::Arc;
+use nom::Parser;
 use serde::{Deserialize, Serialize};
-use crate::env::SequentialGameState;
+use crate::env::{GameStateWithPayoffs, ScoreEnvironment, SequentialGameState};
 use crate::scheme::Scheme;
-use rmcp::{
-    handler::server::{
+use rmcp::{handler::server::{
     router::{prompt::PromptRouter, tool::ToolRouter}
-    },
-    schemars::JsonSchema, tool, tool_router, ErrorData, ServerHandler,
-    model::ServerCapabilities,
-};
+}, schemars::JsonSchema, tool, ErrorData, ServerHandler, model::ServerCapabilities};
 use rmcp::handler::server::router::tool::IntoToolRoute;
 use rmcp::handler::server::wrapper::Parameters;
 use tokio::sync::Mutex;
+use crate::error::AmfiteatrError;
+use rmcp::{
+    service::RequestContext,
+    RoleServer,
+    tool_handler,
+    tool_router,
+    task_handler,
+    prompt_handler,
+    model::{
+        Meta,
+        InitializeRequestParams,
+        InitializeResult,
+        Resource,
+        RawResource,
+        AnnotateAble,
+        Implementation,
+        ProtocolVersion,
+        GetPromptRequestParams,
+        GetPromptResult,
+        PaginatedRequestParams,
+        ListPromptsResult,
 
+    },
+    ServiceError,
+    ErrorData as McpError,
+};
+use rmcp::task_manager::OperationProcessor;
 
 #[derive(Debug, serde::Serialize, serde::Deserialize, JsonSchema)]
 pub struct McpRequestPerformAction<SC: Scheme>
@@ -29,50 +52,96 @@ where SC::ActionType:  JsonSchema + Serialize,
     action: SC::ActionType,
 }
 
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, JsonSchema)]
+pub struct McpActionResponse<SC: Scheme>
+where SC::AgentId: JsonSchema + Serialize + for<'a> Deserialize<'a>,{
+    pub game_finished: bool,
+    pub next_player: Option<SC::AgentId>,
+}
 
-struct McpEnvironmentInternal<SC: Scheme, ST: SequentialGameState<SC> + 'static, Seed: 'static>
+/*
+#[derive(Debug, serde::Serialize, serde::Deserialize, JsonSchema)]
+pub struct McpResponsePerformAction<SC: Scheme, ST: SequentialGameState<SC, Updates: serde::Serialize + serde::Deserialize + JsonSchema>>
+    where
+          for<'a> SC::AgentId: JsonSchema + Serialize,
+{
+    agent_id: SC::AgentId,
+    action: SC::ActionType,
+}
+
+ */
+
+
+#[derive(Clone)]
+struct McpEnvironmentInternal<SC: Scheme  + Send + 'static,
+    ST: SequentialGameState<SC> + GameStateWithPayoffs<SC> + Send  +  'static + Renew<SC, Seed>,
+    Seed: 'static + Send >
 where SC::ActionType: Serialize + for<'a> Deserialize<'a> + JsonSchema,
       SC::UpdateType: Serialize + for<'a> Deserialize<'a> + JsonSchema,
       Seed: Serialize + for<'a> Deserialize<'a> + JsonSchema + Send,
-    SC::AgentId: Serialize + for<'a> Deserialize<'a> + JsonSchema,
+      SC::AgentId: Serialize + for<'a> Deserialize<'a> + JsonSchema,
+      SC: Serialize + for<'a> Deserialize<'a> + JsonSchema,
+      SC::UniversalReward: Serialize + for<'a> Deserialize<'a> + JsonSchema
 {
     pub(crate) game_state: ST,
     pub(crate) penalties: HashMap<SC::AgentId, SC::UniversalReward>,
     pub(crate) game_steps: u64,
-    pub(crate) game_violators: Option<SC::AgentId>,
+    pub(crate) game_violator: Option<SC::AgentId>,
     pub(crate) _seed: PhantomData<Seed>,
+
 }
 
 
 
-impl<SC: Scheme, ST: SequentialGameState<SC> + 'static, Seed: 'static> McpEnvironmentInternal<SC, ST, Seed>
+impl<SC: Scheme + Serialize + for<'a> Deserialize<'a> + JsonSchema + Send  + 'static,
+    ST:  SequentialGameState<SC>  + GameStateWithPayoffs<SC>  + Send  + 'static + Renew<SC, Seed>,
+    Seed: 'static + Send >
+McpEnvironmentInternal<SC, ST, Seed>
 where   SC::ActionType: Serialize + for<'a> Deserialize<'a> + JsonSchema,
         SC::UpdateType: Serialize + for<'a> Deserialize<'a> + JsonSchema,
         Seed: Serialize + for<'a> Deserialize<'a> + JsonSchema + Send,
         SC::AgentId: Serialize + for<'a> Deserialize<'a> + JsonSchema,
+        SC: Serialize + for<'a> Deserialize<'a> + JsonSchema,
+        SC::UniversalReward: Serialize + for<'a> Deserialize<'a> + JsonSchema
 {
     pub fn new(game_state: ST) -> Self {
-        Self{game_state, game_steps: 0, penalties: HashMap::new(), game_violators: None, _seed: Default::default()}
+        Self{game_state, game_steps: 0, penalties: HashMap::new(), game_violator: None, _seed: Default::default()}
     }
 }
-pub struct McpEnvironment<SC: Scheme, ST: SequentialGameState<SC> + 'static, Seed: 'static>
+#[derive(Clone)]
+pub struct McpEnvironment<
+    SC: Scheme + Serialize + for<'a> Deserialize<'a> + JsonSchema + Send  + 'static,
+    ST: SequentialGameState<SC>  + GameStateWithPayoffs<SC> + Send  + 'static  + Renew<SC, Seed>,
+    Seed: 'static + Send
+>
 where SC::ActionType: Serialize + for<'a> Deserialize<'a> + JsonSchema,
-    SC::UpdateType: Serialize + for<'a> Deserialize<'a> + JsonSchema,
-    Seed: Serialize + for<'a> Deserialize<'a> + JsonSchema + Send,
+      SC::UpdateType: Serialize + for<'a> Deserialize<'a> + JsonSchema,
+      Seed: Serialize + for<'a> Deserialize<'a> + JsonSchema + Send,
       SC::AgentId: Serialize + for<'a> Deserialize<'a> + JsonSchema,
+      SC: Serialize + for<'a> Deserialize<'a> + JsonSchema,
+      SC::UniversalReward: Serialize + for<'a> Deserialize<'a> + JsonSchema
 {
     game_name: String,
-    tool_router: ToolRouter<Self>,
-    internal: Arc<Mutex<McpEnvironmentInternal<SC, ST, Seed>>>
+    tool_router: ToolRouter<McpEnvironment<SC, ST, Seed>>,
+    //prompt_router: PromptRouter<McpEnvironment<SC, ST, Seed>>,
+    internal: Arc<Mutex<McpEnvironmentInternal<SC, ST, Seed>>>,
+    update_queues: Arc<Mutex<HashMap<SC::AgentId, Vec<SC::UpdateType>>>>,
+    processor: Arc<Mutex<OperationProcessor>>,
 }
 
 #[tool_router]
-impl<SC: Scheme, ST: SequentialGameState<SC> + 'static, Seed: 'static> McpEnvironment<SC, ST, Seed>
+impl<
+    SC: Scheme + Serialize + for<'a> Deserialize<'a> + JsonSchema + Send  + 'static,
+    ST: SequentialGameState<SC>  + GameStateWithPayoffs<SC> + Send  + 'static + Renew<SC, Seed>,
+    Seed: 'static + Send
+>
+McpEnvironment<SC, ST, Seed>
 where   SC::ActionType: Serialize + for<'a> Deserialize<'a> + JsonSchema,
         SC::UpdateType: Serialize + for<'a> Deserialize<'a> + JsonSchema,
-        SC::AgentId: Serialize + for<'a> Deserialize<'a> + JsonSchema,
         Seed: Serialize + for<'a> Deserialize<'a> + JsonSchema + Send,
-        ST: Renew<SC, Seed>
+        SC::AgentId: Serialize + for<'a> Deserialize<'a> + JsonSchema,
+        SC: Serialize + for<'a> Deserialize<'a> + JsonSchema,
+        SC::UniversalReward: Serialize + for<'a> Deserialize<'a> + JsonSchema
 
 {
 
@@ -81,42 +150,201 @@ where   SC::ActionType: Serialize + for<'a> Deserialize<'a> + JsonSchema,
         let game_name = game_state.game_name();
         Self{
             internal: Arc::new(Mutex::new(McpEnvironmentInternal::new(game_state))),
-            tool_router: Self::tool_router(),
+            tool_router: Self::tool_router(),//ToolRouter::new(),
+            //prompt_router: Self::prompt_router(),
             game_name,
+            update_queues: Arc::new(Mutex::new(HashMap::new())),
+            processor: Arc::new(Mutex::new(OperationProcessor::new())),
         }
     }
 
+    /*
+    fn _create_resource_text(&self, uri: &str, name: &str) -> Resource {
+        RawResource::new(uri, name.to_string()).no_annotation()
+    }
 
+    fn clear_observations(
+        &self,
+        store: &mut tokio::sync::MutexGuard<'_, HashMap<SC::AgentId, Vec<SC::UpdateType>>>
+    ){
+        for obs in store.values_mut(){
+            obs.clear()
+        }
+    }
+
+    fn store_observation(&self,
+                         store: &mut tokio::sync::MutexGuard<'_, HashMap<SC::AgentId, Vec<SC::UpdateType>>>,
+                         agent_id: &SC::AgentId,
+                         observation: SC::UpdateType
+    ){
+
+        if let Some(update_list) = store.get_mut(agent_id){
+            update_list.push(observation);
+        } else {
+            store.insert(agent_id.clone(), vec![observation]);
+        }
+
+    }
+
+    fn take_observation(
+        &self,
+        store: &mut tokio::sync::MutexGuard<'_, HashMap<SC::AgentId, Vec<SC::UpdateType>>>,
+        agent_id: &SC::AgentId,
+
+    ) -> Vec<SC::UpdateType>{
+
+        let r = store.remove(agent_id);
+        store.insert(agent_id.clone(), vec![]);
+        r.unwrap_or(Vec::new())
+    }
+
+     */
+
+
+
+
+    /*
     #[tool(description = "Reset environment")]
-    async fn reset(&self, Parameters(seed): Parameters<Seed>) -> Result<(), ErrorData>
+    pub async fn reset(&self, Parameters(seed): Parameters<Seed>) -> Result<(), ErrorData>
     {
 
         let mut env = self.internal.lock().await;
-        env.game_violators = None;
+
+        env.game_violator = None;
         env.game_steps = 0;
-        env.game_state.renew_from(seed).map_err(|e| ErrorData{
+        /*
+        for obs in observations.values_mut(){
+            obs.clear()
+        }
+        */
+
+
+        let r = env.game_state.renew_from(seed).map_err(|e| ErrorData{
             code: ErrorCode::INTERNAL_ERROR,
             message: format!("Failed to renew game : {:?}", e).into(),
             data: None
-        })
+        });
+        let first_obs = env.game_state.first_observations();
+        let mut observations = self.update_queues.lock().await;
+        self.clear_observations(&mut observations);
+        if let Some(first_obs) = first_obs{
+            for (agent, obs) in first_obs.into_iter(){
+                self.store_observation(&mut observations, &agent, obs)
+            }
+        }
+
+
+        r
+
     }
+
+     */
+    /*
+
+    #[tool(description = "Get updates for selected agent")]
+    pub async fn get_updates(&self, Parameters(agent_id): Parameters<SC::AgentId>) -> Result<CallToolResult, ErrorData>
+    {
+        let mut observations = self.update_queues.lock().await;
+        let updates = self.take_observation(&mut observations, &agent_id);
+        Ok(CallToolResult::success(vec![Content::json(updates)?]))
+
+    }
+
+
+    #[tool(description = "Get score of specific agent")]
+    pub async fn get_score(&self, Parameters(agent_id): Parameters<SC::AgentId>) -> Result<CallToolResult, ErrorData> {
+        let env = self.internal.lock().await;
+        Ok(CallToolResult::success(vec![Content::json(env.game_state.state_payoff_of_player(&agent_id))?]))
+    }
+
+    #[tool(description = "Process action on environment and produce update messages")]
+    pub async fn process_action(&self, Parameters(request): Parameters<McpRequestPerformAction<SC>>) -> Result<CallToolResult, ErrorData>
+    {
+        let agent = request.agent_id;
+        let action = request.action;
+
+        let mut env = self.internal.lock().await;
+        let mut observations = self.update_queues.lock().await;
+
+        env.game_steps += 1;
+        let r_updates = env.game_state.forward(agent, action);
+        match r_updates{
+            Err(e) => Ok(CallToolResult::error(vec![Content::text(format!("{}",
+                   AmfiteatrError::Game::<SC> {source: e})
+            )])),
+            Ok(updates) => {
+
+
+                for (agent, update) in updates.into_iter(){
+                    self.store_observation(&mut observations, &agent, update);
+                }
+                let response = McpActionResponse::<SC>{
+                    game_finished: env.game_state.is_finished(),
+                    next_player: env.game_state.current_player(),
+                };
+                Ok(CallToolResult::success(vec![Content::json(response)?]))
+            }
+
+        }
+
+
+
+    }
+
+     */
+
     
 
 }
 
 
 
-impl<SC: Scheme, ST: SequentialGameState<SC> + 'static, Seed: 'static> ServerHandler for McpEnvironment<SC, ST, Seed>
+#[tool_handler(meta = Meta(rmcp::object!({"tool_meta_key": "tool_meta_value"})))]
+//#[prompt_handler(meta = Meta(rmcp::object!({"router_meta_key": "router_meta_value"})))]
+#[task_handler]
+impl<
+    SC: Scheme + Serialize + for<'a> Deserialize<'a> + JsonSchema + Send + 'static,
+    ST: SequentialGameState<SC>  + GameStateWithPayoffs<SC> + Send  + 'static + Renew<SC, Seed>,
+    Seed: 'static + Send
+> ServerHandler for McpEnvironment<SC, ST, Seed>
 where   SC::ActionType: Serialize + for<'a> Deserialize<'a> + JsonSchema,
         SC::UpdateType: Serialize + for<'a> Deserialize<'a> + JsonSchema,
-        SC::AgentId: Serialize + for<'a> Deserialize<'a> + JsonSchema,
         Seed: Serialize + for<'a> Deserialize<'a> + JsonSchema + Send,
-        ST: Renew<SC, Seed>
+        SC::AgentId: Serialize + for<'a> Deserialize<'a> + JsonSchema,
+        SC: Serialize + for<'a> Deserialize<'a> + JsonSchema,
+        SC::UniversalReward: Serialize + for<'a> Deserialize<'a> + JsonSchema
 
 {
+    /*
     fn get_info(&self) -> ServerInfo {
 
-        ServerInfo::new(ServerCapabilities::builder().enable_tools().build())
-            .with_instructions(format!("A game environment for game {} (controls game flow)", self.game_name))
+        ServerInfo::new(
+            ServerCapabilities::builder()
+                .enable_tools()
+                .build()
+        )
+        .with_server_info(Implementation::from_build_env())
+        .with_protocol_version(ProtocolVersion::V_2024_11_05)
+        .with_instructions(format!("A game environment for game {} (controls game flow)", self.game_name))
     }
+
+     */
+
+    /*
+    async fn initialize(
+        &self,
+        _request: InitializeRequestParams,
+        context: RequestContext<RoleServer>,
+    ) -> Result<InitializeResult, McpError> {
+        if let Some(http_request_part) = context.extensions.get::<axum::http::request::Parts>() {
+            let initialize_headers = &http_request_part.headers;
+            let initialize_uri = &http_request_part.uri;
+            tracing::info!(?initialize_headers, %initialize_uri, "initialize from http server");
+        }
+        Ok(self.get_info())
+    }
+
+     */
+
+
 }

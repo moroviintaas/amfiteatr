@@ -6,6 +6,7 @@ use crate::scheme::ClassicAction::{Down, Up};
 use crate::scheme::{ClassicAction, ClassicScheme, UsizeAgentId};
 
 
+
 /// Uses last action that enemy used two times in the row, if no such action is found start with
 /// [`Down`].
 pub struct SwitchAfterTwo{

@@ -6,7 +6,7 @@ use amfiteatr_core::error::AmfiteatrError;
 //use amfiteatr_rl::policy::PolicySpecimen;
 use crate::agent::LocalHistoryInfoSet;
 use crate::scheme::{ClassicAction, ClassicScheme, UsizeAgentId};
-
+use rand::RngExt;
 #[derive(Copy, Clone, Debug, Default)]
 pub struct EventCounts {
     pub count_up_v_up: f64,

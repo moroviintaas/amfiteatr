@@ -139,7 +139,8 @@ impl SequentialGameState<ConnectFourScheme> for PythonPettingZooStateWrap{
         for row in 0..6{
             for column in 0..7{
                 for i in 0..2{
-                    observation.board[(row, column, i)] = obs[(row*7*2) +(column * 2)+ i];
+                    //observation.board[(row, column, i)] = obs[(row*7*2) +(column * 2)+ i];
+                    observation.board[row][column][i] = obs[(row*7*2) +(column * 2)+ i];
                 }
             }
         }

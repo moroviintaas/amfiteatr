@@ -1,6 +1,6 @@
 use std::cmp::Ordering;
 use std::marker::PhantomData;
-use rand::{Rng, rng};
+use rand::{RngExt, rng};
 use amfiteatr_core::agent::{InformationSet, Policy};
 use amfiteatr_core::error::AmfiteatrError;
 use crate::scheme::{ClassicAction, ClassicScheme, ClassicGameError, UsizeAgentId};

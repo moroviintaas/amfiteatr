@@ -27,8 +27,8 @@ impl InformationSet<ConnectFourScheme> for ConnectFourInfoSet{
     }
 
     fn is_action_valid(&self, action: &ConnectFourAction) -> bool {
-        self.latest_observation.board[(0, action.index(), 0)] == 0 &&
-            self.latest_observation.board[(0, action.index(), 1)] == 0
+        self.latest_observation.board[0][action.index()][0] == 0 &&
+            self.latest_observation.board[0][action.index()][1] == 0
     }
 
     fn update(&mut self, update: <ConnectFourScheme as Scheme>::UpdateType) -> Result<(), <ConnectFourScheme as Scheme>::GameErrorType> {
@@ -56,9 +56,9 @@ impl TensorEncoding for ConnectFourTensorReprD1{
 }
 
 impl ContextEncodeTensor<ConnectFourTensorReprD1> for ConnectFourInfoSet{
-    fn try_to_tensor(&self, _way: &ConnectFourTensorReprD1) -> Result<Tensor, ConvertError> {
+    fn try_to_tensor(&self, way: &ConnectFourTensorReprD1) -> Result<Tensor, ConvertError> {
 
-        /*
+
         let mut vec = Vec::with_capacity(way.desired_shape()[0] as usize);
         for r in 0..self.latest_observation.board.len(){
             for c in 0..self.latest_observation.board[r].len(){
@@ -66,8 +66,8 @@ impl ContextEncodeTensor<ConnectFourTensorReprD1> for ConnectFourInfoSet{
             }
         }
 
-         */
-        let vec: Vec<f32> = self.latest_observation.board.iter().map(|&x| x as f32).collect();
+
+        //let vec: Vec<f32> = self.latest_observation.board.iter().map(|&x| x as f32).collect();
         Tensor::f_from_slice(&vec[..]).map_err(|e| ConvertError::TorchStr { origin: format!("Converting information set: {:?} ({e})", &self) })
 
     }
@@ -125,12 +125,19 @@ impl MaskingInformationSetAction<ConnectFourScheme, ConnectFourActionTensorRepre
         }).collect();
 
          */
+        /*
         let top_row_is_empty: Vec<bool>= self.latest_observation.board.axis_iter(Axis(1)).map(|slice|{
             slice[(0,0)] == 0 && slice[(0,1)]==0
         }).collect();
 
-            Ok(Tensor::f_from_slice(&top_row_is_empty)
-            .map_err(|e| TensorError::from_tch_with_context(e, "Masking for connect four.".into()))?)
+         */
+
+        let top_row_is_empty: Vec<bool>= self.latest_observation.board[0].iter().map(|entry|{
+            entry[0] == 0 && entry[1] == 0
+        }).collect();
+
+        Ok(Tensor::f_from_slice(&top_row_is_empty)
+        .map_err(|e| TensorError::from_tch_with_context(e, "Masking for connect four.".into()))?)
 
     }
 }
