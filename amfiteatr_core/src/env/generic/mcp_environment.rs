@@ -1,3 +1,4 @@
+use std::any::Any;
 use rmcp::model::ErrorCode;
 use rmcp::model::Content;
 use rmcp::model::{CallToolResult, ServerInfo};
@@ -41,15 +42,30 @@ use rmcp::{
     ServiceError,
     ErrorData as McpError,
 };
-use rmcp::task_manager::OperationProcessor;
+use rmcp::task_manager::{OperationProcessor, OperationResultTransport};
+
+struct ToolCallOperationResult {
+    id: String,
+    result: Result<CallToolResult, McpError>,
+}
+
+impl OperationResultTransport for ToolCallOperationResult {
+    fn operation_id(&self) -> &String {
+        &self.id
+    }
+
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
+}
 
 #[derive(Debug, serde::Serialize, serde::Deserialize, JsonSchema)]
 pub struct McpRequestPerformAction<SC: Scheme>
 where SC::ActionType:  JsonSchema + Serialize,
       for<'a> SC::AgentId: JsonSchema + Serialize,
 {
-    agent_id: SC::AgentId,
-    action: SC::ActionType,
+    pub agent_id: SC::AgentId,
+    pub action: SC::ActionType,
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize, JsonSchema)]
@@ -109,7 +125,7 @@ where   SC::ActionType: Serialize + for<'a> Deserialize<'a> + JsonSchema,
     }
 }
 #[derive(Clone)]
-pub struct McpEnvironment<
+pub struct McpCoreEnvironment<
     SC: Scheme + Serialize + for<'a> Deserialize<'a> + JsonSchema + Send  + 'static,
     ST: SequentialGameState<SC>  + GameStateWithPayoffs<SC> + Send  + 'static  + Renew<SC, Seed>,
     Seed: 'static + Send
@@ -122,20 +138,20 @@ where SC::ActionType: Serialize + for<'a> Deserialize<'a> + JsonSchema,
       SC::UniversalReward: Serialize + for<'a> Deserialize<'a> + JsonSchema
 {
     game_name: String,
-    tool_router: ToolRouter<McpEnvironment<SC, ST, Seed>>,
+    //tool_router: ToolRouter<McpEnvironment<SC, ST, Seed>>,
     //prompt_router: PromptRouter<McpEnvironment<SC, ST, Seed>>,
     internal: Arc<Mutex<McpEnvironmentInternal<SC, ST, Seed>>>,
     update_queues: Arc<Mutex<HashMap<SC::AgentId, Vec<SC::UpdateType>>>>,
-    processor: Arc<Mutex<OperationProcessor>>,
+    //processor: Arc<Mutex<OperationProcessor>>,
 }
 
-#[tool_router]
+//#[tool_router]
 impl<
     SC: Scheme + Serialize + for<'a> Deserialize<'a> + JsonSchema + Send  + 'static,
     ST: SequentialGameState<SC>  + GameStateWithPayoffs<SC> + Send  + 'static + Renew<SC, Seed>,
     Seed: 'static + Send
 >
-McpEnvironment<SC, ST, Seed>
+McpCoreEnvironment<SC, ST, Seed>
 where   SC::ActionType: Serialize + for<'a> Deserialize<'a> + JsonSchema,
         SC::UpdateType: Serialize + for<'a> Deserialize<'a> + JsonSchema,
         Seed: Serialize + for<'a> Deserialize<'a> + JsonSchema + Send,
@@ -150,19 +166,23 @@ where   SC::ActionType: Serialize + for<'a> Deserialize<'a> + JsonSchema,
         let game_name = game_state.game_name();
         Self{
             internal: Arc::new(Mutex::new(McpEnvironmentInternal::new(game_state))),
-            tool_router: Self::tool_router(),//ToolRouter::new(),
+            //tool_router: Self::tool_router(),//ToolRouter::new(),
             //prompt_router: Self::prompt_router(),
             game_name,
             update_queues: Arc::new(Mutex::new(HashMap::new())),
-            processor: Arc::new(Mutex::new(OperationProcessor::new())),
+            //processor: Arc::new(Mutex::new(OperationProcessor::new())),
         }
     }
 
-    /*
+
     fn _create_resource_text(&self, uri: &str, name: &str) -> Resource {
         RawResource::new(uri, name.to_string()).no_annotation()
     }
 
+
+    pub fn game_name(&self) -> &str{
+        &self.game_name[..]
+    }
     fn clear_observations(
         &self,
         store: &mut tokio::sync::MutexGuard<'_, HashMap<SC::AgentId, Vec<SC::UpdateType>>>
@@ -198,13 +218,13 @@ where   SC::ActionType: Serialize + for<'a> Deserialize<'a> + JsonSchema,
         r.unwrap_or(Vec::new())
     }
 
-     */
 
 
 
 
-    /*
-    #[tool(description = "Reset environment")]
+
+
+    //#[tool(description = "Reset environment")]
     pub async fn reset(&self, Parameters(seed): Parameters<Seed>) -> Result<(), ErrorData>
     {
 
@@ -238,10 +258,9 @@ where   SC::ActionType: Serialize + for<'a> Deserialize<'a> + JsonSchema,
 
     }
 
-     */
-    /*
 
-    #[tool(description = "Get updates for selected agent")]
+
+    //#[tool(description = "Get updates for selected agent")]
     pub async fn get_updates(&self, Parameters(agent_id): Parameters<SC::AgentId>) -> Result<CallToolResult, ErrorData>
     {
         let mut observations = self.update_queues.lock().await;
@@ -251,13 +270,13 @@ where   SC::ActionType: Serialize + for<'a> Deserialize<'a> + JsonSchema,
     }
 
 
-    #[tool(description = "Get score of specific agent")]
+    //#[tool(description = "Get score of specific agent")]
     pub async fn get_score(&self, Parameters(agent_id): Parameters<SC::AgentId>) -> Result<CallToolResult, ErrorData> {
         let env = self.internal.lock().await;
         Ok(CallToolResult::success(vec![Content::json(env.game_state.state_payoff_of_player(&agent_id))?]))
     }
 
-    #[tool(description = "Process action on environment and produce update messages")]
+    //#[tool(description = "Process action on environment and produce update messages")]
     pub async fn process_action(&self, Parameters(request): Parameters<McpRequestPerformAction<SC>>) -> Result<CallToolResult, ErrorData>
     {
         let agent = request.agent_id;
@@ -291,17 +310,17 @@ where   SC::ActionType: Serialize + for<'a> Deserialize<'a> + JsonSchema,
 
     }
 
-     */
+
 
     
 
 }
 
+/*
 
-
-#[tool_handler(meta = Meta(rmcp::object!({"tool_meta_key": "tool_meta_value"})))]
+//#[tool_handler(meta = Meta(rmcp::object!({"tool_meta_key": "tool_meta_value"})))]
 //#[prompt_handler(meta = Meta(rmcp::object!({"router_meta_key": "router_meta_value"})))]
-#[task_handler]
+//#[task_handler]
 impl<
     SC: Scheme + Serialize + for<'a> Deserialize<'a> + JsonSchema + Send + 'static,
     ST: SequentialGameState<SC>  + GameStateWithPayoffs<SC> + Send  + 'static + Renew<SC, Seed>,
@@ -315,7 +334,7 @@ where   SC::ActionType: Serialize + for<'a> Deserialize<'a> + JsonSchema,
         SC::UniversalReward: Serialize + for<'a> Deserialize<'a> + JsonSchema
 
 {
-    /*
+
     fn get_info(&self) -> ServerInfo {
 
         ServerInfo::new(
@@ -328,9 +347,9 @@ where   SC::ActionType: Serialize + for<'a> Deserialize<'a> + JsonSchema,
         .with_instructions(format!("A game environment for game {} (controls game flow)", self.game_name))
     }
 
-     */
 
-    /*
+
+
     async fn initialize(
         &self,
         _request: InitializeRequestParams,
@@ -344,7 +363,9 @@ where   SC::ActionType: Serialize + for<'a> Deserialize<'a> + JsonSchema,
         Ok(self.get_info())
     }
 
-     */
+
 
 
 }
+
+ */

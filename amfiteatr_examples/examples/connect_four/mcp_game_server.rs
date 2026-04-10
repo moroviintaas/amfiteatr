@@ -6,8 +6,9 @@ use tracing_subscriber::{
     util::SubscriberInitExt,
     {self},
 };
-use amfiteatr_core::env::McpEnvironment;
+use amfiteatr_core::env::McpCoreEnvironment;
 use amfiteatr_examples::connect_four::env::ConnectFourRustEnvState;
+use amfiteatr_examples::connect_four::env_mcp::McpEnvironmentConnectFour;
 
 
 const BIND_ADDRESS: &str = "127.0.0.1:8000";
@@ -24,7 +25,7 @@ async fn main() -> anyhow::Result<()> {
     let ct = tokio_util::sync::CancellationToken::new();
 
     let service = StreamableHttpService::new(
-        || Ok(McpEnvironment::new(ConnectFourRustEnvState::default())),
+        || Ok(McpEnvironmentConnectFour::new()),
         LocalSessionManager::default().into(),
         StreamableHttpServerConfig::default().with_cancellation_token(ct.child_token()),
     );
