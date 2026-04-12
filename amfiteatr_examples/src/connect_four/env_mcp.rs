@@ -19,6 +19,7 @@ use crate::connect_four::common::{ConnectFourPlayer, ConnectFourScheme};
 use crate::connect_four::env::ConnectFourRustEnvState;
 use serde_json::json;
 use tokio::sync::Mutex;
+use amfiteatr_core::env::McpRequestForAgent;
 
 #[derive(Clone)]
 pub struct McpEnvironmentConnectFour{
@@ -142,30 +143,29 @@ impl McpEnvironmentConnectFour{
 
 
     #[tool(description = "Get updates for selected agent")]
-    async fn get_updates(&self, Parameters(AgentRequest{agent_id}): Parameters<AgentRequest>) -> Result<CallToolResult, ErrorData>
+    async fn get_updates(&self, Parameters(McpRequestForAgent{agent_id}): Parameters<McpRequestForAgent<ConnectFourScheme>>) -> Result<CallToolResult, ErrorData>
     {
-        let player = match agent_id  & 0x01{
 
-            1 => ConnectFourPlayer::Two,
-            _ => ConnectFourPlayer::One,
-        };
         //let s = agent_id_json.to_string();
         //let c4p: ConnectFourPlayer = serde_json::from_str(&s[..])?;
-        self.core.get_updates(Parameters(player)).await
-
+        //self.core.get_updates(Parameters(player)).await
+        self.core.get_updates(Parameters(McpRequestForAgent{agent_id})).await
         //self.core.get_updates(Parameters(c4p)).await
 
     }
 
     #[tool(description = "Get score of specific agent")]
-    async fn get_score(&self, Parameters(AgentRequest{agent_id}): Parameters<AgentRequest>)  -> Result<CallToolResult, ErrorData> {
+    async fn get_score(&self, Parameters(McpRequestForAgent{agent_id}): Parameters<McpRequestForAgent<ConnectFourScheme>>)  -> Result<CallToolResult, ErrorData> {
 
+        /*
         let player = match agent_id  & 0x01{
 
             1 => ConnectFourPlayer::Two,
             _ => ConnectFourPlayer::One,
         };
-        self.core.get_score(Parameters(player)).await
+
+         */
+        self.core.get_score(Parameters(McpRequestForAgent{agent_id})).await
     }
 
     #[tool(description = "Process action on environment and produce update messages")]

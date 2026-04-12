@@ -68,12 +68,22 @@ where SC::ActionType:  JsonSchema + Serialize,
     pub action: SC::ActionType,
 }
 
+#[derive(Debug, serde::Serialize, serde::Deserialize, JsonSchema)]
+pub struct McpRequestForAgent<SC: Scheme>
+    where SC::ActionType:  JsonSchema + Serialize,
+          for<'a> SC::AgentId: JsonSchema + Serialize,
+{
+    pub agent_id: SC::AgentId,
+}
+
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize, JsonSchema)]
 pub struct McpActionResponse<SC: Scheme>
 where SC::AgentId: JsonSchema + Serialize + for<'a> Deserialize<'a>,{
     pub game_finished: bool,
     pub next_player: Option<SC::AgentId>,
 }
+
+
 
 /*
 #[derive(Debug, serde::Serialize, serde::Deserialize, JsonSchema)]
@@ -261,7 +271,7 @@ where   SC::ActionType: Serialize + for<'a> Deserialize<'a> + JsonSchema,
 
 
     //#[tool(description = "Get updates for selected agent")]
-    pub async fn get_updates(&self, Parameters(agent_id): Parameters<SC::AgentId>) -> Result<CallToolResult, ErrorData>
+    pub async fn get_updates(&self, Parameters(McpRequestForAgent{agent_id}): Parameters<McpRequestForAgent<SC>>) -> Result<CallToolResult, ErrorData>
     {
         let mut observations = self.update_queues.lock().await;
         let updates = self.take_observation(&mut observations, &agent_id);
@@ -271,7 +281,7 @@ where   SC::ActionType: Serialize + for<'a> Deserialize<'a> + JsonSchema,
 
 
     //#[tool(description = "Get score of specific agent")]
-    pub async fn get_score(&self, Parameters(agent_id): Parameters<SC::AgentId>) -> Result<CallToolResult, ErrorData> {
+    pub async fn get_score(&self, Parameters(McpRequestForAgent{agent_id}): Parameters<McpRequestForAgent<SC>>) -> Result<CallToolResult, ErrorData> {
         let env = self.internal.lock().await;
         Ok(CallToolResult::success(vec![Content::json(env.game_state.state_payoff_of_player(&agent_id))?]))
     }
