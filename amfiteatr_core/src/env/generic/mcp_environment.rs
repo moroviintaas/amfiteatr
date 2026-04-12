@@ -1,5 +1,5 @@
 use std::any::Any;
-use rmcp::model::ErrorCode;
+use rmcp::model::{ErrorCode, PromptMessage, PromptMessageRole};
 use rmcp::model::Content;
 use rmcp::model::{CallToolResult, ServerInfo};
 use crate::scheme::Renew;
@@ -135,7 +135,7 @@ where   SC::ActionType: Serialize + for<'a> Deserialize<'a> + JsonSchema,
     }
 }
 #[derive(Clone)]
-pub struct McpCoreEnvironment<
+pub struct McpCoreSequentialEnvironment<
     SC: Scheme + Serialize + for<'a> Deserialize<'a> + JsonSchema + Send  + 'static,
     ST: SequentialGameState<SC>  + GameStateWithPayoffs<SC> + Send  + 'static  + Renew<SC, Seed>,
     Seed: 'static + Send
@@ -161,7 +161,7 @@ impl<
     ST: SequentialGameState<SC>  + GameStateWithPayoffs<SC> + Send  + 'static + Renew<SC, Seed>,
     Seed: 'static + Send
 >
-McpCoreEnvironment<SC, ST, Seed>
+McpCoreSequentialEnvironment<SC, ST, Seed>
 where   SC::ActionType: Serialize + for<'a> Deserialize<'a> + JsonSchema,
         SC::UpdateType: Serialize + for<'a> Deserialize<'a> + JsonSchema,
         Seed: Serialize + for<'a> Deserialize<'a> + JsonSchema + Send,
@@ -318,6 +318,75 @@ where   SC::ActionType: Serialize + for<'a> Deserialize<'a> + JsonSchema,
 
 
 
+    }
+
+    pub async fn player_step_prompt(
+        &self,
+        //Parameters(args): Parameters<CounterAnalysisArgs>,
+        _ctx: RequestContext<RoleServer>,
+    ) -> Result<GetPromptResult, McpError> {
+        let mut env = self.internal.lock().await;
+        let current_player = env.game_state.current_player();
+        let messages = match current_player{
+            None => vec![
+                PromptMessage::new_text(
+                    PromptMessageRole::Assistant,
+                    "It seems that no player can play now. Usually this means that the game is finished. \
+                    Collect the scores of players, and if you wish reset environment and players' information sets for new game".to_string()
+                ),
+            ],
+            Some(player) => vec![
+                PromptMessage::new_text(
+                    PromptMessageRole::Assistant,
+                    format!("It seems that now the player {player} should play")
+                ),
+                PromptMessage::new_text(
+                    PromptMessageRole::User,
+                    format!("I want to make action as player {player}. What should I do?")
+                ),
+                PromptMessage::new_text(
+                    PromptMessageRole::Assistant,
+                    format!("Firstly, collect situation updates for player {player}, e.g. by asking environment for updates for that player.")
+                ),
+                PromptMessage::new_text(
+                    PromptMessageRole::User,
+                    "I have collected updates for that player, what should I do with them?".to_string()
+                ),
+                PromptMessage::new_text(
+                    PromptMessageRole::Assistant,
+                    "Now you should apply them to update the information set  responsible for maintaining that player's knowledge if situation.\
+                    This may be external program or avaiable MCP server".to_string()
+                ),
+                PromptMessage::new_text(
+                    PromptMessageRole::User,
+                    "The information set is updated, what now?".to_string()
+                ),
+                PromptMessage::new_text(
+                    PromptMessageRole::Assistant,
+                    "Using this information set get description of current situation viewed by player".to_string()
+                ),
+                PromptMessage::new_text(
+                    PromptMessageRole::User,
+                    format!("I have now a description of current situation viewed by player {player}. What now?")
+                ),
+                PromptMessage::new_text(
+                    PromptMessageRole::Assistant,
+                    "Make a decision what action to do. Maybe you can use MCP server that serves policy which can suggest you what action you should play.".to_string()
+                ),
+
+
+            ]
+        };
+
+        Ok(GetPromptResult::new(messages).with_description("Player step workflow."))
+
+
+    }
+
+    pub async fn get_current_player(&self) -> Result<CallToolResult, ErrorData>{
+        let mut env = self.internal.lock().await;
+        let current_player = env.game_state.current_player();
+        Ok(CallToolResult::success(vec![Content::json(current_player)?]))
     }
 
 

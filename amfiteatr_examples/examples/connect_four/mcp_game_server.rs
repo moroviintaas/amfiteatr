@@ -6,7 +6,7 @@ use tracing_subscriber::{
     util::SubscriberInitExt,
     {self},
 };
-use amfiteatr_core::env::McpCoreEnvironment;
+use amfiteatr_core::env::McpCoreSequentialEnvironment;
 use amfiteatr_examples::connect_four::env::ConnectFourRustEnvState;
 use amfiteatr_examples::connect_four::env_mcp::McpEnvironmentConnectFour;
 

@@ -12,7 +12,7 @@ use rmcp::{
     task_manager::{OperationProcessor, OperationResultTransport},
     tool, tool_handler, tool_router,
 };
-use amfiteatr_core::env::{McpActionResponse, McpCoreEnvironment, McpRequestPerformAction};
+use amfiteatr_core::env::{McpActionResponse, McpCoreSequentialEnvironment, McpRequestPerformAction};
 use amfiteatr_core::error::AmfiteatrError;
 use amfiteatr_core::reexport::nom::Parser;
 use crate::connect_four::common::{ConnectFourPlayer, ConnectFourScheme};
@@ -23,7 +23,7 @@ use amfiteatr_core::env::McpRequestForAgent;
 
 #[derive(Clone)]
 pub struct McpEnvironmentConnectFour{
-    core: McpCoreEnvironment<ConnectFourScheme, ConnectFourRustEnvState, ()>,
+    core: McpCoreSequentialEnvironment<ConnectFourScheme, ConnectFourRustEnvState, ()>,
     tool_router: ToolRouter<McpEnvironmentConnectFour>,
     prompt_router: PromptRouter<McpEnvironmentConnectFour>,
     processor: Arc<Mutex<OperationProcessor>>,
@@ -56,55 +56,18 @@ pub struct CounterAnalysisArgs {
 #[prompt_router]
 impl McpEnvironmentConnectFour{
     #[prompt(
-        name = "example_prompt",
+        name = "player_step_prompt",
         meta = Meta(rmcp::object!({"meta_key": "meta_value"}))
     )]
-    async fn example_prompt(
+    async fn player_step_prompt(
         &self,
-        Parameters(args): Parameters<ExamplePromptArgs>,
         _ctx: RequestContext<RoleServer>,
-    ) -> Result<Vec<PromptMessage>, McpError> {
-        let prompt = format!(
-            "This is an example prompt with your message here: '{}'",
-            args.message
-        );
-        Ok(vec![PromptMessage::new_text(
-            PromptMessageRole::User,
-            prompt,
-        )])
+    ) ->  Result<GetPromptResult, McpError> {
+        self.core.player_step_prompt(_ctx).await
     }
 
 
-    /// Analyze the current counter value and suggest next steps
-    #[prompt(name = "counter_analysis")]
-    async fn counter_analysis(
-        &self,
-        Parameters(args): Parameters<CounterAnalysisArgs>,
-        _ctx: RequestContext<RoleServer>,
-    ) -> Result<GetPromptResult, McpError> {
-        //let strategy = args.strategy.unwrap_or_else(|| "careful".to_string());
-        //let current_value = *self.counter.lock().await;
-        //let difference = args.goal - current_value;
 
-        let messages = vec![
-            PromptMessage::new_text(
-                PromptMessageRole::Assistant,
-                "I'll analyze the counter situation and suggest the best approach.",
-            ),
-            PromptMessage::new_text(
-                PromptMessageRole::User,
-                format!(
-                    "Prompt doing prompting",
-
-                ),
-            ),
-        ];
-
-        Ok(GetPromptResult::new(messages).with_description(format!(
-            "Counter analysis for reaching {} from {}",  1, 1
-           // args.goal, current_value
-        )))
-    }
 
 
 }
@@ -112,7 +75,7 @@ impl McpEnvironmentConnectFour{
 impl McpEnvironmentConnectFour{
     pub fn new() -> Self{
         Self{
-            core: McpCoreEnvironment::new(ConnectFourRustEnvState::default()),
+            core: McpCoreSequentialEnvironment::new(ConnectFourRustEnvState::default()),
             tool_router: Self::tool_router(),
             processor: Arc::new(Mutex::new(OperationProcessor::new())),
             prompt_router: Self::prompt_router(),
