@@ -1,13 +1,26 @@
+use std::sync::Arc;
 use ndarray::Axis;
-use amfiteatr_core::agent::InformationSet;
+use rmcp::handler::server::router::prompt::PromptRouter;
+use rmcp::handler::server::tool::ToolRouter;
+use rmcp::{ErrorData, prompt_router, RoleServer, tool_router};
+use rmcp::model::{GetPromptResult, RawResource, Resource, AnnotateAble};
+use rmcp::task_manager::OperationProcessor;
+use schemars::JsonSchema;
+use serde::{Deserialize, Serialize};
+use tokio::sync::Mutex;
+use amfiteatr_core::agent::{InformationSet, McpCoreInformationSets};
 use amfiteatr_core::scheme::{Scheme, Renew};
 use amfiteatr_core::error::{AmfiteatrError, ConvertError, TensorError};
 use amfiteatr_rl::MaskingInformationSetAction;
 use amfiteatr_rl::tch::Tensor;
 use amfiteatr_rl::tensor_data::{TensorEncoding, ContextEncodeTensor, ContextDecodeTensor, TensorDecoding, ContextEncodeIndexI64, TensorIndexI64Encoding, ContextDecodeIndexI64};
 use crate::connect_four::common::{ConnectFourAction, ConnectFourBinaryObservation, ConnectFourScheme, ConnectFourPlayer};
+use crate::connect_four::env::ConnectFourRustEnvState;
+use crate::connect_four::env_mcp::McpEnvironmentConnectFour;
+use rmcp::{prompt, tool};
+use rmcp::service::RequestContext;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 pub struct ConnectFourInfoSet{
     id: ConnectFourPlayer,
     latest_observation: ConnectFourBinaryObservation
@@ -140,4 +153,43 @@ impl MaskingInformationSetAction<ConnectFourScheme, ConnectFourActionTensorRepre
         .map_err(|e| TensorError::from_tch_with_context(e, "Masking for connect four.".into()))?)
 
     }
+}
+
+#[derive(Clone)]
+pub struct McpInformationSetsConnectFour{
+    core: McpCoreInformationSets<ConnectFourScheme, ConnectFourInfoSet, ()>,
+    tool_router: ToolRouter<McpInformationSetsConnectFour>,
+    prompt_router: PromptRouter<McpInformationSetsConnectFour>,
+    processor: Arc<Mutex<OperationProcessor>>,
+}
+
+#[tool_router]
+impl McpInformationSetsConnectFour{
+    pub fn new(game_name: String, usage: String) -> Self{
+        let hm = [(ConnectFourPlayer::One, ConnectFourInfoSet::new(ConnectFourPlayer::One)),
+            (ConnectFourPlayer::Two, ConnectFourInfoSet::new(ConnectFourPlayer::Two)),
+
+        ].into_iter().collect();
+        Self{
+            core: McpCoreInformationSets::new(hm, game_name, usage),
+            tool_router: Self::tool_router(),
+            processor: Arc::new(Mutex::new(OperationProcessor::new())),
+            prompt_router: Self::prompt_router(),
+
+        }
+    }
+
+    fn _create_resource_text(&self, uri: &str, name: &str) -> Resource {
+        RawResource::new(uri, name.to_string()).no_annotation()
+    }
+
+    #[tool(description = "Reset information sets - set them to initial values - for all the players")]
+    async fn reset_all_information_sets(&self) -> Result<(), ErrorData>{
+        self.core.reset_information_sets().await
+    }
+}
+
+#[prompt_router]
+impl McpInformationSetsConnectFour{
+
 }

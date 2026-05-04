@@ -78,3 +78,121 @@ pub trait ConstructedInfoSet<S: Scheme, B>: InformationSet<S> + From<B> {}
 impl<S: Scheme, B, T: InformationSet<S> + From<B>> ConstructedInfoSet<S, B> for T{}
 
 //impl<S: DomainParameters, B, T: ConstructedInfoSet<S, B>> ConstructedInfoSet<S, B> for Box<T>{}
+
+
+#[cfg(feature = "mcp")]
+mod mcp{
+    use std::collections::HashMap;
+    use std::sync::Arc;
+    use rmcp::ErrorData;
+    use crate::agent::InformationSet;
+    use crate::scheme::{Renew, Scheme};
+    use serde::{Serialize, Deserialize};
+
+    use tokio::sync::Mutex;
+    use schemars::JsonSchema;
+    use std::default::Default;
+    use std::marker::PhantomData;
+    use rmcp::handler::server::wrapper::Parameters;
+    use rmcp::model::{CallToolResult, Content};
+    use crate::env::McpRequestForAgent;
+    use crate::error::AmfiteatrError::Data;
+    use crate::error::DataError;
+
+    #[derive(Clone)]
+    pub struct McpRequestUpdateInformationSet<SC: Scheme>
+    where
+        SC::AgentId: Serialize + for<'a> Deserialize<'a> + JsonSchema,
+        SC::UpdateType: Serialize + for<'a> Deserialize<'a> + JsonSchema,
+    {
+        agent_id: SC::AgentId,
+        updates: Vec<SC::UpdateType>,
+    }
+
+    #[derive(Clone)]
+    pub struct McpCoreInformationSets<
+        SC: Scheme,
+        IS: InformationSet<SC> + Serialize + for<'a> Deserialize<'a> + JsonSchema + Renew<SC, Seed>,
+        Seed: Serialize + for<'a> Deserialize<'a> + JsonSchema
+    >
+    where
+        SC::ActionType: Serialize + for<'a> Deserialize<'a> + JsonSchema,
+        SC::UpdateType: Serialize + for<'a> Deserialize<'a> + JsonSchema,
+        SC::AgentId: Serialize + for<'a> Deserialize<'a> + JsonSchema,
+    {
+        internal: std::sync::Arc<Mutex<HashMap<SC::AgentId, IS>>>,
+        game_name: String,
+        usage: String,
+        _seed: PhantomData<Seed>,
+
+    }
+
+    impl<
+        SC: Scheme,
+        IS: InformationSet<SC> + Serialize + for<'a> Deserialize<'a> + JsonSchema + Renew<SC, Seed> + Renew<SC, ()>,
+        Seed: Serialize + for<'a> Deserialize<'a> + JsonSchema
+    > McpCoreInformationSets<SC, IS, Seed>
+    where
+        SC::ActionType: Serialize + for<'a> Deserialize<'a> + JsonSchema,
+        SC::UpdateType: Serialize + for<'a> Deserialize<'a> + JsonSchema,
+        SC::AgentId: Serialize + for<'a> Deserialize<'a> + JsonSchema,
+    {
+        pub fn new(info_set_map: HashMap<SC::AgentId, IS>, game_name: String, usage: String) -> Self{
+            ;
+            Self{game_name, usage, internal: Arc::new(Mutex::new(info_set_map)), _seed: PhantomData::default()}
+        }
+
+        pub async fn reset_information_sets(&self) -> Result<(), ErrorData>{
+            let mut hm = self.internal.lock().await;
+
+            for is in hm.values_mut(){
+                is.renew_from(());
+            }
+            Ok(())
+        }
+
+        pub async fn update_information_set(&self, Parameters(McpRequestUpdateInformationSet{agent_id, updates}): Parameters<McpRequestUpdateInformationSet<SC>>)
+        -> Result<(), ErrorData>{
+            let mut hm = self.internal.lock().await;
+
+            let mut is = hm.remove(&agent_id).ok_or_else(||ErrorData::internal_error(format!("No information set for player {agent_id}"), None))?;
+            for update in updates.into_iter(){
+                is.update(update).map_err(|e|{
+                    ErrorData::internal_error(format!("Error updating information set: {e}"), None)
+                })?;
+            }
+            hm.insert(agent_id, is);
+
+            Ok(())
+
+        }
+
+        pub async fn serialize_information_set(&self, Parameters(McpRequestForAgent{agent_id}): Parameters<McpRequestForAgent<SC>>)
+            -> Result<CallToolResult, ErrorData>{
+
+            let hm = self.internal.lock().await;
+
+            match hm.get(&agent_id){
+                None => Err(ErrorData::internal_error(format!("No information set for player {agent_id}"), None)),
+                Some(is) => {
+                    Ok(CallToolResult::success(vec![Content::json(is)?]))
+                }
+            }
+
+        }
+
+        pub fn get_usage(&self) -> &str{
+            &self.usage[..]
+        }
+
+        pub fn game_name(&self) -> &str{
+            &self.game_name[..]
+        }
+
+    }
+
+
+}
+
+#[cfg(feature = "mcp")]
+pub use mcp::*;
