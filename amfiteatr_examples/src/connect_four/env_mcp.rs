@@ -88,19 +88,23 @@ impl McpEnvironmentConnectFour{
 
 
     #[tool(description = "Reset environment - set game in initial state")]
-    async fn reset(&self) -> Result<(), ErrorData>
+    async fn reset(&self) -> Result<CallToolResult, ErrorData>
     {
+
         self.core.reset(Parameters(())).await
     }
 
 
 
+    /*
     #[tool(description = "Repeat what you say")]
     fn echo(&self, Parameters(object): Parameters<JsonObject>) -> Result<CallToolResult, McpError> {
         Ok(CallToolResult::success(vec![Content::text(
             serde_json::Value::Object(object).to_string(),
         )]))
     }
+
+     */
 
 
 
@@ -168,6 +172,7 @@ impl ServerHandler for McpEnvironmentConnectFour
             ServerCapabilities::builder()
                 .enable_tools()
                 .enable_prompts()
+                .enable_tasks()
                 .build()
         )
             .with_server_info(Implementation::from_build_env())
@@ -274,44 +279,6 @@ mod tests {
 
     impl ClientHandler for TestClient {}
 
-    /*
-    #[tokio::test]
-    async fn test_prompt_attributes_generated() {
-        // Verify that the prompt macros generate the expected attributes
-        let example_attr = Counter::example_prompt_prompt_attr();
-        assert_eq!(example_attr.name, "example_prompt");
-        assert!(example_attr.description.is_some());
-        assert!(example_attr.arguments.is_some());
-
-        let args = example_attr.arguments.unwrap();
-        assert_eq!(args.len(), 1);
-        assert_eq!(args[0].name, "message");
-        assert_eq!(args[0].required, Some(true));
-
-        let analysis_attr = Counter::counter_analysis_prompt_attr();
-        assert_eq!(analysis_attr.name, "counter_analysis");
-        assert!(analysis_attr.description.is_some());
-        assert!(analysis_attr.arguments.is_some());
-
-        let args = analysis_attr.arguments.unwrap();
-        assert_eq!(args.len(), 2);
-        assert_eq!(args[0].name, "goal");
-        assert_eq!(args[0].required, Some(true));
-        assert_eq!(args[1].name, "strategy");
-        assert_eq!(args[1].required, Some(false));
-    }
-
-    #[tokio::test]
-    async fn test_prompt_router_has_routes() {
-        let router = Counter::prompt_router();
-        assert!(router.has_route("example_prompt"));
-        assert!(router.has_route("counter_analysis"));
-
-        let prompts = router.list_all();
-        assert_eq!(prompts.len(), 2);
-    }
-
-     */
 
     #[tokio::test]
     async fn test_client_enqueues_long_task() -> anyhow::Result<()> {
@@ -332,17 +299,34 @@ mod tests {
             "source".into(),
             serde_json::Value::String("integration-test".into()),
         );
-        let params = CallToolRequestParams::new("reset");//.with_arguments(json!(r#" "1": ()"#));//.with_task(task_meta);//.with_arguments(json!(()));
+        let params = CallToolRequestParams::new("reset")
+            .with_task(task_meta);//.with_arguments(json!(r#" "1": ()"#));//.with_task(task_meta);//.with_arguments(json!(()));
+
+
         let response = client_service
             .send_request(ClientRequest::CallToolRequest(Request::new(params.clone())))
             .await?;
+
+
+
+
+
+        /*
+        let ServerResult::CallToolResult(info) = response else {
+            panic!("expected task creation result, got {response:?}");
+        };
+
+        assert!(!info.is_error.unwrap());
+        */
 
         let ServerResult::CreateTaskResult(info) = response else {
             panic!("expected task creation result, got {response:?}");
         };
         let task = info.task;
-
         assert_eq!(task.status, TaskStatus::Working);
+
+
+
         // task list should show the task
         let tasks = client_service
             .send_request(ClientRequest::ListTasksRequest(
@@ -361,5 +345,7 @@ mod tests {
         client_service.cancel().await?;
         let _ = server_handle.await;
         Ok(())
+
+
     }
 }

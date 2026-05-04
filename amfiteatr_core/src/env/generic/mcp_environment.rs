@@ -235,7 +235,7 @@ where   SC::ActionType: Serialize + for<'a> Deserialize<'a> + JsonSchema,
 
 
     //#[tool(description = "Reset environment")]
-    pub async fn reset(&self, Parameters(seed): Parameters<Seed>) -> Result<(), ErrorData>
+    pub async fn reset(&self, Parameters(seed): Parameters<Seed>) -> Result<CallToolResult, ErrorData>
     {
 
         let mut env = self.internal.lock().await;
@@ -249,11 +249,16 @@ where   SC::ActionType: Serialize + for<'a> Deserialize<'a> + JsonSchema,
         */
 
 
-        let r = env.game_state.renew_from(seed).map_err(|e| ErrorData{
-            code: ErrorCode::INTERNAL_ERROR,
-            message: format!("Failed to renew game : {:?}", e).into(),
-            data: None
-        });
+        let r = env.game_state.renew_from(seed).map_or_else(
+            |e| Err(ErrorData{
+                code: ErrorCode::INTERNAL_ERROR,
+                message: format!("Failed to renew game : {:?}", e).into(),
+                data: None
+            }),
+            |_|{
+                Ok(CallToolResult::success(vec![]))
+            }
+        );
         let first_obs = env.game_state.first_observations();
         let mut observations = self.update_queues.lock().await;
         self.clear_observations(&mut observations);
