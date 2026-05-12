@@ -96,8 +96,6 @@ mod mcp{
     use rmcp::handler::server::wrapper::Parameters;
     use rmcp::model::{CallToolResult, Content};
     use crate::env::McpRequestForAgent;
-    use crate::error::AmfiteatrError::Data;
-    use crate::error::DataError;
 
     #[derive(Clone)]
     pub struct McpRequestUpdateInformationSet<SC: Scheme>
@@ -138,7 +136,6 @@ mod mcp{
         SC::AgentId: Serialize + for<'a> Deserialize<'a> + JsonSchema,
     {
         pub fn new(info_set_map: HashMap<SC::AgentId, IS>, game_name: String, usage: String) -> Self{
-            ;
             Self{game_name, usage, internal: Arc::new(Mutex::new(info_set_map)), _seed: PhantomData::default()}
         }
 
@@ -146,7 +143,7 @@ mod mcp{
             let mut hm = self.internal.lock().await;
 
             for is in hm.values_mut(){
-                is.renew_from(());
+                let _ = is.renew_from(());
             }
             Ok(())
         }

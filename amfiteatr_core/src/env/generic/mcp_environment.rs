@@ -1,53 +1,35 @@
-use std::any::Any;
 use rmcp::model::{ErrorCode, PromptMessage, PromptMessageRole};
 use rmcp::model::Content;
-use rmcp::model::{CallToolResult, ServerInfo};
+use rmcp::model::CallToolResult;
 use crate::scheme::Renew;
 use std::collections::HashMap;
 use std::marker::PhantomData;
 use std::sync::Arc;
-use nom::Parser;
 use serde::{Deserialize, Serialize};
-use crate::env::{GameStateWithPayoffs, ScoreEnvironment, SequentialGameState};
+use crate::env::{GameStateWithPayoffs, SequentialGameState};
 use crate::scheme::Scheme;
-use rmcp::{handler::server::{
-    router::{prompt::PromptRouter, tool::ToolRouter}
-}, schemars::JsonSchema, tool, ErrorData, ServerHandler, model::ServerCapabilities};
-use rmcp::handler::server::router::tool::IntoToolRoute;
+use rmcp::{schemars::JsonSchema, ErrorData};
 use rmcp::handler::server::wrapper::Parameters;
 use tokio::sync::Mutex;
 use crate::error::AmfiteatrError;
 use rmcp::{
     service::RequestContext,
     RoleServer,
-    tool_handler,
-    tool_router,
-    task_handler,
-    prompt_handler,
     model::{
-        Meta,
-        InitializeRequestParams,
-        InitializeResult,
         Resource,
         RawResource,
         AnnotateAble,
-        Implementation,
-        ProtocolVersion,
-        GetPromptRequestParams,
         GetPromptResult,
-        PaginatedRequestParams,
-        ListPromptsResult,
-
     },
-    ServiceError,
     ErrorData as McpError,
 };
-use rmcp::task_manager::{OperationProcessor, OperationResultTransport};
-
+/*
 struct ToolCallOperationResult {
     id: String,
     result: Result<CallToolResult, McpError>,
 }
+
+
 
 impl OperationResultTransport for ToolCallOperationResult {
     fn operation_id(&self) -> &String {
@@ -58,6 +40,8 @@ impl OperationResultTransport for ToolCallOperationResult {
         self
     }
 }
+
+ */
 
 #[derive(Debug, serde::Serialize, serde::Deserialize, JsonSchema)]
 pub struct McpRequestPerformAction<SC: Scheme>
@@ -110,7 +94,7 @@ where SC::ActionType: Serialize + for<'a> Deserialize<'a> + JsonSchema,
       SC::UniversalReward: Serialize + for<'a> Deserialize<'a> + JsonSchema
 {
     pub(crate) game_state: ST,
-    pub(crate) penalties: HashMap<SC::AgentId, SC::UniversalReward>,
+    //pub(crate) penalties: HashMap<SC::AgentId, SC::UniversalReward>,
     pub(crate) game_steps: u64,
     pub(crate) game_violator: Option<SC::AgentId>,
     pub(crate) _seed: PhantomData<Seed>,
@@ -131,7 +115,12 @@ where   SC::ActionType: Serialize + for<'a> Deserialize<'a> + JsonSchema,
         SC::UniversalReward: Serialize + for<'a> Deserialize<'a> + JsonSchema
 {
     pub fn new(game_state: ST) -> Self {
-        Self{game_state, game_steps: 0, penalties: HashMap::new(), game_violator: None, _seed: Default::default()}
+        Self{
+            game_state, game_steps: 0,
+            //penalties: HashMap::new(),
+            game_violator: None,
+            _seed: Default::default()
+        }
     }
 }
 #[derive(Clone)]
@@ -242,11 +231,6 @@ where   SC::ActionType: Serialize + for<'a> Deserialize<'a> + JsonSchema,
 
         env.game_violator = None;
         env.game_steps = 0;
-        /*
-        for obs in observations.values_mut(){
-            obs.clear()
-        }
-        */
 
 
         let r = env.game_state.renew_from(seed).map_or_else(
@@ -330,7 +314,7 @@ where   SC::ActionType: Serialize + for<'a> Deserialize<'a> + JsonSchema,
         //Parameters(args): Parameters<CounterAnalysisArgs>,
         _ctx: RequestContext<RoleServer>,
     ) -> Result<GetPromptResult, McpError> {
-        let mut env = self.internal.lock().await;
+        let env = self.internal.lock().await;
         let current_player = env.game_state.current_player();
         let messages = match current_player{
             None => vec![
@@ -389,7 +373,7 @@ where   SC::ActionType: Serialize + for<'a> Deserialize<'a> + JsonSchema,
     }
 
     pub async fn get_current_player(&self) -> Result<CallToolResult, ErrorData>{
-        let mut env = self.internal.lock().await;
+        let env = self.internal.lock().await;
         let current_player = env.game_state.current_player();
         Ok(CallToolResult::success(vec![Content::json(current_player)?]))
     }
@@ -400,56 +384,3 @@ where   SC::ActionType: Serialize + for<'a> Deserialize<'a> + JsonSchema,
 
 }
 
-/*
-
-//#[tool_handler(meta = Meta(rmcp::object!({"tool_meta_key": "tool_meta_value"})))]
-//#[prompt_handler(meta = Meta(rmcp::object!({"router_meta_key": "router_meta_value"})))]
-//#[task_handler]
-impl<
-    SC: Scheme + Serialize + for<'a> Deserialize<'a> + JsonSchema + Send + 'static,
-    ST: SequentialGameState<SC>  + GameStateWithPayoffs<SC> + Send  + 'static + Renew<SC, Seed>,
-    Seed: 'static + Send
-> ServerHandler for McpEnvironment<SC, ST, Seed>
-where   SC::ActionType: Serialize + for<'a> Deserialize<'a> + JsonSchema,
-        SC::UpdateType: Serialize + for<'a> Deserialize<'a> + JsonSchema,
-        Seed: Serialize + for<'a> Deserialize<'a> + JsonSchema + Send,
-        SC::AgentId: Serialize + for<'a> Deserialize<'a> + JsonSchema,
-        SC: Serialize + for<'a> Deserialize<'a> + JsonSchema,
-        SC::UniversalReward: Serialize + for<'a> Deserialize<'a> + JsonSchema
-
-{
-
-    fn get_info(&self) -> ServerInfo {
-
-        ServerInfo::new(
-            ServerCapabilities::builder()
-                .enable_tools()
-                .build()
-        )
-        .with_server_info(Implementation::from_build_env())
-        .with_protocol_version(ProtocolVersion::V_2024_11_05)
-        .with_instructions(format!("A game environment for game {} (controls game flow)", self.game_name))
-    }
-
-
-
-
-    async fn initialize(
-        &self,
-        _request: InitializeRequestParams,
-        context: RequestContext<RoleServer>,
-    ) -> Result<InitializeResult, McpError> {
-        if let Some(http_request_part) = context.extensions.get::<axum::http::request::Parts>() {
-            let initialize_headers = &http_request_part.headers;
-            let initialize_uri = &http_request_part.uri;
-            tracing::info!(?initialize_headers, %initialize_uri, "initialize from http server");
-        }
-        Ok(self.get_info())
-    }
-
-
-
-
-}
-
- */

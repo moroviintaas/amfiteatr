@@ -1,9 +1,8 @@
 use std::sync::Arc;
-use ndarray::Axis;
 use rmcp::handler::server::router::prompt::PromptRouter;
 use rmcp::handler::server::tool::ToolRouter;
-use rmcp::{ErrorData, prompt_router, RoleServer, tool_router};
-use rmcp::model::{GetPromptResult, RawResource, Resource, AnnotateAble};
+use rmcp::{ErrorData, prompt_router, tool_router};
+use rmcp::model::{RawResource, Resource, AnnotateAble};
 use rmcp::task_manager::OperationProcessor;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
@@ -15,10 +14,7 @@ use amfiteatr_rl::MaskingInformationSetAction;
 use amfiteatr_rl::tch::Tensor;
 use amfiteatr_rl::tensor_data::{TensorEncoding, ContextEncodeTensor, ContextDecodeTensor, TensorDecoding, ContextEncodeIndexI64, TensorIndexI64Encoding, ContextDecodeIndexI64};
 use crate::connect_four::common::{ConnectFourAction, ConnectFourBinaryObservation, ConnectFourScheme, ConnectFourPlayer};
-use crate::connect_four::env::ConnectFourRustEnvState;
-use crate::connect_four::env_mcp::McpEnvironmentConnectFour;
-use rmcp::{prompt, tool};
-use rmcp::service::RequestContext;
+use rmcp::tool;
 
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 pub struct ConnectFourInfoSet{
@@ -158,8 +154,11 @@ impl MaskingInformationSetAction<ConnectFourScheme, ConnectFourActionTensorRepre
 #[derive(Clone)]
 pub struct McpInformationSetsConnectFour{
     core: McpCoreInformationSets<ConnectFourScheme, ConnectFourInfoSet, ()>,
+    #[allow(dead_code)]
     tool_router: ToolRouter<McpInformationSetsConnectFour>,
+    #[allow(dead_code)]
     prompt_router: PromptRouter<McpInformationSetsConnectFour>,
+    #[allow(dead_code)]
     processor: Arc<Mutex<OperationProcessor>>,
 }
 

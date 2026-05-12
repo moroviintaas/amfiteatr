@@ -1,9 +1,8 @@
 use std::fmt::{Display, Formatter};
-use ndarray::{Array2, Array3, Axis};
+use ndarray::Array2;
 use pyo3::PyErr;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
-use tboard::tensorboard::WorkerShutdownMode;
 use amfiteatr_core::agent::AgentIdentifier;
 use amfiteatr_core::scheme::{Action, Scheme};
 use amfiteatr_core::error::{AmfiteatrError, ConvertError};
