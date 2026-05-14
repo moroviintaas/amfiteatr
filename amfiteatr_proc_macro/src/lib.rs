@@ -2,6 +2,7 @@ mod token_parsed;
 //mod str_parsed;
 mod token_variant;
 mod tensorboard_support;
+mod mcp;
 
 use quote::quote;
 
@@ -88,3 +89,32 @@ pub fn derive_tensorboard_support(item: proc_macro::TokenStream) -> proc_macro::
 }
 
  */
+
+
+
+#[proc_macro_attribute]
+pub fn mcp_env_state(attr: proc_macro::TokenStream, item: proc_macro::TokenStream) -> proc_macro::TokenStream{
+
+
+    let item_copy = item.clone();
+    let ast = parse_macro_input!(item_copy as DeriveInput);
+    let scheme = parse_macro_input!(attr as syn::Ident);
+
+    let implementation = {
+
+        let ident = ast.ident.clone();
+
+        let mcp_struct_name = syn::Ident::new(&format!("Mcp{}", ident), proc_macro2::Span::call_site());
+
+        quote!{
+            #[derive(Clone)]
+            pub struct #mcp_struct_name {
+                core: amfiteatr_core::env::McpCoreSequentialEnvironment<#scheme, #ident, ()>,
+            }
+        }
+    };
+
+    let result = [item, implementation.into()];
+    proc_macro::TokenStream::from_iter(result)
+
+}

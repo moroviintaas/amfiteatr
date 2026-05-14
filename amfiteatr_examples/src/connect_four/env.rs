@@ -2,10 +2,13 @@ use log::warn;
 use amfiteatr_core::scheme::{Scheme, Renew};
 use amfiteatr_core::env::{SequentialGameState, GameStateWithPayoffs};
 use amfiteatr_core::error::AmfiteatrError;
+use amfiteatr_proc_macro::{mcp_env_state};
 use crate::connect_four::common::{Board, ConnectFourAction, ConnectFourBinaryObservation, ConnectFourScheme, ConnectFourError, ConnectFourPlayer};
 
 
+#[mcp_env_state(ConnectFourScheme)]
 #[derive(Clone, Debug)]
+
 pub struct ConnectFourRustEnvState{
     board: Board,
 
