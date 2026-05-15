@@ -5,6 +5,14 @@ use amfiteatr_core::error::AmfiteatrError;
 use amfiteatr_proc_macro::{mcp_env_state};
 use crate::connect_four::common::{Board, ConnectFourAction, ConnectFourBinaryObservation, ConnectFourScheme, ConnectFourError, ConnectFourPlayer};
 
+/// We need this because macros for handler in `rmcp` expect structures in it to be visible.
+use rmcp::{
+    model::*,
+    service::RequestContext,
+    RoleServer,
+    ErrorData as McpError,
+    //ServiceError
+};
 
 #[mcp_env_state(ConnectFourScheme)]
 #[derive(Clone, Debug)]

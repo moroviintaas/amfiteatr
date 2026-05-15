@@ -5,3 +5,6 @@ mod contains;
 pub use stream_parsed::*;
 pub use tboard::*;
 pub use contains::*;
+
+#[cfg(feature = "mcp")]
+pub mod mcp;
