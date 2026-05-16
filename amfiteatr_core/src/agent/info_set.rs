@@ -95,7 +95,7 @@ mod mcp{
     use std::marker::PhantomData;
     use rmcp::handler::server::wrapper::Parameters;
     use rmcp::model::{CallToolResult, Content};
-    use crate::env::McpRequestForAgent;
+    use crate::util::mcp::McpReqArgAgentId;
 
     #[derive(Clone)]
     pub struct McpRequestUpdateInformationSet<SC: Scheme>
@@ -164,7 +164,7 @@ mod mcp{
 
         }
 
-        pub async fn serialize_information_set(&self, Parameters(McpRequestForAgent{agent_id}): Parameters<McpRequestForAgent<SC>>)
+        pub async fn serialize_information_set(&self, Parameters(McpReqArgAgentId{agent_id}): Parameters<McpReqArgAgentId<SC>>)
             -> Result<CallToolResult, ErrorData>{
 
             let hm = self.internal.lock().await;

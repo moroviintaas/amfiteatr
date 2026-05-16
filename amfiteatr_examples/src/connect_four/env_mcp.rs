@@ -12,12 +12,12 @@ use rmcp::{
     task_manager::OperationProcessor,
     tool, tool_handler, tool_router,
 };
-use amfiteatr_core::env::{McpCoreSequentialEnvironment, McpRequestPerformAction};
+use amfiteatr_core::env::{McpCoreSequentialEnvironment};
 use crate::connect_four::common::ConnectFourScheme;
 use crate::connect_four::env::ConnectFourRustEnvState;
 use serde_json::json;
 use tokio::sync::Mutex;
-use amfiteatr_core::env::McpRequestForAgent;
+use amfiteatr_core::util::mcp::{McpReqArgAgentAction, McpReqArgAgentId};
 
 #[derive(Clone)]
 pub struct McpEnvironmentConnectFour{
@@ -111,19 +111,19 @@ impl McpEnvironmentConnectFour{
 
 
     #[tool(description = "Get updates for selected agent")]
-    async fn get_updates(&self, Parameters(McpRequestForAgent{agent_id}): Parameters<McpRequestForAgent<ConnectFourScheme>>) -> Result<CallToolResult, ErrorData>
+    async fn get_updates(&self, Parameters(McpReqArgAgentId{agent_id}): Parameters<McpReqArgAgentId<ConnectFourScheme>>) -> Result<CallToolResult, ErrorData>
     {
 
         //let s = agent_id_json.to_string();
         //let c4p: ConnectFourPlayer = serde_json::from_str(&s[..])?;
         //self.core.get_updates(Parameters(player)).await
-        self.core.get_updates(Parameters(McpRequestForAgent{agent_id})).await
+        self.core.get_updates(Parameters(McpReqArgAgentId{agent_id})).await
         //self.core.get_updates(Parameters(c4p)).await
 
     }
 
     #[tool(description = "Get score of specific agent")]
-    async fn get_score(&self, Parameters(McpRequestForAgent{agent_id}): Parameters<McpRequestForAgent<ConnectFourScheme>>)  -> Result<CallToolResult, ErrorData> {
+    async fn get_score(&self, Parameters(McpReqArgAgentId{agent_id}): Parameters<McpReqArgAgentId<ConnectFourScheme>>)  -> Result<CallToolResult, ErrorData> {
 
         /*
         let player = match agent_id  & 0x01{
@@ -133,13 +133,13 @@ impl McpEnvironmentConnectFour{
         };
 
          */
-        self.core.get_score(Parameters(McpRequestForAgent{agent_id})).await
+        self.core.get_score(Parameters(McpReqArgAgentId{agent_id})).await
     }
 
     #[tool(description = "Process action on environment and produce update messages")]
-    async fn process_action(&self, Parameters(McpRequestPerformAction{action, agent_id}): Parameters<McpRequestPerformAction<ConnectFourScheme>>) -> Result<CallToolResult, ErrorData>
+    async fn process_action(&self, Parameters(McpReqArgAgentAction{action, agent_id}): Parameters<McpReqArgAgentAction<ConnectFourScheme>>) -> Result<CallToolResult, ErrorData>
     {
-        self.core.process_action(Parameters(McpRequestPerformAction{action, agent_id})).await
+        self.core.process_action(Parameters(McpReqArgAgentAction{action, agent_id})).await
 
     }
 

@@ -1,14 +1,22 @@
+use schemars::JsonSchema;
+use serde::{Deserialize, Serialize};
 use crate::scheme::Scheme;
 
 
 /// Structure dedicated for `mcp` requests that expect single agent id as argument.
-pub struct McpReqArgAgentId<Sc: Scheme>{
+#[derive(JsonSchema, Serialize, Deserialize)]
+pub struct McpReqArgAgentId<Sc: Scheme >
+where Sc::AgentId: JsonSchema{
     pub agent_id: Sc::AgentId
 }
 
 
 /// Structure dedicated for `mcp` requests that expect single agent id along with action as argument.
-pub struct McpReqArgAgentAction<Sc: Scheme>{
+#[derive(JsonSchema, Serialize, Deserialize)]
+pub struct McpReqArgAgentAction<Sc: Scheme >
+where Sc::AgentId: JsonSchema,
+    Sc::ActionType: JsonSchema,
+{
     pub agent_id: Sc::AgentId,
     pub action: Sc::ActionType,
 }

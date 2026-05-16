@@ -16,7 +16,6 @@ use rmcp::{
 
 #[mcp_env_state(ConnectFourScheme)]
 #[derive(Clone, Debug)]
-
 pub struct ConnectFourRustEnvState{
     board: Board,
 
