@@ -1,12 +1,51 @@
 use quote::quote;
-use syn::{DeriveInput, parse_macro_input};
+use syn::{DeriveInput, parse_macro_input, Type, Token, parse_quote};
+use syn::parse::Parse;
+
+pub struct MacroArgsEnvState{
+    scheme_type: Type,
+    seed_type: Type,
+}
+
+impl Parse for MacroArgsEnvState {
+    fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
+        let mut scheme_type = None;
+        let mut seed_type = None;
+
+        while !input.is_empty() {
+            let key: syn::Ident = input.parse()?;
+            input.parse::<Token![=]>()?;
+            let ty: Type = input.parse()?;
+
+            match key.to_string().as_str() {
+                "scheme" => scheme_type = Some(ty),
+                "seed_type" => seed_type = Some(ty),
+                _ => return Err(syn::Error::new(key.span(), "unknown argument")),
+            }
+
+            if input.peek(Token![,]) {
+                input.parse::<Token![,]>()?;
+            }
+        }
+
+        Ok(MacroArgsEnvState {
+            scheme_type: scheme_type.ok_or_else(|| {
+                syn::Error::new(proc_macro2::Span::call_site(), "missing scheme")
+            })?,
+            seed_type: seed_type.unwrap_or_else(|| syn::parse_quote!(())),
+        })
+    }
+}
 
 pub fn impl_mcp_env_state(attr: proc_macro::TokenStream, item: proc_macro::TokenStream) -> proc_macro::TokenStream{
 
+
     let item_copy = item.clone();
     let ast = parse_macro_input!(item_copy as DeriveInput);
-    let scheme = parse_macro_input!(attr as syn::Ident);
-
+    //let scheme = parse_macro_input!(attr as syn::Ident);
+    let args = syn::parse_macro_input!(attr as MacroArgsEnvState);
+    let scheme = args.scheme_type;
+    let seed_type = args.seed_type;
     let implementation = {
 
         let ident = ast.ident.clone();
@@ -49,7 +88,7 @@ pub fn impl_mcp_env_state(attr: proc_macro::TokenStream, item: proc_macro::Token
                 #[rmcp::tool(description = "Reset environment - set game in initial state")]
                 async fn reset(&self) -> Result<rmcp::model::CallToolResult, rmcp::ErrorData>
                 {
-                    self.core.reset(rmcp::handler::server::wrapper::Parameters(())).await
+                    self.core.reset(rmcp::handler::server::wrapper::Parameters(#seed_type)).await
                 }
 
                 #[rmcp::tool(description = "Get updates for selected agent")]

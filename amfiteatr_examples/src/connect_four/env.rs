@@ -14,7 +14,7 @@ use rmcp::{
     //ServiceError
 };
 
-#[mcp_env_state(ConnectFourScheme)]
+#[mcp_env_state(scheme = ConnectFourScheme, seed_type = ())]
 #[derive(Clone, Debug)]
 pub struct ConnectFourRustEnvState{
     board: Board,
