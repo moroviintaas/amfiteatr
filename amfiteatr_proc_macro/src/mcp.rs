@@ -25,10 +25,10 @@ pub fn impl_mcp_env_state(attr: proc_macro::TokenStream, item: proc_macro::Token
 
             impl #mcp_struct_name{
                 /// Creates new instance of structure
-                pub fn mcp_new() -> Self{
+                pub fn mcp_new(initial_state: #ident) -> Self{
                     Self{
                         core: amfiteatr_core::env::McpCoreSequentialEnvironment::new(
-                            #ident::default()
+                            initial_state
                         ),
                         tool_router: Self::tool_router(),
                         processor: std::sync::Arc::new(tokio::sync::Mutex::new(rmcp::task_manager::OperationProcessor::new())),

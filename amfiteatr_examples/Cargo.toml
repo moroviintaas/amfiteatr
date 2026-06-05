@@ -30,7 +30,7 @@ required-features = ["rl-python"]
 
 [[example]]
 name = "connect_four_mcp_game_server"
-path = "examples/connect_four/mcp_game_server.rs"
+path = "examples/connect_four/mcp_game_server_custom_impl.rs"
 
 [[example]]
 name = "cart_pole"
@@ -68,8 +68,12 @@ required-features = ["rl-python"]
 path = "examples/connect_four/run_model_ppo_masking.rs"
 
 [[example]]
-name = "connect_four_mcp_environment"
-path = "examples/connect_four/mcp_environment.rs"
+name = "connect_four_mcp_environment_custom_impl"
+path = "examples/connect_four/mcp_game_server_custom_impl.rs"
+
+[[example]]
+name = "connect_four_mcp_environment_macro_impl"
+path = "examples/connect_four/mcp_game_server_macro_impl.rs"
 
 [[example]]
 name = "communication_choice"

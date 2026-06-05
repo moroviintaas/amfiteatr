@@ -1,3 +1,6 @@
+//! This is example implementation of MCP server in role of game state control.
+//! It shows an example how to make it manually with more control.
+//! An alternative is (WIP) macro [`mcp_env_state`](amfiteatr_proc_macro::mcp_env_state).
 use std::sync::Arc;
 use rmcp::{
     ErrorData as McpError, RoleServer, ServerHandler,
