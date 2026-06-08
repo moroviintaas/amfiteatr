@@ -4,6 +4,7 @@ mod token_variant;
 mod tensorboard_support;
 mod mcp;
 
+use crate::mcp::impl_mcp_information_set;
 use quote::quote;
 
 use syn::{DeriveInput, ItemStruct, parse_macro_input};
@@ -93,10 +94,20 @@ pub fn derive_tensorboard_support(item: proc_macro::TokenStream) -> proc_macro::
 
 
 
+/// This macro should generate McpInfoSets\* struct which is MCP server implementation for game state.
 #[proc_macro_attribute]
 pub fn mcp_env_state(attr: proc_macro::TokenStream, item: proc_macro::TokenStream) -> proc_macro::TokenStream{
 
 
     impl_mcp_env_state(attr, item)
+
+}
+
+/// This macro should generate McpInfoSets\* struct which is MCP server implementation for hash map of information sets.
+#[proc_macro_attribute]
+pub fn mcp_information_sets(attr: proc_macro::TokenStream, item: proc_macro::TokenStream) -> proc_macro::TokenStream{
+
+
+    impl_mcp_information_set(attr, item)
 
 }

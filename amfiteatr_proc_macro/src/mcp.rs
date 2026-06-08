@@ -190,3 +190,49 @@ pub fn impl_mcp_env_state(attr: proc_macro::TokenStream, item: proc_macro::Token
     let result = [item, implementation.into()];
     proc_macro::TokenStream::from_iter(result)
 }
+
+
+pub fn impl_mcp_information_set(attr: proc_macro::TokenStream, item: proc_macro::TokenStream) -> proc_macro::TokenStream {
+    let item_copy = item.clone();
+    let ast = parse_macro_input!(item_copy as DeriveInput);
+    let args = syn::parse_macro_input!(attr as MacroArgsEnvState);
+    let scheme = args.scheme_type;
+    let seed_type = args.seed_type;
+
+    let implementation = {
+        let ident = ast.ident.clone();
+
+        let mcp_struct_name = syn::Ident::new(&format!("McpInfoSets{}", ident), proc_macro2::Span::call_site());
+
+        quote!{
+            #[automatically_derived]
+            pub struct #mcp_struct_name{
+                core: amfiteatr_core::agent::McpCoreInformationSets<#scheme, #ident, #seed_type>,
+                tool_router: rmcp::handler::server::router::tool::ToolRouter<#mcp_struct_name>,
+                prompt_router: rmcp::handler::server::router::prompt::PromptRouter<#mcp_struct_name>,
+                processor: std::sync::Arc<tokio::sync::Mutex<rmcp::task_manager::OperationProcessor>>,
+            }
+
+            #[tool_router]
+            #[automatically_derived]
+            impl #mcp_struct_name {
+                pub fn mcp_new(game_name: String, usage: String, initial_sets: std::collections::HashMap<<#scheme as amfiteatr_core::scheme::Scheme>::AgentId, #ident>) -> Self{
+                    Self{
+                        core: amfiteatr_core::agent::McpCoreInformationSets::new(initial_sets, game_name, usage),
+                        tool_router: Self::tool_router(),
+                        processor: std::sync::Arc::new(tokio::sync::Mutex::new(rmcp::task_manager::OperationProcessor::new())),
+                        prompt_router: Self::prompt_router(),
+                    }
+                }
+            }
+
+            #[prompt_router]
+            #[automatically_derived]
+            impl #mcp_struct_name {
+
+            }
+        }
+    };
+    let result = [item, implementation.into()];
+    proc_macro::TokenStream::from_iter(result)
+}

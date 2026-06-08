@@ -15,7 +15,9 @@ use amfiteatr_rl::tch::Tensor;
 use amfiteatr_rl::tensor_data::{TensorEncoding, ContextEncodeTensor, ContextDecodeTensor, TensorDecoding, ContextEncodeIndexI64, TensorIndexI64Encoding, ContextDecodeIndexI64};
 use crate::connect_four::common::{ConnectFourAction, ConnectFourBinaryObservation, ConnectFourScheme, ConnectFourPlayer};
 use rmcp::tool;
+use amfiteatr_proc_macro::mcp_information_sets;
 
+#[mcp_information_sets(scheme = ConnectFourScheme, seed_type = ())]
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 pub struct ConnectFourInfoSet{
     id: ConnectFourPlayer,
@@ -151,6 +153,8 @@ impl MaskingInformationSetAction<ConnectFourScheme, ConnectFourActionTensorRepre
     }
 }
 
+
+/// Manually implemented Mcp server interface for ConnectFour Information sets.
 #[derive(Clone)]
 pub struct McpInformationSetsConnectFour{
     core: McpCoreInformationSets<ConnectFourScheme, ConnectFourInfoSet, ()>,
