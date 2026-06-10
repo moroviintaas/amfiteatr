@@ -1,16 +1,20 @@
 use quote::quote;
-use syn::{DeriveInput, parse_macro_input, Type, Token, parse_quote};
+use syn::{DeriveInput, parse_macro_input, Type, Token, parse_quote, Item};
 use syn::parse::Parse;
+
 
 pub struct MacroArgsEnvState{
     scheme_type: Type,
     seed_type: Type,
 }
 
+
+
 impl Parse for MacroArgsEnvState {
     fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
         let mut scheme_type = None;
         let mut seed_type = None;
+
 
         while !input.is_empty() {
             let key: syn::Ident = input.parse()?;
@@ -18,6 +22,7 @@ impl Parse for MacroArgsEnvState {
             let ty: Type = input.parse()?;
 
             match key.to_string().as_str() {
+
                 "scheme" => scheme_type = Some(ty),
                 "seed_type" => seed_type = Some(ty),
                 _ => return Err(syn::Error::new(key.span(), "unknown argument")),
@@ -33,6 +38,48 @@ impl Parse for MacroArgsEnvState {
                 syn::Error::new(proc_macro2::Span::call_site(), "missing scheme")
             })?,
             seed_type: seed_type.unwrap_or_else(|| syn::parse_quote!(())),
+        })
+    }
+}
+
+
+pub struct MacroArgsImplMcp{
+    target_type: Type,
+    scheme_type: Type,
+    seed_type: Type,
+}
+impl Parse for MacroArgsImplMcp {
+    fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
+        let mut scheme_type = None;
+        let mut seed_type = None;
+        let mut target_type = None;
+
+        while !input.is_empty() {
+            let key: syn::Ident = input.parse()?;
+            input.parse::<Token![=]>()?;
+            let ty: Type = input.parse()?;
+
+            match key.to_string().as_str() {
+                "target" => target_type = Some(ty),
+                "scheme" => scheme_type = Some(ty),
+                "seed_type" => seed_type = Some(ty),
+                _ => return Err(syn::Error::new(key.span(), "unknown argument")),
+            }
+
+            if input.peek(Token![,]) {
+                input.parse::<Token![,]>()?;
+            }
+        }
+
+        Ok(MacroArgsImplMcp {
+            scheme_type: scheme_type.ok_or_else(|| {
+                syn::Error::new(proc_macro2::Span::call_site(), "missing scheme")
+            })?,
+            seed_type: seed_type.unwrap_or_else(|| syn::parse_quote!(())),
+            target_type: target_type.ok_or_else(|| {
+                syn::Error::new(proc_macro2::Span::call_site(), "missing target")
+            })?,
+
         })
     }
 }
@@ -235,4 +282,36 @@ pub fn impl_mcp_information_set(attr: proc_macro::TokenStream, item: proc_macro:
     };
     let result = [item, implementation.into()];
     proc_macro::TokenStream::from_iter(result)
+}
+
+
+
+
+pub fn impl_mcp_policy(attr: proc_macro::TokenStream, item: proc_macro::TokenStream) -> proc_macro::TokenStream {
+    let item_copy = item.clone();
+
+    let ast = parse_macro_input!(item_copy as DeriveInput);
+    let args = syn::parse_macro_input!(attr as MacroArgsImplMcp);
+    let scheme = args.scheme_type;
+    let seed_type = args.seed_type;
+    let target_type = args.target_type;
+
+    //let item = parse_macro_input!(item_copy as DeriveInput);
+    /*let type_token = match item {
+        //Item::Struct(=>)
+    }
+
+
+     */
+    let implementation = {
+        quote!{
+
+        }
+    };
+
+
+
+    let result = [item, implementation.into()];
+    proc_macro::TokenStream::from_iter(result)
+
 }

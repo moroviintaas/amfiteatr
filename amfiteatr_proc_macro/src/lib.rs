@@ -4,6 +4,7 @@ mod token_variant;
 mod tensorboard_support;
 mod mcp;
 
+use crate::mcp::impl_mcp_policy;
 use crate::mcp::impl_mcp_information_set;
 use quote::quote;
 
@@ -109,5 +110,12 @@ pub fn mcp_information_sets(attr: proc_macro::TokenStream, item: proc_macro::Tok
 
 
     impl_mcp_information_set(attr, item)
+
+}
+
+#[proc_macro_attribute]
+pub fn mcp_policy(attr: proc_macro::TokenStream, item: proc_macro::TokenStream) -> proc_macro::TokenStream{
+
+    impl_mcp_policy(attr, item)
 
 }

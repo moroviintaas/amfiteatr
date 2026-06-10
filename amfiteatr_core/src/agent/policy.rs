@@ -133,6 +133,82 @@ impl<S: Scheme, P: Policy<S>> Policy<S> for Box<P>{
 }
 
 
+#[cfg(feature = "mcp")]
+mod mcp{
+    use std::marker::PhantomData;
+    use schemars::JsonSchema;
+    use serde::{Deserialize, Serialize};
+    use crate::agent::{InformationSet, Policy};
+    use crate::scheme::Scheme;
+    use std::sync::Arc;
+    use rmcp::handler::server::wrapper::Parameters;
+    use tokio::sync::Mutex;
+    use rmcp::ErrorData;
+    use rmcp::model::{CallToolResult, Content};
+    use std::default::Default;
+
+    #[derive(Clone)]
+    pub struct McpRequestSelectAction<SC: Scheme, IS: InformationSet<SC>>
+    where
+        IS: Serialize + for<'a> Deserialize<'a> + JsonSchema
+    {
+        pub information_set: IS,
+        _sc: PhantomData<SC>,
+    }
+
+
+    pub struct McpCorePolicy<SC: Scheme, IS: InformationSet<SC>, P: Policy<SC>>
+    where
+        IS: Serialize + for<'a> Deserialize<'a> + JsonSchema,
+        P: Policy<SC,  InfoSetType = IS>
+    {
+        internal: Arc<Mutex<P>>,
+        policy_name: String,
+        usage: String,
+        _sc: PhantomData<SC>,
+        _is: PhantomData<SC>,
+
+    }
+
+    impl <SC: Scheme, IS: InformationSet<SC>, P: Policy<SC>> McpCorePolicy<SC, IS, P>
+    where
+        IS: Serialize + for<'a> Deserialize<'a> + JsonSchema,
+        //SC: Serialize + for<'a> Deserialize<'a> + JsonSchema,
+        <SC as Scheme>::ActionType: Serialize + for<'a> Deserialize<'a> + JsonSchema,
+        P: Policy<SC,  InfoSetType = IS>
+    {
+        pub fn new(policy: P, policy_name: String, usage: String) -> Self{
+            Self{
+                internal: Arc::new(Mutex::new(policy)),
+                policy_name, usage,
+                _sc: Default::default(), _is: Default::default(),
+            }
+        }
+
+        pub async fn select_action(&self, Parameters(McpRequestSelectAction{information_set, ..}): Parameters<McpRequestSelectAction<SC, IS>>)
+        -> Result<CallToolResult, ErrorData>
+        {
+            let internal = self.internal.lock().await;
+
+            match internal.select_action(&information_set) {
+                Ok(action) => Ok(CallToolResult::success(vec![Content::json(action)?])),
+                Err(e) => Err(ErrorData::internal_error(
+                    format!("Failed to resolve action ({e})"),
+                    Some(serde_json::to_value(&information_set).map_err(|e|{
+                        ErrorData::internal_error(
+                            format!("Failed to resolve action ({e}) and to serialize information set: {information_set:?}."),
+                            None
+                        )
+                    })?))),
+            }
+
+        }
+    }
+}
+
+
+#[cfg(feature = "mcp")]
+pub use mcp::*;
 
 
 
