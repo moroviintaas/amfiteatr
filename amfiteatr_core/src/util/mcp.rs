@@ -20,3 +20,10 @@ where Sc::AgentId: JsonSchema,
     pub agent_id: Sc::AgentId,
     pub action: Sc::ActionType,
 }
+
+#[derive(JsonSchema, Serialize, Deserialize)]
+pub struct McpReqReward<Sc: Scheme >
+    where Sc::UniversalReward: JsonSchema,
+{
+    pub reward: Sc::UniversalReward,
+}

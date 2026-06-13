@@ -29,12 +29,14 @@ pub trait Policy<S: Scheme>: Send{
         Ok(())
     }
 
-    /// This method is meant to be called at the beginning of the episode.
+    /// This method is meant to be called at the end of the episode.
     /// It is not crucial for game protocol, yet you can use it to set something in policy after the episode.
     /// For example note something about policy and performance of choice at the beginning of the episode.
+    /// That might be useful in constructing some genetic policies, that try different variants for episodes autonomously,
+    /// and they internally rank their tested variants later.
     #[allow(unused_variables)]
     fn call_on_episode_finish(&mut self,
-                              final_env_reward: S::UniversalReward,
+                              final_env_payoff: S::UniversalReward,
     ) -> Result<(), AmfiteatrError<S>>
     {
         #[cfg(feature = "log_trace")]
@@ -42,7 +44,7 @@ pub trait Policy<S: Scheme>: Send{
         Ok(())
     }
 
-    /// This method is meant to be called at the beginning of the episode.
+    /// This method is meant to be called between epochs.
     /// It is not crucial for game protocol, yet you can use it to set something in policy between epochs
     /// For example clean episode notation.
     fn call_between_epochs(&mut self)  -> Result<(), AmfiteatrError<S>>{
@@ -227,6 +229,7 @@ mod mcp{
     use rmcp::ErrorData;
     use rmcp::model::{CallToolResult, Content};
     use std::default::Default;
+    use crate::util::mcp::McpReqReward;
 
     #[derive(Clone)]
     pub struct McpRequestSelectAction<SC: Scheme, IS: InformationSet<SC>>
@@ -256,6 +259,7 @@ mod mcp{
         IS: Serialize + for<'a> Deserialize<'a> + JsonSchema,
         //SC: Serialize + for<'a> Deserialize<'a> + JsonSchema,
         <SC as Scheme>::ActionType: Serialize + for<'a> Deserialize<'a> + JsonSchema,
+        <SC as Scheme>::UniversalReward: Serialize + for<'a> Deserialize<'a> + JsonSchema,
         P: Policy<SC,  InfoSetType = IS>
     {
         pub fn new(policy: P, policy_name: String, usage: String) -> Self{
@@ -282,6 +286,60 @@ mod mcp{
                         )
                     })?))),
             }
+
+        }
+
+        pub async fn call_on_episode_start(&self)
+                                   -> Result<CallToolResult, ErrorData>
+        {
+            let mut internal = self.internal.lock().await;
+
+            match internal.call_on_episode_start(){
+                Ok(_) => Ok(CallToolResult::success(vec![])),
+                Err(e) => Err(ErrorData::internal_error(
+                    format!("Failed to policy preparation on beginning of the episode ({e})"),
+                    None
+                ))
+            }
+
+
+
+        }
+
+        pub async fn call_on_episode_finish(
+            &self,
+            Parameters(McpReqReward{reward}): Parameters<McpReqReward<SC>>
+        )
+                                           -> Result<CallToolResult, ErrorData>
+        {
+            let mut internal = self.internal.lock().await;
+
+            match internal.call_on_episode_finish(reward){
+                Ok(_) => Ok(CallToolResult::success(vec![])),
+                Err(e) => Err(ErrorData::internal_error(
+                    format!("Failed to policy preparation on beginning of the episode ({e})"),
+                    None
+                ))
+            }
+
+
+
+        }
+
+        pub async fn call_between_epochs(&self)
+                                           -> Result<CallToolResult, ErrorData>
+        {
+            let mut internal = self.internal.lock().await;
+
+            match internal.call_between_epochs(){
+                Ok(_) => Ok(CallToolResult::success(vec![])),
+                Err(e) => Err(ErrorData::internal_error(
+                    format!("Failed to policy preparation on beginning of the episode ({e})"),
+                    None
+                ))
+            }
+
+
 
         }
     }
