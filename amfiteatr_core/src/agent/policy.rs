@@ -66,6 +66,33 @@ impl<S: Scheme, P: Policy<S>> Policy<S> for Arc<Mutex<P>>{
             Err(e) => Err(AmfiteatrError::Lock { description: e.to_string(), object: "Policy (select_action)".to_string() })
         }
     }
+
+    fn call_on_episode_start(&mut self) -> Result<(), AmfiteatrError<S>> {
+        match self.as_ref().lock(){
+            Ok(mut internal_policy) => {
+                internal_policy.call_on_episode_start()
+            }
+            Err(e) => Err(AmfiteatrError::Lock { description: e.to_string(), object: "Policy (select_action)".to_string() })
+        }
+    }
+
+    fn call_on_episode_finish(&mut self, final_env_reward: S::UniversalReward,) -> Result<(), AmfiteatrError<S>> {
+        match self.as_ref().lock(){
+            Ok(mut internal_policy) => {
+                internal_policy.call_on_episode_finish(final_env_reward)
+            }
+            Err(e) => Err(AmfiteatrError::Lock { description: e.to_string(), object: "Policy (select_action)".to_string() })
+        }
+    }
+
+    fn call_between_epochs(&mut self)  -> Result<(), AmfiteatrError<S>>{
+        match self.as_ref().lock(){
+            Ok(mut internal_policy) => {
+                internal_policy.call_between_epochs()
+            }
+            Err(e) => Err(AmfiteatrError::Lock { description: e.to_string(), object: "Policy (select_action)".to_string() })
+        }
+    }
 }
 
 impl<S: Scheme, P: Policy<S>> Policy<S> for Mutex<P>{
@@ -80,6 +107,33 @@ impl<S: Scheme, P: Policy<S>> Policy<S> for Mutex<P>{
             Err(e) => Err(AmfiteatrError::Lock { description: e.to_string(), object: "Policy (select_action)".to_string() })
         }
     }
+
+    fn call_on_episode_start(&mut self) -> Result<(), AmfiteatrError<S>> {
+        match self.lock(){
+            Ok(mut internal_policy) => {
+                internal_policy.call_on_episode_start()
+            }
+            Err(e) => Err(AmfiteatrError::Lock { description: e.to_string(), object: "Policy (select_action)".to_string() })
+        }
+    }
+
+    fn call_on_episode_finish(&mut self, final_env_reward: S::UniversalReward,) -> Result<(), AmfiteatrError<S>> {
+        match self.lock(){
+            Ok(mut internal_policy) => {
+                internal_policy.call_on_episode_finish(final_env_reward)
+            }
+            Err(e) => Err(AmfiteatrError::Lock { description: e.to_string(), object: "Policy (select_action)".to_string() })
+        }
+    }
+
+    fn call_between_epochs(&mut self)  -> Result<(), AmfiteatrError<S>>{
+        match self.lock(){
+            Ok(mut internal_policy) => {
+                internal_policy.call_between_epochs()
+            }
+            Err(e) => Err(AmfiteatrError::Lock { description: e.to_string(), object: "Policy (select_action)".to_string() })
+        }
+    }
 }
 impl<S: Scheme, P: Policy<S>> Policy<S> for RwLock<P>{
     type InfoSetType = P::InfoSetType;
@@ -89,6 +143,33 @@ impl<S: Scheme, P: Policy<S>> Policy<S> for RwLock<P>{
         match self.read(){
             Ok(internal_policy) => {
                 internal_policy.select_action(state)
+            }
+            Err(e) => Err(AmfiteatrError::Lock { description: e.to_string(), object: "Policy (select_action)".to_string() })
+        }
+    }
+
+    fn call_on_episode_start(&mut self) -> Result<(), AmfiteatrError<S>> {
+        match self.write(){
+            Ok(mut internal_policy) => {
+                internal_policy.call_on_episode_start()
+            }
+            Err(e) => Err(AmfiteatrError::Lock { description: e.to_string(), object: "Policy (select_action)".to_string() })
+        }
+    }
+
+    fn call_on_episode_finish(&mut self, final_env_reward: S::UniversalReward,) -> Result<(), AmfiteatrError<S>> {
+        match self.write(){
+            Ok(mut internal_policy) => {
+                internal_policy.call_on_episode_finish(final_env_reward)
+            }
+            Err(e) => Err(AmfiteatrError::Lock { description: e.to_string(), object: "Policy (select_action)".to_string() })
+        }
+    }
+
+    fn call_between_epochs(&mut self)  -> Result<(), AmfiteatrError<S>>{
+        match self.write(){
+            Ok(mut internal_policy) => {
+                internal_policy.call_between_epochs()
             }
             Err(e) => Err(AmfiteatrError::Lock { description: e.to_string(), object: "Policy (select_action)".to_string() })
         }
