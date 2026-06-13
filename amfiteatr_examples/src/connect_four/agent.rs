@@ -16,6 +16,9 @@ use amfiteatr_rl::tensor_data::{TensorEncoding, ContextEncodeTensor, ContextDeco
 use crate::connect_four::common::{ConnectFourAction, ConnectFourBinaryObservation, ConnectFourScheme, ConnectFourPlayer};
 use rmcp::tool;
 use amfiteatr_proc_macro::{mcp_information_sets, mcp_policy};
+use amfiteatr_rl::policy::{PolicyDiscreteA2C, PolicyDiscretePPO, PolicyMaskingDiscreteA2C, PolicyMaskingDiscretePPO};
+use crate::connect_four::policy;
+
 
 #[mcp_information_sets(scheme = ConnectFourScheme, seed_type = ())]
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
@@ -197,5 +200,5 @@ impl McpInformationSetsConnectFour{
 
 }
 
-#[mcp_policy(target = C4PPOPolicyMasking, scheme = ConnectFourScheme, seed_type = () )]
+#[mcp_policy(target = policy::C4PPOPolicyMasking, scheme = ConnectFourScheme, seed_type = () )]
 pub struct McpPolicyPPOConnectFour;

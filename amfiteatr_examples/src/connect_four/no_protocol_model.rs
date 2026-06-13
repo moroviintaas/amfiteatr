@@ -11,12 +11,12 @@ use amfiteatr_rl::error::AmfiteatrRlError;
 use amfiteatr_rl::policy::{ConfigA2C, ConfigPPO, LearnSummary, LearningNetworkPolicyGeneric};
 use crate::connect_four::agent::ConnectFourInfoSet;
 use crate::connect_four::common::{ConnectFourScheme, ConnectFourPlayer, ErrorRL};
-use crate::connect_four::model::{build_a2c_policy, build_a2c_policy_masking, build_ppo_policy, build_ppo_policy_masking, C4A2CPolicy, C4A2CPolicyMasking, C4PPOPolicy, C4PPOPolicyMasking, EpochSummary};
+use crate::connect_four::policy::{build_a2c_policy, build_a2c_policy_masking, build_ppo_policy, build_ppo_policy_masking, C4A2CPolicy, C4A2CPolicyMasking, C4PPOPolicy, C4PPOPolicyMasking};
 use crate::connect_four::options::ConnectFourOptions;
 use std::io::Write;
 use amfiteatr_rl::tch::Device;
 use crate::common::ComputeDevice;
-
+use crate::connect_four::model::EpochSummary;
 pub struct ConnectFourModelRustNoProtocol <
     ST: GameStateWithPayoffs<ConnectFourScheme>,
     P: LearningNetworkPolicyGeneric<ConnectFourScheme, Summary=LearnSummary>

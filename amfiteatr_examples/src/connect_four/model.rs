@@ -48,6 +48,7 @@ use amfiteatr_rl::policy::LearnSummary;
 use amfiteatr_core::util::TensorboardSupport;
 use crate::common::ComputeDevice;
 use crate::connect_four::options::ConnectFourOptions;
+use crate::connect_four::policy::*;
 
 #[derive(Default, Copy, Clone, Serialize, Deserialize)]
 
@@ -108,152 +109,8 @@ impl Div<f64> for EpochSummary {
 }
 
 
-pub fn build_a2c_policy(layer_sizes: &[i64], device: Device, config: ConfigA2C, learning_rate: f64) -> Result<C4A2CPolicy, AmfiteatrRlError<ConnectFourScheme>>{
-    let var_store = VarStore::new(device);
-    let input_shape = ConnectFourTensorReprD1{}.desired_shape();
-    //let hidden_layers = layer_sizes.to_vec();
-
-    let mut layers = Vec::new();
-    for l in layer_sizes{
-        layers.push(Layer::Linear(*l));
-        layers.push(Layer::Tanh);
-    }
-
-    let model = build_network_model_ac_discrete(layers, input_shape.to_vec(), 7, &var_store.root());
-    //let net = network_pattern.get_net_closure();
-    let optimiser = Adam::default().build(&var_store, learning_rate)?;
-
-    let net = NeuralNet::new(VariableStorage::Owned(var_store), model);
-
-    Ok(PolicyDiscreteA2C::new(
-        config,
-        net,
-        optimiser,
-        ConnectFourTensorReprD1{},
-        ConnectFourActionTensorRepresentation{}
-        )
-    )
-}
-#[allow(dead_code)]
-pub fn build_a2c_policy_masking(layer_sizes: &[i64], device: Device, config: ConfigA2C, learning_rate: f64) -> Result<C4A2CPolicyMasking, AmfiteatrRlError<ConnectFourScheme>>{
-    let var_store = VarStore::new(device);
-
-    let input_shape = ConnectFourTensorReprD1{}.desired_shape();
-    //let hidden_layers = layer_sizes.to_vec();
-
-    let mut layers = Vec::new();
-    for l in layer_sizes{
-        layers.push(Layer::Linear(*l));
-        layers.push(Layer::Tanh);
-    }
-
-    let model = build_network_model_ac_discrete(layers, input_shape.to_vec(), 7, &var_store.root());
-    //let net = network_pattern.get_net_closure();
-    let optimiser = Adam::default().build(&var_store, learning_rate)?;
-
-    let net = NeuralNet::new(VariableStorage::Owned(var_store), model);
-
-    Ok(PolicyMaskingDiscreteA2C::new(
-        config,
-        net,
-        optimiser,
-        ConnectFourTensorReprD1{},
-        ConnectFourActionTensorRepresentation{}
-    )
-    )
-}
-pub fn build_ppo_policy_masking(layer_sizes: &[i64], device: Device, config: ConfigPPO, learning_rate: f64) -> Result<C4PPOPolicyMasking, AmfiteatrRlError<ConnectFourScheme>>{
-    let var_store = VarStore::new(device);
-    let input_shape = ConnectFourTensorReprD1{}.desired_shape();
-    //let hidden_layers = layer_sizes.to_vec();
-
-    let mut layers = Vec::new();
-    for l in layer_sizes{
-        layers.push(Layer::Linear(*l));
-        layers.push(Layer::Tanh);
-    }
-    /* OLD way:
-    let network_pattern = NeuralNetTemplate::new(|path| {
-        let mut seq = nn::seq();
-        let mut last_dim = None;
-        if !hidden_layers.is_empty(){
-            let mut ld = hidden_layers[0];
-
-            last_dim = Some(ld);
-            seq = seq.add(nn::linear(path / "INPUT", input_shape, ld, Default::default()));
-
-            for (i, ld_new) in hidden_layers.iter().enumerate().skip(1){
-                seq = seq.add(nn::linear(path / &format!("h_{:}", i+1), ld, *ld_new, Default::default()))
-                    .add_fn(|xs| xs.tanh());
-
-                ld = *ld_new;
-                last_dim = Some(ld);
-            }
-        }
-        let (actor, critic) = match last_dim{
-            None => {
-                (nn::linear(path / "al", input_shape, 7, Default::default()),
-                 nn::linear(path / "cl", input_shape, 1, Default::default()))
-            }
-            Some(ld) => {
-                (nn::linear(path / "al", ld, 7, Default::default()),
-                 nn::linear(path / "cl", ld, 1, Default::default()))
-            }
-        };
-        let device = path.device();
-        {move |xs: &Tensor|{
-            if seq.is_empty(){
-                TensorActorCritic {critic: xs.apply(&critic), actor: xs.apply(&actor)}
-            } else {
-                let xs = xs.to_device(device).apply(&seq);
-                TensorActorCritic {critic: xs.apply(&critic), actor: xs.apply(&actor)}
-            }
-        }}
-    });
-
-    let net = network_pattern.get_net_closure();
-
-     */
 
 
-    let model = build_network_model_ac_discrete(layers, input_shape.to_vec(), 7, &var_store.root());
-    let optimiser = Adam::default().build(&var_store, learning_rate)?;
-
-    let net = NeuralNet::new(VariableStorage::Owned(var_store), model);
-
-    Ok(PolicyMaskingDiscretePPO::new(
-        config,
-        net,
-        optimiser,
-        ConnectFourTensorReprD1{},
-        ConnectFourActionTensorRepresentation{})
-    )
-}
-pub fn build_ppo_policy(layer_sizes: &[i64], device: Device, config: ConfigPPO, learning_rate: f64) -> Result<C4PPOPolicy, AmfiteatrRlError<ConnectFourScheme>>{
-    Ok(build_ppo_policy_masking(layer_sizes, device, config, learning_rate)?.base)
-
-}
-#[allow(dead_code)]
-pub fn build_ppo_masking_policy_shared(layer_sizes: &[i64], device: Device, config: ConfigPPO, learning_rate: f64) -> Result<crate::connect_four::model::C4PPOPolicyMaskingShared, AmfiteatrRlError<ConnectFourScheme>>{
-    Ok(Arc::new(Mutex::new(build_ppo_policy_masking(layer_sizes, device, config, learning_rate)?)))
-
-}
-#[allow(dead_code)]
-pub fn build_ppo_policy_shared(layer_sizes: &[i64], device: Device, config: ConfigPPO, learning_rate: f64) -> Result<crate::connect_four::model::C4PPOPolicyShared, AmfiteatrRlError<ConnectFourScheme>>{
-    Ok(Arc::new(Mutex::new(build_ppo_policy(layer_sizes, device, config, learning_rate)?)))
-}
-
-
-pub type C4A2CPolicy = PolicyDiscreteA2C<ConnectFourScheme, ConnectFourInfoSet, ConnectFourTensorReprD1, ConnectFourActionTensorRepresentation>;
-#[allow(dead_code)]
-pub type C4A2CPolicyMasking = PolicyMaskingDiscreteA2C<ConnectFourScheme, ConnectFourInfoSet, ConnectFourTensorReprD1, ConnectFourActionTensorRepresentation>;
-#[allow(dead_code)]
-pub type C4PPOPolicy = PolicyDiscretePPO<ConnectFourScheme, ConnectFourInfoSet, ConnectFourTensorReprD1, ConnectFourActionTensorRepresentation>;
-#[allow(dead_code)]
-pub type C4PPOPolicyShared = Arc<Mutex<C4PPOPolicy>>;
-pub type C4PPOPolicyMasking = PolicyMaskingDiscretePPO<ConnectFourScheme, ConnectFourInfoSet, ConnectFourTensorReprD1, ConnectFourActionTensorRepresentation>;
-#[allow(dead_code)]
-pub type C4PPOPolicyMaskingShared = Arc<Mutex<C4PPOPolicyMasking>>;
 pub type Environment<ST> = HashMapEnvironment<ConnectFourScheme, ST, StdEnvironmentEndpoint<ConnectFourScheme>>;
 pub type Agent<P> = TracingAgentGen<ConnectFourScheme, P, StdAgentEndpoint<ConnectFourScheme>>;
 pub struct ConnectFourModelRust<ST: GameStateWithPayoffs<ConnectFourScheme>, P: LearningNetworkPolicyGeneric<ConnectFourScheme, Summary=LearnSummary>>{

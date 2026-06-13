@@ -241,6 +241,10 @@ mod mcp{
     }
 
 
+    /// Wraps policy structure by `Arc<tokio::sync::Mutex<P>>` and informational values.
+    /// To be used as internal logic for policy MCP server.
+    /// It uses `Arc<Mutex<>>` construction, because policy could have methods mutating its internal state.
+
     pub struct McpCorePolicy<SC: Scheme, IS: InformationSet<SC>, P: Policy<SC>>
     where
         IS: Serialize + for<'a> Deserialize<'a> + JsonSchema,

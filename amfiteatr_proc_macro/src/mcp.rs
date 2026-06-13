@@ -1,5 +1,5 @@
 use quote::quote;
-use syn::{DeriveInput, parse_macro_input, Type, Token, parse_quote, Item};
+use syn::{DeriveInput, parse_macro_input, Type, Token, parse_quote, Item, ItemStruct};
 use syn::parse::Parse;
 
 
@@ -290,12 +290,15 @@ pub fn impl_mcp_information_set(attr: proc_macro::TokenStream, item: proc_macro:
 pub fn impl_mcp_policy(attr: proc_macro::TokenStream, item: proc_macro::TokenStream) -> proc_macro::TokenStream {
     let item_copy = item.clone();
 
-    let ast = parse_macro_input!(item_copy as DeriveInput);
+    let ast = parse_macro_input!(item_copy as ItemStruct);
     let args = syn::parse_macro_input!(attr as MacroArgsImplMcp);
     let scheme = args.scheme_type;
     let seed_type = args.seed_type;
     let target_type = args.target_type;
 
+    let vis = ast.vis;
+    let generics = ast.generics;
+    let struct_name = ast.ident;
     //let item = parse_macro_input!(item_copy as DeriveInput);
     /*let type_token = match item {
         //Item::Struct(=>)
@@ -303,15 +306,21 @@ pub fn impl_mcp_policy(attr: proc_macro::TokenStream, item: proc_macro::TokenStr
 
 
      */
-    let implementation = {
+    let output = {
         quote!{
+            //::InfoSetType
+            //<#target_type as amfiteatr_core::agent::Policy>
+            #vis struct  #struct_name #generics{
+                policy_wrap: amfiteatr_core::agent::McpCorePolicy<#scheme, <#target_type as amfiteatr_core::agent::Policy<#scheme>>::InfoSetType, #target_type>,
 
+            }
         }
     };
 
 
 
-    let result = [item, implementation.into()];
-    proc_macro::TokenStream::from_iter(result)
+    output.into()
+    //let result: [proc_macro::TokenStream;1] = [output.into()];
+    //proc_macro::TokenStream::from_iter(result)
 
 }
