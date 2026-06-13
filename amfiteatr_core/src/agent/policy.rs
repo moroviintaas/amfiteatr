@@ -229,16 +229,9 @@ mod mcp{
     use rmcp::ErrorData;
     use rmcp::model::{CallToolResult, Content};
     use std::default::Default;
-    use crate::util::mcp::McpReqReward;
+    use crate::util::mcp::{McpReqReward, McpReqSelectAction};
 
-    #[derive(Clone)]
-    pub struct McpRequestSelectAction<SC: Scheme, IS: InformationSet<SC>>
-    where
-        IS: Serialize + for<'a> Deserialize<'a> + JsonSchema
-    {
-        pub information_set: IS,
-        _sc: PhantomData<SC>,
-    }
+
 
 
     /// Wraps policy structure by `Arc<tokio::sync::Mutex<P>>` and informational values.
@@ -274,7 +267,7 @@ mod mcp{
             }
         }
 
-        pub async fn select_action(&self, Parameters(McpRequestSelectAction{information_set, ..}): Parameters<McpRequestSelectAction<SC, IS>>)
+        pub async fn select_action(&self, Parameters(McpReqSelectAction {information_set, ..}): Parameters<McpReqSelectAction<SC, IS>>)
         -> Result<CallToolResult, ErrorData>
         {
             let internal = self.internal.lock().await;

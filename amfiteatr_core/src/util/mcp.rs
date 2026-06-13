@@ -1,5 +1,7 @@
+use std::marker::PhantomData;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
+use crate::agent::InformationSet;
 use crate::scheme::Scheme;
 
 
@@ -26,4 +28,13 @@ pub struct McpReqReward<Sc: Scheme >
     where Sc::UniversalReward: JsonSchema,
 {
     pub reward: Sc::UniversalReward,
+}
+
+#[derive(Clone)]
+pub struct McpReqSelectAction<SC: Scheme, IS: InformationSet<SC>>
+    where
+        IS: Serialize + for<'a> Deserialize<'a> + JsonSchema
+{
+    pub information_set: IS,
+    _sc: PhantomData<SC>,
 }

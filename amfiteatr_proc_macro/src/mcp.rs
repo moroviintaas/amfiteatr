@@ -298,7 +298,11 @@ pub fn impl_mcp_policy(attr: proc_macro::TokenStream, item: proc_macro::TokenStr
 
     let vis = ast.vis;
     let generics = ast.generics;
+    let (impl_generics, ty_generics, where_clause) = generics.split_for_impl();
     let struct_name = ast.ident;
+    let info_set_type = quote!{
+        <#target_type as amfiteatr_core::agent::Policy<#scheme>>::InfoSetType
+    };
     //let item = parse_macro_input!(item_copy as DeriveInput);
     /*let type_token = match item {
         //Item::Struct(=>)
@@ -312,6 +316,32 @@ pub fn impl_mcp_policy(attr: proc_macro::TokenStream, item: proc_macro::TokenStr
             //<#target_type as amfiteatr_core::agent::Policy>
             #vis struct  #struct_name #generics{
                 policy_wrap: amfiteatr_core::agent::McpCorePolicy<#scheme, <#target_type as amfiteatr_core::agent::Policy<#scheme>>::InfoSetType, #target_type>,
+                tool_router: rmcp::handler::server::router::tool::ToolRouter<#struct_name>,
+                prompt_router: rmcp::handler::server::router::prompt::PromptRouter<#struct_name>,
+                processor: std::sync::Arc<tokio::sync::Mutex<rmcp::task_manager::OperationProcessor>>,
+            }
+
+            #[tool_router]
+            #[automatically_derived]
+            impl #impl_generics #struct_name #ty_generics #where_clause{
+                pub fn mcp_new(policy: #target_type, policy_name: String, usage: String) -> Self{
+                    Self{
+                        policy_wrap: amfiteatr_core::agent::McpCorePolicy::new(policy, policy_name, usage),
+                        tool_router: Self::tool_router(),
+                        processor: std::sync::Arc::new(tokio::sync::Mutex::new(rmcp::task_manager::OperationProcessor::new())),
+                        prompt_router: Self::prompt_router(),
+                    }
+                }
+                pub async fn select_action(&self, parameters: rmcp::handler::server::wrapper::Parameters<amfiteatr_core::util::mcp::McpReqSelectAction<#scheme, #info_set_type>>)
+                    -> Result<rmcp::model::CallToolResult, rmcp::ErrorData>
+                {
+                    self.policy_wrap.select_action(parameters).await
+                }
+            }
+
+            #[prompt_router]
+            #[automatically_derived]
+            impl #impl_generics #struct_name #ty_generics #where_clause{
 
             }
         }
