@@ -332,11 +332,54 @@ pub fn impl_mcp_policy(attr: proc_macro::TokenStream, item: proc_macro::TokenStr
                         prompt_router: Self::prompt_router(),
                     }
                 }
-                pub async fn select_action(&self, parameters: rmcp::handler::server::wrapper::Parameters<amfiteatr_core::util::mcp::McpReqSelectAction<#scheme, #info_set_type>>)
+                pub async fn select_action(&self, rmcp::handler::server::wrapper::Parameters(amfiteatr_core::util::mcp::McpReqSelectAction{information_set, ..}): rmcp::handler::server::wrapper::Parameters<amfiteatr_core::util::mcp::McpReqSelectAction<#scheme, #info_set_type>>)
                     -> Result<rmcp::model::CallToolResult, rmcp::ErrorData>
                 {
-                    self.policy_wrap.select_action(parameters).await
+                    match self.policy_wrap.select_action(&information_set).await {
+
+                        Ok(action) => Ok(rmcp::model::CallToolResult::success(vec![rmcp::model::Content::json(action)?])),
+                        Err(e) => Err(rmcp::ErrorData::internal_error(
+                            format!("Failed to resolve action ({e})"),
+                            Some(serde_json::to_value(&information_set).map_err(|e|{
+                                rmcp::ErrorData::internal_error(
+                                    format!("Failed to resolve action ({e}) and to serialize information set: {information_set:?}."),
+                                    None
+                                )
+                            })?))),
+                    }
                 }
+
+                pub async fn call_on_episode_start(&self) ->  Result<rmcp::model::CallToolResult, rmcp::ErrorData>{
+                    match self.policy_wrap.call_on_episode_start().await{
+                        Ok(_) => Ok(rmcp::model::CallToolResult::success(vec![])),
+                        Err(e) => Err(rmcp::ErrorData::internal_error(
+                            format!("Failed to policy preparation on beginning of the episode ({e})"),
+                            None
+                        ))
+                    }
+                }
+
+                pub async fn call_on_episode_finish(&self, rmcp::handler::server::wrapper::Parameters(amfiteatr_core::util::mcp::McpReqReward{reward}): rmcp::handler::server::wrapper::Parameters<amfiteatr_core::util::mcp::McpReqReward<#scheme>>) ->  Result<rmcp::model::CallToolResult, rmcp::ErrorData>{
+                    match self.policy_wrap.call_on_episode_finish(reward).await{
+                        Ok(_) => Ok(rmcp::model::CallToolResult::success(vec![])),
+                        Err(e) => Err(rmcp::ErrorData::internal_error(
+                            format!("Failed to policy preparation on beginning of the episode ({e})"),
+                            None
+                        ))
+                    }
+                }
+
+                pub async fn call_between_epochs(&self) ->  Result<rmcp::model::CallToolResult, rmcp::ErrorData>{
+                    match self.policy_wrap.call_on_episode_start().await{
+                        Ok(_) => Ok(rmcp::model::CallToolResult::success(vec![])),
+                        Err(e) => Err(rmcp::ErrorData::internal_error(
+                            format!("Failed to policy preparation on beginning of the episode ({e})"),
+                            None
+                        ))
+                    }
+                }
+
+
             }
 
             #[prompt_router]

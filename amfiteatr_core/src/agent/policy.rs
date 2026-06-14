@@ -224,12 +224,9 @@ mod mcp{
     use crate::agent::{InformationSet, Policy};
     use crate::scheme::Scheme;
     use std::sync::Arc;
-    use rmcp::handler::server::wrapper::Parameters;
     use tokio::sync::Mutex;
-    use rmcp::ErrorData;
-    use rmcp::model::{CallToolResult, Content};
     use std::default::Default;
-    use crate::util::mcp::{McpReqReward, McpReqSelectAction};
+    use crate::error::AmfiteatrError;
 
 
 
@@ -237,7 +234,6 @@ mod mcp{
     /// Wraps policy structure by `Arc<tokio::sync::Mutex<P>>` and informational values.
     /// To be used as internal logic for policy MCP server.
     /// It uses `Arc<Mutex<>>` construction, because policy could have methods mutating its internal state.
-
     pub struct McpCorePolicy<SC: Scheme, IS: InformationSet<SC>, P: Policy<SC>>
     where
         IS: Serialize + for<'a> Deserialize<'a> + JsonSchema,
@@ -267,37 +263,31 @@ mod mcp{
             }
         }
 
-        pub async fn select_action(&self, Parameters(McpReqSelectAction {information_set, ..}): Parameters<McpReqSelectAction<SC, IS>>)
-        -> Result<CallToolResult, ErrorData>
+        pub async fn select_action(&self, information_set: &IS)
+        -> Result<SC::ActionType, AmfiteatrError<SC>>
         {
             let internal = self.internal.lock().await;
 
-            match internal.select_action(&information_set) {
-                Ok(action) => Ok(CallToolResult::success(vec![Content::json(action)?])),
-                Err(e) => Err(ErrorData::internal_error(
-                    format!("Failed to resolve action ({e})"),
-                    Some(serde_json::to_value(&information_set).map_err(|e|{
-                        ErrorData::internal_error(
-                            format!("Failed to resolve action ({e}) and to serialize information set: {information_set:?}."),
-                            None
-                        )
-                    })?))),
-            }
+            internal.select_action(&information_set)
 
         }
 
-        pub async fn call_on_episode_start(&self)
-                                   -> Result<CallToolResult, ErrorData>
+        pub async fn call_on_episode_start(&self) -> Result<(), AmfiteatrError<SC>>
         {
             let mut internal = self.internal.lock().await;
+            internal.call_on_episode_start()
 
-            match internal.call_on_episode_start(){
+            /*
+            match internal.call_on_episode_start()
+            {
                 Ok(_) => Ok(CallToolResult::success(vec![])),
                 Err(e) => Err(ErrorData::internal_error(
                     format!("Failed to policy preparation on beginning of the episode ({e})"),
                     None
                 ))
             }
+
+             */
 
 
 
@@ -305,13 +295,14 @@ mod mcp{
 
         pub async fn call_on_episode_finish(
             &self,
-            Parameters(McpReqReward{reward}): Parameters<McpReqReward<SC>>
-        )
-                                           -> Result<CallToolResult, ErrorData>
+            payoff: SC::UniversalReward
+        ) -> Result<(), AmfiteatrError<SC>>
         {
             let mut internal = self.internal.lock().await;
+            internal.call_on_episode_finish(payoff)
 
-            match internal.call_on_episode_finish(reward){
+            /*
+            match internal.call_on_episode_finish(payoff){
                 Ok(_) => Ok(CallToolResult::success(vec![])),
                 Err(e) => Err(ErrorData::internal_error(
                     format!("Failed to policy preparation on beginning of the episode ({e})"),
@@ -319,15 +310,18 @@ mod mcp{
                 ))
             }
 
+             */
+
 
 
         }
 
-        pub async fn call_between_epochs(&self)
-                                           -> Result<CallToolResult, ErrorData>
+        pub async fn call_between_epochs(&self) -> Result<(), AmfiteatrError<SC>>
         {
             let mut internal = self.internal.lock().await;
 
+            internal.call_between_epochs()
+            /*
             match internal.call_between_epochs(){
                 Ok(_) => Ok(CallToolResult::success(vec![])),
                 Err(e) => Err(ErrorData::internal_error(
@@ -335,6 +329,8 @@ mod mcp{
                     None
                 ))
             }
+
+             */
 
 
 
