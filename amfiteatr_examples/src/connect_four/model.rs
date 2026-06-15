@@ -48,8 +48,12 @@ use amfiteatr_rl::policy::LearnSummary;
 use amfiteatr_core::util::TensorboardSupport;
 use crate::common::ComputeDevice;
 use crate::connect_four::options::ConnectFourOptions;
-use crate::connect_four::policy::*;
-
+use crate::connect_four::policy::{
+    C4A2CPolicy, build_a2c_policy,
+    C4A2CPolicyMasking, build_a2c_policy_masking,
+    C4PPOPolicy, build_ppo_policy,
+    C4PPOPolicyMasking, build_ppo_policy_masking,
+};
 #[derive(Default, Copy, Clone, Serialize, Deserialize)]
 
 pub struct EpochSummary {

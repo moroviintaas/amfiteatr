@@ -1,4 +1,4 @@
-use pyo3::{Bound, intern, pyclass, pymethods, PyObject, PyResult, Python,  IntoPyObject};
+use pyo3::{Bound, intern, pyclass, pymethods, PyResult, Python, IntoPyObject, PyAny, Py};
 use pyo3::prelude::PyAnyMethods;
 use pyo3::types::PyDict;
 use amfiteatr_core::scheme::{Scheme, Renew};
@@ -16,7 +16,7 @@ use crate::connect_four::common::{
 #[derive(Debug, Clone)]
 #[pyclass]
 pub struct PythonPettingZooStateWrap {
-    internal: PyObject,
+    internal: Py<PyAny>,
     #[allow(unused_variables)]
     terminated: bool,
     truncated: bool,
@@ -29,7 +29,7 @@ impl PythonPettingZooStateWrap{
 
     #[new]
     pub fn new() -> PyResult<Self>{
-        Python::with_gil(|py|{
+        Python::attach(|py|{
             let pettingzoo = py.import("pettingzoo.classic")?;
             let fn_env = pettingzoo.getattr("connect_four_v3")?.getattr("env")?;
             let kwargs = PyDict::new(py);
@@ -37,8 +37,9 @@ impl PythonPettingZooStateWrap{
             let env_obj = fn_env.call((), Some(&kwargs))?;
             env_obj.call_method0("reset")?;
 
-            let internal_obj: PyObject = env_obj.into_pyobject(py)?.into();
+            //let internal_obj: Py<PyAny> = env_obj.into_pyobject(py)?.into();
 
+            let internal_obj = env_obj.unbind();
             Ok(Self{
                 internal: internal_obj,
 
@@ -51,7 +52,7 @@ impl PythonPettingZooStateWrap{
 
     }
     pub fn __reset(&mut self) -> PyResult<()>{
-        Python::with_gil(|py|{
+        Python::attach(|py|{
             let pettingzoo = py.import("pettingzoo.classic")?;
             let fn_env = pettingzoo.getattr("connect_four_v3")?.getattr("env")?;
             let kwargs = PyDict::new(py);
@@ -60,7 +61,8 @@ impl PythonPettingZooStateWrap{
             env_obj.call_method0("reset")?;
 
 
-            let internal_obj: PyObject = env_obj.into_pyobject(py)?.into();
+            //let internal_obj: Py<PyAny> = env_obj.into_pyobject(py)?.into();
+            let internal_obj =env_obj.unbind();
             self.internal = internal_obj;
 
             Ok(())
@@ -70,10 +72,11 @@ impl PythonPettingZooStateWrap{
 
 
     pub fn __last(&self) -> PyResult<(Vec<u8>, f32, bool, bool)>{
-        Python::with_gil(|py|{
+        Python::attach(|py|{
             let result = self.internal.call_method0(py, "last")?;
-            let result_tuple: &Bound<'_, pyo3::types::PyTuple> = result.downcast_bound(py)?;
+            //let result_tuple: &Bound<'_, pyo3::types::PyTuple> = result.downcast_bound(py)?;
 
+            let result_tuple = result.bind(py).cast::<pyo3::types::PyTuple>()?;
             let observation = result_tuple.get_item(0)?
                 .get_item("observation")?
                 .call_method0("flatten")?
@@ -92,7 +95,7 @@ impl PythonPettingZooStateWrap{
         })
     }
     pub fn __forward(&self, action: u8) -> PyResult<(Vec<u8>, f32, bool, bool)>{
-        Python::with_gil(|py| {
+        Python::attach(|py| {
             self.internal.call_method1(py, "step", (action,))?;
             self.__last()
         })

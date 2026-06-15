@@ -11,7 +11,7 @@ use crate::common::{CartPoleScheme, CartPoleObservation, CartPoleError, SINGLE_P
 #[derive(Debug, Clone)]
 #[pyclass]
 pub struct PythonGymnasiumCartPoleState {
-    internal: PyObject,
+    internal: Py<PyAny>,
     #[allow(unused_variables)]
     _action_space: i64,
     terminated: bool,
@@ -28,7 +28,7 @@ pub struct PythonGymnasiumCartPoleState {
 impl PythonGymnasiumCartPoleState {
     #[new]
     pub fn new() -> PyResult<Self>{
-        Python::with_gil(|py|{
+        Python::attach(|py|{
 
             let gymnasium = py.import("gymnasium")?;
 
@@ -45,9 +45,9 @@ impl PythonGymnasiumCartPoleState {
 
             let observation_space = env_obj.getattr("observation_space")?;
             let observation_space = observation_space.getattr("shape")?.extract()?;
-            let internal_obj: PyObject = env_obj.into_pyobject(py)?.into();
+            let internal_obj = env_obj.unbind();
             let step0 = internal_obj.call_method0(py, "reset")?;
-            let step0_t = step0.downcast_bound::<pyo3::types::PyTuple>(py)?;
+            let step0_t = step0.bind(py).cast::<pyo3::types::PyTuple>()?;
             //let step0 = PyTuple::from
             let obs = step0_t.get_item(0)?;
             let v = obs.extract()?;
@@ -70,12 +70,12 @@ impl PythonGymnasiumCartPoleState {
     pub fn __forward(&mut self, action: i64)
         -> PyResult<Vec<f32>>{
 
-        Python::with_gil(|py|{
+        Python::attach(|py|{
             let result = self.internal.call_method1(py, "step", (action, ))?;
 
 
             //let result_tuple: &pyo3::types::PyTuple = result.downcast(py)?.into();
-            let result_tuple: &Bound<'_, pyo3::types::PyTuple> = result.downcast_bound(py)?;
+            let result_tuple = result.bind(py).cast::<pyo3::types::PyTuple>()?;
 
             println!("{result_tuple:?}");
             let observation = result_tuple.get_item(0)?;
@@ -98,9 +98,9 @@ impl PythonGymnasiumCartPoleState {
     pub fn __reset(&mut self) -> PyResult<Vec<f32>>{
         self.truncated = false;
         self.terminated = false;
-        Python::with_gil(|py|{
+        Python::attach(|py|{
             let result = self.internal.call_method0(py, "reset")?;
-            let result_tuple: &Bound<'_, pyo3::types::PyTuple> = result.downcast_bound(py)?;
+            let result_tuple = result.bind(py).cast::<pyo3::types::PyTuple>()?;
             //let result_tuple: &pyo3::types::PyTuple = result.downcast(py)?;
             let observation = result_tuple.get_item(0)?;
 

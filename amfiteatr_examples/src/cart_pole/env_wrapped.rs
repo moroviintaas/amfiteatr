@@ -1,5 +1,5 @@
 use pyo3::types::PyTuple;
-use pyo3::{intern, pyclass, pymethods, Bound, PyObject, PyResult, Python};
+use pyo3::{intern, pyclass, pymethods, Bound,  PyResult, Python, PyAny, Py};
 use pyo3::prelude::PyDictMethods;
 use pyo3::types::PyDict;
 use amfiteatr_core::env::{GameStateWithPayoffs, SequentialGameState};
@@ -12,7 +12,7 @@ use pyo3::IntoPyObject;
 #[derive(Debug, Clone)]
 #[pyclass]
 pub struct PythonGymnasiumWrapCartPole {
-    internal: PyObject,
+    internal: Py<PyAny>,
     #[allow(unused_variables)]
     terminated: bool,
     truncated: bool,
@@ -25,7 +25,7 @@ pub struct PythonGymnasiumWrapCartPole {
 impl PythonGymnasiumWrapCartPole{
     #[new]
     pub fn new() -> PyResult<Self>{
-        Python::with_gil(|py|{
+        Python::attach(|py|{
             let gymnasium = py.import("gymnasium")?;
             let fn_env = gymnasium.getattr("make")?;
             //getattr("CartPole-v1")?
@@ -35,7 +35,7 @@ impl PythonGymnasiumWrapCartPole{
             let env_obj = fn_env.call(args, Some(&kwargs))?;
             env_obj.call_method0("reset")?;
 
-            let internal_obj: PyObject = env_obj.into_pyobject(py)?.into();
+            let internal_obj = env_obj.unbind();
 
             Ok(Self{
                 internal: internal_obj,
@@ -51,7 +51,7 @@ impl PythonGymnasiumWrapCartPole{
     }
 
     pub fn __reset(&mut self) -> PyResult<()>{
-        Python::with_gil(|py|{
+        Python::attach(|py|{
 
             log::trace!("Resetting environment (internal)");
             self.internal.call_method0(py, "reset")?;
@@ -67,17 +67,17 @@ impl PythonGymnasiumWrapCartPole{
     }
 
     pub fn __forward(&self, action: u8) -> PyResult<(Vec<f32>, f32, bool, bool)>{
-        Python::with_gil(|py| {
+        Python::attach(|py| {
             let result = self.internal.call_method1(py, "step", (action,))
                 .inspect_err(|e|{
                     log::error!("Error while calling python's step of action ({action}): {e}")
                 })?;
-            let result_tuple: &Bound<'_, pyo3::types::PyTuple> = result.downcast_bound(py)
+            let result_tuple = result.bind(py).cast::<pyo3::types::PyTuple>()
                 .inspect_err(|e|{
                     log::error!("Error while downcasting to tuple): {e}")
                 })?;
 
-            //println!("{:?}", result_tuple);
+
             let observation = result_tuple.get_item(0)
 
                 .inspect_err(|e|{
@@ -103,9 +103,9 @@ impl PythonGymnasiumWrapCartPole{
     }
 
     pub fn __observation(&self) -> PyResult<Vec<f32>> {
-        Python::with_gil(|py| {
+        Python::attach(|py| {
             let result = self.internal.getattr(py, "unwrapped")?.getattr(py, "state")?;
-            let v: &Bound<'_, pyo3::types::PyAny> = &result.downcast_bound(py)?
+            let v = result.bind(py).cast::<pyo3::types::PyTuple>()?
                 .call_method0("flatten")?
                 .call_method0("tolist")?;
             let o = v.extract()?;

@@ -5,10 +5,10 @@ use amfiteatr_examples::connect_four::common::ErrorRL;
 use amfiteatr_examples::connect_four::env::ConnectFourRustEnvState;
 use amfiteatr_examples::connect_four::env_nd::ConnectFourRustNdEnvState;
 use amfiteatr_examples::connect_four::env_wrapped::PythonPettingZooStateWrap;
-use amfiteatr_examples::connect_four::model::{C4A2CPolicy, ConnectFourModelRust};
+use amfiteatr_examples::connect_four::model::{ ConnectFourModelRust};
 use amfiteatr_examples::connect_four::no_protocol_model::ConnectFourModelRustNoProtocol;
 use amfiteatr_examples::connect_four::options::{ConnectFourOptions, Implementation};
-
+use amfiteatr_examples::connect_four::policy::C4A2CPolicy;
 
 pub fn setup_logger(options: &ConnectFourOptions) -> Result<(), fern::InitError> {
     let dispatch  = fern::Dispatch::new()
@@ -69,7 +69,7 @@ fn main() -> Result<(), ErrorRL>{
             let mut model = ConnectFourModelRust::<PythonPettingZooStateWrap, C4A2CPolicy>::new_a2c(
                 &cli
             );
-            Python::with_gil(|py|{
+            Python::attach(|py|{
                 let pylogger = py.import("pettingzoo.utils.env_logger").unwrap();
                 pylogger.getattr("EnvLogger").unwrap()
                    .call_method0("suppress_output").unwrap();

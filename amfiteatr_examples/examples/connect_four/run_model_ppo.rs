@@ -6,9 +6,10 @@ use amfiteatr_examples::connect_four::common::ErrorRL;
 use amfiteatr_examples::connect_four::env::ConnectFourRustEnvState;
 use amfiteatr_examples::connect_four::env_nd::ConnectFourRustNdEnvState;
 use amfiteatr_examples::connect_four::env_wrapped::PythonPettingZooStateWrap;
-use amfiteatr_examples::connect_four::model::{build_ppo_policy, C4PPOPolicy, ConnectFourModelRust};
+use amfiteatr_examples::connect_four::model::{ConnectFourModelRust};
 use amfiteatr_examples::connect_four::no_protocol_model::ConnectFourModelRustNoProtocol;
 use amfiteatr_examples::connect_four::options::{ConnectFourOptions, Implementation};
+use amfiteatr_examples::connect_four::policy::{build_ppo_policy, C4PPOPolicy};
 use amfiteatr_rl::policy::ConfigPPO;
 use amfiteatr_rl::tch::Device;
 
@@ -86,7 +87,7 @@ fn main() -> Result<(), ErrorRL>{
                 agent_policy_1,
                 true
             );
-            Python::with_gil(|py|{
+            Python::attach(|py|{
                 let pylogger = py.import("pettingzoo.utils.env_logger").unwrap();
                 pylogger.getattr("EnvLogger").unwrap()
                    .call_method0("suppress_output").unwrap();

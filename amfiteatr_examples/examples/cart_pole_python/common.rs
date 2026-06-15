@@ -1,5 +1,5 @@
 use std::fmt::{Display, Formatter};
-use pyo3::{DowncastError, PyErr};
+use pyo3::PyErr;
 use amfiteatr_core::scheme::{Action, Scheme};
 use amfiteatr_core::error::ConvertError;
 use amfiteatr_rl::error::TensorRepresentationError;
@@ -47,11 +47,14 @@ impl From<PyErr> for CartPoleError {
         Self::InsidePython {description: format!("{}", value)}
     }
 }
+/*
 impl<'a, 'py> From<DowncastError<'a, 'py>> for CartPoleError {
     fn from(value: DowncastError<'a, 'py>) -> Self {
         Self::InsidePython {description: format!("Python downcast error {}", value)}
     }
 }
+
+ */
 
 #[derive(Debug, Copy, Clone)]
 pub enum CartPoleAction{
