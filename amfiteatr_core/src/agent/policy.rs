@@ -277,19 +277,6 @@ mod mcp{
             let mut internal = self.internal.lock().await;
             internal.call_on_episode_start()
 
-            /*
-            match internal.call_on_episode_start()
-            {
-                Ok(_) => Ok(CallToolResult::success(vec![])),
-                Err(e) => Err(ErrorData::internal_error(
-                    format!("Failed to policy preparation on beginning of the episode ({e})"),
-                    None
-                ))
-            }
-
-             */
-
-
 
         }
 
@@ -301,19 +288,6 @@ mod mcp{
             let mut internal = self.internal.lock().await;
             internal.call_on_episode_finish(payoff)
 
-            /*
-            match internal.call_on_episode_finish(payoff){
-                Ok(_) => Ok(CallToolResult::success(vec![])),
-                Err(e) => Err(ErrorData::internal_error(
-                    format!("Failed to policy preparation on beginning of the episode ({e})"),
-                    None
-                ))
-            }
-
-             */
-
-
-
         }
 
         pub async fn call_between_epochs(&self) -> Result<(), AmfiteatrError<SC>>
@@ -321,19 +295,14 @@ mod mcp{
             let mut internal = self.internal.lock().await;
 
             internal.call_between_epochs()
-            /*
-            match internal.call_between_epochs(){
-                Ok(_) => Ok(CallToolResult::success(vec![])),
-                Err(e) => Err(ErrorData::internal_error(
-                    format!("Failed to policy preparation on beginning of the episode ({e})"),
-                    None
-                ))
-            }
-
-             */
 
 
 
+
+        }
+
+        pub fn name(&self) -> &str{
+            &self.policy_name[..]
         }
     }
 }

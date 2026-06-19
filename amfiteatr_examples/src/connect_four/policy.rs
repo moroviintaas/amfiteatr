@@ -1,4 +1,5 @@
 use std::sync::{Arc, Mutex};
+use amfiteatr_proc_macro::mcp_policy;
 use amfiteatr_rl::error::AmfiteatrRlError;
 use amfiteatr_rl::policy::{ConfigA2C, ConfigPPO, PolicyDiscreteA2C, PolicyDiscretePPO, PolicyMaskingDiscreteA2C, PolicyMaskingDiscretePPO};
 use amfiteatr_rl::tch::Device;
@@ -10,6 +11,16 @@ use crate::connect_four::common::ConnectFourScheme;
 use crate::connect_four::agent::ConnectFourInfoSet;
 use amfiteatr_rl::tch::nn::OptimizerConfig;
 
+use rmcp::ErrorData as McpError;
+use rmcp::model::{
+    GetPromptRequestParams,
+    GetPromptResult,
+    PaginatedRequestParams,
+    ListPromptsResult,
+    Meta,
+};
+use rmcp::service::RequestContext;
+use rmcp::RoleServer;
 pub type C4A2CPolicy = PolicyDiscreteA2C<ConnectFourScheme, ConnectFourInfoSet, ConnectFourTensorReprD1, ConnectFourActionTensorRepresentation>;
 #[allow(dead_code)]
 pub type C4A2CPolicyMasking = PolicyMaskingDiscreteA2C<ConnectFourScheme, ConnectFourInfoSet, ConnectFourTensorReprD1, ConnectFourActionTensorRepresentation>;
@@ -117,3 +128,8 @@ pub fn build_ppo_policy_masking(layer_sizes: &[i64], device: Device, config: Con
     )
 }
 
+
+#[mcp_policy(target = std::sync::Arc<std::sync::Mutex<C4PPOPolicyMasking>>, scheme = ConnectFourScheme, seed_type = () )]
+//#[mcp_policy(target = C4PPOPolicyMasking, scheme = ConnectFourScheme, seed_type = () )]
+
+pub struct McpPolicyPPOConnectFour;

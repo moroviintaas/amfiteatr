@@ -200,7 +200,7 @@ pub fn impl_mcp_env_state(attr: proc_macro::TokenStream, item: proc_macro::Token
                         rmcp::model::ServerCapabilities::builder()
                             .enable_tools()
                             .enable_prompts()
-                            .enable_tasks()
+                            //.enable_tasks()
                             .build()
                     )
                         .with_server_info(rmcp::model::Implementation::from_build_env())
@@ -260,7 +260,7 @@ pub fn impl_mcp_information_set(attr: proc_macro::TokenStream, item: proc_macro:
                 processor: std::sync::Arc<tokio::sync::Mutex<rmcp::task_manager::OperationProcessor>>,
             }
 
-            #[tool_router]
+            #[rmcp::tool_router]
             #[automatically_derived]
             impl #mcp_struct_name {
                 pub fn mcp_new(game_name: String, usage: String, initial_sets: std::collections::HashMap<<#scheme as amfiteatr_core::scheme::Scheme>::AgentId, #ident>) -> Self{
@@ -321,7 +321,7 @@ pub fn impl_mcp_policy(attr: proc_macro::TokenStream, item: proc_macro::TokenStr
                 processor: std::sync::Arc<tokio::sync::Mutex<rmcp::task_manager::OperationProcessor>>,
             }
 
-            #[tool_router]
+            #[rmcp::tool_router]
             #[automatically_derived]
             impl #impl_generics #struct_name #ty_generics #where_clause{
                 pub fn mcp_new(policy: #target_type, policy_name: String, usage: String) -> Self{
@@ -382,10 +382,43 @@ pub fn impl_mcp_policy(attr: proc_macro::TokenStream, item: proc_macro::TokenStr
 
             }
 
-            #[prompt_router]
+            #[rmcp::prompt_router]
             #[automatically_derived]
             impl #impl_generics #struct_name #ty_generics #where_clause{
 
+            }
+
+            #[rmcp::tool_handler(meta = Meta(rmcp::object!({"tool_meta_key": "tool_meta_value"})))]
+            #[rmcp::prompt_handler(meta = Meta(rmcp::object!({"router_meta_key": "router_meta_value"})))]
+            //#[rmcp::task_handler]
+            #[automatically_derived]
+            impl #impl_generics rmcp::ServerHandler for #struct_name #ty_generics #where_clause{
+                fn get_info(&self) -> rmcp::model::ServerInfo {
+
+                    rmcp::model::ServerInfo::new(
+                        rmcp::model::ServerCapabilities::builder()
+                            .enable_tools()
+                            .enable_prompts()
+                            .enable_tasks()
+                            .build()
+                    )
+                        .with_server_info(rmcp::model::Implementation::from_build_env())
+                        .with_protocol_version(rmcp::model::ProtocolVersion::V_2024_11_05)
+                        .with_instructions(format!("Policy  {} - advices player (or agent) what to do in current situation", self.policy_wrap.name()))
+                }
+
+                async fn initialize(
+                    &self,
+                    _request: rmcp::model::InitializeRequestParams,
+                    context: rmcp::service::RequestContext<rmcp::RoleServer>,
+                ) -> Result<rmcp::model::InitializeResult, rmcp::ErrorData> {
+                    if let Some(http_request_part) = context.extensions.get::<axum::http::request::Parts>() {
+                        let initialize_headers = &http_request_part.headers;
+                        let initialize_uri = &http_request_part.uri;
+                        tracing::info!(?initialize_headers, %initialize_uri, "initialize from http server");
+                    }
+                    Ok(self.get_info())
+                }
             }
         }
     };

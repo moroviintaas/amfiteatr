@@ -200,5 +200,3 @@ impl McpInformationSetsConnectFour{
 
 }
 
-#[mcp_policy(target = policy::C4PPOPolicyMasking, scheme = ConnectFourScheme, seed_type = () )]
-pub struct McpPolicyPPOConnectFour;
