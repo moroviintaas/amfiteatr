@@ -104,8 +104,14 @@ pub struct ConnectFourOptions{
     pub tboard: Option<PathBuf>,
 
     #[arg(short = 'p', long = "rayon-pool-size", help = "Use threading pool of rayon with N threads") ]
-    pub rayon_pool: Option<usize>
+    pub rayon_pool: Option<usize>,
     //#[arg(short = 'r', long = "reward", default_value = "env")]
     //pub reward_source: RewardSource,
+    
+    #[arg(long="save-weights-agent-0", help = "File to save network weights for agent 0")]
+    pub output_weights_0: Option<PathBuf>,
+
+    #[arg(long="save-weights-agent-1", help = "File to save network weights for agent 1")]
+    pub output_weights_1: Option<PathBuf>,
 
 }

@@ -1,6 +1,6 @@
 use std::fmt::Debug;
 use std::marker::PhantomData;
-
+use std::path::Path;
 use rand::distr::uniform::{UniformFloat, UniformSampler};
 use tch::Kind::Float;
 use tch::nn::Optimizer;
@@ -18,7 +18,7 @@ use crate::error::AmfiteatrRlError;
 use crate::tensor_data::{ContextEncodeTensor, TensorEncoding};
 use crate::torch_net::NeuralNet1;
 use rand::rng;
-use amfiteatr_core::error::AmfiteatrError;
+use amfiteatr_core::error::{AmfiteatrError, TensorError};
 use crate::policy::{LearnSummary, LearningNetworkPolicyGeneric};
 pub use crate::policy::TrainConfig;
 
@@ -295,6 +295,12 @@ where <<InfoSet as PresentPossibleActions<S>>::ActionIteratorType as IntoIterato
     fn set_gradient_tracing(&mut self, enabled: bool) {
         self.network.set_gradient_tracing(enabled)
 
+    }
+
+    fn save(&self, output: impl AsRef<Path>) -> Result<(), AmfiteatrError<S>> {
+        self.network.save_variables(output).map_err(|error|
+            AmfiteatrError::Tensor { error: TensorError::Torch { context: "saving tensors".to_owned(), origin: format!("{error}")} }
+        )
     }
 
 }

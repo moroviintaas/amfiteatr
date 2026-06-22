@@ -191,6 +191,13 @@ impl< Output: NetOutput> NeuralNet< Output>{
         &self.var_store
     }
 
+    pub fn save_variables(&self, path: impl AsRef<std::path::Path>) -> Result<(), tch::TchError> {
+        match &self.var_store{
+            VariableStorage::Owned(vs) => {vs.save(path)},
+            VariableStorage::Shared(sa) => {sa.lock().unwrap().save(path)},
+        }
+    }
+
 }
 
 

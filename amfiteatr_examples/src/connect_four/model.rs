@@ -744,6 +744,12 @@ where <P as Policy<ConnectFourScheme>>::InfoSetType: Renew<ConnectFourScheme, ()
             }
 
         }
+        if let Some(path_weights_0) = &options.output_weights_0 {
+            self.agent0.policy().save(path_weights_0)?;
+        }
+        if let Some(path_weights_1) = &options.output_weights_1 {
+            self.agent1.policy().save(path_weights_1)?;
+        }
         Ok(())
     }
 

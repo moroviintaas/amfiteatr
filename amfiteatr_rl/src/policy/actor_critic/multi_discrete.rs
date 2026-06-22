@@ -1,6 +1,7 @@
 use std::fs::File;
 use std::marker::PhantomData;
 use std::fmt::Debug;
+use std::path::Path;
 use tboard::EventWriter;
 use tch::nn::Optimizer;
 use tch::{TchError, Tensor};
@@ -331,6 +332,12 @@ where <S as Scheme>::ActionType: ContextDecodeMultiIndexI64<ActionBuildContext>
         self.network.set_gradient_tracing(enabled)
 
     }
+
+    fn save(&self, output: impl AsRef<Path>) -> Result<(), AmfiteatrError<S>> {
+        self.network.save_variables(output).map_err(|error|
+            AmfiteatrError::Tensor { error: TensorError::Torch { context: "saving tensors".to_owned(), origin: format!("{error}")} }
+        )
+    }
 }
 
 /// Experimental PPO policy for actions from discrete actions space but sampled from
@@ -573,6 +580,10 @@ where
     fn set_gradient_tracing(&mut self, enabled: bool) {
         self.base.set_gradient_tracing(enabled)
 
+    }
+
+    fn save(&self, output: impl AsRef<Path>) -> Result<(), AmfiteatrError<S>> {
+        self.base.save(output)
     }
 
 

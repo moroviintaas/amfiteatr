@@ -1,6 +1,7 @@
 use std::fmt::Debug;
 use std::fs::File;
 use std::marker::PhantomData;
+use std::path::Path;
 use tboard::EventWriter;
 use tch::nn::Optimizer;
 use tch::Tensor;
@@ -343,7 +344,11 @@ where
 
     }
 
-
+    fn save(&self, output: impl AsRef<Path>) -> Result<(), AmfiteatrError<S>> {
+        self.network.save_variables(output).map_err(|error|
+            AmfiteatrError::Tensor { error: TensorError::Torch { context: "saving tensors".to_owned(), origin: format!("{error}")} }
+        )
+    }
 }
 
 
@@ -586,6 +591,10 @@ where
     fn set_gradient_tracing(&mut self, enabled: bool) {
         self.base.set_gradient_tracing(enabled)
 
+    }
+
+    fn save(&self, output: impl AsRef<Path>) -> Result<(), AmfiteatrError<S>> {
+        self.base.save(output)
     }
 
 }

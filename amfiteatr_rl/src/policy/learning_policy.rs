@@ -1,3 +1,4 @@
+use std::path::Path;
 use std::sync::{Arc, Mutex, RwLock};
 use tch::Tensor;
 use amfiteatr_core::agent::{
@@ -9,7 +10,7 @@ use amfiteatr_core::agent::{
 
 use amfiteatr_core::scheme::Scheme;
 use serde::{Deserialize, Serialize};
-use amfiteatr_core::error::AmfiteatrError;
+use amfiteatr_core::error::{AmfiteatrError, TensorError};
 use crate::error::AmfiteatrRlError;
 use crate::tensor_data::FloatTensorReward;
 
@@ -81,6 +82,7 @@ where <Self as Policy<S>>::InfoSetType: InformationSet<S>
     fn set_gradient_tracing(&mut self, enabled: bool);
 
 
+    fn save(&self, output: impl AsRef<std::path::Path>) -> Result<(), AmfiteatrError<S>>;
 
 }
 
@@ -118,6 +120,15 @@ impl<S: Scheme, T: LearningNetworkPolicyGeneric<S>> LearningNetworkPolicyGeneric
 
     }
 
+    fn save(&self, output: impl AsRef<Path>) -> Result<(), AmfiteatrError<S>> {
+        self.lock().map_or_else(
+            |e| Err(AmfiteatrError::Lock {
+                description: "Learning policy".to_string(),
+                object: format!{"{}", e} }),
+            |internal| Ok(internal.save(output)?)
+        )
+    }
+
 
 }
 
@@ -151,6 +162,14 @@ impl<S: Scheme, T: LearningNetworkPolicyGeneric<S>> LearningNetworkPolicyGeneric
         }
     }
 
+    fn save(&self, output: impl AsRef<Path>) -> Result<(), AmfiteatrError<S>> {
+        self.lock().map_or_else(
+            |e| Err(AmfiteatrError::Lock {
+                description: "Learning policy".to_string(),
+                object: format!{"{}", e} }),
+            |internal| Ok(internal.save(output)?)
+        )
+    }
 }
 
 impl<S: Scheme, T: LearningNetworkPolicyGeneric<S>> LearningNetworkPolicyGeneric<S> for RwLock<T>{
@@ -183,7 +202,16 @@ impl<S: Scheme, T: LearningNetworkPolicyGeneric<S>> LearningNetworkPolicyGeneric
         }
     }
 
+    fn save(&self, output: impl AsRef<Path>) -> Result<(), AmfiteatrError<S>> {
 
+         self.read().map_or_else(
+            |e| Err(AmfiteatrError::Lock {
+                description: "Learning policy".to_string(),
+                object: format!{"{}", e} }),
+            |internal| Ok(internal.save(output)?)
+        )
+
+    }
 }
 
 /// Alias for [`LearningNetworkPolicyGeneric`] where `Summary=`[`LearnSummary`].
