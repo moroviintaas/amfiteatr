@@ -50,18 +50,6 @@ where <Self as Policy<S>>::InfoSetType: InformationSet<S>
     fn switch_explore(&mut self, enabled: bool);
 
 
-
-
-
-    /*
-    /// If supported enable or disable exploration (with disabled exploration policy is expected to always select
-    /// action that seems the best).
-    fn enable_exploration(&mut self, enable: bool);
-
-
-     */
-    ///// Returns reference to current config of policy
-    //fn config(&self) -> &Self::TrainConfig;
     /// This is generic training function. Generic type `R` must produce reward tensor that
     /// agent got in this step. In traditional RL model it will be vectorised reward calculated
     /// by environment. This is in fact implemented by [`train_on_trajectories_env_reward`](LearningNetworkPolicyGeneric::train).
@@ -82,7 +70,9 @@ where <Self as Policy<S>>::InfoSetType: InformationSet<S>
     fn set_gradient_tracing(&mut self, enabled: bool);
 
 
-    fn save(&self, output: impl AsRef<std::path::Path>) -> Result<(), AmfiteatrError<S>>;
+    fn save(&self, output: impl AsRef<Path>) -> Result<(), AmfiteatrError<S>>;
+
+    fn load(&mut self, input: impl AsRef<Path>) -> Result<(), AmfiteatrError<S>>;
 
 }
 
@@ -129,7 +119,14 @@ impl<S: Scheme, T: LearningNetworkPolicyGeneric<S>> LearningNetworkPolicyGeneric
         )
     }
 
-
+    fn load(&mut self, input: impl AsRef<Path>) -> Result<(), AmfiteatrError<S>> {
+        self.lock().map_or_else(
+            |e| Err(AmfiteatrError::Lock {
+                description: "Learning policy".to_string(),
+                object: format!{"{}", e} }),
+            |mut internal| Ok(internal.load(input)?)
+        )
+    }
 }
 
 impl<S: Scheme, T: LearningNetworkPolicyGeneric<S>> LearningNetworkPolicyGeneric<S> for Mutex<T>{
@@ -168,6 +165,15 @@ impl<S: Scheme, T: LearningNetworkPolicyGeneric<S>> LearningNetworkPolicyGeneric
                 description: "Learning policy".to_string(),
                 object: format!{"{}", e} }),
             |internal| Ok(internal.save(output)?)
+        )
+    }
+
+    fn load(&mut self, input: impl AsRef<Path>) -> Result<(), AmfiteatrError<S>> {
+        self.lock().map_or_else(
+            |e| Err(AmfiteatrError::Lock {
+                description: "Learning policy".to_string(),
+                object: format!{"{}", e} }),
+            |mut internal| Ok(internal.load(input)?)
         )
     }
 }
@@ -211,6 +217,15 @@ impl<S: Scheme, T: LearningNetworkPolicyGeneric<S>> LearningNetworkPolicyGeneric
             |internal| Ok(internal.save(output)?)
         )
 
+    }
+
+    fn load(&mut self, input: impl AsRef<Path>) -> Result<(), AmfiteatrError<S>> {
+        self.write().map_or_else(
+            |e| Err(AmfiteatrError::Lock {
+                description: "Learning policy".to_string(),
+                object: format!{"{}", e} }),
+            |mut internal| Ok(internal.load(input)?)
+        )
     }
 }
 

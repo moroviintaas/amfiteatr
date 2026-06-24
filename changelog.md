@@ -1,6 +1,9 @@
 # Changelog
+## Version 0.15.0
++ Added methods `save` and `load` to `LearningNetworkPolicyGeneric`.
++ Added initial support for construction of MCP servers based on model objects.
 ## Version 0.14.0
-+ Added optional usage of replay buffer in implemented A2C and PPO polcies.
++ Added optional usage of replay buffer in implemented A2C and PPO policies.
 + Renamed `LearningNetworkPolicyDynamicCustomSummary` to `DynLearningNetworkPolicyGeneric` and
 `LearningNetworkPolicyDynamic` to `DynLearningNetworkPolicy` in RL crate.
 ## Version 0.13.0

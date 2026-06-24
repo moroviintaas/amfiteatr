@@ -340,6 +340,14 @@ impl<
         )
     }
 
+    fn load(&mut self, input: impl AsRef<Path>) -> Result<(), AmfiteatrError<S>> {
+        self.network.load_variables(input).map_err(|error|
+            AmfiteatrError::Tensor { error: TensorError::Torch { context: "loading tensors".to_owned(), origin: format!("{error}")} }
+        )
+    }
+
+
+
 
 }
 
@@ -570,5 +578,9 @@ impl <
 
     fn save(&self, output: impl AsRef<Path>) -> Result<(), AmfiteatrError<S>> {
         self.base.save(output)
+    }
+
+    fn load(&mut self, input: impl AsRef<Path>) -> Result<(), AmfiteatrError<S>> {
+        self.base.load(input)
     }
 }

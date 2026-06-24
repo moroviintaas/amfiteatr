@@ -198,6 +198,13 @@ impl< Output: NetOutput> NeuralNet< Output>{
         }
     }
 
+    pub fn load_variables(&mut self, path: impl AsRef<std::path::Path>) -> Result<(), tch::TchError> {
+        match &mut self.var_store{
+            VariableStorage::Owned(vs) => {vs.load(path)},
+            VariableStorage::Shared(sa) => {sa.lock().unwrap().load(path)},
+        }
+    }
+
 }
 
 

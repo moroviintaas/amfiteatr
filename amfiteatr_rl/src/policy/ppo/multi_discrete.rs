@@ -267,10 +267,15 @@ where <S as Scheme>::ActionType: ContextDecodeMultiIndexI64<ActionBuildContext>
 
     fn save(&self, output: impl AsRef<Path>) -> Result<(), AmfiteatrError<S>> {
         self.network.save_variables(output).map_err(|error|
-            AmfiteatrError::Tensor { error: TensorError::Torch { context: "saving tensors".to_owned(), origin: format!("{error}")} }
+            AmfiteatrError::Tensor { error: TensorError::Torch { context: "saving policy weights".to_owned(), origin: format!("{error}")} }
         )
     }
 
+    fn load(&mut self, input: impl AsRef<Path>) -> Result<(), AmfiteatrError<S>> {
+        self.network.load_variables(input).map_err(|error|
+            AmfiteatrError::Tensor { error: TensorError::Torch { context: "loading policy weights".to_owned(), origin: format!("{error}")} }
+        )
+    }
 }
 
 
@@ -657,4 +662,7 @@ impl<
         self.base.save(output)
     }
 
+    fn load(&mut self, input: impl AsRef<Path>) -> Result<(), AmfiteatrError<S>> {
+        self.base.load(input)
+    }
 }
