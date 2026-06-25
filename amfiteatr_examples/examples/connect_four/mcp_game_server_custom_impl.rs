@@ -9,7 +9,7 @@ use tracing_subscriber::{
 use amfiteatr_examples::connect_four::env_mcp::McpEnvironmentConnectFour;
 
 
-const BIND_ADDRESS: &str = "127.0.0.1:8000";
+const BIND_ADDRESS: &str = "127.0.0.1:7701";
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {

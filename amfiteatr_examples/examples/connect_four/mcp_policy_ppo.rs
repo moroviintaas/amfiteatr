@@ -16,7 +16,7 @@ use clap::Parser;
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]
 pub struct McpPolicyOptions{
-    #[arg(short = 'p', long = "port", default_value = "7002")]
+    #[arg(short = 'p', long = "port", default_value = "7703")]
     pub port: u16,
     #[arg(short = 'l', long = "load",)]
     pub load_weights: Option<PathBuf>,

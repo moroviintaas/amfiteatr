@@ -30,11 +30,13 @@ pub struct McpReqReward<Sc: Scheme >
     pub reward: Sc::UniversalReward,
 }
 
-#[derive(Clone)]
+#[derive(Clone, JsonSchema, Serialize, Deserialize)]
 pub struct McpReqSelectAction<SC: Scheme, IS: InformationSet<SC>>
     where
-        IS: Serialize + for<'a> Deserialize<'a> + JsonSchema
+        IS:  JsonSchema,
+        //SC: Serialize + for<'a> Deserialize<'a> + JsonSchema,
 {
+    #[cfg_attr(feature = "serde", serde(bound(serialize = "IS: serde::Serialize", deserialize = "IS: serde::Deserialize<'de>")))]
     pub information_set: IS,
     _sc: PhantomData<SC>,
 }

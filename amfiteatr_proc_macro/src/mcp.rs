@@ -332,6 +332,7 @@ pub fn impl_mcp_policy(attr: proc_macro::TokenStream, item: proc_macro::TokenStr
                         prompt_router: Self::prompt_router(),
                     }
                 }
+                #[rmcp::tool(description = "Selects action based on provided information set (a portion of state viewed by player/agent)")]
                 pub async fn select_action(&self, rmcp::handler::server::wrapper::Parameters(amfiteatr_core::util::mcp::McpReqSelectAction{information_set, ..}): rmcp::handler::server::wrapper::Parameters<amfiteatr_core::util::mcp::McpReqSelectAction<#scheme, #info_set_type>>)
                     -> Result<rmcp::model::CallToolResult, rmcp::ErrorData>
                 {
@@ -349,6 +350,7 @@ pub fn impl_mcp_policy(attr: proc_macro::TokenStream, item: proc_macro::TokenStr
                     }
                 }
 
+                #[rmcp::tool(description = "Call this tool on start of the episode, it does things specific to policy on the start of the game - it is defined by specific policy and usually is some internal adjustment.")]
                 pub async fn call_on_episode_start(&self) ->  Result<rmcp::model::CallToolResult, rmcp::ErrorData>{
                     match self.policy_wrap.call_on_episode_start().await{
                         Ok(_) => Ok(rmcp::model::CallToolResult::success(vec![])),
@@ -359,6 +361,7 @@ pub fn impl_mcp_policy(attr: proc_macro::TokenStream, item: proc_macro::TokenStr
                     }
                 }
 
+                #[rmcp::tool(description = "Call this tool on start of the episode, it does things specific to policy on the end of the game - it is defined by specific policy and usually is some internal adjustment.")]
                 pub async fn call_on_episode_finish(&self, rmcp::handler::server::wrapper::Parameters(amfiteatr_core::util::mcp::McpReqReward{reward}): rmcp::handler::server::wrapper::Parameters<amfiteatr_core::util::mcp::McpReqReward<#scheme>>) ->  Result<rmcp::model::CallToolResult, rmcp::ErrorData>{
                     match self.policy_wrap.call_on_episode_finish(reward).await{
                         Ok(_) => Ok(rmcp::model::CallToolResult::success(vec![])),
@@ -369,6 +372,7 @@ pub fn impl_mcp_policy(attr: proc_macro::TokenStream, item: proc_macro::TokenStr
                     }
                 }
 
+                #[rmcp::tool(description = "Call this between learning epochs, it does things specific to policy on the end of the game - it is defined by specific policy and usually is some internal logic to prepare for new learning epoch.")]
                 pub async fn call_between_epochs(&self) ->  Result<rmcp::model::CallToolResult, rmcp::ErrorData>{
                     match self.policy_wrap.call_on_episode_start().await{
                         Ok(_) => Ok(rmcp::model::CallToolResult::success(vec![])),
