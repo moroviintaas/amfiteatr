@@ -2,7 +2,7 @@ use log::warn;
 use amfiteatr_core::scheme::{Scheme, Renew};
 use amfiteatr_core::env::{SequentialGameState, GameStateWithPayoffs};
 use amfiteatr_core::error::AmfiteatrError;
-use amfiteatr_proc_macro::{mcp_env_state};
+use amfiteatr_proc_macro::{mcp_env_state, mcp_policy};
 use crate::connect_four::common::{Board, ConnectFourAction, ConnectFourBinaryObservation, ConnectFourScheme, ConnectFourError, ConnectFourPlayer};
 
 /// We need this because macros for handler in `rmcp` expect structures in it to be visible.
@@ -14,7 +14,7 @@ use rmcp::{
     //ServiceError
 };
 
-#[mcp_env_state(scheme = ConnectFourScheme, seed_type = ())]
+//#[mcp_env_state(scheme = ConnectFourScheme, seed_type = ())]
 #[derive(Clone, Debug)]
 pub struct ConnectFourRustEnvState{
     board: Board,
@@ -28,6 +28,11 @@ pub struct ConnectFourRustEnvState{
     render: bool
 
 }
+
+
+#[mcp_env_state(target = ConnectFourRustEnvState, scheme = ConnectFourScheme, seed_type = () )]
+#[derive(Clone, Debug)]
+pub struct McpConnectFourRustEnvState;
 
 impl Default for ConnectFourRustEnvState{
     fn default() -> Self {

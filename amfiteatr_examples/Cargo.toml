@@ -32,9 +32,7 @@ required-features = ["rl-python"]
 name = "mcp_policy_ppo"
 path = "examples/connect_four/mcp_policy_ppo.rs"
 
-[[example]]
-name = "connect_four_mcp_game_server"
-path = "examples/connect_four/mcp_game_server_custom_impl.rs"
+
 
 [[example]]
 name = "cart_pole"
@@ -72,11 +70,11 @@ required-features = ["rl-python"]
 path = "examples/connect_four/run_model_ppo_masking.rs"
 
 [[example]]
-name = "connect_four_mcp_environment_custom_impl"
+name = "mcp_c4_env_custom"
 path = "examples/connect_four/mcp_game_server_custom_impl.rs"
 
 [[example]]
-name = "connect_four_mcp_environment_macro_impl"
+name = "mcp_c4_env"
 path = "examples/connect_four/mcp_game_server_macro_impl.rs"
 
 [[example]]
