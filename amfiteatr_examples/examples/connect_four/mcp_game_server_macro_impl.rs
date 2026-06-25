@@ -1,3 +1,5 @@
+use std::path::PathBuf;
+use clap::Parser;
 use rmcp::transport::streamable_http_server::{
     StreamableHttpServerConfig, StreamableHttpService, session::local::LocalSessionManager,
 };
@@ -9,7 +11,13 @@ use tracing_subscriber::{
 use amfiteatr_examples::connect_four::env::{ConnectFourRustEnvState, McpConnectFourRustEnvState};
 
 
-const BIND_ADDRESS: &str = "127.0.0.1:7702";
+
+#[derive(Parser)]
+#[command(author, version, about, long_about = None)]
+pub struct McpEnvOptions{
+    #[arg(short = 'p', long = "port", default_value = "7701")]
+    pub port: u16,
+}
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -21,6 +29,7 @@ async fn main() -> anyhow::Result<()> {
         .with(tracing_subscriber::fmt::layer())
         .init();
     let ct = tokio_util::sync::CancellationToken::new();
+    let args = McpEnvOptions::try_parse()?;
 
     let service = StreamableHttpService::new(
         || Ok(McpConnectFourRustEnvState::mcp_new(ConnectFourRustEnvState::new())),
@@ -30,7 +39,7 @@ async fn main() -> anyhow::Result<()> {
 
     let router = axum::Router::new().nest_service("/mcp", service);
 
-    let tcp_listener = tokio::net::TcpListener::bind(BIND_ADDRESS).await?;
+    let tcp_listener = tokio::net::TcpListener::bind(format!("0.0.0.0:{}", args.port)).await?;
     let _ = axum::serve(tcp_listener, router)
         .with_graceful_shutdown(async move {
             tokio::signal::ctrl_c().await.unwrap();
