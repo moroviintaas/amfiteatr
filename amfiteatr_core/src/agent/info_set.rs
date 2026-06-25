@@ -127,8 +127,8 @@ mod mcp{
 
     impl<
         SC: Scheme,
-        IS: InformationSet<SC> + Serialize + for<'a> Deserialize<'a> + JsonSchema + Renew<SC, Seed> + Renew<SC, ()>,
-        Seed: Serialize + for<'a> Deserialize<'a> + JsonSchema
+        IS: InformationSet<SC> + Serialize + for<'a> Deserialize<'a> + JsonSchema + Renew<SC, Seed>,
+        Seed: Serialize + for<'a> Deserialize<'a> + JsonSchema + Clone
     > McpCoreInformationSets<SC, IS, Seed>
     where
         SC::ActionType: Serialize + for<'a> Deserialize<'a> + JsonSchema,
@@ -139,11 +139,11 @@ mod mcp{
             Self{game_name, usage, internal: Arc::new(Mutex::new(info_set_map)), _seed: PhantomData::default()}
         }
 
-        pub async fn reset_information_sets(&self) -> Result<(), ErrorData>{
+        pub async fn reset_information_sets(&self, seed: Seed) -> Result<(), ErrorData>{
             let mut hm = self.internal.lock().await;
 
             for is in hm.values_mut(){
-                let _ = is.renew_from(());
+                let _ = is.renew_from(seed.clone());
             }
             Ok(())
         }

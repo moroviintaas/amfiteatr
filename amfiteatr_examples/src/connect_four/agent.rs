@@ -18,14 +18,26 @@ use rmcp::tool;
 use amfiteatr_proc_macro::{mcp_information_sets, mcp_policy};
 use amfiteatr_rl::policy::{PolicyDiscreteA2C, PolicyDiscretePPO, PolicyMaskingDiscreteA2C, PolicyMaskingDiscretePPO};
 use crate::connect_four::policy;
+use rmcp::ErrorData as McpError;
+use rmcp::model::{
+    GetPromptRequestParams,
+    GetPromptResult,
+    PaginatedRequestParams,
+    ListPromptsResult,
+    Meta,
+};
+use rmcp::service::RequestContext;
+use rmcp::RoleServer;
 
 
-#[mcp_information_sets(scheme = ConnectFourScheme, seed_type = ())]
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 pub struct ConnectFourInfoSet{
     id: ConnectFourPlayer,
     latest_observation: ConnectFourBinaryObservation
 }
+
+#[mcp_information_sets(target = ConnectFourInfoSet, scheme = ConnectFourScheme, seed_type = ())]
+pub struct McpConnectFourInfoSets;
 
 impl ConnectFourInfoSet{
     pub fn new(id: ConnectFourPlayer) -> Self{
@@ -156,21 +168,22 @@ impl MaskingInformationSetAction<ConnectFourScheme, ConnectFourActionTensorRepre
     }
 }
 
+/*
 
 /// Manually implemented Mcp server interface for ConnectFour Information sets.
 #[derive(Clone)]
-pub struct McpInformationSetsConnectFour{
+pub struct McpInformationSetsConnectFourManual {
     core: McpCoreInformationSets<ConnectFourScheme, ConnectFourInfoSet, ()>,
     #[allow(dead_code)]
-    tool_router: ToolRouter<McpInformationSetsConnectFour>,
+    tool_router: ToolRouter<McpInformationSetsConnectFourManual>,
     #[allow(dead_code)]
-    prompt_router: PromptRouter<McpInformationSetsConnectFour>,
+    prompt_router: PromptRouter<McpInformationSetsConnectFourManual>,
     #[allow(dead_code)]
     processor: Arc<Mutex<OperationProcessor>>,
 }
 
 #[tool_router]
-impl McpInformationSetsConnectFour{
+impl McpInformationSetsConnectFourManual {
     pub fn new(game_name: String, usage: String) -> Self{
         let hm = [(ConnectFourPlayer::One, ConnectFourInfoSet::new(ConnectFourPlayer::One)),
             (ConnectFourPlayer::Two, ConnectFourInfoSet::new(ConnectFourPlayer::Two)),
@@ -196,7 +209,10 @@ impl McpInformationSetsConnectFour{
 }
 
 #[prompt_router]
-impl McpInformationSetsConnectFour{
+impl McpInformationSetsConnectFourManual {
 
 }
 
+
+
+ */

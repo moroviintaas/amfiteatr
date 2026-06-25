@@ -130,6 +130,4 @@ pub fn build_ppo_policy_masking(layer_sizes: &[i64], device: Device, config: Con
 
 
 #[mcp_policy(target = std::sync::Arc<std::sync::Mutex<C4PPOPolicyMasking>>, scheme = ConnectFourScheme, seed_type = () )]
-//#[mcp_policy(target = C4PPOPolicyMasking, scheme = ConnectFourScheme, seed_type = () )]
-
 pub struct McpPolicyPPOConnectFour;
