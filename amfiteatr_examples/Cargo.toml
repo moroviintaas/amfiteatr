@@ -32,6 +32,9 @@ required-features = ["rl-python"]
 name = "mcp_policy_ppo"
 path = "examples/connect_four/mcp_policy_ppo.rs"
 
+[[example]]
+name = "mcp_information_sets"
+path = "examples/connect_four/mcp_information_sets.rs"
 
 
 [[example]]

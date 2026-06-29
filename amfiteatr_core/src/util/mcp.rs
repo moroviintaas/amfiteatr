@@ -40,3 +40,17 @@ pub struct McpReqSelectAction<SC: Scheme, IS: InformationSet<SC>>
     pub information_set: IS,
     _sc: PhantomData<SC>,
 }
+
+#[derive(Clone, JsonSchema, Serialize, Deserialize)]
+pub struct McpReqUpdateInformationSet<SC: Scheme>
+where
+    SC::AgentId: JsonSchema,
+    SC::UpdateType: Serialize + for<'a> Deserialize<'a> + JsonSchema,
+{
+    /// Id of the agent whose information set is updated
+    #[cfg_attr(feature = "serde", serde(bound(serialize = "SC::AgentId: serde::Serialize", deserialize = "SC::AgentId: serde::Deserialize<'de>")))]
+    pub agent_id: SC::AgentId,
+    /// The list of updates to apply - in chronological order.
+    //#[cfg_attr(feature = "serde", serde(bound(serialize = "SC::UpdateType: serde::Serialize", deserialize = "SC::UpdateType: serde::Deserialize<'de>")))]
+    pub updates: Vec<SC::UpdateType>,
+}

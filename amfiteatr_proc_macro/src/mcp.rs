@@ -285,7 +285,7 @@ pub fn impl_mcp_information_set(attr: proc_macro::TokenStream, item: proc_macro:
             #[rmcp::tool_router]
             #[automatically_derived]
             impl #impl_generics #struct_name #ty_generics #where_clause{
-                pub fn mcp_new(game_name: String, usage: String, initial_sets: std::collections::HashMap<<#scheme as amfiteatr_core::scheme::Scheme>::AgentId, #target_type>) -> Self{
+                pub fn mcp_new(initial_sets: std::collections::HashMap<<#scheme as amfiteatr_core::scheme::Scheme>::AgentId, #target_type>, game_name: String, usage: String, ) -> Self{
                     Self{
                         core: amfiteatr_core::agent::McpCoreInformationSets::new(initial_sets, game_name, usage),
                         tool_router: Self::tool_router(),
@@ -298,10 +298,25 @@ pub fn impl_mcp_information_set(attr: proc_macro::TokenStream, item: proc_macro:
                     &self,
                     rmcp::handler::server::wrapper::Parameters(initial_info_set): rmcp::handler::server::wrapper::Parameters<#seed_type>
                 ) -> Result<rmcp::model::CallToolResult, rmcp::ErrorData>{
-                    match self.core.reset_information_sets(initial_info_set).await{
+                    match self.core.reset_all_information_sets(initial_info_set).await{
                         Ok(_) => Ok(rmcp::model::CallToolResult::success(vec![])),
                         Err(e) => Err(rmcp::ErrorData::internal_error(
                             format!("Failed to reset information sets: ({e})"),
+                            None
+                        ))
+                    }
+                }
+
+                #[tool(description = "Update one of tracked information sets.")]
+                pub async fn update_information_set(
+                    &self,
+                    rmcp::handler::server::wrapper::Parameters(amfiteatr_core::util::mcp::McpReqUpdateInformationSet{agent_id, updates}): rmcp::handler::server::wrapper::Parameters<amfiteatr_core::util::mcp::McpReqUpdateInformationSet<#scheme>>
+                ) -> Result<rmcp::model::CallToolResult, rmcp::ErrorData>{
+
+                    match self.core.update_information_set(agent_id, updates).await{
+                        Ok(_) => Ok(rmcp::model::CallToolResult::success(vec![])),
+                        Err(e) => Err(rmcp::ErrorData::internal_error(
+                            format!("Failed to update information set for argent: {agent_id:?}: ({e})"),
                             None
                         ))
                     }

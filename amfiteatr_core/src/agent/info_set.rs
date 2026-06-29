@@ -97,15 +97,7 @@ mod mcp{
     use rmcp::model::{CallToolResult, Content};
     use crate::util::mcp::McpReqArgAgentId;
 
-    #[derive(Clone)]
-    pub struct McpRequestUpdateInformationSet<SC: Scheme>
-    where
-        SC::AgentId: Serialize + for<'a> Deserialize<'a> + JsonSchema,
-        SC::UpdateType: Serialize + for<'a> Deserialize<'a> + JsonSchema,
-    {
-        agent_id: SC::AgentId,
-        updates: Vec<SC::UpdateType>,
-    }
+
 
     #[derive(Clone)]
     pub struct McpCoreInformationSets<
@@ -139,7 +131,7 @@ mod mcp{
             Self{game_name, usage, internal: Arc::new(Mutex::new(info_set_map)), _seed: PhantomData::default()}
         }
 
-        pub async fn reset_information_sets(&self, seed: Seed) -> Result<(), ErrorData>{
+        pub async fn reset_all_information_sets(&self, seed: Seed) -> Result<(), ErrorData>{
             let mut hm = self.internal.lock().await;
 
             for is in hm.values_mut(){
@@ -148,7 +140,7 @@ mod mcp{
             Ok(())
         }
 
-        pub async fn update_information_set(&self, Parameters(McpRequestUpdateInformationSet{agent_id, updates}): Parameters<McpRequestUpdateInformationSet<SC>>)
+        pub async fn update_information_set(&self, agent_id: SC::AgentId, updates: Vec<SC::UpdateType>)
         -> Result<(), ErrorData>{
             let mut hm = self.internal.lock().await;
 
