@@ -349,7 +349,7 @@ where   SC::ActionType: Serialize + for<'a> Deserialize<'a> + JsonSchema,
                 PromptMessage::new_text(
                     PromptMessageRole::Assistant,
                     "Now you should apply them to update the information set  responsible for maintaining that player's knowledge if situation.\
-                    This may be external program or avaiable MCP server".to_string()
+                    This may be external program or available MCP server".to_string()
                 ),
                 PromptMessage::new_text(
                     PromptMessageRole::User,

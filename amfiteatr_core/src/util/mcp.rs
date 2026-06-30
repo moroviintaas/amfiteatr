@@ -9,6 +9,7 @@ use crate::scheme::Scheme;
 #[derive(JsonSchema, Serialize, Deserialize)]
 pub struct McpReqArgAgentId<Sc: Scheme >
 where Sc::AgentId: JsonSchema{
+    /// Id of the agent for whom operation is to be made
     pub agent_id: Sc::AgentId
 }
 
@@ -19,7 +20,9 @@ pub struct McpReqArgAgentAction<Sc: Scheme >
 where Sc::AgentId: JsonSchema,
     Sc::ActionType: JsonSchema,
 {
+    /// Id of the agent whose information set is updated
     pub agent_id: Sc::AgentId,
+    /// Game action to be included as argument (for example to be performed in environment)
     pub action: Sc::ActionType,
 }
 
@@ -27,6 +30,7 @@ where Sc::AgentId: JsonSchema,
 pub struct McpReqReward<Sc: Scheme >
     where Sc::UniversalReward: JsonSchema,
 {
+    /// Noted reward
     pub reward: Sc::UniversalReward,
 }
 
@@ -36,6 +40,7 @@ pub struct McpReqSelectAction<SC: Scheme, IS: InformationSet<SC>>
         IS:  JsonSchema,
         //SC: Serialize + for<'a> Deserialize<'a> + JsonSchema,
 {
+    /// Representation of information set (game state viewed from perspective of a player).
     #[cfg_attr(feature = "serde", serde(bound(serialize = "IS: serde::Serialize", deserialize = "IS: serde::Deserialize<'de>")))]
     pub information_set: IS,
     _sc: PhantomData<SC>,
